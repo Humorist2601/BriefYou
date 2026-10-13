@@ -18,7 +18,8 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 - **Read aloud** — any summary or gist can be read aloud.
 
 ### Calmer feeds
-- **One digest notification** ("12 new articles · From 5 feeds") instead of one notification per article grouped by site.
+- **One digest notification** ("12 new articles · From 5 feeds") instead of one notification per article grouped by site. It is posted once, a couple of seconds after a sync finishes, so everything arrives together. It lists one line per feed (for example `Feed name (3) · latest title`), so busy feeds never push the others out.
+- **Reading time** — article items in the list show an estimate like `2h · 4 min read` next to the time. Feeds that only send a short teaser show no estimate rather than a wrong one.
 - **Muted keywords** — unread articles mentioning them are marked read after each sync.
 - **Duplicate stories** — when several feeds publish the same story, only the first stays unread.
 - **Recently filtered** — the Filters page lists everything that was hidden and why (which word, or which story it duplicated). Tap to open it, or *Undo* to bring it back and stop it being filtered again. Entries are removed together with their articles.
@@ -38,7 +39,7 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 
 ### Releases
 - APKs are built for 64-bit ARM phones (arm64-v8a), which covers practically every phone that can run the on-device model.
-- Every change is built by GitHub Actions and published to [Releases](../../releases) with a rising version number, so each APK installs as an update (works with updaters like Obtainium).
+- Every change is built by GitHub Actions and published to [Releases](../../releases) as **Brief You 0.16.2+N**, where `0.16.2` is the app version and `N` is a rising build number, so each APK installs as an update (works with updaters like Obtainium). The release tag uses the same `0.16.2+N` format.
 
 ## Setting up the AI
 
