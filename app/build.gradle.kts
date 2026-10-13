@@ -42,10 +42,8 @@ android {
         applicationId = "me.ash.reader"
         minSdk = 26
         targetSdk = 34
-        // CI builds of this fork get a rising version so each release installs as an update.
-        val ciBuild = System.getenv("CI_BUILD_NUMBER")?.toIntOrNull()
-        versionCode = if (ciBuild != null) 1000 + ciBuild else 47
-        versionName = if (ciBuild != null) "0.16.2+$ciBuild" else "0.16.2"
+        versionCode = 47
+        versionName = "0.16.2"
 
         buildConfigField(
             "String",
@@ -71,6 +69,12 @@ android {
             dimension = "channel"
             // Brief You (fork of Read You) has its own app ID, so it installs next to Read You.
             applicationId = "io.github.humorist2601.briefyou"
+            // CI builds get a rising version so each release installs as an update. Kept here,
+            // away from the upstream version lines, so Read You's version bumps merge cleanly.
+            System.getenv("CI_BUILD_NUMBER")?.toIntOrNull()?.let { build ->
+                versionCode = 1000 + build
+                versionNameSuffix = "+$build"
+            }
         }
         create("fdroid") { dimension = "channel" }
         create("googlePlay") {
@@ -100,9 +104,10 @@ android {
         all { signingConfig = signingConfigs.getByName("release") }
     }
     applicationVariants.all {
+        val variantVersion = versionName
         outputs.all {
             (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                "BriefYou-${defaultConfig.versionName}-${gitCommitHash}.apk"
+                "BriefYou-${variantVersion}-${gitCommitHash}.apk"
         }
     }
     kotlinOptions {
