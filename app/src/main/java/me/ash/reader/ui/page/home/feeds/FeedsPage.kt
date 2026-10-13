@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.UnfoldLess
@@ -214,15 +213,6 @@ fun FeedsPage(
                     }
                 },
                 actions = {
-                    FeedbackIconButton(
-                        imageVector = Icons.Outlined.WbSunny,
-                        contentDescription = stringResource(R.string.briefing_title),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    ) {
-                        context.startActivity(
-                            me.ash.reader.infrastructure.ai.MorningBriefing.openBriefingIntent(context)
-                        )
-                    }
                     if (subscribeViewModel.rssService.get().addSubscription) {
                         FeedbackIconButton(
                             imageVector = Icons.Rounded.Add,

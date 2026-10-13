@@ -1,6 +1,6 @@
 package me.ash.reader.ui.page.home.flow
 
-import me.ash.reader.infrastructure.ai.rememberSavedOneLiner
+import me.ash.reader.ui.component.rememberFeedAccent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -107,7 +107,6 @@ fun ArticleItem(
         imgData = article.img,
         isStarred = article.isStarred,
         isUnread = isUnread,
-        aiSummary = rememberSavedOneLiner(article.id),
         onClick = { onClick(articleWithFeed) },
         onLongClick = onLongClick,
     )
@@ -125,7 +124,6 @@ fun ArticleItem(
     imgData: Any? = null,
     isStarred: Boolean = false,
     isUnread: Boolean = false,
-    aiSummary: String? = null,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
@@ -173,7 +171,8 @@ fun ArticleItem(
                                 end = 10.dp,
                             ),
                     text = feedName,
-                    color = MaterialTheme.colorScheme.tertiary,
+                    // Brief You: a muted accent taken from the feed's icon.
+                    color = rememberFeedAccent(feedIconUrl) ?: MaterialTheme.colorScheme.tertiary,
                     style = MaterialTheme.typography.labelMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -251,18 +250,6 @@ fun ArticleItem(
                             Spacer(modifier = Modifier.width(16.dp))
                         }
                     }
-                }
-
-                // Saved on-device AI summary (Brief You)
-                if (!aiSummary.isNullOrBlank()) {
-                    Text(
-                        modifier = Modifier.padding(top = 4.dp),
-                        text = "✦ $aiSummary",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
                 }
 
                 // Description

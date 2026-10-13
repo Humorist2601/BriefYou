@@ -21,6 +21,7 @@ constructor(
     private val workManager: WorkManager,
     private val briefFilters: BriefFilters,
     private val summaryStore: SummaryStore,
+    private val feedIconOverrides: FeedIconOverrides,
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -40,6 +41,8 @@ constructor(
                 runCatching { summaryStore.delete(removed.map { it.id }) }
                 // Brief You: mute keywords and duplicate stories.
                 runCatching { briefFilters.apply(accountId) }
+                // Brief You: custom feed icons survive syncs that rewrite icons.
+                runCatching { feedIconOverrides.reapply() }
                 workManager
                     .beginUniqueWork(
                         uniqueWorkName = POST_SYNC_WORK_NAME,

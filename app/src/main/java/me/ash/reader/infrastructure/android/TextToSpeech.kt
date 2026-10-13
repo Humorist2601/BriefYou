@@ -38,54 +38,18 @@ class TextToSpeechManager @Inject constructor(
             _stateFlow.value = value
         }
 
-    // Brief You: the speech engine and rate are chosen in Settings → AI & voice.
-    private val voicePrefs = context.getSharedPreferences("voice_settings", Context.MODE_PRIVATE)
-
-    /** Package of the chosen speech engine, or null for the system default. */
-    var enginePackage: String? = voicePrefs.getString("engine", null)
-        private set
-
-    var speechRate: Float = voicePrefs.getFloat("rate", 1f)
-        private set
-
-    private var tts: TextToSpeech = initTts()
+    private val tts: TextToSpeech = initTts()
 
     private fun initTts(): TextToSpeech {
-        val listener = TextToSpeech.OnInitListener {
+        return TextToSpeech(context, TextToSpeech.OnInitListener {
             when (it) {
-                TextToSpeech.SUCCESS -> {
-                    if (state == State.Error) state = State.Idle
-                }
+                TextToSpeech.SUCCESS -> {}
                 else -> {
                     state = State.Error
                     Timber.e("TextToSpeech initialization failed $it")
                 }
             }
-        }
-        return (enginePackage?.let { TextToSpeech(context, listener, it) }
-                ?: TextToSpeech(context, listener))
-            .also { it.setSpeechRate(speechRate) }
-    }
-
-    /** Installed speech engines as (package, label). */
-    fun installedEngines(): List<Pair<String, String>> =
-        tts.engines.map { it.name to it.label }
-
-    /** The engine actually in use (the chosen one, or the system default). */
-    fun currentEngine(): String? = enginePackage ?: tts.defaultEngine
-
-    fun setEngine(pkg: String?) {
-        stop()
-        tts.shutdown()
-        enginePackage = pkg
-        voicePrefs.edit().apply { if (pkg == null) remove("engine") else putString("engine", pkg) }.apply()
-        tts = initTts()
-    }
-
-    fun setRate(rate: Float) {
-        speechRate = rate
-        voicePrefs.edit().putFloat("rate", rate).apply()
-        tts.setSpeechRate(rate)
+        })
     }
 
     sealed interface State {

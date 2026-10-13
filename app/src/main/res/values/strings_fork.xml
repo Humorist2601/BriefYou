@@ -37,8 +37,8 @@
     </plurals>
 
     <!-- Settings → AI model -->
-    <string name="ai_settings">AI &amp; voice</string>
-    <string name="ai_settings_desc">On-device model, instructions, voices, morning briefing</string>
+    <string name="ai_settings">AI model</string>
+    <string name="ai_settings_desc">On-device Gemma, summaries, gist instructions</string>
     <string name="ai_settings_model">Model</string>
     <string name="ai_settings_status_missing">No model imported</string>
     <string name="ai_settings_status_ready">Imported · %1$s</string>
@@ -46,9 +46,6 @@
     <string name="ai_settings_status_failed">Import failed: %1$s</string>
     <string name="ai_settings_download">Download Gemma 4 E2B</string>
     <string name="ai_settings_download_desc">Opens Hugging Face. Download gemma-4-E2B-it.litertlm (about 2.6 GB).</string>
-    <string name="ai_settings_small_model">Smaller model: Gemma 3 1B</string>
-    <string name="ai_settings_small_model_desc">This phone has %1$s of memory. Use this if Gemma 4 is too slow (about 0.6 GB; needs a free Hugging Face login).</string>
-    <string name="ai_settings_small_model_desc_low">Recommended: this phone has %1$s of memory, which may be too little for Gemma 4 E2B (about 0.6 GB; needs a free Hugging Face login).</string>
     <string name="ai_settings_import">Import model file</string>
     <string name="ai_settings_import_desc">Choose a .litertlm file from your phone</string>
     <string name="ai_settings_remove">Remove model</string>
@@ -62,12 +59,7 @@
     <string name="ai_settings_privacy">Everything runs on this device. Articles and instructions are never sent anywhere.</string>
 
     <!-- Sheet extras -->
-    <string name="ai_translate">Translate</string>
     <string name="ai_saved_on_device">Saved · generated on this device</string>
-    <string name="ai_ask_placeholder">Ask a follow-up question…</string>
-    <string name="ai_ask_send">Ask</string>
-    <string name="ai_low_ram_warning">This phone has less than 6 GB of memory, so Gemma 4 E2B may be slow or fail to load. A smaller model like Gemma 3 1B works better; its page needs a free Hugging Face login and accepting the Gemma license.</string>
-    <string name="ai_get_small_model">Get Gemma 3 1B</string>
     <plurals name="ai_gist_mark_read">
         <item quantity="one">Mark this %1$d article as read</item>
         <item quantity="other">Mark these %1$d articles as read</item>
@@ -76,42 +68,6 @@
         <item quantity="one">%1$d article marked as read</item>
         <item quantity="other">%1$d articles marked as read</item>
     </plurals>
-
-    <!-- Morning briefing -->
-    <string name="briefing_title">Morning briefing</string>
-    <string name="briefing_channel">Morning briefing</string>
-    <string name="briefing_playback_channel">Briefing playback</string>
-    <string name="briefing_listen">Listen</string>
-    <string name="briefing_play">Play</string>
-    <string name="briefing_pause">Pause</string>
-    <string name="briefing_stop">Stop</string>
-    <string name="briefing_generating">Writing your briefing on this device…</string>
-    <string name="briefing_generate_now">Generate now</string>
-    <string name="briefing_empty">No briefing yet. Tap Generate now, or schedule one in Settings → AI &amp; voice.</string>
-    <string name="briefing_needs_model">Import a model in Settings → AI &amp; voice to get briefings.</string>
-    <string name="briefing_not_scheduled">Daily briefings are off. Turn them on in Settings → AI &amp; voice.</string>
-    <string name="briefing_widget_label">Brief You briefing</string>
-    <string name="briefing_widget_description">Your latest on-device morning briefing</string>
-    <string name="briefing_widget_empty">No briefing yet. Open the app to generate one.</string>
-    <string name="briefing_settings">Morning briefing</string>
-    <string name="briefing_settings_enabled">Daily briefing</string>
-    <string name="briefing_settings_enabled_desc">A notification with the gist of your newest unread articles</string>
-    <string name="briefing_settings_time">Time</string>
-    <string name="briefing_settings_source">Brief me on</string>
-    <string name="briefing_settings_all">All unread articles</string>
-    <string name="briefing_settings_open">Open latest briefing</string>
-
-    <!-- Voice -->
-    <string name="voice_settings">Voice</string>
-    <string name="voice_engine">Speech engine</string>
-    <string name="voice_engine_default">System default</string>
-    <string name="voice_rate">Speaking speed</string>
-    <string name="voice_download">Download natural voices</string>
-    <string name="voice_download_desc">Opens your speech engine\'s voice downloader (for Google, choose a voice and download it for offline use)</string>
-    <string name="voice_sherpa">Get SherpaTTS (offline neural voices)</string>
-    <string name="voice_sherpa_desc">Free, open-source engine with natural Piper voices that run on your phone. After installing, pick it as the speech engine above.</string>
-    <string name="voice_test">Test voice</string>
-    <string name="voice_test_sentence">This is how Brief You will read your briefings and summaries.</string>
 
     <!-- Filters -->
     <string name="filters_settings">Filters</string>
@@ -125,8 +81,22 @@
     <string name="filters_none">No muted keywords yet</string>
     <string name="filters_remove">Remove %1$s</string>
     <string name="filters_apply_now">Apply now</string>
+    <string name="filters_log">Recently filtered</string>
+    <string name="filters_log_empty">Nothing has been filtered yet. Articles hidden by your filters will appear here with the reason.</string>
+    <string name="filters_log_clear">Clear</string>
+    <string name="filters_log_undo">Undo</string>
+    <string name="filters_log_muted">Muted “%1$s” · %2$s</string>
+    <string name="filters_log_duplicate">%1$s · duplicate of %2$s: “%3$s”</string>
     <plurals name="filters_applied">
         <item quantity="one">%1$d article marked as read</item>
         <item quantity="other">%1$d articles marked as read</item>
     </plurals>
+
+    <!-- Custom feed icons -->
+    <string name="feed_icon_change">Change icon</string>
+    <string name="feed_icon_emoji">Emoji</string>
+    <string name="feed_icon_emoji_hint">Or type any emoji</string>
+    <string name="feed_icon_use">Use</string>
+    <string name="feed_icon_image">Choose an image</string>
+    <string name="feed_icon_website">Use the website\'s icon</string>
 </resources>

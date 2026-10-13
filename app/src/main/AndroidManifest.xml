@@ -4,9 +4,6 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Brief You: listening to the morning briefing with lock-screen controls -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
@@ -155,25 +152,6 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/article_card_widget_info" />
-        </receiver>
-
-        <!-- Brief You -->
-        <service
-            android:name=".infrastructure.ai.BriefingPlaybackService"
-            android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
-
-        <receiver
-            android:name=".ui.widget.BriefingWidgetReceiver"
-            android:label="@string/briefing_widget_label"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/briefing_widget_info" />
         </receiver>
     </application>
 

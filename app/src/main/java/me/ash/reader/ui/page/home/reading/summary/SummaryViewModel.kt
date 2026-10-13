@@ -4,9 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.util.Locale
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -14,7 +12,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.ash.reader.domain.data.FilterState
@@ -37,12 +34,6 @@ sealed interface SummaryRequest {
     data class Gist(val filterState: FilterState) : SummaryRequest
 }
 
-/** Article sheets can show a summary or a translation. */
-enum class SheetMode {
-    Summary,
-    Translate,
-}
-
 sealed interface SummaryUiState {
     /** No model imported yet: show setup instructions. */
     data object NeedsModel : SummaryUiState
@@ -62,9 +53,6 @@ sealed interface SummaryUiState {
     data class Error(val message: String) : SummaryUiState
 }
 
-/** One follow-up question and its (possibly still streaming) answer. */
-data class QA(val question: String, val answer: String, val done: Boolean, val error: Boolean = false)
-
 @HiltViewModel
 class SummaryViewModel
 @Inject
@@ -80,38 +68,18 @@ constructor(
     private val _state = MutableStateFlow<SummaryUiState>(SummaryUiState.Thinking())
     val state: StateFlow<SummaryUiState> = _state.asStateFlow()
 
-    private val _mode = MutableStateFlow(SheetMode.Summary)
-    val mode: StateFlow<SheetMode> = _mode.asStateFlow()
-
-    private val _chat = MutableStateFlow<List<QA>>(emptyList())
-    val chat: StateFlow<List<QA>> = _chat.asStateFlow()
-
     /** Number of gist articles marked read from the sheet (null = not yet). */
     private val _gistMarkedRead = MutableStateFlow<Int?>(null)
     val gistMarkedRead: StateFlow<Int?> = _gistMarkedRead.asStateFlow()
 
-    val lowRam: Boolean
-        get() = summarizer.isLowRamForDefaultModel()
-
     private var job: Job? = null
-    private var chatJob: Job? = null
     private var importWatch: Job? = null
     private var request: SummaryRequest? = null
     private var gistItems: List<GistItem> = emptyList()
-    private var chatSession: GemmaSummarizer.Chat? = null
     private var startedReading = false
 
     fun start(newRequest: SummaryRequest) {
-        if (newRequest != request) {
-            _mode.value = SheetMode.Summary
-        }
         request = newRequest
-        load(useCache = true)
-    }
-
-    fun setMode(mode: SheetMode) {
-        if (_mode.value == mode) return
-        _mode.value = mode
         load(useCache = true)
     }
 
@@ -123,7 +91,6 @@ constructor(
     private fun load(useCache: Boolean) {
         val req = request ?: return
         job?.cancel()
-        resetChat()
         _gistMarkedRead.value = null
         if (!summarizer.hasModel()) {
             _state.value = SummaryUiState.NeedsModel
@@ -135,24 +102,18 @@ constructor(
                     _state.value = SummaryUiState.Error("The article hasn't finished loading yet.")
                     return
                 }
-                val kind =
-                    if (_mode.value == SheetMode.Translate) SavedKind.Translation
-                    else SavedKind.Summary
                 _state.value = SummaryUiState.Thinking()
                 job =
                     viewModelScope.launch {
                         if (useCache) {
-                            store.get(req.articleId, kind)?.let {
-                                _state.value = SummaryUiState.Streaming(it, done = true, fromCache = true)
+                            store.get(req.articleId, SavedKind.Summary)?.let {
+                                _state.value =
+                                    SummaryUiState.Streaming(it, done = true, fromCache = true)
                                 return@launch
                             }
                         }
-                        val flow =
-                            if (kind == SavedKind.Translation)
-                                summarizer.translate(req.title, req.html, deviceLanguage())
-                            else summarizer.summarize(req.title, req.html)
-                        val result = collect(flow, articleCount = null)
-                        if (result != null) store.put(req.articleId, kind, result)
+                        val result = collect(summarizer.summarize(req.title, req.html), null)
+                        if (result != null) store.put(req.articleId, SavedKind.Summary, result)
                     }
             }
             is SummaryRequest.Gist -> {
@@ -166,7 +127,8 @@ constructor(
                             return@launch
                         }
                         _state.value = SummaryUiState.Thinking(items.size)
-                        collect(summarizer.gist(gistName(req), items), articleCount = items.size)
+                        val name = req.filterState.group?.name ?: req.filterState.feed?.name
+                        collect(summarizer.gist(name, items), articleCount = items.size)
                     }
             }
         }
@@ -189,9 +151,6 @@ constructor(
         _state.value = SummaryUiState.Streaming(latest, done = true, articleCount)
         return latest
     }
-
-    private fun gistName(req: SummaryRequest.Gist) =
-        req.filterState.group?.name ?: req.filterState.feed?.name
 
     private suspend fun loadGistItems(filter: FilterState): List<GistItem> =
         withContext(Dispatchers.IO) {
@@ -223,60 +182,6 @@ constructor(
         }
     }
 
-    // --- Follow-up questions ---
-
-    fun ask(question: String) {
-        val q = question.trim()
-        val req = request ?: return
-        if (q.isEmpty() || chatJob?.isActive == true) return
-        val shown = (_state.value as? SummaryUiState.Streaming)?.text
-        _chat.update { it + QA(q, "", done = false) }
-        chatJob =
-            viewModelScope.launch {
-                try {
-                    val session =
-                        chatSession
-                            ?: summarizer
-                                .openChat(
-                                    source =
-                                        when (req) {
-                                            is SummaryRequest.Article ->
-                                                summarizer.articleContext(req.title, req.html)
-                                            is SummaryRequest.Gist ->
-                                                summarizer.gistContext(gistName(req), gistItems)
-                                        },
-                                    priorAnswer = shown,
-                                )
-                                .also { chatSession = it }
-                    session.ask(q).collect { answer -> updateLastAnswer(answer, done = false) }
-                    updateLastAnswer(null, done = true)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    updateLastAnswer(e.message ?: e.javaClass.simpleName, done = true, error = true)
-                }
-            }
-    }
-
-    private fun updateLastAnswer(answer: String?, done: Boolean, error: Boolean = false) {
-        _chat.update { list ->
-            if (list.isEmpty()) list
-            else {
-                val last = list.last()
-                list.dropLast(1) + last.copy(answer = answer ?: last.answer, done = done, error = error)
-            }
-        }
-    }
-
-    private fun resetChat() {
-        chatJob?.cancel()
-        chatSession?.close()
-        chatSession = null
-        _chat.value = emptyList()
-    }
-
-    // --- Model import from the sheet ---
-
     fun importModel(uri: Uri) {
         job?.cancel()
         summarizer.importModel(uri)
@@ -301,8 +206,6 @@ constructor(
             }
     }
 
-    // --- Read aloud ---
-
     /** Toggles reading the result aloud. */
     fun readAloud(text: String) {
         val tts = textToSpeechManager
@@ -320,16 +223,9 @@ constructor(
     fun stop() {
         job?.cancel()
         importWatch?.cancel()
-        resetChat()
         if (startedReading) textToSpeechManager.stop()
         startedReading = false
     }
-
-    override fun onCleared() {
-        resetChat()
-    }
-
-    private fun deviceLanguage(): String = Locale.getDefault().getDisplayLanguage(Locale.ENGLISH)
 
     private companion object {
         const val GIST_LIMIT = 40

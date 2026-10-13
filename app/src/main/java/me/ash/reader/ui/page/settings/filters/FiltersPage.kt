@@ -1,5 +1,16 @@
 package me.ash.reader.ui.page.settings.filters
 
+import android.content.Intent
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import me.ash.reader.domain.service.FilterLogEntry
+import me.ash.reader.domain.service.FilterReason
+import me.ash.reader.infrastructure.android.MainActivity
+import me.ash.reader.ui.page.common.ExtraName
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -70,6 +81,14 @@ constructor(val filters: BriefFilters, private val accountService: AccountServic
     private val _applied = MutableStateFlow<Int?>(null)
     val applied: StateFlow<Int?> = _applied.asStateFlow()
 
+    fun undo(entry: FilterLogEntry) {
+        viewModelScope.launch { runCatching { filters.undo(entry) } }
+    }
+
+    fun clearLog() {
+        viewModelScope.launch { filters.clearLog() }
+    }
+
     fun applyNow() {
         _applied.value = null
         viewModelScope.launch {
@@ -84,6 +103,8 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
     val keywords = viewModel.filters.mutedKeywords.collectAsStateValue()
     val dupes = viewModel.filters.hideDuplicates.collectAsStateValue()
     val applied = viewModel.applied.collectAsStateValue()
+    val log = viewModel.filters.log.collectAsStateValue()
+    val context = LocalContext.current
     var input by rememberSaveable { mutableStateOf("") }
     val add = {
         viewModel.filters.addKeyword(input)
@@ -198,9 +219,94 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         }
                     }
                     Spacer(Modifier.height(24.dp))
+                }
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(end = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Subtitle(
+                            modifier = Modifier.padding(horizontal = 24.dp).weight(1f),
+                            text = stringResource(R.string.filters_log),
+                        )
+                        if (log.isNotEmpty()) {
+                            TextButton(onClick = viewModel::clearLog) {
+                                Text(stringResource(R.string.filters_log_clear))
+                            }
+                        }
+                    }
+                    if (log.isEmpty()) {
+                        Text(
+                            stringResource(R.string.filters_log_empty),
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                items(log, key = { it.articleId }) { entry ->
+                    FilterLogRow(
+                        entry = entry,
+                        onOpen = {
+                            context.startActivity(
+                                Intent(context, MainActivity::class.java)
+                                    .putExtra(ExtraName.ARTICLE_ID, entry.articleId)
+                            )
+                        },
+                        onUndo = { viewModel.undo(entry) },
+                    )
+                }
+                item {
+                    Spacer(Modifier.height(24.dp))
                     Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                 }
             }
         },
     )
+}
+
+@Composable
+private fun FilterLogRow(entry: FilterLogEntry, onOpen: () -> Unit, onUndo: () -> Unit) {
+    Row(
+        modifier =
+            Modifier.fillMaxWidth()
+                .clickable(onClick = onOpen)
+                .padding(start = 24.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            if (entry.reason == FilterReason.Duplicate) Icons.Outlined.ContentCopy
+            else Icons.Outlined.FilterAlt,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                entry.title,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                when (entry.reason) {
+                    FilterReason.MutedKeyword ->
+                        stringResource(R.string.filters_log_muted, entry.detail, entry.feedName)
+                    FilterReason.Duplicate ->
+                        stringResource(
+                            R.string.filters_log_duplicate,
+                            entry.feedName,
+                            entry.detailFeed ?: "",
+                            entry.detail,
+                        )
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        TextButton(onClick = onUndo) { Text(stringResource(R.string.filters_log_undo)) }
+    }
 }

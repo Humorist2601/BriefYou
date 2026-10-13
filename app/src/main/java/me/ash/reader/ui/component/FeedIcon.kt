@@ -22,6 +22,9 @@ import me.ash.reader.R
 import me.ash.reader.ui.component.base.Base64Image
 import me.ash.reader.ui.component.base.RYAsyncImage
 
+/** Feed icons stored as "emoji:😀" are custom emoji icons (Brief You). */
+const val EMOJI_PREFIX = "emoji:"
+
 @Composable
 fun FeedIcon(
     modifier: Modifier = Modifier,
@@ -30,7 +33,16 @@ fun FeedIcon(
     size: Dp = 20.dp,
     placeholderIcon: ImageVector? = null,
 ) {
-    if (iconUrl.isNullOrEmpty()) {
+    if (iconUrl != null && iconUrl.startsWith(EMOJI_PREFIX)) {
+        Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
+            Text(
+                text = iconUrl.removePrefix(EMOJI_PREFIX),
+                fontSize = (size.value * 0.78f).sp,
+                lineHeight = (size.value * 0.9f).sp,
+                maxLines = 1,
+            )
+        }
+    } else if (iconUrl.isNullOrEmpty()) {
         if (placeholderIcon == null) {
             FontIcon(modifier, size, feedName ?: "")
         } else {

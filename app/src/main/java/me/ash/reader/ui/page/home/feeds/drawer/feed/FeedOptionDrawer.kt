@@ -1,5 +1,13 @@
 package me.ash.reader.ui.page.home.feeds.drawer.feed
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -59,6 +67,27 @@ fun FeedOptionDrawer(
     val toastString = stringResource(R.string.rename_toast, feedOptionUiState.newName)
 
 
+    var showIconDialog by remember { mutableStateOf(false) }
+    val iconContext = LocalContext.current
+    val imagePicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            uri?.let {
+                feedOptionViewModel.setImageIcon(it) { msg -> iconContext.showToast(msg) }
+            }
+        }
+    if (showIconDialog) {
+        FeedIconDialog(
+            onEmoji = { feedOptionViewModel.setEmojiIcon(it) },
+            onImage = {
+                imagePicker.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            },
+            onWebsiteIcon = { feedOptionViewModel.reloadIcon() },
+            onDismiss = { showIconDialog = false },
+        )
+    }
+
     BackHandler(drawerState.isVisible) {
         scope.launch {
             drawerState.hide()
@@ -74,9 +103,19 @@ fun FeedOptionDrawer(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    FeedIcon(modifier = Modifier.clickable {
-                        feedOptionViewModel.reloadIcon()
-                    }, feedName = feed?.name, iconUrl = feed?.icon, size = 24.dp)
+                    // Brief You: tap the icon to change it (emoji, image, or website icon).
+                    FeedIcon(
+                        modifier = Modifier.clickable { showIconDialog = true },
+                        feedName = feed?.name,
+                        iconUrl = feed?.icon,
+                        size = 48.dp,
+                    )
+                    Text(
+                        text = stringResource(R.string.feed_icon_change),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 6.dp).clickable { showIconDialog = true },
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         modifier = Modifier.alphaIndicationClickable {

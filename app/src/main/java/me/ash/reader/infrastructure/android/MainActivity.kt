@@ -12,7 +12,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.app.NotificationManagerCompat
@@ -30,8 +29,6 @@ import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.ash.reader.domain.data.FilterStateUseCase
-import me.ash.reader.infrastructure.ai.MorningBriefing
-import me.ash.reader.ui.page.home.briefing.BriefingSheet
 import me.ash.reader.domain.service.AccountService
 import me.ash.reader.domain.service.WidgetUpdateWorker
 import me.ash.reader.infrastructure.compose.ProvideCompositionLocals
@@ -65,24 +62,8 @@ class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var notificationHelper: NotificationHelper
 
-    /** Brief You: shows the morning briefing sheet (from its notification or widget). */
-    private val showBriefing = mutableStateOf(false)
-
-    private fun consumeBriefingIntent(intent: Intent?) {
-        if (intent?.getBooleanExtra(MorningBriefing.EXTRA_OPEN_BRIEFING, false) == true) {
-            intent.removeExtra(MorningBriefing.EXTRA_OPEN_BRIEFING)
-            showBriefing.value = true
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        consumeBriefingIntent(intent)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        consumeBriefingIntent(intent)
         Log.i("RLog", "onCreate: ${ProfileInstallerInitializer().create(this)}")
 
         enableEdgeToEdge()
@@ -161,9 +142,6 @@ class MainActivity : AppCompatActivity() {
 
                             NewIntentHandlerEffect(backStack, subscribeViewModel)
                             AppEntry(backStack)
-                            if (showBriefing.value) {
-                                BriefingSheet(onDismissRequest = { showBriefing.value = false })
-                            }
                         }
                     }
                 }

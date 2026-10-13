@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import me.ash.reader.domain.model.feed.Feed
 import me.ash.reader.domain.model.group.Group
 import me.ash.reader.domain.repository.FeedDao
+import me.ash.reader.domain.service.FeedIconOverrides
 import me.ash.reader.domain.service.RssService
 import me.ash.reader.infrastructure.di.ApplicationScope
 import me.ash.reader.infrastructure.di.IODispatcher
@@ -34,6 +35,7 @@ constructor(
     @ApplicationScope private val applicationScope: CoroutineScope,
     private val rssHelper: RssHelper,
     private val feedDao: FeedDao,
+    private val iconOverrides: FeedIconOverrides,
 ) : ViewModel() {
 
     private val _feedOptionUiState = MutableStateFlow(FeedOptionUiState())
@@ -211,9 +213,34 @@ constructor(
         }
     }
 
+    // --- Brief You: custom feed icons ---
+
+    fun setEmojiIcon(emoji: String) {
+        _feedOptionUiState.value.feed?.let { feed ->
+            viewModelScope.launch(ioDispatcher) {
+                iconOverrides.setEmoji(feed.id, emoji)
+                fetchFeed(feed.id)
+            }
+        }
+    }
+
+    fun setImageIcon(uri: android.net.Uri, onError: (String) -> Unit) {
+        _feedOptionUiState.value.feed?.let { feed ->
+            viewModelScope.launch(ioDispatcher) {
+                runCatching { iconOverrides.setImage(feed.id, uri) }
+                    .onFailure { e ->
+                        withContext(mainDispatcher) { onError(e.message ?: "Could not use that image") }
+                    }
+                fetchFeed(feed.id)
+            }
+        }
+    }
+
+    /** Drops any custom icon and fetches the website's icon again. */
     fun reloadIcon() {
         _feedOptionUiState.value.feed?.let { feed ->
             viewModelScope.launch(ioDispatcher) {
+                iconOverrides.clear(feed.id)
                 val icon = rssHelper.queryRssIconLink(feed.url) ?: return@launch
                 feedDao.update(feed.copy(icon = icon))
                 fetchFeed(feed.id)
