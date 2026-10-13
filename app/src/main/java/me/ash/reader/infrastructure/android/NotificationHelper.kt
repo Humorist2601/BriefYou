@@ -12,6 +12,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -30,9 +32,10 @@ import timber.log.Timber
  *
  * Every sync calls [notify] once per feed. Each call merges its articles into a running digest
  * (persisted in SharedPreferences so it survives process death) and re-posts the same
- * notification id. `setOnlyAlertOnce` means the phone only buzzes when the digest first appears,
- * not for every feed that is merged in afterwards. The digest resets when the user dismisses it
- * or opens the app ([clearDigest]).
+ * notification id. Posting is debounced ([POST_DELAY_MS]) so a whole sync shows up as ONE complete
+ * notification instead of a growing series of updates (Android also drops updates posted too
+ * quickly). The digest shows one line per feed so no feed gets pushed out by busier ones. It resets
+ * when the user dismisses it or opens the app ([clearDigest]).
  */
 @Singleton
 class NotificationHelper
@@ -55,6 +58,7 @@ constructor(
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val mutex = Mutex()
+    private var postJob: Job? = null
 
     fun notify(feed: Feed, articles: List<Article>) {
         if (!notificationManager.areNotificationsEnabled()) return
@@ -63,24 +67,29 @@ constructor(
         coroutineScope.launch {
             mutex.withLock {
                 Timber.d("digest: +${articles.size} from ${feed.name}")
-                // If the user swiped the digest away, start a fresh one.
-                if (!isDigestShowing()) resetStoredDigest()
+                // Start fresh only if the user swiped the digest away AND no post is pending.
+                if (postJob?.isActive != true && !isDigestShowing()) resetStoredDigest()
 
                 val total = prefs.getInt(KEY_COUNT, 0) + articles.size
-                val feeds = prefs.getStringSet(KEY_FEEDS, emptySet()).orEmpty() + feed.name
                 val newLines =
-                    articles
-                        .sortedByDescending { it.date }
-                        .map { "${feed.name}${FIELD_SEP}${it.title}${FIELD_SEP}${it.id}" }
+                    articles.map {
+                        listOf(feed.name, it.title, it.id, it.date.time).joinToString(FIELD_SEP)
+                    }
                 val lines =
-                    (newLines + prefs.getString(KEY_LINES, null).splitLines()).take(MAX_LINES)
+                    (newLines + prefs.getString(KEY_LINES, null).splitLines()).take(MAX_STORED)
 
                 prefs.edit {
                     putInt(KEY_COUNT, total)
-                    putStringSet(KEY_FEEDS, feeds)
                     putString(KEY_LINES, lines.joinToString(LINE_SEP))
                 }
-                post(total, feeds.size, lines)
+
+                // Wait for the other feeds to finish, then post once.
+                postJob?.cancel()
+                postJob =
+                    coroutineScope.launch {
+                        delay(POST_DELAY_MS)
+                        mutex.withLock { postStored() }
+                    }
             }
         }
     }
@@ -93,25 +102,47 @@ constructor(
     fun clearDigest() {
         coroutineScope.launch {
             mutex.withLock {
+                postJob?.cancel()
                 notificationManager.cancel(DIGEST_ID)
                 resetStoredDigest()
             }
         }
     }
 
-    private fun post(total: Int, feedCount: Int, lines: List<String>) {
+    private class Entry(val feed: String, val title: String, val id: String, val date: Long)
+
+    private fun postStored() {
+        val total = prefs.getInt(KEY_COUNT, 0)
+        val entries =
+            prefs.getString(KEY_LINES, null).splitLines().mapNotNull { line ->
+                val f = line.split(FIELD_SEP)
+                if (f.size < 4) null else Entry(f[0], f[1], f[2], f[3].toLongOrNull() ?: 0L)
+            }
+        if (total == 0 || entries.isEmpty()) return
+
+        // One line per feed, most recently updated feed first.
+        val groups =
+            entries.groupBy { it.feed }.values.sortedByDescending { g -> g.maxOf { it.date } }
         val title = context.resources.getQuantityString(R.plurals.digest_title, total, total)
         val subtitle =
-            context.resources.getQuantityString(R.plurals.digest_from_feeds, feedCount, feedCount)
+            context.resources.getQuantityString(
+                R.plurals.digest_from_feeds,
+                groups.size,
+                groups.size,
+            )
 
         val inbox = NotificationCompat.InboxStyle().setBigContentTitle(title)
-        lines.forEach { line ->
-            val (feedName, articleTitle) = line.split(FIELD_SEP).let { it[0] to it.getOrElse(1) { "" } }
-            inbox.addLine("$feedName · $articleTitle")
+        val visible = groups.take(MAX_LINES)
+        visible.forEach { g ->
+            val latest = g.maxBy { it.date }
+            inbox.addLine(
+                if (g.size == 1) "${latest.feed} · ${latest.title}"
+                else "${latest.feed} (${g.size}) · ${latest.title}"
+            )
         }
-        if (total > lines.size) {
+        if (groups.size > visible.size) {
             inbox.setSummaryText(
-                context.getString(R.string.digest_and_more, total - lines.size)
+                context.getString(R.string.digest_and_more, groups.size - visible.size)
             )
         }
 
@@ -119,11 +150,7 @@ constructor(
         val openIntent =
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                if (total == 1) {
-                    lines.firstOrNull()?.split(FIELD_SEP)?.getOrNull(2)?.let {
-                        putExtra(ExtraName.ARTICLE_ID, it)
-                    }
-                }
+                if (total == 1) putExtra(ExtraName.ARTICLE_ID, entries.first().id)
             }
 
         val notification =
@@ -171,7 +198,9 @@ constructor(
         const val KEY_COUNT = "count"
         const val KEY_FEEDS = "feeds"
         const val KEY_LINES = "lines"
-        const val MAX_LINES = 7
+        const val MAX_LINES = 8
+        const val MAX_STORED = 300
+        const val POST_DELAY_MS = 2_000L
         const val LINE_SEP = "\u001E"
         const val FIELD_SEP = "\u001F"
     }
