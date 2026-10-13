@@ -7,6 +7,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
 import me.ash.reader.domain.model.account.Account
+import me.ash.reader.infrastructure.ai.SummaryStore
 import me.ash.reader.infrastructure.rss.ReaderCacheHelper
 
 @HiltWorker
@@ -18,6 +19,8 @@ constructor(
     private val rssService: RssService,
     private val readerCacheHelper: ReaderCacheHelper,
     private val workManager: WorkManager,
+    private val briefFilters: BriefFilters,
+    private val summaryStore: SummaryStore,
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -31,9 +34,12 @@ constructor(
             .get()
             .sync(accountId = accountId, feedId = feedId, groupId = groupId)
             .also {
-                rssService.get().clearKeepArchivedArticles().forEach {
-                    readerCacheHelper.deleteCacheFor(articleId = it.id)
-                }
+                val removed = rssService.get().clearKeepArchivedArticles()
+                removed.forEach { readerCacheHelper.deleteCacheFor(articleId = it.id) }
+                // Brief You: saved summaries go away with their articles.
+                runCatching { summaryStore.delete(removed.map { it.id }) }
+                // Brief You: mute keywords and duplicate stories.
+                runCatching { briefFilters.apply(accountId) }
                 workManager
                     .beginUniqueWork(
                         uniqueWorkName = POST_SYNC_WORK_NAME,

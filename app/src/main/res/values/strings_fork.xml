@@ -37,8 +37,8 @@
     </plurals>
 
     <!-- Settings → AI model -->
-    <string name="ai_settings">AI model</string>
-    <string name="ai_settings_desc">On-device Gemma, summaries, gists</string>
+    <string name="ai_settings">AI &amp; voice</string>
+    <string name="ai_settings_desc">On-device model, instructions, voices, morning briefing</string>
     <string name="ai_settings_model">Model</string>
     <string name="ai_settings_status_missing">No model imported</string>
     <string name="ai_settings_status_ready">Imported · %1$s</string>
@@ -73,6 +73,59 @@
         <item quantity="other">Mark these %1$d articles as read</item>
     </plurals>
     <plurals name="ai_gist_marked_read">
+        <item quantity="one">%1$d article marked as read</item>
+        <item quantity="other">%1$d articles marked as read</item>
+    </plurals>
+
+    <!-- Morning briefing -->
+    <string name="briefing_title">Morning briefing</string>
+    <string name="briefing_channel">Morning briefing</string>
+    <string name="briefing_playback_channel">Briefing playback</string>
+    <string name="briefing_listen">Listen</string>
+    <string name="briefing_play">Play</string>
+    <string name="briefing_pause">Pause</string>
+    <string name="briefing_stop">Stop</string>
+    <string name="briefing_generating">Writing your briefing on this device…</string>
+    <string name="briefing_generate_now">Generate now</string>
+    <string name="briefing_empty">No briefing yet. Tap Generate now, or schedule one in Settings → AI &amp; voice.</string>
+    <string name="briefing_needs_model">Import a model in Settings → AI &amp; voice to get briefings.</string>
+    <string name="briefing_not_scheduled">Daily briefings are off. Turn them on in Settings → AI &amp; voice.</string>
+    <string name="briefing_widget_label">Brief You briefing</string>
+    <string name="briefing_widget_description">Your latest on-device morning briefing</string>
+    <string name="briefing_widget_empty">No briefing yet. Open the app to generate one.</string>
+    <string name="briefing_settings">Morning briefing</string>
+    <string name="briefing_settings_enabled">Daily briefing</string>
+    <string name="briefing_settings_enabled_desc">A notification with the gist of your newest unread articles</string>
+    <string name="briefing_settings_time">Time</string>
+    <string name="briefing_settings_source">Brief me on</string>
+    <string name="briefing_settings_all">All unread articles</string>
+    <string name="briefing_settings_open">Open latest briefing</string>
+
+    <!-- Voice -->
+    <string name="voice_settings">Voice</string>
+    <string name="voice_engine">Speech engine</string>
+    <string name="voice_engine_default">System default</string>
+    <string name="voice_rate">Speaking speed</string>
+    <string name="voice_download">Download natural voices</string>
+    <string name="voice_download_desc">Opens your speech engine\'s voice downloader (for Google, choose a voice and download it for offline use)</string>
+    <string name="voice_sherpa">Get SherpaTTS (offline neural voices)</string>
+    <string name="voice_sherpa_desc">Free, open-source engine with natural Piper voices that run on your phone. After installing, pick it as the speech engine above.</string>
+    <string name="voice_test">Test voice</string>
+    <string name="voice_test_sentence">This is how Brief You will read your briefings and summaries.</string>
+
+    <!-- Filters -->
+    <string name="filters_settings">Filters</string>
+    <string name="filters_settings_desc">Mute keywords, hide duplicate stories</string>
+    <string name="filters_intro">Filters run after every sync. Matching unread articles are marked as read, the same as swiping them.</string>
+    <string name="filters_dupes">Hide duplicate stories</string>
+    <string name="filters_dupes_desc">When several feeds publish the same story, keep only the first one unread</string>
+    <string name="filters_keywords">Muted keywords</string>
+    <string name="filters_add_hint">Add a word or phrase</string>
+    <string name="filters_add">Add</string>
+    <string name="filters_none">No muted keywords yet</string>
+    <string name="filters_remove">Remove %1$s</string>
+    <string name="filters_apply_now">Apply now</string>
+    <plurals name="filters_applied">
         <item quantity="one">%1$d article marked as read</item>
         <item quantity="other">%1$d articles marked as read</item>
     </plurals>

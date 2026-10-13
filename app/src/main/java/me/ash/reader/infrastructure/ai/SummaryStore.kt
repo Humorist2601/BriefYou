@@ -17,6 +17,7 @@ import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
+import me.ash.reader.domain.repository.ArticleDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,10 +32,16 @@ enum class SavedKind(val ext: String) {
 
 /**
  * Saves AI output per article as small files, so reopening an article is instant and the article
- * list can show a one-line summary. Files older than [MAX_AGE_MS] are pruned.
+ * list can show a one-line summary. A saved summary lives exactly as long as its article: once
+ * the article is deleted (for example by "Keep archived articles"), [prune] removes it too.
  */
 @Singleton
-class SummaryStore @Inject constructor(@ApplicationContext context: Context) {
+class SummaryStore
+@Inject
+constructor(
+    @ApplicationContext context: Context,
+    private val articleDao: ArticleDao,
+) {
     private val dir = File(context.filesDir, "ai_cache").apply { mkdirs() }
     private val oneLiners = ConcurrentHashMap<String, String>()
     private val misses = ConcurrentHashMap.newKeySet<String>()
@@ -86,16 +93,27 @@ class SummaryStore @Inject constructor(@ApplicationContext context: Context) {
             "%02x".format(it)
         }
 
-    private fun prune() {
-        if (pruned) return
-        pruned = true
-        val cutoff = System.currentTimeMillis() - MAX_AGE_MS
-        dir.listFiles()?.forEach { if (it.lastModified() < cutoff) it.delete() }
-    }
+    /** Deletes saved output for these articles (called when they are removed). */
+    suspend fun delete(articleIds: Collection<String>) =
+        withContext(Dispatchers.IO) {
+            if (articleIds.isEmpty()) return@withContext
+            for (id in articleIds) {
+                SavedKind.entries.forEach { file(id, it).delete() }
+                oneLiners.remove(id)
+            }
+            _version.value++
+        }
 
-    private companion object {
-        const val MAX_AGE_MS = 60L * 24 * 60 * 60 * 1000 // 60 days
-    }
+    /** Deletes saved output whose article no longer exists. Runs once per app start. */
+    suspend fun prune() =
+        withContext(Dispatchers.IO) {
+            if (pruned) return@withContext
+            pruned = true
+            val files = dir.listFiles().orEmpty()
+            if (files.isEmpty()) return@withContext
+            val live = articleDao.queryAllIds().mapTo(HashSet()) { hash(it) }
+            files.forEach { if (it.nameWithoutExtension !in live) it.delete() }
+        }
 }
 
 @EntryPoint

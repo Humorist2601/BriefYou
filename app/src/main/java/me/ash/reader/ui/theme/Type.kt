@@ -40,32 +40,35 @@ val SystemTypography =
 internal fun TextStyle.applyTextDirection(textDirection: TextDirection = TextDirection.Content) =
     this.copy(textDirection = textDirection)
 
+/** Google Sans Flex Rounded: the bundled variable font with its roundness axis at maximum. */
+private val Rounded = FontVariation.Setting("ROND", 100f)
+
 private val GoogleSansRegular =
     Font(
         R.font.google_sans_flex,
         weight = FontWeight.W400,
-        variationSettings = FontVariation.Settings(FontVariation.weight(400)),
+        variationSettings = FontVariation.Settings(Rounded, FontVariation.weight(400)),
     )
 
 private val GoogleSansMedium =
     Font(
         R.font.google_sans_flex,
         weight = FontWeight.W500,
-        variationSettings = FontVariation.Settings(FontVariation.weight(500)),
+        variationSettings = FontVariation.Settings(Rounded, FontVariation.weight(500)),
     )
 
 private val GoogleSansSemiBold =
     Font(
         R.font.google_sans_flex,
         weight = FontWeight.W600,
-        variationSettings = FontVariation.Settings(FontVariation.weight(600)),
+        variationSettings = FontVariation.Settings(Rounded, FontVariation.weight(600)),
     )
 
 private val GoogleSansBold =
     Font(
         R.font.google_sans_flex,
         weight = FontWeight.W700,
-        variationSettings = FontVariation.Settings(FontVariation.weight(700)),
+        variationSettings = FontVariation.Settings(Rounded, FontVariation.weight(700)),
     )
 
 private val GoogleSansItalic =
@@ -74,7 +77,7 @@ private val GoogleSansItalic =
         weight = FontWeight.W400,
         style = FontStyle.Italic,
         variationSettings =
-            FontVariation.Settings(FontVariation.weight(400), FontVariation.italic(.5f)),
+            FontVariation.Settings(Rounded, FontVariation.weight(400), FontVariation.italic(.5f)),
     )
 private val GoogleSansMediumItalic =
     Font(
@@ -82,7 +85,7 @@ private val GoogleSansMediumItalic =
         weight = FontWeight.W500,
         style = FontStyle.Italic,
         variationSettings =
-            FontVariation.Settings(FontVariation.weight(500), FontVariation.italic(.5f)),
+            FontVariation.Settings(Rounded, FontVariation.weight(500), FontVariation.italic(.5f)),
     )
 private val GoogleSansSemiBoldItalic =
     Font(
@@ -90,7 +93,7 @@ private val GoogleSansSemiBoldItalic =
         weight = FontWeight.W600,
         style = FontStyle.Italic,
         variationSettings =
-            FontVariation.Settings(FontVariation.weight(600), FontVariation.italic(.5f)),
+            FontVariation.Settings(Rounded, FontVariation.weight(600), FontVariation.italic(.5f)),
     )
 private val GoogleSansBoldItalic =
     Font(
@@ -98,11 +101,14 @@ private val GoogleSansBoldItalic =
         weight = FontWeight.W700,
         style = FontStyle.Italic,
         variationSettings =
-            FontVariation.Settings(FontVariation.weight(700), FontVariation.italic(.5f)),
+            FontVariation.Settings(Rounded, FontVariation.weight(700), FontVariation.italic(.5f)),
     )
 val GoogleSansFontFamily =
     FontFamily(
-        Font(R.font.google_sans_flex),
+        Font(
+            R.font.google_sans_flex,
+            variationSettings = FontVariation.Settings(Rounded, FontVariation.weight(400)),
+        ),
         GoogleSansRegular,
         GoogleSansMedium,
         GoogleSansSemiBold,

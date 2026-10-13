@@ -190,6 +190,11 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                 }
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
+                    VoiceSection(viewModel)
+                }
+                item { BriefingSection(viewModel) }
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
                     Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                 }
             }

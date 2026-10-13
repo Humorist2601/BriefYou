@@ -890,7 +890,24 @@ interface ArticleDao {
     )
     fun queryLatestUnreadArticleFlow(accountId: Int, limit: Int): Flow<List<ArticleWithFeed>>
 
-    // --- Read You+ : articles for an AI gist, matching the list the user is looking at ---
+    // --- Brief You: every article id, so saved AI summaries of deleted articles can be removed ---
+    @Query("SELECT id FROM article")
+    suspend fun queryAllIds(): List<String>
+
+    // --- Brief You: recent articles for mute filters and duplicate detection ---
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM article
+        WHERE accountId = :accountId
+        AND date >= :since
+        ORDER BY date DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun queryRecentForFilters(accountId: Int, since: java.util.Date, limit: Int): List<ArticleWithFeed>
+
+    // --- Brief You: articles for an AI gist, matching the list the user is looking at ---
 
     @Transaction
     @Query(

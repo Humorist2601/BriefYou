@@ -61,6 +61,8 @@ sealed interface Route : NavKey {
     // AI model (Read You+)
     @Serializable data object AiModel : Route
 
+    @Serializable data object Filters : Route
+
     // Troubleshooting
     @Serializable data object Troubleshooting : Route
 
