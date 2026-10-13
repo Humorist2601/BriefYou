@@ -2,6 +2,7 @@
 <resources>
     <!-- Article list -->
     <string name="reading_time_min">%1$d min read</string>
+    <string name="reading_time_short">%1$d min</string>
 
     <!-- Digest notification -->
     <string name="notification_channel_new_articles">New articles</string>
