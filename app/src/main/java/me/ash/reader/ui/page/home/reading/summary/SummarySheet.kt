@@ -102,6 +102,8 @@ fun SummarySheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         sheetGesturesEnabled = false,
+        // No drag handle: the sheet isn't draggable, it closes with ✕, Back or a tap outside.
+        dragHandle = null,
     ) {
         Column(
             modifier =
@@ -109,6 +111,7 @@ fun SummarySheet(
                     .heightIn(min = minHeight)
                     .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
                     .padding(horizontal = horizontalPadding)
+                    .padding(top = 24.dp)
                     .navigationBarsPadding()
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

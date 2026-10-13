@@ -9,14 +9,18 @@ jobs:
         permissions:
             contents: write
         env:
-            # Gives every CI build a higher version number so it installs as an update.
-            CI_BUILD_NUMBER: ${{ github.run_number }}
+            # Brief You build numbers restarted at 1 after run #16 of this workflow.
+            BUILD_NUMBER_OFFSET: 16
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-java@v4
               with:
                   distribution: temurin
                   java-version: 17
+
+            - name: Set build number
+              # Every CI build gets a higher number, so each release installs as an update.
+              run: echo "CI_BUILD_NUMBER=$(( ${{ github.run_number }} - BUILD_NUMBER_OFFSET ))" >> "$GITHUB_ENV"
 
             - uses: gradle/actions/setup-gradle@v4
             - name: Build APK
@@ -43,7 +47,7 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   apk=$(ls app/build/outputs/apk/github/release/*.apk | head -1)
-                  tag="build-${{ github.run_number }}"
+                  tag="briefyou-${CI_BUILD_NUMBER}"
                   {
                       echo "Automatic build of \`${{ github.ref_name }}\` at ${GITHUB_SHA::7}."
                       echo
@@ -51,7 +55,7 @@ jobs:
                       git log -1 --format='%s%n%n%b' | grep -vE '^(Co-Authored-By|Claude-Session):'
                   } > notes.md
                   gh release create "$tag" "$apk" \
-                      --title "Brief You build ${{ github.run_number }}" \
+                      --title "Brief You build ${CI_BUILD_NUMBER}" \
                       --notes-file notes.md \
                       --target "$GITHUB_SHA" \
                       --latest

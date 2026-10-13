@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.UnfoldLess
@@ -104,6 +105,7 @@ fun FeedsPage(
     navigationToFlow: () -> Unit,
     navigateToAccountList: () -> Unit,
     navigateToAccountDetail: (Int) -> Unit,
+    navigateToFilters: () -> Unit = {},
 ) {
     var accountTabVisible by remember { mutableStateOf(false) }
 
@@ -216,6 +218,14 @@ fun FeedsPage(
                     }
                 },
                 actions = {
+                    // Brief You: quick access to mute keywords, duplicates and the filter log.
+                    FeedbackIconButton(
+                        imageVector = Icons.Outlined.FilterAlt,
+                        contentDescription = stringResource(R.string.filters_settings),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    ) {
+                        navigateToFilters()
+                    }
                     if (subscribeViewModel.rssService.get().addSubscription) {
                         FeedbackIconButton(
                             imageVector = Icons.Rounded.Add,
