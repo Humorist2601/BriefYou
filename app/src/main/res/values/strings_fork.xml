@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Digest notification -->
+    <string name="notification_channel_new_articles">New articles</string>
+    <plurals name="digest_title">
+        <item quantity="one">%1$d new article</item>
+        <item quantity="other">%1$d new articles</item>
+    </plurals>
+    <plurals name="digest_from_feeds">
+        <item quantity="one">From %1$d feed</item>
+        <item quantity="other">From %1$d feeds</item>
+    </plurals>
+    <string name="digest_and_more">+%1$d more</string>
+
+    <!-- On-device AI summary -->
+    <string name="ai_summarize">Summarize</string>
+    <string name="ai_summary">Summary</string>
+    <string name="ai_summary_on_device">Generated on this device with Gemma</string>
+    <string name="ai_summary_needs_model">To summarize articles privately on your phone, download a Gemma model in .litertlm format (Gemma 4 E2B is recommended; it is a few gigabytes), then choose the file here. It is copied into Read You once and never leaves your device.</string>
+    <string name="ai_summary_get_model">Get Gemma 4</string>
+    <string name="ai_summary_choose_file">Choose model file</string>
+    <string name="ai_summary_importing">Importing model… this can take a minute.</string>
+    <string name="ai_summary_thinking">Loading model and reading the article…</string>
+    <string name="ai_summary_regenerate">Regenerate</string>
+    <string name="ai_summary_retry">Try again</string>
+    <string name="ai_summary_remove_model">Remove model</string>
+</resources>

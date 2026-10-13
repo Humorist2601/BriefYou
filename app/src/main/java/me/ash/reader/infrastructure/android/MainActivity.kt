@@ -60,6 +60,8 @@ class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var filterUseCase: FilterStateUseCase
 
+    @Inject lateinit var notificationHelper: NotificationHelper
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i("RLog", "onCreate: ${ProfileInstallerInitializer().create(this)}")
@@ -213,6 +215,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         WidgetUpdateWorker.enqueueOneTimeWork(workManager)
+        notificationHelper.clearDigest()
         super.onResume()
     }
 }

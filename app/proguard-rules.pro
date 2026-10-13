@@ -44,3 +44,6 @@
 -dontwarn org.slf4j.impl.StaticLoggerBinder
 
 -keep class me.ash.reader.R$font { *; }
+# LiteRT-LM: classes are called from native code via JNI
+-keep class com.google.ai.edge.litertlm.** { *; }
+-dontwarn com.google.ai.edge.litertlm.**

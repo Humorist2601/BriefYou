@@ -40,6 +40,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Reader"
         android:usesCleartextTraffic="true">
+
+        <!-- Lets LiteRT-LM use the GPU for on-device summaries (optional on devices without it). -->
+        <uses-native-library
+            android:name="libvndksupport.so"
+            android:required="false" />
+        <uses-native-library
+            android:name="libOpenCL.so"
+            android:required="false" />
+
         <activity
             android:name=".ui.widget.WidgetConfigActivity"
             android:exported="false"

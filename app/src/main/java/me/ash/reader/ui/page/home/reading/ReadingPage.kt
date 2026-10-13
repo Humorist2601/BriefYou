@@ -53,6 +53,7 @@ import me.ash.reader.ui.ext.showToast
 import me.ash.reader.ui.page.adaptive.ArticleListReaderViewModel
 import me.ash.reader.ui.page.adaptive.NavigationAction
 import me.ash.reader.ui.page.adaptive.ReaderState
+import me.ash.reader.ui.page.home.reading.summary.SummarySheet
 import me.ash.reader.ui.page.home.reading.tts.TtsButton
 
 private const val UPWARD = 1
@@ -78,6 +79,7 @@ fun ReadingPage(
 
     var isReaderScrollingDown by remember { mutableStateOf(false) }
     var showFullScreenImageViewer by remember { mutableStateOf(false) }
+    var showSummary by remember { mutableStateOf(false) }
 
     var currentImageData by remember { mutableStateOf(ImageData()) }
 
@@ -112,6 +114,7 @@ fun ReadingPage(
                         navigationAction = navigationAction,
                         onNavButtonClick = onNavAction,
                         onNavigateToStylePage = onNavigateToStylePage,
+                        onSummarize = { showSummary = true },
                     )
                 }
 
@@ -338,6 +341,15 @@ fun ReadingPage(
             }
         },
     )
+    val summaryArticleId = readerState.articleId
+    if (showSummary && summaryArticleId != null) {
+        SummarySheet(
+            articleKey = summaryArticleId,
+            title = readerState.title,
+            html = readerState.content.text ?: "",
+            onDismissRequest = { showSummary = false },
+        )
+    }
     if (showFullScreenImageViewer) {
 
         ReaderImageViewer(

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fork build name, so it's distinguishable from the official app on the home screen. -->
+    <string name="read_you" translatable="false">Read You+</string>
+</resources>

@@ -64,6 +64,8 @@ android {
         create("github") {
             isDefault = true
             dimension = "channel"
+            // Fork build: installs next to the official Read You instead of clashing with it.
+            applicationIdSuffix = ".gemma"
         }
         create("fdroid") { dimension = "channel" }
         create("googlePlay") {
@@ -199,6 +201,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.timber)
+
+    // On-device AI summaries (LiteRT-LM + Gemma)
+    implementation(libs.litertlm.android)
 
     // Testing
     testImplementation(libs.junit)
