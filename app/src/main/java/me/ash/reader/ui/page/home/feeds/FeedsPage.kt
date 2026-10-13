@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package me.ash.reader.ui.page.home.feeds
 
 import android.os.Build
@@ -36,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -233,7 +236,19 @@ fun FeedsPage(
             )
         },
         content = {
-            PullToRefreshBox(state = syncingState, isRefreshing = isSyncing, onRefresh = doSync) {
+            PullToRefreshBox(
+                state = syncingState,
+                isRefreshing = isSyncing,
+                onRefresh = doSync,
+                // Material 3 Expressive shape-morphing refresh indicator.
+                indicator = {
+                    PullToRefreshDefaults.LoadingIndicator(
+                        state = syncingState,
+                        isRefreshing = isSyncing,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                    )
+                },
+            ) {
                 LazyColumn(modifier = Modifier.fillMaxSize().drawVerticalScrollIndicator(listState), state = listState) {
                     item {
                         DisplayText(text = feedsUiState.account?.name ?: "", desc = "") {

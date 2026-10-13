@@ -8,6 +8,12 @@
 
 package me.ash.reader.ui.page.settings
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
 import android.view.SoundEffectConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +36,18 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private val settingShapes =
+    listOf(
+        MaterialShapes.Cookie4Sided,
+        MaterialShapes.Cookie6Sided,
+        MaterialShapes.Clover4Leaf,
+        MaterialShapes.Sunny,
+        MaterialShapes.Cookie9Sided,
+        MaterialShapes.SoftBurst,
+    )
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SelectableSettingGroupItem(
     modifier: Modifier = Modifier,
@@ -63,12 +81,33 @@ fun SelectableSettingGroupItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             icon?.let {
-                Icon(
-                    imageVector = it,
-                    contentDescription = title,
-                    modifier = Modifier.padding(start = 8.dp, end = 16.dp),
-                    tint = if (selected) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Material 3 Expressive: each group icon sits on its own shape and tonal color.
+                val index = (title.hashCode() and Int.MAX_VALUE)
+                val shape = settingShapes[index % settingShapes.size].toShape()
+                val (container, content) =
+                    with(MaterialTheme.colorScheme) {
+                        when {
+                            selected -> surfaceVariant to onSurfaceVariant
+                            index % 3 == 0 -> primaryContainer to onPrimaryContainer
+                            index % 3 == 1 -> secondaryContainer to onSecondaryContainer
+                            else -> tertiaryContainer to onTertiaryContainer
+                        }
+                    }
+                Box(
+                    modifier =
+                        Modifier.padding(start = 4.dp, end = 16.dp)
+                            .size(40.dp)
+                            .clip(shape)
+                            .background(container),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = it,
+                        contentDescription = title,
+                        modifier = Modifier.size(22.dp),
+                        tint = content,
+                    )
+                }
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(

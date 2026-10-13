@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package me.ash.reader.ui.page.settings.ai
 
 import android.content.Intent
@@ -22,7 +24,7 @@ import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Summarize
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -111,12 +113,12 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                         Spacer(modifier = Modifier.height(12.dp))
                         val p = model.progress
                         if (p != null) {
-                            LinearProgressIndicator(
+                            LinearWavyProgressIndicator(
                                 progress = { p },
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                             )
                         } else {
-                            LinearProgressIndicator(
+                            LinearWavyProgressIndicator(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
                             )
                         }

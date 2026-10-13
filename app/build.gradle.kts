@@ -66,9 +66,8 @@ android {
         create("github") {
             isDefault = true
             dimension = "channel"
-            // Brief You (fork of Read You): installs next to the official app. The ID stays
-            // ".gemma" so existing installs keep updating.
-            applicationIdSuffix = ".gemma"
+            // Brief You (fork of Read You) has its own app ID, so it installs next to Read You.
+            applicationId = "io.github.humorist2601.briefyou"
         }
         create("fdroid") { dimension = "channel" }
         create("googlePlay") {

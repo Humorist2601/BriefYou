@@ -7,35 +7,33 @@ A fork of <a href="https://github.com/Ashinch/ReadYou">Read You</a>.</p>
 
 Brief You keeps everything that makes Read You great — the Material You design, Reeder-style reading, and support for FreshRSS, Miniflux, Fever, Google Reader API services and more — and adds a private AI layer that runs **entirely on your phone**. Articles, questions and instructions are never sent to a server: the AI is a Gemma model running through Google's open-source [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM).
 
-Brief You installs **alongside** Read You (its own app ID), so you can try it without losing anything. Move your feeds over with an OPML export/import.
+Brief You installs **alongside** Read You (its own app ID, `io.github.humorist2601.briefyou`), so you can try it without losing anything. Move your feeds over with an OPML export/import.
 
 ## What's new compared to Read You
 
 ### On-device AI
-- **Article summaries** — tap ✨ in the reader for 3–5 key points and a "Why it matters" line, streamed as they're written.
-- **Translation** — switch the sheet to *Translate* to read an article in your phone's language.
-- **Ask the article** — follow-up questions in a chat under the summary; the model remembers the conversation.
-- **Saved summaries** — summaries and translations open instantly the second time, and the article list shows a ✦ one-line summary for articles you've summarized. Saved results are deleted together with their article (for example by *Keep archived articles*).
+- **Article summaries** — tap ✨ in the reader for 3–5 key points and a "Why it matters" line. The sheet opens half-way and stays still while the summary is written.
+- **Saved summaries** — a summary opens instantly the second time, and is deleted together with its article (for example by *Keep archived articles*).
 - **Group gists** — tap ✨ on any article list (a group like *News*, a feed, or everything) for a briefing of the newest 40 articles, grouped by story. One tap marks all of them as read.
 - **Read aloud** — any summary or gist can be read aloud.
-
-### Morning briefing
-- A **daily briefing** at the time you choose, on all unread articles or one group, delivered as a single notification.
-- **Listen** to it like a short podcast, with play/pause/skip on the lock screen.
-- A **Briefing widget** for your home screen, and a ☀ button on the feeds screen to open the latest briefing.
 
 ### Calmer feeds
 - **One digest notification** ("12 new articles · From 5 feeds") instead of one notification per article grouped by site.
 - **Muted keywords** — unread articles mentioning them are marked read after each sync.
 - **Duplicate stories** — when several feeds publish the same story, only the first stays unread.
+- **Recently filtered** — the Filters page lists everything that was hidden and why (which word, or which story it duplicated). Tap to open it, or *Undo* to bring it back and stop it being filtered again.
+
+### Feeds that look like themselves
+- **Feed accent colors** — feed names in the article list take a muted accent from the feed's icon, harmonized with your Material You theme.
+- **Custom feed icons** — in a feed's options, tap its icon to use an emoji, an image from your phone, or the website icon again. Custom icons survive syncs.
 
 ### Settings
-- **Settings → AI & voice**: import or remove the model, see whether your phone has enough memory (with a smaller-model suggestion), edit the exact instructions given to the model for summaries and gists, choose the speech engine and speed, download natural offline voices (Google voices or [SherpaTTS](https://f-droid.org/packages/org.woheller69.ttsengine/) with Piper voices), and schedule the morning briefing.
-- **Settings → Filters**: muted keywords and duplicate-story hiding.
+- **Settings → AI model**: import or remove the model, and edit the exact instructions given to the model for summaries and gists.
+- **Settings → Filters**: muted keywords, duplicate-story hiding, and the recently filtered list.
 
 ### Look and feel
 - **Google Sans Flex Rounded** throughout the app.
-- **Material 3 Expressive** touches on all new screens: shape-morphing buttons, MaterialShapes badges and the Expressive loading indicator.
+- **Material 3 Expressive**: shape-morphing buttons, shaped and tinted settings icons, the Expressive pull-to-refresh and loading indicators, and wavy progress bars.
 - **Predictive back** gestures, including the back-to-home preview.
 
 ### Releases
@@ -43,11 +41,9 @@ Brief You installs **alongside** Read You (its own app ID), so you can try it wi
 
 ## Setting up the AI
 
-1. Open **Settings → AI & voice** and tap **Download Gemma 4 E2B**. On Hugging Face, download `gemma-4-E2B-it.litertlm` (about 2.6 GB).
+1. Open **Settings → AI model** and tap **Download Gemma 4 E2B**. On Hugging Face, download `gemma-4-E2B-it.litertlm` (about 2.6 GB).
 2. Back in the app, tap **Import model file** and pick the download. It is copied into the app once; you can delete the original afterwards.
 3. Tap ✨ on any article. The first answer takes a few seconds while the model loads; the model unloads from memory after a few idle minutes.
-
-Phones with less than 6 GB of memory may find Gemma 4 E2B slow; the settings page links to the smaller Gemma 3 1B (about 0.6 GB, free Hugging Face login required).
 
 ## Credits and license
 
