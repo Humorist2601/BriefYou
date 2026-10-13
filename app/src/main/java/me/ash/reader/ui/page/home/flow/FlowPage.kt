@@ -1,5 +1,8 @@
 package me.ash.reader.ui.page.home.flow
 
+import androidx.compose.material.icons.outlined.AutoAwesome
+import me.ash.reader.ui.page.home.reading.summary.SummaryRequest
+import me.ash.reader.ui.page.home.reading.summary.SummarySheet
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -164,6 +167,7 @@ fun FlowPage(
     val focusRequester = remember { FocusRequester() }
     var markAsRead by remember { mutableStateOf(false) }
     var onSearch by rememberSaveable { mutableStateOf(false) }
+    var showGist by remember { mutableStateOf(false) }
 
     var currentPullToLoadState: PullToLoadState? by remember { mutableStateOf(null) }
     var currentLoadAction: LoadAction? by remember { mutableStateOf(null) }
@@ -377,6 +381,13 @@ fun FlowPage(
                             }
                         },
                         actions = {
+                            FeedbackIconButton(
+                                imageVector = Icons.Outlined.AutoAwesome,
+                                contentDescription = stringResource(R.string.ai_gist_action),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            ) {
+                                showGist = true
+                            }
                             RYExtensibleVisibility(visible = !filterUiState.filter.isStarred()) {
                                 FeedbackIconButton(
                                     imageVector = Icons.Rounded.DoneAll,
@@ -746,5 +757,15 @@ fun FlowPage(
                         ),
             )
         }
+    }
+
+    if (showGist) {
+        val gistFilter = filterUiState.copy(searchContent = null)
+        SummarySheet(
+            requestKey = gistFilter,
+            request = SummaryRequest.Gist(gistFilter),
+            heading = stringResource(R.string.ai_gist_of, titleText),
+            onDismissRequest = { showGist = false },
+        )
     }
 }

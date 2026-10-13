@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.home.feeds
 
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -176,7 +177,11 @@ fun FeedsPage(
         rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden, skipHalfExpanded = true)
     val feedDrawerState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden, skipHalfExpanded = true)
 
-    BackHandler(true) { context.findActivity()?.moveTaskToBack(false) }
+    // On Android 12+ the system already sends a root activity to the background on Back, and
+    // leaving Back unhandled here lets the predictive "back to home" animation play.
+    BackHandler(Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        context.findActivity()?.moveTaskToBack(false)
+    }
 
     RYScaffold(
         topBarTonalElevation = topBarTonalElevation.value.dp,

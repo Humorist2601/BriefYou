@@ -24,4 +24,37 @@
     <string name="ai_summary_regenerate">Regenerate</string>
     <string name="ai_summary_retry">Try again</string>
     <string name="ai_summary_remove_model">Remove model</string>
+    <string name="ai_read_aloud">Read aloud</string>
+    <string name="ai_stop_reading">Stop</string>
+
+    <!-- Group gist -->
+    <string name="ai_gist">Gist</string>
+    <string name="ai_gist_of">Gist of %1$s</string>
+    <string name="ai_gist_action">Generate gist of this list</string>
+    <plurals name="ai_gist_based_on">
+        <item quantity="one">Based on %1$d article · on this device</item>
+        <item quantity="other">Based on %1$d articles · on this device</item>
+    </plurals>
+
+    <!-- Settings → AI model -->
+    <string name="ai_settings">AI model</string>
+    <string name="ai_settings_desc">On-device Gemma, summaries, gists</string>
+    <string name="ai_settings_model">Model</string>
+    <string name="ai_settings_status_missing">No model imported</string>
+    <string name="ai_settings_status_ready">Imported · %1$s</string>
+    <string name="ai_settings_status_importing">Importing… %1$s</string>
+    <string name="ai_settings_status_failed">Import failed: %1$s</string>
+    <string name="ai_settings_download">Download Gemma 4 E2B</string>
+    <string name="ai_settings_download_desc">Opens Hugging Face. Download the .litertlm file.</string>
+    <string name="ai_settings_import">Import model file</string>
+    <string name="ai_settings_import_desc">Choose a .litertlm file from your phone</string>
+    <string name="ai_settings_remove">Remove model</string>
+    <string name="ai_settings_remove_desc">Deletes the copied model and frees the space</string>
+    <string name="ai_settings_instructions">Instructions</string>
+    <string name="ai_settings_article_prompt">Article summary instructions</string>
+    <string name="ai_settings_gist_prompt">Group gist instructions</string>
+    <string name="ai_settings_reset">Reset to default</string>
+    <string name="ai_settings_save">Save</string>
+    <string name="ai_settings_cancel">Cancel</string>
+    <string name="ai_settings_privacy">Everything runs on this device. Articles and instructions are never sent anywhere.</string>
 </resources>

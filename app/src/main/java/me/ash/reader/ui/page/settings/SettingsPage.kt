@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Lightbulb
@@ -51,6 +52,7 @@ fun SettingsPage(
     navigateToColorAndStyle: () -> Unit,
     navigateToInteraction: () -> Unit,
     navigateToLanguages: () -> Unit,
+    navigateToAiModel: () -> Unit,
     navigateToTroubleshooting: () -> Unit,
     navigateToTipsAndSupport: () -> Unit,
 ) {
@@ -133,6 +135,14 @@ fun SettingsPage(
                         desc = Locale.getDefault().toDisplayName(),
                         icon = Icons.Outlined.Language,
                         onClick = navigateToLanguages
+                    )
+                }
+                item {
+                    SelectableSettingGroupItem(
+                        title = stringResource(R.string.ai_settings),
+                        desc = stringResource(R.string.ai_settings_desc),
+                        icon = Icons.Outlined.AutoAwesome,
+                        onClick = navigateToAiModel
                     )
                 }
                 item {

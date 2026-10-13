@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.isSpecified
@@ -53,6 +54,7 @@ import me.ash.reader.ui.ext.showToast
 import me.ash.reader.ui.page.adaptive.ArticleListReaderViewModel
 import me.ash.reader.ui.page.adaptive.NavigationAction
 import me.ash.reader.ui.page.adaptive.ReaderState
+import me.ash.reader.ui.page.home.reading.summary.SummaryRequest
 import me.ash.reader.ui.page.home.reading.summary.SummarySheet
 import me.ash.reader.ui.page.home.reading.tts.TtsButton
 
@@ -344,9 +346,13 @@ fun ReadingPage(
     val summaryArticleId = readerState.articleId
     if (showSummary && summaryArticleId != null) {
         SummarySheet(
-            articleKey = summaryArticleId,
-            title = readerState.title,
-            html = readerState.content.text ?: "",
+            requestKey = summaryArticleId,
+            request =
+                SummaryRequest.Article(
+                    title = readerState.title,
+                    html = readerState.content.text ?: "",
+                ),
+            heading = stringResource(R.string.ai_summary),
             onDismissRequest = { showSummary = false },
         )
     }

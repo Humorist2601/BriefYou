@@ -71,6 +71,11 @@ class TextToSpeechManager @Inject constructor(
         }
     }
 
+    /** Reads plain text aloud; each line becomes its own utterance. */
+    fun readPlainText(text: String) {
+        coroutineScope.launch { readText(text) }
+    }
+
     private fun readText(text: String) {
         stop()
 

@@ -890,6 +890,67 @@ interface ArticleDao {
     )
     fun queryLatestUnreadArticleFlow(accountId: Int, limit: Int): Flow<List<ArticleWithFeed>>
 
+    // --- Read You+ : articles for an AI gist, matching the list the user is looking at ---
+
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM article
+        WHERE accountId = :accountId
+        AND (:unreadOnly = 0 OR isUnread = 1)
+        AND (:starredOnly = 0 OR isStarred = 1)
+        ORDER BY date DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun queryForGist(
+        accountId: Int,
+        unreadOnly: Boolean,
+        starredOnly: Boolean,
+        limit: Int,
+    ): List<ArticleWithFeed>
+
+    @Transaction
+    @Query(
+        """
+        SELECT a.* FROM article AS a
+        LEFT JOIN feed AS f ON a.feedId = f.id
+        WHERE a.accountId = :accountId
+        AND f.groupId = :groupId
+        AND (:unreadOnly = 0 OR a.isUnread = 1)
+        AND (:starredOnly = 0 OR a.isStarred = 1)
+        ORDER BY a.date DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun queryForGistByGroupId(
+        accountId: Int,
+        groupId: String,
+        unreadOnly: Boolean,
+        starredOnly: Boolean,
+        limit: Int,
+    ): List<ArticleWithFeed>
+
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM article
+        WHERE accountId = :accountId
+        AND feedId = :feedId
+        AND (:unreadOnly = 0 OR isUnread = 1)
+        AND (:starredOnly = 0 OR isStarred = 1)
+        ORDER BY date DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun queryForGistByFeedId(
+        accountId: Int,
+        feedId: String,
+        unreadOnly: Boolean,
+        starredOnly: Boolean,
+        limit: Int,
+    ): List<ArticleWithFeed>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(vararg article: Article)
 

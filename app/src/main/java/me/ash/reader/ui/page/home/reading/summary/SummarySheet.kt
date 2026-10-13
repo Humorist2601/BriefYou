@@ -16,48 +16,58 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import me.ash.reader.R
+import me.ash.reader.infrastructure.ai.GemmaSummarizer
+import me.ash.reader.infrastructure.android.TextToSpeechManager
 import me.ash.reader.ui.ext.collectAsStateValue
 
-private const val MODEL_PAGE = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm"
-
+/**
+ * Bottom sheet that streams an on-device summary of one article, or a gist of a whole list.
+ *
+ * @param requestKey changes when the thing being summarized changes (article id, filter).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SummarySheet(
-    articleKey: String,
-    title: String?,
-    html: String,
+    requestKey: Any,
+    request: SummaryRequest,
+    heading: String,
     onDismissRequest: () -> Unit,
-    viewModel: SummaryViewModel = hiltViewModel(key = "summary"),
+    viewModel: SummaryViewModel = hiltViewModel(key = "ai-summary"),
 ) {
     val context = LocalContext.current
     val state = viewModel.state.collectAsStateValue()
+    val ttsState = viewModel.textToSpeechManager.stateFlow.collectAsStateValue()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
-    LaunchedEffect(articleKey) { viewModel.start(title, html) }
+    LaunchedEffect(requestKey) { viewModel.start(request) }
     DisposableEffect(Unit) { onDispose { viewModel.stop() } }
 
     val picker =
@@ -80,13 +90,18 @@ fun SummarySheet(
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.width(12.dp))
-                Text(
-                    stringResource(R.string.ai_summary),
-                    style = MaterialTheme.typography.titleLarge,
-                )
+                Text(heading, style = MaterialTheme.typography.titleLarge, maxLines = 2)
             }
+            val count =
+                when (state) {
+                    is SummaryUiState.Streaming -> state.articleCount
+                    is SummaryUiState.Thinking -> state.articleCount
+                    else -> null
+                }
             Text(
-                stringResource(R.string.ai_summary_on_device),
+                if (count != null)
+                    pluralStringResource(R.plurals.ai_gist_based_on, count, count)
+                else stringResource(R.string.ai_summary_on_device),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 36.dp),
@@ -104,7 +119,7 @@ fun SummarySheet(
                         OutlinedButton(
                             onClick = {
                                 context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, MODEL_PAGE.toUri())
+                                    Intent(Intent.ACTION_VIEW, GemmaSummarizer.MODEL_PAGE.toUri())
                                 )
                             }
                         ) {
@@ -133,7 +148,7 @@ fun SummarySheet(
                     }
                 }
 
-                SummaryUiState.Thinking -> {
+                is SummaryUiState.Thinking -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(12.dp))
@@ -152,20 +167,37 @@ fun SummarySheet(
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         if (state.done) {
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(20.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(12.dp, Alignment.End),
                             ) {
-                                TextButton(onClick = viewModel::removeModel) {
-                                    Text(
-                                        stringResource(R.string.ai_summary_remove_model),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
                                 OutlinedButton(onClick = viewModel::retry) {
+                                    Icon(
+                                        Icons.Outlined.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(ButtonDefaults.IconSize),
+                                    )
+                                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                                     Text(stringResource(R.string.ai_summary_regenerate))
+                                }
+                                val reading = ttsState !is TextToSpeechManager.State.Idle &&
+                                    ttsState !is TextToSpeechManager.State.Error
+                                FilledTonalButton(onClick = { viewModel.readAloud(state.text) }) {
+                                    Icon(
+                                        if (reading) Icons.Outlined.StopCircle
+                                        else Icons.AutoMirrored.Outlined.VolumeUp,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(ButtonDefaults.IconSize),
+                                    )
+                                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                                    Text(
+                                        stringResource(
+                                            if (reading) R.string.ai_stop_reading
+                                            else R.string.ai_read_aloud
+                                        )
+                                    )
                                 }
                             }
                         }
@@ -180,9 +212,6 @@ fun SummarySheet(
                     )
                     Spacer(Modifier.height(16.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }) {
-                            Text(stringResource(R.string.ai_summary_choose_file))
-                        }
                         Button(onClick = viewModel::retry) {
                             Text(stringResource(R.string.ai_summary_retry))
                         }

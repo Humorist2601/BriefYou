@@ -42,8 +42,10 @@ android {
         applicationId = "me.ash.reader"
         minSdk = 26
         targetSdk = 34
-        versionCode = 47
-        versionName = "0.16.2"
+        // CI builds of this fork get a rising version so each release installs as an update.
+        val ciBuild = System.getenv("CI_BUILD_NUMBER")?.toIntOrNull()
+        versionCode = if (ciBuild != null) 1000 + ciBuild else 47
+        versionName = if (ciBuild != null) "0.16.2+$ciBuild" else "0.16.2"
 
         buildConfigField(
             "String",
