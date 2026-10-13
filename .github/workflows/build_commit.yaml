@@ -21,9 +21,11 @@ jobs:
             - name: Report build errors
               if: failure()
               run: |
-                  grep -E "^e: |error:|What went wrong|Could not|Caused by|> " build.log | head -60 | while IFS= read -r line; do
-                      echo "::error::${line//%/%25}"
-                  done
+                  grep -vE "^> Task|^> Configure" build.log \
+                    | grep -E "^e: |error:|What went wrong|Could not|Caused by|^> |FAILURE|resolve" \
+                    | head -80 > errors.txt || true
+                  msg=$(sed -e 's/%/%25/g' errors.txt | awk '{printf "%s%%0A", $0}')
+                  echo "::error title=Build errors::${msg}"
 
             - uses: actions/upload-artifact@v4
               with:
