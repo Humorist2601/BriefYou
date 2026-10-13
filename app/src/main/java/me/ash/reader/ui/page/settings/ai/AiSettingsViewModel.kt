@@ -14,6 +14,8 @@ class AiSettingsViewModel @Inject constructor(private val summarizer: GemmaSumma
     val modelState: StateFlow<ModelState> = summarizer.modelState
     val articlePrompt: StateFlow<String> = summarizer.articlePrompt
     val gistPrompt: StateFlow<String> = summarizer.gistPrompt
+    val ramBytes: Long = summarizer.deviceRamBytes()
+    val lowRam: Boolean = summarizer.isLowRamForDefaultModel()
 
     fun importModel(uri: Uri) = summarizer.importModel(uri)
 

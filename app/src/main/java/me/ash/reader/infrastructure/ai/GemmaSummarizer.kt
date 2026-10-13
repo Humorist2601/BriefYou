@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.core.content.edit
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Contents
+import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
@@ -45,7 +46,12 @@ sealed interface ModelState {
 }
 
 /** One article fed into a group gist. */
-data class GistItem(val feedName: String, val title: String, val description: String)
+data class GistItem(
+    val articleId: String,
+    val feedName: String,
+    val title: String,
+    val description: String,
+)
 
 /**
  * On-device article summaries and group gists with a Gemma model run through LiteRT-LM.
@@ -168,22 +174,102 @@ constructor(
     }
 
     /** Streams a gist of many articles (for example everything in a group). */
-    fun gist(groupName: String?, items: List<GistItem>): Flow<String> {
+    fun gist(groupName: String?, items: List<GistItem>): Flow<String> =
+        generate(gistPrompt.value, buildGistPrompt(groupName, items))
+
+    private fun buildGistPrompt(groupName: String?, items: List<GistItem>): String = buildString {
+        if (!groupName.isNullOrBlank()) append("Group: ").append(groupName).append("\n\n")
+        for ((i, item) in items.withIndex()) {
+            val line = buildString {
+                append(i + 1).append(". [").append(item.feedName).append("] ").append(item.title)
+                val desc = item.description.trim().take(MAX_GIST_DESC_CHARS)
+                if (desc.isNotEmpty()) append(" — ").append(desc)
+                append('\n')
+            }
+            if (length + line.length > MAX_INPUT_CHARS) break
+            append(line)
+        }
+    }
+
+    /** Streams a translation of the article into [language] (e.g. "English"). */
+    fun translate(title: String?, html: String, language: String): Flow<String> {
         val prompt = buildString {
-            if (!groupName.isNullOrBlank()) append("Group: ").append(groupName).append("\n\n")
-            for ((i, item) in items.withIndex()) {
-                val line = buildString {
-                    append(i + 1).append(". [").append(item.feedName).append("] ").append(item.title)
-                    val desc = item.description.trim().take(MAX_GIST_DESC_CHARS)
-                    if (desc.isNotEmpty()) append(" — ").append(desc)
-                    append('\n')
+            if (!title.isNullOrBlank()) append(title).append("\n\n")
+            append(htmlToText(html).take(MAX_TRANSLATE_CHARS))
+        }
+        return generate(translatePrompt(language), prompt)
+    }
+
+    /**
+     * Starts a follow-up conversation about [source] (an article or a gist's source list). The
+     * engine stays loaded until the returned chat is closed.
+     */
+    suspend fun openChat(source: String, priorAnswer: String?): Chat =
+        withContext(Dispatchers.Default) {
+            val engine = acquireEngine()
+            try {
+                val system = buildString {
+                    append(CHAT_PROMPT)
+                    append("\n\n--- SOURCE ---\n")
+                    append(source.take(MAX_INPUT_CHARS))
+                    if (!priorAnswer.isNullOrBlank()) {
+                        append("\n\n--- SUMMARY ALREADY SHOWN TO THE USER ---\n")
+                        append(priorAnswer)
+                    }
                 }
-                if (length + line.length > MAX_INPUT_CHARS) break
-                append(line)
+                Chat(
+                    engine.createConversation(
+                        ConversationConfig(
+                            systemInstruction = Contents.of(system),
+                            samplerConfig = SamplerConfig(topK = 40, topP = 0.95, temperature = 0.4),
+                        )
+                    )
+                )
+            } catch (t: Throwable) {
+                if (activeUses.decrementAndGet() == 0) scheduleUnload()
+                throw t
             }
         }
-        return generate(gistPrompt.value, prompt)
+
+    /** A multi-turn conversation; the model remembers earlier questions. Close when done. */
+    inner class Chat internal constructor(private val conversation: Conversation) : AutoCloseable {
+        private val closed = java.util.concurrent.atomic.AtomicBoolean(false)
+
+        fun ask(question: String): Flow<String> =
+            flow {
+                    val sb = StringBuilder()
+                    conversation.sendMessageAsync(question).collect { chunk ->
+                        sb.append(chunk.toString())
+                        emit(sb.toString().trim())
+                    }
+                }
+                .flowOn(Dispatchers.Default)
+
+        override fun close() {
+            if (!closed.compareAndSet(false, true)) return
+            runCatching { conversation.close() }
+            if (activeUses.decrementAndGet() == 0) scheduleUnload()
+        }
     }
+
+    /** Text versions of an article / list, used as chat context. */
+    fun articleContext(title: String?, html: String): String = buildString {
+        if (!title.isNullOrBlank()) append("Title: ").append(title).append("\n\n")
+        append(htmlToText(html))
+    }
+
+    fun gistContext(groupName: String?, items: List<GistItem>): String = buildGistPrompt(groupName, items)
+
+    /** Total RAM in bytes, for the "is this phone big enough" check. */
+    fun deviceRamBytes(): Long {
+        val am = context.getSystemService(android.app.ActivityManager::class.java)
+        val info = android.app.ActivityManager.MemoryInfo()
+        am?.getMemoryInfo(info)
+        return info.totalMem
+    }
+
+    /** True when the phone probably has too little memory for Gemma 4 E2B. */
+    fun isLowRamForDefaultModel(): Boolean = deviceRamBytes() in 1 until LOW_RAM_BYTES
 
     private fun generate(systemPrompt: String, userText: String): Flow<String> =
         flow {
@@ -277,6 +363,21 @@ constructor(
         private const val MAX_INPUT_CHARS = 10_000
         private const val MAX_GIST_DESC_CHARS = 220
         private const val IDLE_UNLOAD_MS = 3 * 60 * 1000L
+        private const val MAX_TRANSLATE_CHARS = 6_000
+        private const val LOW_RAM_BYTES = 6L * 1024 * 1024 * 1024
+
+        /** Smaller, faster model for phones with less memory (gated: needs a free Hugging Face login). */
+        const val SMALL_MODEL_PAGE = "https://huggingface.co/litert-community/Gemma3-1B-IT"
+
+        private const val CHAT_PROMPT =
+            "You answer the user's questions about the source below for a news reader app. " +
+                "Be brief and direct. Use the source first; if the answer is not in it, say so " +
+                "and then answer from general knowledge, clearly marked as such. Reply in the " +
+                "language of the question."
+
+        private fun translatePrompt(language: String) =
+            "Translate the following article into $language. Keep the meaning, tone and " +
+                "paragraph breaks. Output only the translation, with the title on the first line."
 
         const val DEFAULT_ARTICLE_PROMPT =
             "You summarize articles for a news reader app. Reply with 3 to 5 short bullet " +

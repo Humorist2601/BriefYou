@@ -1,3 +1,22 @@
+# Brief You
+
+**Brief You** is a fork of [Read You](https://github.com/Ashinch/ReadYou) that adds private, on-device AI and calmer notifications. Everything AI runs on your phone with a Gemma model through [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM); nothing is sent to a server.
+
+What's different from Read You:
+
+- **One digest notification** instead of one per article.
+- **Summaries, translation and follow-up questions** for any article, saved so they open instantly, with a one-line summary in the article list.
+- **Gists** of a whole group, feed or list, and a scheduled **morning briefing** you can read or listen to with lock-screen controls, plus a home-screen widget.
+- **Keyword mute filters** and **duplicate-story detection** applied when feeds sync.
+- **Settings → AI model** to import the model and edit the instructions it follows.
+- Predictive back and Material 3 Expressive touches.
+
+Download the latest APK from [Releases](../../releases). Brief You installs alongside Read You.
+
+Brief You is licensed under GPL-3.0 like Read You, and all credit for the original app goes to Ashinch and the Read You contributors. The original README follows.
+
+---
+
 <div align="center">
     <img width="200" height="200" style="display: block; border: 1px solid #f5f5f5; border-radius: 9999px;" src="https://raw.githubusercontent.com/ReadYouApp/ReadYou/main/fastlane/metadata/android/en-US/images/icon.png">
 </div>

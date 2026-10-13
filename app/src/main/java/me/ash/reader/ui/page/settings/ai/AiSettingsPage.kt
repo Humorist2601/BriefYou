@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Memory
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Summarize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
@@ -135,6 +136,21 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                         onClick = {
                             context.startActivity(
                                 Intent(Intent.ACTION_VIEW, GemmaSummarizer.MODEL_PAGE.toUri())
+                            )
+                        },
+                    ) {}
+                    SettingItem(
+                        title = stringResource(R.string.ai_settings_small_model),
+                        desc =
+                            stringResource(
+                                if (viewModel.lowRam) R.string.ai_settings_small_model_desc_low
+                                else R.string.ai_settings_small_model_desc,
+                                Formatter.formatShortFileSize(context, viewModel.ramBytes),
+                            ),
+                        icon = Icons.Outlined.Speed,
+                        onClick = {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, GemmaSummarizer.SMALL_MODEL_PAGE.toUri())
                             )
                         },
                     ) {}

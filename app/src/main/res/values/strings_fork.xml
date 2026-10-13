@@ -16,7 +16,7 @@
     <string name="ai_summarize">Summarize</string>
     <string name="ai_summary">Summary</string>
     <string name="ai_summary_on_device">Generated on this device with Gemma</string>
-    <string name="ai_summary_needs_model">To summarize articles privately on your phone, download a Gemma model in .litertlm format (Gemma 4 E2B is recommended; it is a few gigabytes), then choose the file here. It is copied into Read You once and never leaves your device.</string>
+    <string name="ai_summary_needs_model">To summarize articles privately on your phone, download a Gemma model in .litertlm format (Gemma 4 E2B is recommended; it is a few gigabytes), then choose the file here. It is copied into the app once and never leaves your device.</string>
     <string name="ai_summary_get_model">Get Gemma 4</string>
     <string name="ai_summary_choose_file">Choose model file</string>
     <string name="ai_summary_importing">Importing model… this can take a minute.</string>
@@ -45,7 +45,10 @@
     <string name="ai_settings_status_importing">Importing… %1$s</string>
     <string name="ai_settings_status_failed">Import failed: %1$s</string>
     <string name="ai_settings_download">Download Gemma 4 E2B</string>
-    <string name="ai_settings_download_desc">Opens Hugging Face. Download the .litertlm file.</string>
+    <string name="ai_settings_download_desc">Opens Hugging Face. Download gemma-4-E2B-it.litertlm (about 2.6 GB).</string>
+    <string name="ai_settings_small_model">Smaller model: Gemma 3 1B</string>
+    <string name="ai_settings_small_model_desc">This phone has %1$s of memory. Use this if Gemma 4 is too slow (about 0.6 GB; needs a free Hugging Face login).</string>
+    <string name="ai_settings_small_model_desc_low">Recommended: this phone has %1$s of memory, which may be too little for Gemma 4 E2B (about 0.6 GB; needs a free Hugging Face login).</string>
     <string name="ai_settings_import">Import model file</string>
     <string name="ai_settings_import_desc">Choose a .litertlm file from your phone</string>
     <string name="ai_settings_remove">Remove model</string>
@@ -57,4 +60,20 @@
     <string name="ai_settings_save">Save</string>
     <string name="ai_settings_cancel">Cancel</string>
     <string name="ai_settings_privacy">Everything runs on this device. Articles and instructions are never sent anywhere.</string>
+
+    <!-- Sheet extras -->
+    <string name="ai_translate">Translate</string>
+    <string name="ai_saved_on_device">Saved · generated on this device</string>
+    <string name="ai_ask_placeholder">Ask a follow-up question…</string>
+    <string name="ai_ask_send">Ask</string>
+    <string name="ai_low_ram_warning">This phone has less than 6 GB of memory, so Gemma 4 E2B may be slow or fail to load. A smaller model like Gemma 3 1B works better; its page needs a free Hugging Face login and accepting the Gemma license.</string>
+    <string name="ai_get_small_model">Get Gemma 3 1B</string>
+    <plurals name="ai_gist_mark_read">
+        <item quantity="one">Mark this %1$d article as read</item>
+        <item quantity="other">Mark these %1$d articles as read</item>
+    </plurals>
+    <plurals name="ai_gist_marked_read">
+        <item quantity="one">%1$d article marked as read</item>
+        <item quantity="other">%1$d articles marked as read</item>
+    </plurals>
 </resources>

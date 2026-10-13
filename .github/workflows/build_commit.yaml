@@ -51,7 +51,7 @@ jobs:
                       git log -1 --format='%s%n%n%b' | grep -vE '^(Co-Authored-By|Claude-Session):'
                   } > notes.md
                   gh release create "$tag" "$apk" \
-                      --title "Read You+ build ${{ github.run_number }}" \
+                      --title "Brief You build ${{ github.run_number }}" \
                       --notes-file notes.md \
                       --target "$GITHUB_SHA" \
                       --latest

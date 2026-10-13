@@ -349,6 +349,7 @@ fun ReadingPage(
             requestKey = summaryArticleId,
             request =
                 SummaryRequest.Article(
+                    articleId = summaryArticleId,
                     title = readerState.title,
                     html = readerState.content.text ?: "",
                 ),

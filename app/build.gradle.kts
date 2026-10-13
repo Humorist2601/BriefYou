@@ -66,7 +66,8 @@ android {
         create("github") {
             isDefault = true
             dimension = "channel"
-            // Fork build: installs next to the official Read You instead of clashing with it.
+            // Brief You (fork of Read You): installs next to the official app. The ID stays
+            // ".gemma" so existing installs keep updating.
             applicationIdSuffix = ".gemma"
         }
         create("fdroid") { dimension = "channel" }
@@ -99,7 +100,7 @@ android {
     applicationVariants.all {
         outputs.all {
             (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                "ReadYou-${defaultConfig.versionName}-${gitCommitHash}.apk"
+                "BriefYou-${defaultConfig.versionName}-${gitCommitHash}.apk"
         }
     }
     kotlinOptions {
