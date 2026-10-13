@@ -140,7 +140,7 @@ fun ArticleItem(
     val articleListDate = LocalFlowArticleListTime.current
     val articleListReadIndicator = LocalFlowArticleListReadIndicator.current
     val readingLabel = readingMinutes?.let { stringResource(R.string.reading_time_min, it) }
-    val timeLabel = listOfNotNull(timeString?.takeIf { it.isNotBlank() }, readingLabel)
+    val timeLabel = listOfNotNull(readingLabel, timeString?.takeIf { it.isNotBlank() })
         .joinToString(" · ")
 
     Column(
