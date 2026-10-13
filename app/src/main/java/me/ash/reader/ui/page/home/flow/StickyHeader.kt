@@ -30,9 +30,7 @@ fun StickyHeader(
     ) {
         Text(
             modifier = Modifier
-                .padding(
-                    start = if (isShowFeedIcon) 54.dp else 24.dp,
-                )
+                .padding(start = 24.dp)
                 .padding(top = 8.dp, bottom = 4.dp),
             text = dateString,
             color = MaterialTheme.colorScheme.primary,
