@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
@@ -26,6 +27,7 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -43,6 +45,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 import me.ash.reader.R
+import me.ash.reader.ui.component.ExpressiveBadge
 import me.ash.reader.infrastructure.ai.BriefingPlaybackService
 import me.ash.reader.infrastructure.ai.GemmaSummarizer
 import me.ash.reader.infrastructure.ai.MorningBriefing
@@ -84,12 +87,8 @@ fun BriefingSheet(onDismissRequest: () -> Unit, viewModel: BriefingViewModel = h
                 .padding(bottom = 24.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.WbSunny,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.width(12.dp))
+                ExpressiveBadge(Icons.Outlined.WbSunny)
+                Spacer(Modifier.width(14.dp))
                 Text(
                     latest?.title ?: stringResource(R.string.briefing_title),
                     style = MaterialTheme.typography.titleLarge,
@@ -111,7 +110,7 @@ fun BriefingSheet(onDismissRequest: () -> Unit, viewModel: BriefingViewModel = h
                         ),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 36.dp),
+                    modifier = Modifier.padding(start = 54.dp),
                 )
             }
             Spacer(Modifier.height(20.dp))
@@ -126,7 +125,18 @@ fun BriefingSheet(onDismissRequest: () -> Unit, viewModel: BriefingViewModel = h
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
-                latest != null -> Text(latest.text, style = MaterialTheme.typography.bodyLarge)
+                latest != null ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        shape = RoundedCornerShape(28.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            latest.text,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(20.dp),
+                        )
+                    }
                 else ->
                     Text(
                         stringResource(
@@ -152,6 +162,7 @@ fun BriefingSheet(onDismissRequest: () -> Unit, viewModel: BriefingViewModel = h
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
             ) {
                 OutlinedButton(
+                    shapes = ButtonDefaults.shapes(),
                     onClick = viewModel::generateNow,
                     enabled = viewModel.hasModel && !generating,
                 ) {
@@ -164,6 +175,7 @@ fun BriefingSheet(onDismissRequest: () -> Unit, viewModel: BriefingViewModel = h
                     Text(stringResource(R.string.briefing_generate_now))
                 }
                 Button(
+                    shapes = ButtonDefaults.shapes(),
                     onClick = { viewModel.listen(context) },
                     enabled = latest != null && !generating,
                 ) {

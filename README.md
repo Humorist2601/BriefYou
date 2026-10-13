@@ -1,21 +1,60 @@
-# Brief You
+<div align="center">
+<h1>Brief You</h1>
+<p><b>A calm, private RSS reader for Android with on-device AI.</b><br/>
+A fork of <a href="https://github.com/Ashinch/ReadYou">Read You</a>.</p>
+<p><a href="../../releases/latest"><b>Download the latest APK</b></a></p>
+</div>
 
-**Brief You** is a fork of [Read You](https://github.com/Ashinch/ReadYou) that adds private, on-device AI and calmer notifications. Everything AI runs on your phone with a Gemma model through [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM); nothing is sent to a server.
+Brief You keeps everything that makes Read You great — the Material You design, Reeder-style reading, and support for FreshRSS, Miniflux, Fever, Google Reader API services and more — and adds a private AI layer that runs **entirely on your phone**. Articles, questions and instructions are never sent to a server: the AI is a Gemma model running through Google's open-source [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM).
 
-What's different from Read You:
+Brief You installs **alongside** Read You (its own app ID), so you can try it without losing anything. Move your feeds over with an OPML export/import.
 
-- **One digest notification** instead of one per article.
-- **Summaries, translation and follow-up questions** for any article, saved so they open instantly, with a one-line summary in the article list.
-- **Gists** of a whole group, feed or list, and a scheduled **morning briefing** you can read or listen to with lock-screen controls, plus a home-screen widget.
-- **Keyword mute filters** and **duplicate-story detection** applied when feeds sync.
-- **Settings → AI model** to import the model and edit the instructions it follows.
-- Predictive back and Material 3 Expressive touches.
+## What's new compared to Read You
 
-Download the latest APK from [Releases](../../releases). Brief You installs alongside Read You.
+### On-device AI
+- **Article summaries** — tap ✨ in the reader for 3–5 key points and a "Why it matters" line, streamed as they're written.
+- **Translation** — switch the sheet to *Translate* to read an article in your phone's language.
+- **Ask the article** — follow-up questions in a chat under the summary; the model remembers the conversation.
+- **Saved summaries** — summaries and translations open instantly the second time, and the article list shows a ✦ one-line summary for articles you've summarized. Saved results are deleted together with their article (for example by *Keep archived articles*).
+- **Group gists** — tap ✨ on any article list (a group like *News*, a feed, or everything) for a briefing of the newest 40 articles, grouped by story. One tap marks all of them as read.
+- **Read aloud** — any summary or gist can be read aloud.
 
-Brief You is licensed under GPL-3.0 like Read You, and all credit for the original app goes to Ashinch and the Read You contributors. The original README follows.
+### Morning briefing
+- A **daily briefing** at the time you choose, on all unread articles or one group, delivered as a single notification.
+- **Listen** to it like a short podcast, with play/pause/skip on the lock screen.
+- A **Briefing widget** for your home screen, and a ☀ button on the feeds screen to open the latest briefing.
 
----
+### Calmer feeds
+- **One digest notification** ("12 new articles · From 5 feeds") instead of one notification per article grouped by site.
+- **Muted keywords** — unread articles mentioning them are marked read after each sync.
+- **Duplicate stories** — when several feeds publish the same story, only the first stays unread.
+
+### Settings
+- **Settings → AI & voice**: import or remove the model, see whether your phone has enough memory (with a smaller-model suggestion), edit the exact instructions given to the model for summaries and gists, choose the speech engine and speed, download natural offline voices (Google voices or [SherpaTTS](https://f-droid.org/packages/org.woheller69.ttsengine/) with Piper voices), and schedule the morning briefing.
+- **Settings → Filters**: muted keywords and duplicate-story hiding.
+
+### Look and feel
+- **Google Sans Flex Rounded** throughout the app.
+- **Material 3 Expressive** touches on all new screens: shape-morphing buttons, MaterialShapes badges and the Expressive loading indicator.
+- **Predictive back** gestures, including the back-to-home preview.
+
+### Releases
+- Every change is built by GitHub Actions and published to [Releases](../../releases) with a rising version number, so each APK installs as an update (works with updaters like Obtainium).
+
+## Setting up the AI
+
+1. Open **Settings → AI & voice** and tap **Download Gemma 4 E2B**. On Hugging Face, download `gemma-4-E2B-it.litertlm` (about 2.6 GB).
+2. Back in the app, tap **Import model file** and pick the download. It is copied into the app once; you can delete the original afterwards.
+3. Tap ✨ on any article. The first answer takes a few seconds while the model loads; the model unloads from memory after a few idle minutes.
+
+Phones with less than 6 GB of memory may find Gemma 4 E2B slow; the settings page links to the smaller Gemma 3 1B (about 0.6 GB, free Hugging Face login required).
+
+## Credits and license
+
+Brief You is free software under the **GNU GPL 3.0**, like Read You. All credit for the original app goes to [Ashinch](https://github.com/Ashinch) and the Read You contributors. Gemma is provided under Google's Gemma terms; Brief You does not include the model, you download it yourself.
+
+<details>
+<summary><b>Original Read You README</b></summary>
 
 <div align="center">
     <img width="200" height="200" style="display: block; border: 1px solid #f5f5f5; border-radius: 9999px;" src="https://raw.githubusercontent.com/ReadYouApp/ReadYou/main/fastlane/metadata/android/en-US/images/icon.png">
@@ -179,3 +218,5 @@ Thanks to **Weblate** for providing free hosting of open source projects for **R
 ## License
 
 GNU GPL v3.0 © [Read You](https://github.com/ReadYouApp/ReadYou/blob/main/LICENSE)
+
+</details>

@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import me.ash.reader.R
+import me.ash.reader.ui.component.ExpressiveBadge
 import me.ash.reader.infrastructure.ai.GemmaSummarizer
 import me.ash.reader.infrastructure.android.TextToSpeechManager
 import me.ash.reader.ui.ext.collectAsStateValue
@@ -109,12 +110,8 @@ fun SummarySheet(
                     .imePadding()
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.AutoAwesome,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.width(12.dp))
+                ExpressiveBadge(Icons.Outlined.AutoAwesome)
+                Spacer(Modifier.width(14.dp))
                 Text(heading, style = MaterialTheme.typography.titleLarge, maxLines = 2)
             }
             val count =
@@ -132,7 +129,7 @@ fun SummarySheet(
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 36.dp),
+                modifier = Modifier.padding(start = 54.dp),
             )
 
             if (isArticle && state !is SummaryUiState.NeedsModel && state !is SummaryUiState.Importing) {
@@ -175,6 +172,7 @@ fun SummarySheet(
                     Spacer(Modifier.height(20.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedButton(
+                            shapes = ButtonDefaults.shapes(),
                             onClick = {
                                 val page =
                                     if (viewModel.lowRam) GemmaSummarizer.SMALL_MODEL_PAGE
@@ -189,7 +187,7 @@ fun SummarySheet(
                                 )
                             )
                         }
-                        Button(onClick = { picker.launch(arrayOf("*/*")) }) {
+                        Button(shapes = ButtonDefaults.shapes(), onClick = { picker.launch(arrayOf("*/*")) }) {
                             Text(stringResource(R.string.ai_summary_choose_file))
                         }
                     }
@@ -226,10 +224,17 @@ fun SummarySheet(
 
                 is SummaryUiState.Streaming -> {
                     Column {
-                        Text(
-                            state.text + if (state.done) "" else " ▍",
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            shape = RoundedCornerShape(28.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                state.text + if (state.done) "" else " ▍",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(20.dp),
+                            )
+                        }
                         if (state.done) {
                             Spacer(Modifier.height(20.dp))
                             Row(
@@ -237,7 +242,7 @@ fun SummarySheet(
                                 horizontalArrangement =
                                     Arrangement.spacedBy(12.dp, Alignment.End),
                             ) {
-                                OutlinedButton(onClick = viewModel::regenerate) {
+                                OutlinedButton(shapes = ButtonDefaults.shapes(), onClick = viewModel::regenerate) {
                                     Icon(
                                         Icons.Outlined.Refresh,
                                         contentDescription = null,
@@ -249,7 +254,7 @@ fun SummarySheet(
                                 val reading =
                                     ttsState !is TextToSpeechManager.State.Idle &&
                                         ttsState !is TextToSpeechManager.State.Error
-                                FilledTonalButton(onClick = { viewModel.readAloud(state.text) }) {
+                                FilledTonalButton(shapes = ButtonDefaults.shapes(), onClick = { viewModel.readAloud(state.text) }) {
                                     Icon(
                                         if (reading) Icons.Outlined.StopCircle
                                         else Icons.AutoMirrored.Outlined.VolumeUp,
@@ -270,6 +275,7 @@ fun SummarySheet(
                                 Spacer(Modifier.height(12.dp))
                                 val marked = gistMarkedRead
                                 Button(
+                                    shapes = ButtonDefaults.shapes(),
                                     onClick = viewModel::markGistAsRead,
                                     enabled = marked == null,
                                     modifier = Modifier.fillMaxWidth(),
@@ -311,7 +317,7 @@ fun SummarySheet(
                         color = MaterialTheme.colorScheme.error,
                     )
                     Spacer(Modifier.height(16.dp))
-                    Button(onClick = viewModel::retry) {
+                    Button(shapes = ButtonDefaults.shapes(), onClick = viewModel::retry) {
                         Text(stringResource(R.string.ai_summary_retry))
                     }
                 }
