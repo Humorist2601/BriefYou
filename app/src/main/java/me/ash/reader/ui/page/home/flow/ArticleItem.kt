@@ -110,6 +110,7 @@ fun ArticleItem(
         isStarred = article.isStarred,
         isUnread = isUnread,
         hasSummary = rememberHasSummary(article.id),
+        readingMinutes = remember(article.id) { estimateReadingMinutes(article.rawDescription) },
         onClick = { onClick(articleWithFeed) },
         onLongClick = onLongClick,
     )
@@ -128,6 +129,7 @@ fun ArticleItem(
     isStarred: Boolean = false,
     isUnread: Boolean = false,
     hasSummary: Boolean = false,
+    readingMinutes: Int? = null,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
@@ -137,6 +139,9 @@ fun ArticleItem(
     val articleListDesc = LocalFlowArticleListDesc.current
     val articleListDate = LocalFlowArticleListTime.current
     val articleListReadIndicator = LocalFlowArticleListReadIndicator.current
+    val readingLabel = readingMinutes?.let { stringResource(R.string.reading_time_min, it) }
+    val timeLabel = listOfNotNull(timeString?.takeIf { it.isNotBlank() }, readingLabel)
+        .joinToString(" · ")
 
     Column(
         modifier =
@@ -191,7 +196,7 @@ fun ArticleItem(
                         // Time
                         Text(
                             modifier = Modifier,
-                            text = timeString ?: "",
+                            text = timeLabel,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelMedium,
                         )
@@ -208,7 +213,7 @@ fun ArticleItem(
                         // Time
                         Text(
                             modifier = Modifier.weight(1f),
-                            text = timeString ?: "",
+                            text = timeLabel,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelMedium,
                         )
