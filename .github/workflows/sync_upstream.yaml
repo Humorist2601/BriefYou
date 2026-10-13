@@ -1,9 +1,10 @@
 name: "Sync with Read You"
 
 # Brief You follows Read You automatically: once a day this merges new commits from
-# Ashinch/ReadYou into the Brief You branch, keeping all Brief You changes. A clean merge is
-# pushed and built into a new release. If the same lines were changed on both sides, nothing is
-# changed and an Issue lists the conflicting files so they can be resolved by hand.
+# Ashinch/ReadYou into Brief You (this repo's main branch), keeping all Brief You changes. A clean
+# merge is pushed and built into a new release. If the same lines were changed on both sides,
+# nothing is changed: the run fails (GitHub emails the owner) and lists the conflicting files,
+# and an Issue is opened too when Issues are enabled.
 
 on:
     schedule:
@@ -13,7 +14,7 @@ on:
 env:
     UPSTREAM_REPO: https://github.com/Ashinch/ReadYou.git
     UPSTREAM_BRANCH: main
-    BRIEF_BRANCH: gemma-summaries-and-digest
+    BRIEF_BRANCH: main
 
 jobs:
     sync:
@@ -51,18 +52,22 @@ jobs:
                       conflicts=$(git diff --name-only --diff-filter=U)
                       git merge --abort
                       echo "result=conflict" >> "$GITHUB_OUTPUT"
+                      {
+                          echo "Read You has $new new commits that change the same lines as Brief You, so they were not merged automatically. Nothing in Brief You was changed."
+                          echo
+                          echo "Conflicting files:"
+                          echo "$conflicts" | sed 's/^/- `/; s/$/`/'
+                          echo
+                          echo "Upstream: $UPSTREAM_REPO ($UPSTREAM_BRANCH)"
+                      } > body.md
+                      cat body.md >> "$GITHUB_STEP_SUMMARY"
+                      # Open an Issue when Issues are enabled (best effort).
                       title="Read You update needs a manual merge"
-                      if ! gh issue list --state open --search "$title in:title" --json number --jq '.[0].number' | grep -q .; then
-                          {
-                              echo "Read You has $new new commits that change the same lines as Brief You, so they were not merged automatically. Nothing in Brief You was changed."
-                              echo
-                              echo "Conflicting files:"
-                              echo "$conflicts" | sed 's/^/- `/; s/$/`/'
-                              echo
-                              echo "Upstream: $UPSTREAM_REPO ($UPSTREAM_BRANCH)"
-                          } > body.md
-                          gh issue create --title "$title" --body-file body.md
+                      if ! gh issue list --state open --search "$title in:title" --json number --jq '.[0].number' 2>/dev/null | grep -q .; then
+                          gh issue create --title "$title" --body-file body.md || true
                       fi
+                      echo "::error title=Manual merge needed::Read You changes conflict with Brief You in: $(echo $conflicts)"
+                      exit 1
                   fi
 
             - name: Push merge
@@ -73,9 +78,10 @@ jobs:
                   if ! git push origin "HEAD:$BRIEF_BRANCH"; then
                       # Usually means Read You changed a workflow file, which this token may not push.
                       title="Read You update could not be pushed automatically"
-                      if ! gh issue list --state open --search "$title in:title" --json number --jq '.[0].number' | grep -q .; then
-                          gh issue create --title "$title" --body "The merge with Read You succeeded but could not be pushed (Read You probably changed a file under .github/workflows). It needs to be pushed by hand."
+                      if ! gh issue list --state open --search "$title in:title" --json number --jq '.[0].number' 2>/dev/null | grep -q .; then
+                          gh issue create --title "$title" --body "The merge with Read You succeeded but could not be pushed (Read You probably changed a file under .github/workflows). It needs to be pushed by hand." || true
                       fi
+                      echo "::error title=Push failed::The merge with Read You could not be pushed; it needs to be pushed by hand." 
                       exit 1
                   fi
                   # Pushes made with this token don't start other workflows, so start the build.
