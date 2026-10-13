@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Article list -->
+    <string name="reading_time_min">%1$d min read</string>
+
     <!-- Digest notification -->
     <string name="notification_channel_new_articles">New articles</string>
     <plurals name="digest_title">
