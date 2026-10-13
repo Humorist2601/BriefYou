@@ -165,15 +165,14 @@ fun ArticleItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Feed name
+            // Feed name, with the feed icon inline at its start (Brief You)
             if (articleListFeedName.value) {
+                if (articleListFeedIcon.value) {
+                    FeedIcon(feedName = feedName, iconUrl = feedIconUrl, size = 16.dp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
                 Text(
-                    modifier =
-                        Modifier.weight(1f)
-                            .padding(
-                                start = if (articleListFeedIcon.value) 30.dp else 0.dp,
-                                end = 10.dp,
-                            ),
+                    modifier = Modifier.weight(1f).padding(end = 10.dp),
                     text = feedName,
                     // Brief You: a muted accent taken from the feed's icon.
                     color = rememberFeedAccent(feedIconUrl) ?: MaterialTheme.colorScheme.tertiary,
@@ -200,7 +199,10 @@ fun ArticleItem(
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Spacer(Modifier.width(if (articleListFeedIcon.value) 30.dp else 0.dp))
+                    if (articleListFeedIcon.value) {
+                        FeedIcon(feedName = feedName, iconUrl = feedIconUrl, size = 16.dp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
 
                     if (articleListDate.value) {
                         // Time
@@ -224,12 +226,6 @@ fun ArticleItem(
 
         // Bottom
         Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-            // Feed icon
-            if (articleListFeedIcon.value) {
-                FeedIcon(feedName = feedName, iconUrl = feedIconUrl)
-                Spacer(modifier = Modifier.width(10.dp))
-            }
-
             // Article
             Column(modifier = Modifier.weight(1f)) {
 
