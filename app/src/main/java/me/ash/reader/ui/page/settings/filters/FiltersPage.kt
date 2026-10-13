@@ -81,6 +81,11 @@ constructor(val filters: BriefFilters, private val accountService: AccountServic
     private val _applied = MutableStateFlow<Int?>(null)
     val applied: StateFlow<Int?> = _applied.asStateFlow()
 
+    init {
+        // Drop entries for articles that were deleted since the app started.
+        viewModelScope.launch { runCatching { filters.prune() } }
+    }
+
     fun undo(entry: FilterLogEntry) {
         viewModelScope.launch { runCatching { filters.undo(entry) } }
     }

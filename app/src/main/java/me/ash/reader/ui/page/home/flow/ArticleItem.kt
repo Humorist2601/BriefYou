@@ -1,5 +1,7 @@
 package me.ash.reader.ui.page.home.flow
 
+import me.ash.reader.infrastructure.ai.rememberHasSummary
+import androidx.compose.material.icons.outlined.AutoAwesome
 import me.ash.reader.ui.component.rememberFeedAccent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -107,6 +109,7 @@ fun ArticleItem(
         imgData = article.img,
         isStarred = article.isStarred,
         isUnread = isUnread,
+        hasSummary = rememberHasSummary(article.id),
         onClick = { onClick(articleWithFeed) },
         onLongClick = onLongClick,
     )
@@ -124,6 +127,7 @@ fun ArticleItem(
     imgData: Any? = null,
     isStarred: Boolean = false,
     isUnread: Boolean = false,
+    hasSummary: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
@@ -243,6 +247,15 @@ fun ArticleItem(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
+                    // Brief You: this article already has an on-device summary.
+                    if (hasSummary) {
+                        Icon(
+                            imageVector = Icons.Outlined.AutoAwesome,
+                            contentDescription = stringResource(R.string.ai_summary),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 6.dp, top = 3.dp).size(16.dp),
+                        )
+                    }
                     if (!articleListFeedName.value && !articleListDate.value) {
                         if (isStarred) {
                             StarredIcon()

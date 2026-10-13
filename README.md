@@ -12,8 +12,8 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 ## What's new compared to Read You
 
 ### On-device AI
-- **Article summaries** — tap ✨ in the reader for 3–5 key points and a "Why it matters" line. The sheet opens half-way and stays still while the summary is written.
-- **Saved summaries** — a summary opens instantly the second time, and is deleted together with its article (for example by *Keep archived articles*).
+- **Article summaries** — tap ✨ in the reader for 3–5 key points and a "Why it matters" line. The sheet opens above half height and grows smoothly as the summary is written.
+- **Saved summaries** — a summary opens instantly the second time, articles with a summary show a ✨ next to their title in the list, and the summary is deleted together with its article (for example by *Keep archived articles*).
 - **Group gists** — tap ✨ on any article list (a group like *News*, a feed, or everything) for a briefing of the newest 40 articles, grouped by story. One tap marks all of them as read.
 - **Read aloud** — any summary or gist can be read aloud.
 
@@ -21,10 +21,10 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 - **One digest notification** ("12 new articles · From 5 feeds") instead of one notification per article grouped by site.
 - **Muted keywords** — unread articles mentioning them are marked read after each sync.
 - **Duplicate stories** — when several feeds publish the same story, only the first stays unread.
-- **Recently filtered** — the Filters page lists everything that was hidden and why (which word, or which story it duplicated). Tap to open it, or *Undo* to bring it back and stop it being filtered again.
+- **Recently filtered** — the Filters page lists everything that was hidden and why (which word, or which story it duplicated). Tap to open it, or *Undo* to bring it back and stop it being filtered again. Entries are removed together with their articles.
 
 ### Feeds that look like themselves
-- **Feed accent colors** — feed names in the article list take a muted accent from the feed's icon, harmonized with your Material You theme.
+- **Feed accent colors** — feed names in the article list take a muted accent from the feed's icon (or emoji), harmonized with your Material You theme.
 - **Custom feed icons** — in a feed's options, tap its icon to use an emoji, an image from your phone, or the website icon again. Custom icons survive syncs.
 
 ### Settings
@@ -32,11 +32,12 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 - **Settings → Filters**: muted keywords, duplicate-story hiding, and the recently filtered list.
 
 ### Look and feel
-- **Google Sans Flex Rounded** throughout the app.
+- **Google Sans Flex Rounded** throughout the app, and **Literata** — Google's serif designed for long reading — as a reading font option.
 - **Material 3 Expressive**: shape-morphing buttons, shaped and tinted settings icons, the Expressive pull-to-refresh and loading indicators, and wavy progress bars.
 - **Predictive back** gestures, including the back-to-home preview.
 
 ### Releases
+- APKs are built for 64-bit ARM phones (arm64-v8a), which covers practically every phone that can run the on-device model.
 - Every change is built by GitHub Actions and published to [Releases](../../releases) with a rising version number, so each APK installs as an update (works with updaters like Obtainium).
 
 ## Setting up the AI

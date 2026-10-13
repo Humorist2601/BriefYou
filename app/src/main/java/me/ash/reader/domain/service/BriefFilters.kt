@@ -56,7 +56,8 @@ data class FilterLogEntry(
  *
  * Marking read goes through the same path as swiping an article, so it syncs to the account.
  * Every filtered article is recorded in [log] with its reason. [undo] brings one back as unread
- * and exempts it, so later syncs don't filter it again.
+ * and exempts it, so later syncs don't filter it again. Log entries and exemptions are removed
+ * together with their articles ([forget], [prune]).
  */
 @Singleton
 class BriefFilters
@@ -155,10 +156,7 @@ constructor(
                     Timber.d("BriefFilters: marking ${found.size} articles as read")
                     rssService.get().batchMarkAsRead(articleIds = found.keys, isUnread = false)
                     val known = found.keys
-                    writeLog(
-                        (found.values.toList() + _log.value.filterNot { it.articleId in known })
-                            .take(MAX_LOG)
-                    )
+                    writeLog(found.values.toList() + _log.value.filterNot { it.articleId in known })
                 }
                 found.size
             }
@@ -169,12 +167,43 @@ constructor(
         withContext(Dispatchers.IO) {
             lock.withLock {
                 rssService.get().batchMarkAsRead(articleIds = setOf(entry.articleId), isUnread = true)
-                val exempt =
-                    (prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty().toList() + entry.articleId)
-                        .takeLast(MAX_EXEMPT)
-                prefs.edit { putStringSet(KEY_EXEMPT, exempt.toSet()) }
+                val exempt = prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty() + entry.articleId
+                prefs.edit { putStringSet(KEY_EXEMPT, exempt) }
                 writeLog(_log.value.filterNot { it.articleId == entry.articleId })
             }
+        }
+
+    /**
+     * Forgets log entries and Undo exemptions for these articles. Called when articles are
+     * deleted (for example by "Keep archived articles"), so the log lives exactly as long as
+     * the articles it lists, like saved summaries.
+     */
+    suspend fun forget(articleIds: Collection<String>) =
+        withContext(Dispatchers.IO) {
+            if (articleIds.isEmpty()) return@withContext
+            val gone = articleIds.toHashSet()
+            lock.withLock {
+                val exempt = prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty()
+                if (exempt.any { it in gone }) {
+                    prefs.edit { putStringSet(KEY_EXEMPT, exempt.filterNot { it in gone }.toSet()) }
+                }
+                if (_log.value.any { it.articleId in gone }) {
+                    writeLog(_log.value.filterNot { it.articleId in gone })
+                }
+            }
+        }
+
+    @Volatile private var pruned = false
+
+    /** Removes entries whose article no longer exists. Runs once per app start. */
+    suspend fun prune() =
+        withContext(Dispatchers.IO) {
+            if (pruned) return@withContext
+            pruned = true
+            val exempt = prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty()
+            if (_log.value.isEmpty() && exempt.isEmpty()) return@withContext
+            val live = articleDao.queryAllIds().toHashSet()
+            forget((_log.value.map { it.articleId } + exempt).filterNot { it in live })
         }
 
     suspend fun clearLog() =
@@ -245,8 +274,6 @@ constructor(
         const val KEY_EXEMPT = "exempt_ids"
         const val WINDOW_MS = 3L * 24 * 60 * 60 * 1000
         const val MAX_ARTICLES = 1500
-        const val MAX_LOG = 300
-        const val MAX_EXEMPT = 500
         const val MIN_TOKENS = 4
         const val SIMILARITY = 0.6
         val STOPWORDS =

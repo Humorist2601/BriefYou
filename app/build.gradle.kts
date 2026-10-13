@@ -56,6 +56,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
+        // Brief You ships for 64-bit ARM phones only (smaller APK; LiteRT-LM targets arm64).
+        ndk { abiFilters += listOf("arm64-v8a") }
+
         room { schemaDirectory("$projectDir/schemas") }
 
         ksp { arg("room.incremental", "true") }

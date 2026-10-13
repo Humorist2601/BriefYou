@@ -1,5 +1,13 @@
 package me.ash.reader.ui.page.home.reading.summary
 
+import me.ash.reader.infrastructure.preference.LocalReadingTextHorizontalPadding
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.animateContentSize
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -7,7 +15,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -57,8 +64,8 @@ import me.ash.reader.ui.ext.collectAsStateValue
 /**
  * Bottom sheet that streams an on-device summary of one article, or a gist of a whole list.
  *
- * The sheet opens half-way and keeps a fixed height while text streams in, so it never moves
- * under the reader's eyes; drag it up for more room. Only the text area scrolls.
+ * The sheet opens above half height and grows upward as the text streams in; once it reaches the
+ * top, only the text area scrolls. Horizontal padding matches the reading page.
  *
  * @param requestKey changes when the thing being summarized changes (article id, filter).
  */
@@ -75,7 +82,7 @@ fun SummarySheet(
     val state = viewModel.state.collectAsStateValue()
     val gistMarkedRead = viewModel.gistMarkedRead.collectAsStateValue()
     val ttsState = viewModel.textToSpeechManager.stateFlow.collectAsStateValue()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val isArticle = request is SummaryRequest.Article
 
     LaunchedEffect(requestKey) { viewModel.start(request) }
@@ -86,19 +93,28 @@ fun SummarySheet(
             uri?.let(viewModel::importModel)
         }
 
-    ModalBottomSheet(onDismissRequest = onDismissRequest, sheetState = sheetState) {
-        // A fixed, tall content height: the sheet settles at its half-way stop and never resizes.
+    // Brief You: no drag gestures on this sheet. Dragging a sheet whose content is still growing
+    // made it bounce; now it simply grows upward with the summary (starting above half height),
+    // scrolls once it reaches the top, and closes with the ✕ button, Back, or a tap outside.
+    val minHeight = (LocalConfiguration.current.screenHeightDp * 0.6f).dp
+    val horizontalPadding = LocalReadingTextHorizontalPadding.current.dp
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        sheetState = sheetState,
+        sheetGesturesEnabled = false,
+    ) {
         Column(
             modifier =
                 Modifier.fillMaxWidth()
-                    .fillMaxHeight(0.92f)
-                    .padding(horizontal = 24.dp)
+                    .heightIn(min = minHeight)
+                    .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
+                    .padding(horizontal = horizontalPadding)
                     .navigationBarsPadding()
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ExpressiveBadge(Icons.Outlined.AutoAwesome)
                 Spacer(Modifier.width(14.dp))
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(heading, style = MaterialTheme.typography.titleLarge, maxLines = 2)
                     val count =
                         when (state) {
@@ -117,6 +133,9 @@ fun SummarySheet(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                IconButton(onClick = onDismissRequest) {
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close))
                 }
             }
             Spacer(Modifier.height(20.dp))
@@ -200,7 +219,9 @@ fun SummarySheet(
 
             Column(
                 modifier =
-                    Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
+                    Modifier.weight(1f, fill = false)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
             ) {
                 when (state) {
                     SummaryUiState.NeedsModel -> {

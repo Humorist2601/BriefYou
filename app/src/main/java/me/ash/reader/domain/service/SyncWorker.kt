@@ -39,6 +39,7 @@ constructor(
                 removed.forEach { readerCacheHelper.deleteCacheFor(articleId = it.id) }
                 // Brief You: saved summaries go away with their articles.
                 runCatching { summaryStore.delete(removed.map { it.id }) }
+                runCatching { briefFilters.forget(removed.map { it.id }) }
                 // Brief You: mute keywords and duplicate stories.
                 runCatching { briefFilters.apply(accountId) }
                 // Brief You: custom feed icons survive syncs that rewrite icons.

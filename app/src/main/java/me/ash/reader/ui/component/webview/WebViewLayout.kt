@@ -29,6 +29,7 @@ object WebViewLayout {
                         ReadingFontsPreference.Monospace -> "monospace"
                         ReadingFontsPreference.SansSerif -> "sans-serif"
                         ReadingFontsPreference.Serif -> "serif"
+                        ReadingFontsPreference.Literata -> "serif"
                         ReadingFontsPreference.GoogleSans -> {
                             "sans-serif"
                         }

@@ -93,6 +93,8 @@ fun RYWebView(
             ExternalFonts.FontType.ReadingFont.toPath(context)
         else if (readingFonts is ReadingFontsPreference.GoogleSans) {
             "/android_res/font/google_sans_flex.ttf"
+        } else if (readingFonts is ReadingFontsPreference.Literata) {
+            "/android_res/font/literata.ttf"
         } else null
 
     AndroidView(

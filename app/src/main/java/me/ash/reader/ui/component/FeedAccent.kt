@@ -60,7 +60,7 @@ object FeedAccent {
     }
 
     private suspend fun extract(context: Context, iconUrl: String): Int? {
-        if (iconUrl.startsWith(EMOJI_PREFIX)) return null
+        if (iconUrl.startsWith(EMOJI_PREFIX)) return dominantColor(renderEmoji(iconUrl.removePrefix(EMOJI_PREFIX)))
         val bitmap: Bitmap =
             if ("^image/.*;base64,.*".toRegex().matches(iconUrl)) {
                 val bytes = Base64.decode(iconUrl.substringAfter("base64,"), Base64.DEFAULT)
@@ -77,6 +77,20 @@ object FeedAccent {
                 (result as? SuccessResult)?.drawable?.toBitmapOrNull() ?: return null
             }
         return dominantColor(bitmap)
+    }
+
+    /** Draws an emoji with the system emoji font so its colors can be sampled like an icon. */
+    private fun renderEmoji(emoji: String): Bitmap {
+        val size = 64
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val paint =
+            android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = size * 0.8f
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+        val y = size / 2f - (paint.descent() + paint.ascent()) / 2f
+        android.graphics.Canvas(bmp).drawText(emoji, size / 2f, y, paint)
+        return bmp
     }
 
     /** Chroma-weighted hue histogram; returns the average color of the strongest hue bucket. */

@@ -14,6 +14,7 @@ import me.ash.reader.ui.ext.dataStore
 import me.ash.reader.ui.ext.put
 import me.ash.reader.ui.ext.restart
 import me.ash.reader.ui.theme.GoogleSansFontFamily
+import me.ash.reader.ui.theme.LiterataFontFamily
 
 val LocalReadingFonts =
     compositionLocalOf<ReadingFontsPreference> { ReadingFontsPreference.default }
@@ -33,6 +34,8 @@ sealed class ReadingFontsPreference(val value: Int) : Preference() {
 
     object External : ReadingFontsPreference(5)
 
+    object Literata : ReadingFontsPreference(7)
+
     override fun put(context: Context, scope: CoroutineScope) {
         scope.launch {
             context.dataStore.put(DataStoreKey.readingFonts, value)
@@ -51,11 +54,13 @@ sealed class ReadingFontsPreference(val value: Int) : Preference() {
             Monospace -> "Monospace"
             Cursive -> "Cursive"
             External -> context.getString(R.string.external_fonts)
+            Literata -> "Literata"
         }
 
     fun asFontFamily(context: Context): FontFamily =
         when (this) {
             GoogleSans -> GoogleSansFontFamily
+            Literata -> LiterataFontFamily
             System -> FontFamily.Default
             Serif -> FontFamily.Serif
             SansSerif -> FontFamily.SansSerif
@@ -69,7 +74,7 @@ sealed class ReadingFontsPreference(val value: Int) : Preference() {
     companion object {
 
         val default = GoogleSans
-        val values = listOf(GoogleSans, System, Serif, SansSerif, Monospace, Cursive, External)
+        val values = listOf(GoogleSans, Literata, System, Serif, SansSerif, Monospace, Cursive, External)
 
         fun fromPreferences(preferences: Preferences): ReadingFontsPreference =
             when (preferences[DataStoreKey.keys[readingFonts]?.key as Preferences.Key<Int>]) {
@@ -80,6 +85,7 @@ sealed class ReadingFontsPreference(val value: Int) : Preference() {
                 4 -> Cursive
                 5 -> External
                 6 -> GoogleSans
+                7 -> Literata
                 else -> default
             }
     }

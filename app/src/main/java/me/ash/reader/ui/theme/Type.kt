@@ -202,3 +202,25 @@ internal fun Typography.applyFontFamily(fontFamily: FontFamily) =
         labelMediumEmphasized = labelMediumEmphasized.applyFontFamily(fontFamily),
         labelSmallEmphasized = labelSmallEmphasized.applyFontFamily(fontFamily),
     )
+
+
+// Brief You: Literata, Google's serif designed for long reading on screens (SIL Open Font License).
+private fun literata(weight: Int, italic: Boolean) =
+    Font(
+        if (italic) R.font.literata_italic else R.font.literata,
+        weight = FontWeight(weight),
+        style = if (italic) FontStyle.Italic else FontStyle.Normal,
+        variationSettings = FontVariation.Settings(FontVariation.weight(weight)),
+    )
+
+val LiterataFontFamily =
+    FontFamily(
+        literata(400, false),
+        literata(500, false),
+        literata(600, false),
+        literata(700, false),
+        literata(400, true),
+        literata(500, true),
+        literata(600, true),
+        literata(700, true),
+    )
