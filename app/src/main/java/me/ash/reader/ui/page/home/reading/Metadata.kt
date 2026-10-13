@@ -14,8 +14,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import me.ash.reader.R
 import me.ash.reader.infrastructure.preference.LocalReadingFonts
 import me.ash.reader.infrastructure.preference.LocalReadingTitleAlign
 import me.ash.reader.infrastructure.preference.LocalReadingTitleBold
@@ -33,6 +35,7 @@ fun Metadata(
     publishedDate: Date,
     modifier: Modifier = Modifier,
     author: String? = null,
+    readingMinutes: Int? = null,
 ) {
     val context = LocalContext.current
     val titleBold = LocalReadingTitleBold.current
@@ -40,6 +43,8 @@ fun Metadata(
     val titleAlign = LocalReadingTitleAlign.current.toTextAlign()
     val dateString =
         remember(publishedDate) { publishedDate.formatAsString(context, atHourMinute = true) }
+    val readingLabel = readingMinutes?.let { stringResource(R.string.reading_time_short, it) }
+    val dateLine = listOfNotNull(dateString, readingLabel).joinToString(" · ")
     val fontFamily = LocalReadingFonts.current.asFontFamily(context)
 
     val titleUpperCaseString by remember { derivedStateOf { title.uppercase() } }
@@ -54,7 +59,7 @@ fun Metadata(
     ) {
         Text(
             modifier = Modifier.fillMaxWidth(),
-            text = dateString,
+            text = dateLine,
             color = labelColor,
             style = MaterialTheme.typography.labelMedium.merge(fontFamily = fontFamily),
             textAlign = titleAlign,
