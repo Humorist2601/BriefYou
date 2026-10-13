@@ -101,7 +101,11 @@ android {
         }
     }
     kotlinOptions {
-        freeCompilerArgs = freeCompilerArgs + "-opt-in=kotlin.RequiresOptIn"
+        freeCompilerArgs =
+            freeCompilerArgs +
+                "-opt-in=kotlin.RequiresOptIn" +
+                // LiteRT-LM is built with a newer Kotlin than this project.
+                "-Xskip-metadata-version-check"
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
     compileOptions {
