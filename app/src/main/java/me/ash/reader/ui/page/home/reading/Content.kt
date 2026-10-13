@@ -32,6 +32,8 @@ import me.ash.reader.ui.component.scrollbar.drawVerticalScrollIndicator
 import me.ash.reader.ui.component.webview.RYWebView
 import me.ash.reader.ui.ext.extractDomain
 import me.ash.reader.ui.ext.roundClick
+import androidx.compose.runtime.remember
+import me.ash.reader.ui.page.home.flow.readingMinutes
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -57,6 +59,9 @@ fun Content(
     val maxWidthModifier = Modifier.widthIn(max = textContentWidth)
     val uriHandler = LocalUriHandler.current
 
+    // Actual length of what is being shown (full content when it has been fetched).
+    val minutesToRead = remember(content) { readingMinutes(content) }
+
     val headline =
         @Composable {
             Column(modifier = Modifier.then(maxWidthModifier).padding(horizontal = 12.dp)) {
@@ -66,6 +71,7 @@ fun Content(
                         title = title,
                         author = author,
                         publishedDate = publishedDate,
+                        readingMinutes = minutesToRead,
                         modifier = Modifier.roundClick { link?.let { uriHandler.openUri(it) } },
                     )
                 }
