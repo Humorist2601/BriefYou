@@ -346,7 +346,7 @@ fun FlowPage(
                                 BasicText(
                                     modifier =
                                         Modifier.padding(
-                                            start = if (articleListFeedIcon.value) 34.dp else 8.dp,
+                                            start = 8.dp,
                                             end = 24.dp,
                                         ),
                                     text = titleText,
