@@ -39,7 +39,7 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 
 ### Releases
 - APKs are built for 64-bit ARM phones (arm64-v8a), which covers practically every phone that can run the on-device model.
-- Every change is built by GitHub Actions and published to [Releases](../../releases) as **Brief You 0.16.2+N**, where `0.16.2` is the app version and `N` is a rising build number, so each APK installs as an update (works with updaters like Obtainium). The release tag uses the same `0.16.2+N` format.
+- Every change is built by GitHub Actions and published to [Releases](../../releases) as **Brief You 0.16.2.N**, where `0.16.2` is the app version and `N` is a rising build number, so each APK installs as an update (works with updaters like Obtainium). The release tag uses the same `0.16.2.N` format.
 
 ## Setting up the AI
 
