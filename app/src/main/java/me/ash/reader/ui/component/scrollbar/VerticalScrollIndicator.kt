@@ -28,9 +28,15 @@ private val ThumbColor
     @Composable get() = MaterialTheme.colorScheme.outline.copy(alpha = .5f)
 
 @Composable
-fun Modifier.drawVerticalScrollIndicator(scrollState: ScrollState): Modifier {
+fun Modifier.drawVerticalScrollIndicator(
+    scrollState: ScrollState,
+    showWhenContentChanges: Boolean = false,
+): Modifier {
     return this.scrollIndicator(
-        VerticalScrollIndicatorFactory(thumbColor = ThumbColor),
+        VerticalScrollIndicatorFactory(
+            thumbColor = ThumbColor,
+            showWhenContentChanges = showWhenContentChanges,
+        ),
         scrollState.scrollIndicatorState!!,
         Orientation.Vertical,
     )
@@ -49,6 +55,8 @@ data class VerticalScrollIndicatorFactory(
     val thumbThickness: Dp = 4.dp,
     val padding: Dp = 0.dp,
     val thumbColor: Color = Color.Gray,
+    /** Also show the thumb while the content grows (text that is still streaming in). */
+    val showWhenContentChanges: Boolean = false,
 ) : ScrollIndicatorFactory {
     // The node is the core of the ScrollIndicator, handling the drawing logic.
     override fun createNode(
@@ -61,7 +69,9 @@ data class VerticalScrollIndicatorFactory(
 
             override fun onAttach() {
                 coroutineScope.launch {
-                    snapshotFlow { state.scrollOffset }
+                    snapshotFlow {
+                            state.scrollOffset to (if (showWhenContentChanges) state.contentSize else 0)
+                        }
                         .collectLatest {
                             alpha.snapTo(1f)
                             delay(3000)
