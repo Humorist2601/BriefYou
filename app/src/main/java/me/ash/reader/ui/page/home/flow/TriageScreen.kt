@@ -2,7 +2,10 @@
 
 package me.ash.reader.ui.page.home.flow
 
+import androidx.activity.BackEventCompat
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -39,10 +42,13 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -69,13 +75,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import coil.size.Precision
 import coil.size.Scale
 import dagger.hilt.android.EntryPointAccessors
 import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import me.ash.reader.R
@@ -85,6 +90,7 @@ import me.ash.reader.infrastructure.ai.SummaryStoreEntryPoint
 import me.ash.reader.ui.component.FeedIcon
 import me.ash.reader.ui.component.base.RYAsyncImage
 import me.ash.reader.ui.component.base.SIZE_1000
+import me.ash.reader.ui.component.rememberFeedAccent
 import me.ash.reader.ui.theme.GoogleSansWideFontFamily
 
 /** What a card can be swiped to. */
@@ -112,13 +118,43 @@ private fun HapticFeedback.commit(action: TriageAction) =
 
 internal data class TriageStep(val article: ArticleWithFeed, val action: TriageAction)
 
+/** The next group triage can continue with, once the current one is done. */
+data class TriageNextGroup(val id: String, val name: String, val unread: Int)
+
 /**
  * One triage run: the cards, where you are, and what you did (for Undo). It lives outside the
- * screen, so opening an article from triage and coming back continues exactly where you were.
+ * screen, so opening an article from triage and coming back continues exactly where you were. When
+ * a group is finished, [startGroup] carries on with the next one in the same session.
  */
-class TriageSession(val articles: List<ArticleWithFeed>) {
+class TriageSession(
+    articles: List<ArticleWithFeed>,
+    groupId: String? = null,
+    groupName: String? = null,
+) {
+    var articles by mutableStateOf(articles)
+        private set
+
+    var groupId by mutableStateOf(groupId)
+        private set
+
+    var groupName by mutableStateOf(groupName)
+        private set
+
+    /** Groups already triaged in this session, so "next group" never goes round in circles. */
+    var visited by mutableStateOf(setOfNotNull(groupId))
+        private set
+
     var index by mutableIntStateOf(0)
     internal val history = mutableStateListOf<TriageStep>()
+
+    fun startGroup(id: String, name: String, cards: List<ArticleWithFeed>) {
+        visited = visited + id
+        groupId = id
+        groupName = name
+        articles = cards
+        index = 0
+        history.clear()
+    }
 }
 
 /**
@@ -133,14 +169,60 @@ fun TriageScreen(
     onStar: (ArticleWithFeed, Boolean) -> Unit,
     onOpen: (ArticleWithFeed) -> Unit,
     onClose: () -> Unit,
+    findNextGroup: (currentGroupId: String?, visited: Set<String>) -> TriageNextGroup?,
+    loadGroupArticles: suspend (groupId: String) -> List<ArticleWithFeed>,
 ) {
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
-    ) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            TriageContent(session, onRead, onUnread, onStar, onOpen, onClose)
+    val scope = rememberCoroutineScope()
+    val enter = remember { Animatable(0f) }
+    var backProgress by remember { mutableFloatStateOf(0f) }
+    var swipeFromLeft by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { enter.animateTo(1f, tween(220)) }
+
+    // Predictive back: while you swipe, the whole screen shrinks and slides towards the swipe edge,
+    // showing the list behind it. Let go to close it; drag back to cancel.
+    PredictiveBackHandler(enabled = true) { progress ->
+        try {
+            progress.collect { event ->
+                backProgress = event.progress
+                swipeFromLeft = event.swipeEdge == BackEventCompat.EDGE_LEFT
+            }
+            animate(backProgress, 1f, animationSpec = tween(140)) { value, _ ->
+                backProgress = value
+            }
+            onClose()
+        } catch (e: CancellationException) {
+            scope.launch {
+                animate(backProgress, 0f, animationSpec = tween(180)) { value, _ ->
+                    backProgress = value
+                }
+            }
         }
+    }
+
+    Surface(
+        modifier =
+            Modifier.fillMaxSize().graphicsLayer {
+                val e = enter.value
+                val scale = (0.94f + 0.06f * e) * (1f - 0.12f * backProgress)
+                scaleX = scale
+                scaleY = scale
+                alpha = e * (1f - 0.3f * backProgress)
+                translationX = (if (swipeFromLeft) 1f else -1f) * backProgress * 24.dp.toPx()
+                shape = RoundedCornerShape(backProgress * 40.dp.toPx())
+                clip = backProgress > 0f
+            },
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        TriageContent(
+            session,
+            onRead,
+            onUnread,
+            onStar,
+            onOpen,
+            onClose,
+            findNextGroup,
+            loadGroupArticles,
+        )
     }
 }
 
@@ -152,13 +234,24 @@ private fun TriageContent(
     onStar: (ArticleWithFeed, Boolean) -> Unit,
     onOpen: (ArticleWithFeed) -> Unit,
     onClose: () -> Unit,
+    findNextGroup: (currentGroupId: String?, visited: Set<String>) -> TriageNextGroup?,
+    loadGroupArticles: suspend (groupId: String) -> List<ArticleWithFeed>,
 ) {
     val haptic = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
+    var loadingNext by remember { mutableStateOf(false) }
     val articles = session.articles
     val history = session.history
     val index = session.index
     val total = articles.size
     val current = articles.getOrNull(index)
+
+    // When this group is finished: the next group (in the Feeds page order) that has unread articles.
+    val done = current == null
+    val nextGroup =
+        remember(session.groupId, session.visited, done) {
+            if (done) findNextGroup(session.groupId, session.visited) else null
+        }
 
     fun decide(action: TriageAction) {
         val article = current ?: return
@@ -221,9 +314,10 @@ private fun TriageContent(
                     fontWeight = FontWeight.SemiBold,
                 )
                 if (current != null) {
+                    val left =
+                        pluralStringResource(R.plurals.triage_left, total - index, total - index)
                     Text(
-                        text =
-                            pluralStringResource(R.plurals.triage_left, total - index, total - index),
+                        text = session.groupName?.takeIf { it.isNotBlank() }?.let { "$it · $left" } ?: left,
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -249,6 +343,20 @@ private fun TriageContent(
                 saved = history.count { it.action == TriageAction.Save },
                 skipped = history.count { it.action == TriageAction.Skip },
                 nothingToDo = total == 0,
+                nextGroup = nextGroup,
+                loadingNext = loadingNext,
+                onNextGroup = {
+                    val next = nextGroup
+                    if (next != null && !loadingNext) {
+                        loadingNext = true
+                        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        scope.launch {
+                            val cards = runCatching { loadGroupArticles(next.id) }.getOrDefault(emptyList())
+                            session.startGroup(next.id, next.name, cards)
+                            loadingNext = false
+                        }
+                    }
+                },
                 onClose = onClose,
             )
         } else {
@@ -356,59 +464,60 @@ private fun TriageStack(
 
             Column(modifier = Modifier.fillMaxSize()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    // The next card waits behind and grows as you drag.
-                    if (next != null) {
-                        TriageCard(
-                            article = next,
-                            overlay = null,
-                            overlayAlpha = 0f,
-                            modifier =
-                                Modifier.fillMaxSize().graphicsLayer {
-                                    val s = 0.93f + 0.07f * progress
-                                    scaleX = s
-                                    scaleY = s
-                                    translationY = (1f - progress) * 16.dp.toPx()
-                                },
-                        )
+                    val backModifier =
+                        Modifier.fillMaxSize().graphicsLayer {
+                            // The next card waits behind and grows as you drag.
+                            val s = 0.93f + 0.07f * progress
+                            scaleX = s
+                            scaleY = s
+                            translationY = (1f - progress) * 16.dp.toPx()
+                        }
+                    val frontModifier =
+                        Modifier.fillMaxSize()
+                            .graphicsLayer {
+                                translationX = dragX.value
+                                translationY = dragY.value
+                                rotationZ = (dragX.value / widthPx) * 12f
+                            }
+                            .pointerInput(current.article.id) {
+                                detectDragGestures(
+                                    onDragStart = {},
+                                    onDragEnd = {
+                                        if (!busy) {
+                                            busy = true
+                                            scope.launch {
+                                                settle(actionFor(dragX.value, dragY.value))
+                                                busy = false
+                                            }
+                                        }
+                                    },
+                                    onDragCancel = { scope.launch { settle(null) } },
+                                    onDrag = { change, amount ->
+                                        change.consume()
+                                        if (!busy) {
+                                            scope.launch {
+                                                dragX.snapTo(dragX.value + amount.x)
+                                                dragY.snapTo(dragY.value + amount.y)
+                                            }
+                                        }
+                                    },
+                                )
+                            }
+
+                    // Back to front, each card keyed by its article. When the next card becomes the
+                    // front card it keeps its composition, so its image is already loaded and the
+                    // previous card's image can't flash on it.
+                    listOfNotNull(next, current).forEach { card ->
+                        val isFront = card.article.id == current.article.id
+                        key(card.article.id) {
+                            TriageCard(
+                                article = card,
+                                overlay = if (isFront) hint ?: pending else null,
+                                overlayAlpha = if (isFront) progress else 0f,
+                                modifier = if (isFront) frontModifier else backModifier,
+                            )
+                        }
                     }
-                    TriageCard(
-                        article = current,
-                        overlay = hint ?: pending,
-                        overlayAlpha = progress,
-                        modifier =
-                            Modifier.fillMaxSize()
-                                .graphicsLayer {
-                                    translationX = dragX.value
-                                    translationY = dragY.value
-                                    rotationZ = (dragX.value / widthPx) * 12f
-                                }
-                                .pointerInput(current.article.id) {
-                                    detectDragGestures(
-                                        onDragStart = {},
-                                        onDragEnd = {
-                                            if (!busy) {
-                                                busy = true
-                                                scope.launch {
-                                                    settle(actionFor(dragX.value, dragY.value))
-                                                    busy = false
-                                                }
-                                            }
-                                        },
-                                        onDragCancel = {
-                                            scope.launch { settle(null) }
-                                        },
-                                        onDrag = { change, amount ->
-                                            change.consume()
-                                            if (!busy) {
-                                                scope.launch {
-                                                    dragX.snapTo(dragX.value + amount.x)
-                                                    dragY.snapTo(dragY.value + amount.y)
-                                                }
-                                            }
-                                        },
-                                    )
-                                },
-                    )
                 }
 
                 // Buttons
@@ -513,7 +622,8 @@ private fun TriageCard(
                         modifier = Modifier.weight(1f).padding(start = 10.dp),
                         text = feed.name,
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        // The same per-website accent the article list uses.
+                        color = rememberFeedAccent(feed.icon) ?: MaterialTheme.colorScheme.tertiary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -653,6 +763,9 @@ private fun TriageDone(
     saved: Int,
     skipped: Int,
     nothingToDo: Boolean,
+    nextGroup: TriageNextGroup?,
+    loadingNext: Boolean,
+    onNextGroup: () -> Unit,
     onClose: () -> Unit,
 ) {
     Column(
@@ -695,7 +808,14 @@ private fun TriageDone(
             )
         }
         Spacer(Modifier.height(32.dp))
-        Button(onClick = onClose) { Text(stringResource(R.string.triage_back_to_list)) }
+        if (nextGroup != null) {
+            Button(onClick = onNextGroup, enabled = !loadingNext) {
+                Text(stringResource(R.string.triage_next_group, nextGroup.name, nextGroup.unread))
+            }
+            TextButton(onClick = onClose) { Text(stringResource(R.string.triage_back_to_list)) }
+        } else {
+            Button(onClick = onClose) { Text(stringResource(R.string.triage_back_to_list)) }
+        }
     }
 }
 
