@@ -46,6 +46,7 @@ import me.ash.reader.infrastructure.di.IODispatcher
 import me.ash.reader.infrastructure.preference.PullToLoadNextFeedPreference
 import me.ash.reader.infrastructure.preference.SettingsProvider
 import me.ash.reader.infrastructure.rss.ReaderCacheHelper
+import me.ash.reader.ui.page.home.flow.TriageSession
 import timber.log.Timber
 
 private const val TAG = "FlowViewModel"
@@ -124,6 +125,12 @@ constructor(
                 FlowUiState(nextFilterState = nextFilterState, pagerData = pagerData)
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** The current triage run, kept here so it survives reading an article opened from triage. */
+    var triageSession: TriageSession? = null
+
+    /** Set when triage opened an article: triage reappears once the article is closed. */
+    var triageResume: Boolean = false
 
     private val syncWorkerStatusFlow =
         workManager
