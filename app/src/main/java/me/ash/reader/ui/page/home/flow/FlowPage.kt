@@ -157,10 +157,6 @@ fun FlowPage(
     val scrolledTopBarContainerColor =
         with(MaterialTheme.colorScheme) { if (isTopBarElevated) surfaceContainer else surface }
 
-    // All / Unread / Starred: short fixed headings that get the wide expressive font. Group and
-    // feed names keep the normal width, since they can be long.
-    val isFilterTitle = filterUiState.group == null && filterUiState.feed == null
-
     val titleText =
         when {
             filterUiState.group != null -> filterUiState.group.name
@@ -357,13 +353,13 @@ fun FlowPage(
                                     text = titleText,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
+                                    // Wide expressive heading for All, Unread, Starred and for
+                                    // group and feed names. Long names shrink or wrap (2 lines).
                                     style =
-                                        if (isFilterTitle) {
-                                            textStyle.copy(
-                                                fontFamily = GoogleSansWideFontFamily,
-                                                fontWeight = FontWeight.SemiBold,
-                                            )
-                                        } else textStyle,
+                                        textStyle.copy(
+                                            fontFamily = GoogleSansWideFontFamily,
+                                            fontWeight = FontWeight.SemiBold,
+                                        ),
                                     color = { color },
                                     autoSize =
                                         TextAutoSize.StepBased(
