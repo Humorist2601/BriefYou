@@ -359,11 +359,11 @@ fun FlowPage(
                     colorScheme = MaterialTheme.colorScheme,
                     typography =
                         MaterialTheme.typography.copy(
-                            headlineMedium = MaterialTheme.typography.displaySmall,
+                            headlineSemiBold = MaterialTheme.typography.displaySmall,
                             titleLarge =
                                 MaterialTheme.typography.titleLarge.merge(
                                     fontSize = 18.sp,
-                                    fontWeight = FontWeight.Medium,
+                                    fontWeight = FontWeight.SemiBold,
                                 ),
                         ),
                 ) {
@@ -398,7 +398,7 @@ fun FlowPage(
                                     style =
                                         textStyle.copy(
                                             fontFamily = GoogleSansWideFontFamily,
-                                            fontWeight = FontWeight.Medium,
+                                            fontWeight = FontWeight.SemiBold,
                                         ),
                                     color = { color },
                                     autoSize =
