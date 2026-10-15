@@ -5,6 +5,7 @@ package me.ash.reader.ui.page.home.flow
 import androidx.activity.BackEventCompat
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -175,25 +176,40 @@ fun TriageScreen(
     val scope = rememberCoroutineScope()
     val enter = remember { Animatable(0f) }
     var backProgress by remember { mutableFloatStateOf(0f) }
+    var exit by remember { mutableFloatStateOf(0f) }
+    var closing by remember { mutableStateOf(false) }
     var swipeFromLeft by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) { enter.animateTo(1f, tween(220)) }
 
+    // Finishes the exit: the screen keeps shrinking and slides away while it fades all the way out,
+    // and only then is it removed, so it never vanishes in a single frame.
+    suspend fun playExit() {
+        if (closing) return
+        closing = true
+        val spec = tween<Float>(durationMillis = 240, easing = FastOutLinearInEasing)
+        coroutineScope {
+            launch { animate(backProgress, 1f, animationSpec = spec) { v, _ -> backProgress = v } }
+            launch { animate(0f, 1f, animationSpec = spec) { v, _ -> exit = v } }
+        }
+        onClose()
+    }
+
     // Predictive back: while you swipe, the whole screen shrinks and slides towards the swipe edge,
-    // showing the list behind it. Let go to close it; drag back to cancel.
+    // showing the list behind it. Let go to close it (it then finishes sliding and fading out);
+    // drag back to cancel.
     PredictiveBackHandler(enabled = true) { progress ->
         try {
             progress.collect { event ->
                 backProgress = event.progress
                 swipeFromLeft = event.swipeEdge == BackEventCompat.EDGE_LEFT
             }
-            animate(backProgress, 1f, animationSpec = tween(140)) { value, _ ->
-                backProgress = value
-            }
-            onClose()
+            playExit()
         } catch (e: CancellationException) {
-            scope.launch {
-                animate(backProgress, 0f, animationSpec = tween(180)) { value, _ ->
-                    backProgress = value
+            if (!closing) {
+                scope.launch {
+                    animate(backProgress, 0f, animationSpec = tween(180)) { value, _ ->
+                        backProgress = value
+                    }
                 }
             }
         }
@@ -203,11 +219,13 @@ fun TriageScreen(
         modifier =
             Modifier.fillMaxSize().graphicsLayer {
                 val e = enter.value
-                val scale = (0.94f + 0.06f * e) * (1f - 0.12f * backProgress)
+                val scale = (0.94f + 0.06f * e) * (1f - 0.12f * backProgress) * (1f - 0.06f * exit)
                 scaleX = scale
                 scaleY = scale
-                alpha = e * (1f - 0.3f * backProgress)
-                translationX = (if (swipeFromLeft) 1f else -1f) * backProgress * 24.dp.toPx()
+                alpha = e * (1f - 0.3f * backProgress) * (1f - exit)
+                translationX =
+                    (if (swipeFromLeft) 1f else -1f) *
+                        (backProgress * 24.dp.toPx() + exit * 32.dp.toPx())
                 shape = RoundedCornerShape(backProgress * 40.dp.toPx())
                 clip = backProgress > 0f
             },
@@ -219,7 +237,7 @@ fun TriageScreen(
             onUnread,
             onStar,
             onOpen,
-            onClose,
+            onClose = { scope.launch { playExit() } },
             findNextGroup,
             loadGroupArticles,
         )
