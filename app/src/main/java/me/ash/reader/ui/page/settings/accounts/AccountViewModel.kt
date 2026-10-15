@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import me.ash.reader.domain.model.account.Account
 import me.ash.reader.domain.service.AccountService
 import me.ash.reader.domain.service.OpmlService
+import me.ash.reader.domain.service.BackupService
 import me.ash.reader.domain.service.RssService
 import me.ash.reader.infrastructure.di.ApplicationScope
 import me.ash.reader.infrastructure.di.DefaultDispatcher
@@ -29,6 +30,7 @@ class AccountViewModel @Inject constructor(
     private val accountService: AccountService,
     private val rssService: RssService,
     private val opmlService: OpmlService,
+    private val backupService: BackupService,
     @IODispatcher
     private val ioDispatcher: CoroutineDispatcher,
     @DefaultDispatcher
@@ -61,6 +63,23 @@ class AccountViewModel @Inject constructor(
         viewModelScope.launch(defaultDispatcher) {
             callback(opmlService.saveToString(accountId,
                 _accountUiState.value.exportOPMLMode == ExportOPMLMode.ATTACH_INFO))
+        }
+    }
+
+    /** Builds the full backup file; [callback] gets its bytes on the main thread. */
+    fun createBackup(accountId: Int, callback: (ByteArray) -> Unit) {
+        viewModelScope.launch(defaultDispatcher) {
+            val bytes = runCatching { backupService.create(accountId) }.getOrNull()
+            withContext(mainDispatcher) { callback(bytes ?: ByteArray(0)) }
+        }
+    }
+
+    /** Restores a backup file; [callback] gets the result, or the error message, on the main thread. */
+    fun restoreBackup(bytes: ByteArray, callback: (Result<BackupService.RestoreResult>) -> Unit) {
+        // Not tied to the screen, so leaving the page can't stop a restore half way.
+        applicationScope.launch(ioDispatcher) {
+            val result = runCatching { backupService.restore(bytes) }
+            withContext(mainDispatcher) { callback(result) }
         }
     }
 
