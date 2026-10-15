@@ -398,7 +398,7 @@ fun FlowPage(
                                     style =
                                         textStyle.copy(
                                             fontFamily = GoogleSansWideFontFamily,
-                                            fontWeight = FontWeight.Medium,
+                                            fontWeight = FontWeight.SemiBold,
                                         ),
                                     color = { color },
                                     autoSize =
