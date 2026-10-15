@@ -47,13 +47,28 @@ class OpmlService @Inject constructor(
             val defaultGroup = groupDao.queryById(getDefaultGroupId(context.currentAccountId))!!
             val groupWithFeedList =
                 OPMLDataSource.parseFileInputStream(inputStream, defaultGroup, context.currentAccountId)
+            // Groups you already have are reused (matched by name) instead of being created again,
+            // so restoring a backup puts feeds back into your existing groups.
+            val knownGroups =
+                groupDao
+                    .queryAll(context.currentAccountId)
+                    .associateBy { it.name.trim().lowercase() }
+                    .toMutableMap()
             groupWithFeedList.forEach { groupWithFeed ->
-                if (groupWithFeed.group != defaultGroup) {
-                    groupDao.insert(groupWithFeed.group)
+                var group = groupWithFeed.group
+                if (group != defaultGroup) {
+                    val key = group.name.trim().lowercase()
+                    val existing = knownGroups[key]
+                    if (existing != null) {
+                        group = existing
+                    } else {
+                        groupDao.insert(group)
+                        knownGroups[key] = group
+                    }
                 }
                 val repeatList = mutableListOf<Feed>()
                 groupWithFeed.feeds.forEach {
-                    it.groupId = groupWithFeed.group.id
+                    it.groupId = group.id
                     if (rssService.get().isFeedExist(it.url)) {
                         repeatList.add(it)
                     }
