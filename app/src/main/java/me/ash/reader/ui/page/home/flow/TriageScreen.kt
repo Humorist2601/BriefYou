@@ -179,7 +179,7 @@ private fun TriageContent(
                     text = stringResource(R.string.triage),
                     style = MaterialTheme.typography.titleLarge,
                     fontFamily = GoogleSansWideFontFamily,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                 )
                 if (current != null) {
                     Text(
@@ -256,7 +256,7 @@ private fun TriageStack(
 
             suspend fun settle(action: TriageAction?) {
                 if (action == null) {
-                    val spec = spring<Float>(Spring.DampingRatioMediumBouncy, Spring.StiffnessSemiBold)
+                    val spec = spring<Float>(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium)
                     coroutineScope {
                         launch { dragX.animateTo(0f, spec) }
                         launch { dragY.animateTo(0f, spec) }
@@ -430,7 +430,7 @@ private fun ActionButton(
         Spacer(Modifier.height(4.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSemiBold,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -474,7 +474,7 @@ private fun TriageCard(
                                     item.dateString?.takeIf { it.isNotBlank() },
                                 )
                                 .joinToString(" · "),
-                        style = MaterialTheme.typography.labelSemiBold,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
@@ -498,7 +498,7 @@ private fun TriageCard(
                     text = item.title,
                     style = MaterialTheme.typography.headlineSmall,
                     fontFamily = GoogleSansWideFontFamily,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 5,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -558,7 +558,7 @@ private fun TriageCard(
                             text = label,
                             style = MaterialTheme.typography.titleLarge,
                             fontFamily = GoogleSansWideFontFamily,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.Center,
                         )
                     }
@@ -631,9 +631,9 @@ private fun TriageDone(
                 stringResource(
                     if (nothingToDo) R.string.triage_nothing else R.string.triage_all_done
                 ),
-            style = MaterialTheme.typography.headlineSemiBold,
+            style = MaterialTheme.typography.headlineMedium,
             fontFamily = GoogleSansWideFontFamily,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
         )
         if (!nothingToDo) {
