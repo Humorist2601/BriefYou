@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Base64
 import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -43,21 +44,56 @@ constructor(
             val src =
                 context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
                     ?: error("Could not read that image")
-            val scale = 192f / maxOf(src.width, src.height)
-            val bmp =
-                if (scale < 1f)
-                    Bitmap.createScaledBitmap(
-                        src,
-                        (src.width * scale).toInt().coerceAtLeast(1),
-                        (src.height * scale).toInt().coerceAtLeast(1),
-                        true,
-                    )
-                else src
-            // A new file name each time, so image caches pick up the change.
-            dir.listFiles { f -> f.name.startsWith(safe(feedId) + "_") }?.forEach { it.delete() }
-            val file = File(dir, "${safe(feedId)}_${System.currentTimeMillis()}.png")
-            file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
-            set(feedId, Uri.fromFile(file).toString())
+            storeBitmap(feedId, src)
+        }
+
+    private suspend fun storeBitmap(feedId: String, src: Bitmap) {
+        val scale = 192f / maxOf(src.width, src.height)
+        val bmp =
+            if (scale < 1f)
+                Bitmap.createScaledBitmap(
+                    src,
+                    (src.width * scale).toInt().coerceAtLeast(1),
+                    (src.height * scale).toInt().coerceAtLeast(1),
+                    true,
+                )
+            else src
+        // A new file name each time, so image caches pick up the change.
+        dir.listFiles { f -> f.name.startsWith(safe(feedId) + "_") }?.forEach { it.delete() }
+        val file = File(dir, "${safe(feedId)}_${System.currentTimeMillis()}.png")
+        file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        set(feedId, Uri.fromFile(file).toString())
+    }
+
+    /**
+     * The feed's custom icon in a form that works on any phone, for OPML export: `emoji:😀`, or the
+     * image itself as `image/png;base64,...` (a file path would mean nothing elsewhere). Null when
+     * the feed has no custom icon.
+     */
+    suspend fun exportValue(feedId: String): String? =
+        withContext(Dispatchers.IO) {
+            val icon = prefs.getString(feedId, null) ?: return@withContext null
+            if (icon.startsWith(EMOJI_PREFIX)) return@withContext icon
+            val file = Uri.parse(icon).path?.let { File(it) }
+            if (file == null || !file.exists()) return@withContext null
+            "image/png;base64," + Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
+        }
+
+    /** Applies a custom icon read from an imported OPML file (the format of [exportValue]). */
+    suspend fun adopt(feedId: String, value: String) =
+        withContext(Dispatchers.IO) {
+            when {
+                value.startsWith(EMOJI_PREFIX) -> setEmoji(feedId, value.removePrefix(EMOJI_PREFIX))
+                else -> {
+                    val data = IMAGE_VALUE.matchEntire(value)?.groupValues?.get(1) ?: return@withContext
+                    val bytes =
+                        runCatching { Base64.decode(data, Base64.DEFAULT) }.getOrNull()
+                            ?: return@withContext
+                    val bmp =
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@withContext
+                    storeBitmap(feedId, bmp)
+                }
+            }
         }
 
     /** Forgets the custom icon. The website icon comes back with the next icon reload or sync. */
@@ -84,6 +120,12 @@ constructor(
             prefs.edit { putString(feedId, icon) }
             feedDao.queryById(feedId)?.let { feedDao.update(it.copy(icon = icon)) }
         }
+
+    companion object {
+        /** Image icons in OPML files: `image/png;base64,...` */
+        val IMAGE_VALUE = Regex("^image/[a-z+.-]+;base64,(.+)$", RegexOption.DOT_MATCHES_ALL)
+        const val MAX_IMPORT_ICON_CHARS = 400_000
+    }
 
     private fun safe(id: String) = id.replace(Regex("[^A-Za-z0-9._-]"), "_").take(80)
 }
