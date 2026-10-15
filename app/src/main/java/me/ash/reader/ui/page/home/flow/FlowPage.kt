@@ -110,6 +110,7 @@ import me.ash.reader.ui.page.home.reading.PullToLoadDefaults.ContentOffsetMultip
 import me.ash.reader.ui.page.home.reading.PullToLoadState
 import me.ash.reader.ui.page.home.reading.pullToLoad
 import me.ash.reader.ui.page.home.reading.rememberPullToLoadState
+import me.ash.reader.ui.theme.GoogleSansWideFontFamily
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -155,6 +156,10 @@ fun FlowPage(
     val isTopBarElevated = topBarTonalElevation.value > 0
     val scrolledTopBarContainerColor =
         with(MaterialTheme.colorScheme) { if (isTopBarElevated) surfaceContainer else surface }
+
+    // All / Unread / Starred: short fixed headings that get the wide expressive font. Group and
+    // feed names keep the normal width, since they can be long.
+    val isFilterTitle = filterUiState.group == null && filterUiState.feed == null
 
     val titleText =
         when {
@@ -352,7 +357,13 @@ fun FlowPage(
                                     text = titleText,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
-                                    style = textStyle,
+                                    style =
+                                        if (isFilterTitle) {
+                                            textStyle.copy(
+                                                fontFamily = GoogleSansWideFontFamily,
+                                                fontWeight = FontWeight.SemiBold,
+                                            )
+                                        } else textStyle,
                                     color = { color },
                                     autoSize =
                                         TextAutoSize.StepBased(
