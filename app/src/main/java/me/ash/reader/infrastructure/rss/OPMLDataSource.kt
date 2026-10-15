@@ -8,7 +8,9 @@ import kotlinx.coroutines.CoroutineDispatcher
 import me.ash.reader.domain.model.feed.Feed
 import me.ash.reader.domain.model.group.Group
 import me.ash.reader.domain.model.group.GroupWithFeed
+import me.ash.reader.domain.service.FeedIconOverrides
 import me.ash.reader.infrastructure.di.IODispatcher
+import me.ash.reader.ui.component.EMOJI_PREFIX
 import me.ash.reader.ui.ext.extractDomain
 import me.ash.reader.ui.ext.spacerDollar
 import java.io.InputStream
@@ -58,6 +60,7 @@ class OPMLDataSource @Inject constructor(
                             isNotification = outline.extractPresetNotification(),
                             isFullContent = outline.extractPresetFullContent(),
                             isBrowser = outline.extractPresetBrowser(),
+                            icon = outline.extractCustomIcon(),
                         )
                     )
                 }
@@ -85,6 +88,7 @@ class OPMLDataSource @Inject constructor(
                                 isNotification = subOutline.extractPresetNotification(),
                                 isFullContent = subOutline.extractPresetFullContent(),
                                 isBrowser = subOutline.extractPresetBrowser(),
+                                icon = subOutline.extractCustomIcon(),
                             )
                         )
                     }
@@ -131,6 +135,20 @@ class OPMLDataSource @Inject constructor(
 
     private fun Outline?.extractPresetBrowser(): Boolean =
         this?.attributes?.getOrDefault("isBrowser", null).toBoolean()
+
+    /**
+     * Custom icon written by Brief You's "include additional info" export. Only the two known
+     * formats are accepted, so an OPML file can't smuggle in an arbitrary icon URL.
+     */
+    private fun Outline?.extractCustomIcon(): String? {
+        val value = this?.attributes?.getOrDefault("customIcon", null) ?: return null
+        return when {
+            value.startsWith(EMOJI_PREFIX) && value.length <= 40 -> value
+            value.length <= FeedIconOverrides.MAX_IMPORT_ICON_CHARS &&
+                FeedIconOverrides.IMAGE_VALUE.matches(value) -> value
+            else -> null
+        }
+    }
 
     private fun Outline?.isDefaultGroup(): Boolean =
         this?.attributes?.getOrDefault("isDefault", null).toBoolean()
