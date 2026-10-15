@@ -324,56 +324,6 @@ fun FlowPage(
         }
     }
 
-    if (showTriage) {
-        // The unread articles at the moment triage was opened. The session itself is kept in the
-        // view model, so it survives reading an article and coming back.
-        val session = remember {
-            viewModel.triageSession
-                ?: TriageSession(
-                        pagingItems
-                            ?.itemSnapshotList
-                            ?.filterIsInstance<ArticleFlowItem.Article>()
-                            ?.map { it.articleWithFeed }
-                            ?.filter { viewModel.diffMapHolder.checkIfUnread(it) }
-                            ?.distinctBy { it.article.id } ?: emptyList()
-                    )
-                    .also { viewModel.triageSession = it }
-        }
-        TriageScreen(
-            session = session,
-            onRead = { viewModel.diffMapHolder.updateDiff(it, isUnread = false) },
-            onUnread = { viewModel.diffMapHolder.updateDiff(it, isUnread = true) },
-            onStar = { article, starred ->
-                viewModel.updateStarredStatus(articleId = article.article.id, isStarred = starred)
-            },
-            onOpen = { articleWithFeed ->
-                if (articleWithFeed.feed.isBrowser) {
-                    // Triage stays open underneath; you return to it from the browser.
-                    viewModel.diffMapHolder.updateDiff(articleWithFeed, isUnread = false)
-                    context.openURL(articleWithFeed.article.link, openLink, openLinkSpecificBrowser)
-                } else {
-                    // Hide triage while the article is open; it returns when you go back.
-                    viewModel.triageResume = !isTwoPane
-                    showTriage = false
-                    val index =
-                        pagingItems
-                            ?.itemSnapshotList
-                            ?.indexOfFirst {
-                                it is ArticleFlowItem.Article &&
-                                    it.articleWithFeed.article.id == articleWithFeed.article.id
-                            }
-                            ?.coerceAtLeast(0) ?: 0
-                    navigateToArticle(articleWithFeed.article.id, index)
-                }
-            },
-            onClose = {
-                showTriage = false
-                viewModel.triageSession = null
-                viewModel.triageResume = false
-            },
-        )
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
         RYScaffold(
             containerTonalElevation = articleListTonalElevation.value.dp,
@@ -830,6 +780,69 @@ fun FlowPage(
                         .windowInsetsPadding(
                             WindowInsets.safeContent.only(WindowInsetsSides.Horizontal)
                         ),
+            )
+        }
+
+        // Triage is a full-screen overlay (not a dialog), so the predictive back gesture can animate it.
+        if (showTriage) {
+            // The unread articles at the moment triage was opened. The session itself is kept in
+            // the view model, so it survives reading an article and coming back.
+            val session = remember {
+                viewModel.triageSession
+                    ?: TriageSession(
+                            articles =
+                                pagingItems
+                                    ?.itemSnapshotList
+                                    ?.filterIsInstance<ArticleFlowItem.Article>()
+                                    ?.map { it.articleWithFeed }
+                                    ?.filter { viewModel.diffMapHolder.checkIfUnread(it) }
+                                    ?.distinctBy { it.article.id } ?: emptyList(),
+                            groupId = filterUiState.group?.id ?: filterUiState.feed?.groupId,
+                            groupName = filterUiState.group?.name ?: filterUiState.feed?.name,
+                        )
+                        .also { viewModel.triageSession = it }
+            }
+            TriageScreen(
+                session = session,
+                onRead = { viewModel.diffMapHolder.updateDiff(it, isUnread = false) },
+                onUnread = { viewModel.diffMapHolder.updateDiff(it, isUnread = true) },
+                onStar = { article, starred ->
+                    viewModel.updateStarredStatus(
+                        articleId = article.article.id,
+                        isStarred = starred,
+                    )
+                },
+                onOpen = { articleWithFeed ->
+                    if (articleWithFeed.feed.isBrowser) {
+                        // Triage stays open underneath; you return to it from the browser.
+                        viewModel.diffMapHolder.updateDiff(articleWithFeed, isUnread = false)
+                        context.openURL(
+                            articleWithFeed.article.link,
+                            openLink,
+                            openLinkSpecificBrowser,
+                        )
+                    } else {
+                        // Hide triage while the article is open; it returns when you go back.
+                        viewModel.triageResume = !isTwoPane
+                        showTriage = false
+                        val index =
+                            pagingItems
+                                ?.itemSnapshotList
+                                ?.indexOfFirst {
+                                    it is ArticleFlowItem.Article &&
+                                        it.articleWithFeed.article.id == articleWithFeed.article.id
+                                }
+                                ?.coerceAtLeast(0) ?: 0
+                        navigateToArticle(articleWithFeed.article.id, index)
+                    }
+                },
+                onClose = {
+                    showTriage = false
+                    viewModel.triageSession = null
+                    viewModel.triageResume = false
+                },
+                findNextGroup = { groupId, visited -> viewModel.nextTriageGroup(groupId, visited) },
+                loadGroupArticles = { groupId -> viewModel.loadTriageGroup(groupId) },
             )
         }
     }
