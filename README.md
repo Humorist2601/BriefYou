@@ -1,4 +1,6 @@
 <div align="center">
+    <img width="200" height="200" alt="Brief You" style="display: block; border: 1px solid #f5f5f5; border-radius: 9999px;" src="fastlane/metadata/android/en-US/images/icon.png">
+<br>
 <h1>Brief You</h1>
 <p><b>A calm, private RSS reader for Android with on-device AI.</b><br/>
 A fork of <a href="https://github.com/Ashinch/ReadYou">Read You</a>.</p>
@@ -11,38 +13,64 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 
 ## What's new compared to Read You
 
-### On-device AI
-- **Article summaries** — tap ✨ in the reader for 3–5 key points and a "Why it matters" line. The sheet opens above half height and grows smoothly as the summary is written.
+*Tap a section to open it.*
+
+<details>
+<summary><b>On-device AI</b></summary>
+
+- **Article summaries** — tap ✨ in the reader for 3–5 key points and a "Why it matters" line. The sheet opens at 60% of the screen and stays that size while the summary is written; the text scrolls inside it.
 - **Saved summaries** — a summary opens instantly the second time, articles with a summary show a ✨ next to their title in the list, and the summary is deleted together with its article (for example by *Keep archived articles*).
 - **Group gists** — tap ✨ on any article list (a group like *News*, a feed, or everything) for a briefing of the newest 40 articles, grouped by story. One tap marks all of them as read.
 - **Read aloud** — any summary or gist can be read aloud.
 
-### Calmer feeds
+</details>
+
+<details>
+<summary><b>Calmer feeds</b></summary>
+
 - **One digest notification** ("12 new articles · From 5 feeds") instead of one notification per article grouped by site. It is posted once, a couple of seconds after a sync finishes, so everything arrives together. It lists one line per feed (for example `Feed name (3) · latest title`), so busy feeds never push the others out.
 - **Full backup and restore** — *Account → Advanced → Back up everything* writes one ZIP with your subscriptions (including notification settings and custom feed icons), muted keywords and filters, and your appearance and reading settings. *Restore from backup* adds them back on any phone; feeds you already have are kept, and feeds go into your existing groups (matched by name) instead of creating duplicates. Articles come back with the next sync.
-- **Triage mode** — a card-stack screen for clearing a big backlog fast, opened from the cards button in the flow page's top bar. Each card shows the feed, title, reading time and the saved AI summary (or the article's description). Swipe right to mark as read, left to save (star and mark read), up to open the article, down to skip; the buttons do the same, and Undo takes back your last choice.
-- **Reading time** — article items in the list show an estimate like `2h · 4 min read` next to the time. Feeds that only send a short teaser show no estimate rather than a wrong one.
+- **Triage mode** — a card-stack screen for clearing a big backlog fast, opened from the cards button in the flow page's top bar. Each card shows the feed, title, reading time and the saved AI summary (or the article's description). Swipe right to mark as read, left to save (star and mark read), up to open the article, down to skip; the buttons do the same, and Undo takes back your last choice. Haptic feedback marks passing the swipe threshold, each choice, Undo and finishing the stack.
+- **Reading time** — article items in the list show an estimate like `4 min · 2h` next to the time, and the reading page shows the actual length after the date (`Tuesday, October 13, 2026 at 22:07 · 4 min`). Feeds that only send a short teaser show no estimate rather than a wrong one.
 - **Muted keywords** — unread articles mentioning them are marked read after each sync.
 - **Duplicate stories** — when several feeds publish the same story, only the first stays unread.
 - **Recently filtered** — the Filters page lists everything that was hidden and why (which word, or which story it duplicated). Tap to open it, or *Undo* to bring it back and stop it being filtered again. Entries are removed together with their articles.
 
-### Feeds that look like themselves
+</details>
+
+<details>
+<summary><b>Feeds that look like themselves</b></summary>
+
 - **Feed accent colors** — feed names in the article list take a muted accent from the feed's icon (or emoji), harmonized with your Material You theme.
 - **Custom feed icons** — in a feed's options, tap its icon to use an emoji, an image from your phone, or the website icon again. Custom icons survive syncs, and they travel with your data: *Export as OPML → Include additional info* and the full backup both save them (emoji as text, images embedded in the file), and importing that file brings them back.
 
-### Settings
+</details>
+
+<details>
+<summary><b>Settings</b></summary>
+
 - **Settings → AI model**: import or remove the model, and edit the exact instructions given to the model for summaries and gists.
 - **Settings → Filters**: muted keywords, duplicate-story hiding, and the recently filtered list.
 
-### Look and feel
+</details>
+
+<details>
+<summary><b>Look and feel</b></summary>
+
 - **Google Sans Flex Rounded** throughout the app, and **Literata** — Google's serif designed for long reading — as a reading font option.
 - **Wide headings** — the large titles use the wide end of Google Sans Flex's width axis at a SemiBold weight, the expressive look Material 3 Expressive uses for large headings: All, Unread and Starred, group and feed names, the Feeds page, and the Settings pages. Long names shrink or wrap to fit.
 - **Material 3 Expressive**: shape-morphing buttons, shaped and tinted settings icons, the Expressive pull-to-refresh and loading indicators, and wavy progress bars.
 - **Predictive back** gestures, including the back-to-home preview.
 
-### Releases
+</details>
+
+<details>
+<summary><b>Releases</b></summary>
+
 - APKs are built for 64-bit ARM phones (arm64-v8a), which covers practically every phone that can run the on-device model.
 - Every change is built by GitHub Actions and published to [Releases](../../releases) as **Brief You 0.16.2.N**, where `0.16.2` is the app version and `N` is a rising build number, so each APK installs as an update (works with updaters like Obtainium). The release tag uses the same `0.16.2.N` format.
+
+</details>
 
 ## Setting up the AI
 
