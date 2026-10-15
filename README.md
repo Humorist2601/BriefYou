@@ -35,7 +35,7 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 
 ### Look and feel
 - **Google Sans Flex Rounded** throughout the app, and **Literata** — Google's serif designed for long reading — as a reading font option.
-- **Wide headings** — the All, Unread and Starred titles use the wide end of Google Sans Flex's width axis, the expressive look Material 3 Expressive uses for large headings. Feed and group names keep the normal width.
+- **Wide headings** — the large titles use the wide end of Google Sans Flex's width axis, the expressive look Material 3 Expressive uses for large headings: All, Unread and Starred, group and feed names, the Feeds page, and the Settings pages. Long names shrink or wrap to fit.
 - **Material 3 Expressive**: shape-morphing buttons, shaped and tinted settings icons, the Expressive pull-to-refresh and loading indicators, and wavy progress bars.
 - **Predictive back** gestures, including the back-to-home preview.
 
