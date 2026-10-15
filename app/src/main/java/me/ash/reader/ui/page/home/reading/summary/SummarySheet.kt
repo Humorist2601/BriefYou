@@ -43,6 +43,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -55,12 +56,13 @@ import me.ash.reader.R
 import me.ash.reader.infrastructure.ai.GemmaSummarizer
 import me.ash.reader.infrastructure.android.TextToSpeechManager
 import me.ash.reader.ui.component.ExpressiveBadge
+import me.ash.reader.ui.component.scrollbar.drawVerticalScrollIndicator
 import me.ash.reader.ui.ext.collectAsStateValue
 
 /**
  * Bottom sheet that streams an on-device summary of one article, or a gist of a whole list.
  *
- * The sheet opens at 60% of the screen height and stays that size: it does not grow as the text
+ * The sheet opens at 70% of the screen height and stays that size: it does not grow as the text
  * streams in, and the text area inside it scrolls. Horizontal padding matches the reading page.
  *
  * @param requestKey changes when the thing being summarized changes (article id, filter).
@@ -89,10 +91,10 @@ fun SummarySheet(
             uri?.let(viewModel::importModel)
         }
 
-    // Brief You: no drag gestures on this sheet, and a fixed height. It opens at 60% of the screen
+    // Brief You: no drag gestures on this sheet, and a fixed height. It opens at 70% of the screen
     // and never grows or expands to full screen; the summary text scrolls inside it. It closes with
     // the ✕ button, Back, or a tap outside.
-    val sheetHeight = (LocalConfiguration.current.screenHeightDp * 0.6f).dp
+    val sheetHeight = (LocalConfiguration.current.screenHeightDp * 0.7f).dp
     // The summary text sits in a card, so the sheet's own padding is the reading padding minus the
     // card's inner padding: the summary text then lines up with the article text instead of being
     // indented twice.
@@ -220,11 +222,14 @@ fun SummarySheet(
                 Spacer(Modifier.height(16.dp))
             }
 
+            val scrollState = rememberScrollState()
             Column(
                 modifier =
                     Modifier.weight(1f)
                         .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
+                        // The same scroll thumb as the reading page, also shown while text streams in.
+                        .drawVerticalScrollIndicator(scrollState, showWhenContentChanges = true)
+                        .verticalScroll(scrollState)
             ) {
                 when (state) {
                     SummaryUiState.NeedsModel -> {
@@ -291,9 +296,9 @@ fun SummarySheet(
                             shape = RoundedCornerShape(28.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(
-                                state.text + if (state.done) "" else " ▍",
-                                style = MaterialTheme.typography.bodyLarge,
+                            SummaryText(
+                                text = state.text,
+                                streaming = !state.done,
                                 modifier =
                                     Modifier.padding(
                                         horizontal = cardInnerPadding,
@@ -316,6 +321,44 @@ fun SummarySheet(
                     }
                 }
                 Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+private val BulletLine = Regex("""^([•\-–*]|\d{1,2}[.)])\s+(.*)$""")
+
+/**
+ * The summary text. Bullet lines are laid out as a bullet beside their text, so a bullet that wraps
+ * onto a second line continues under its own first word (a hanging indent) and never underneath
+ * the bullet itself.
+ */
+@Composable
+private fun SummaryText(text: String, streaming: Boolean, modifier: Modifier = Modifier) {
+    val style = MaterialTheme.typography.bodyLarge
+    val lines = remember(text) { text.lines().map { it.trim() }.filter { it.isNotEmpty() } }
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        lines.forEachIndexed { index, line ->
+            // The blinking-cursor stand-in goes at the end of the last line while text streams in.
+            val cursor = if (streaming && index == lines.lastIndex) " ▍" else ""
+            val match = BulletLine.matchEntire(line)
+            if (match != null) {
+                val marker = match.groupValues[1]
+                val isNumber = marker.first().isDigit()
+                Row {
+                    Text(
+                        text = if (isNumber) marker else "•",
+                        style = style,
+                        modifier = Modifier.width(if (isNumber) 28.dp else 20.dp),
+                    )
+                    Text(
+                        text = match.groupValues[2] + cursor,
+                        style = style,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            } else {
+                Text(text = line + cursor, style = style)
             }
         }
     }
