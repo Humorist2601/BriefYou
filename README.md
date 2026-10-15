@@ -19,7 +19,7 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 
 ### Calmer feeds
 - **One digest notification** ("12 new articles · From 5 feeds") instead of one notification per article grouped by site. It is posted once, a couple of seconds after a sync finishes, so everything arrives together. It lists one line per feed (for example `Feed name (3) · latest title`), so busy feeds never push the others out.
-- **Full backup and restore** — *Account → Advanced → Back up everything* writes one ZIP with your subscriptions (including notification settings and custom feed icons), muted keywords and filters, and your appearance and reading settings. *Restore from backup* adds them back on any phone; feeds you already have are kept. Articles come back with the next sync.
+- **Full backup and restore** — *Account → Advanced → Back up everything* writes one ZIP with your subscriptions (including notification settings and custom feed icons), muted keywords and filters, and your appearance and reading settings. *Restore from backup* adds them back on any phone; feeds you already have are kept, and feeds go into your existing groups (matched by name) instead of creating duplicates. Articles come back with the next sync.
 - **Reading time** — article items in the list show an estimate like `2h · 4 min read` next to the time. Feeds that only send a short teaser show no estimate rather than a wrong one.
 - **Muted keywords** — unread articles mentioning them are marked read after each sync.
 - **Duplicate stories** — when several feeds publish the same story, only the first stays unread.
@@ -35,6 +35,7 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 
 ### Look and feel
 - **Google Sans Flex Rounded** throughout the app, and **Literata** — Google's serif designed for long reading — as a reading font option.
+- **Wide headings** — the All, Unread and Starred titles use the wide end of Google Sans Flex's width axis, the expressive look Material 3 Expressive uses for large headings. Feed and group names keep the normal width.
 - **Material 3 Expressive**: shape-morphing buttons, shaped and tinted settings icons, the Expressive pull-to-refresh and loading indicators, and wavy progress bars.
 - **Predictive back** gestures, including the back-to-home preview.
 
