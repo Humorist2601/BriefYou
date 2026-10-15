@@ -139,4 +139,5 @@
     <string name="triage_nothing">Nothing unread here</string>
     <string name="triage_summary">%1$d read · %2$d saved · %3$d skipped</string>
     <string name="triage_back_to_list">Back to list</string>
+    <string name="triage_next_group">Next: %1$s · %2$d unread</string>
 </resources>
