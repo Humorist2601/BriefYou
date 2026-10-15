@@ -256,7 +256,7 @@ private fun TriageStack(
 
             suspend fun settle(action: TriageAction?) {
                 if (action == null) {
-                    val spec = spring<Float>(Spring.DampingRatioSemiBoldBouncy, Spring.StiffnessSemiBold)
+                    val spec = spring<Float>(Spring.DampingRatioMediumBouncy, Spring.StiffnessSemiBold)
                     coroutineScope {
                         launch { dragX.animateTo(0f, spec) }
                         launch { dragY.animateTo(0f, spec) }
