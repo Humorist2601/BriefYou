@@ -41,6 +41,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -55,9 +56,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -94,6 +98,17 @@ internal enum class TriageAction {
     /** Close triage and open the article. */
     Open,
 }
+
+/** Accepting a card (read, save) feels firmer than moving it along (skip, open). */
+private fun HapticFeedback.commit(action: TriageAction) =
+    performHapticFeedback(
+        when (action) {
+            TriageAction.Read,
+            TriageAction.Save -> HapticFeedbackType.Confirm
+            TriageAction.Skip,
+            TriageAction.Open -> HapticFeedbackType.ContextClick
+        }
+    )
 
 internal data class TriageStep(val article: ArticleWithFeed, val action: TriageAction)
 
@@ -138,6 +153,7 @@ private fun TriageContent(
     onOpen: (ArticleWithFeed) -> Unit,
     onClose: () -> Unit,
 ) {
+    val haptic = LocalHapticFeedback.current
     val articles = session.articles
     val history = session.history
     val index = session.index
@@ -168,6 +184,7 @@ private fun TriageContent(
 
     fun undo() {
         val step = history.removeLastOrNull() ?: return
+        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
         when (step.action) {
             TriageAction.Read,
             TriageAction.Open -> onUnread(step.article)
@@ -178,6 +195,13 @@ private fun TriageContent(
             else -> {}
         }
         session.index = (session.index - 1).coerceAtLeast(0)
+    }
+
+    // A confirming tap when the last card is dealt with.
+    LaunchedEffect(current == null) {
+        if (current == null && history.isNotEmpty()) {
+            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 16.dp)) {
@@ -246,6 +270,7 @@ private fun TriageStack(
     onDecide: (TriageAction) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
     // A fresh drag state for every card.
     val dragX = remember(current.article.id) { Animatable(0f) }
     val dragY = remember(current.article.id) { Animatable(0f) }
@@ -269,7 +294,7 @@ private fun TriageStack(
                 }
             }
 
-            suspend fun settle(action: TriageAction?) {
+            suspend fun settle(action: TriageAction?, feedback: Boolean = true) {
                 if (action == null) {
                     val spec = spring<Float>(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium)
                     coroutineScope {
@@ -277,6 +302,8 @@ private fun TriageStack(
                         launch { dragY.animateTo(0f, spec) }
                     }
                 } else {
+                    // A swipe gives its feedback as the card is let go; buttons already gave theirs.
+                    if (feedback) haptic.commit(action)
                     val (tx, ty) =
                         when (action) {
                             TriageAction.Read -> widthPx * 1.4f to dragY.value
@@ -296,6 +323,7 @@ private fun TriageStack(
             val trigger: (TriageAction) -> Unit = { action ->
                 if (!busy) {
                     busy = true
+                    haptic.commit(action)
                     scope.launch {
                         val (px, py) =
                             when (action) {
@@ -309,7 +337,7 @@ private fun TriageStack(
                             launch { dragX.animateTo(px, tween(120)) }
                             launch { dragY.animateTo(py, tween(120)) }
                         }
-                        settle(action)
+                        settle(action, feedback = false)
                     }
                 }
             }
@@ -318,6 +346,13 @@ private fun TriageStack(
                 (hypot(dragX.value / thresholdX, dragY.value / thresholdY)).coerceIn(0f, 1f)
             val pending = actionFor(dragX.value, dragY.value)
             val hint = actionFor(dragX.value * 3.5f, dragY.value * 3.5f)
+
+            // A light tick as the drag passes the point where letting go would act.
+            LaunchedEffect(pending) {
+                if (pending != null && !busy) {
+                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                }
+            }
 
             Column(modifier = Modifier.fillMaxSize()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
