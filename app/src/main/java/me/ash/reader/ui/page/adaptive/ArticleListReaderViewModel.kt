@@ -1,6 +1,7 @@
 package me.ash.reader.ui.page.adaptive
 
 import android.net.Uri
+import androidx.paging.PagingSource
 import androidx.compose.ui.util.fastFirstOrNull
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.ash.reader.domain.data.ArticlePagingListUseCase
 import me.ash.reader.domain.data.DiffMapHolder
 import me.ash.reader.domain.data.FilterState
@@ -40,12 +42,14 @@ import me.ash.reader.domain.service.LocalRssService
 import me.ash.reader.domain.service.RssService
 import me.ash.reader.domain.service.SyncWorker
 import me.ash.reader.infrastructure.android.AndroidImageDownloader
+import me.ash.reader.infrastructure.android.AndroidStringsHelper
 import me.ash.reader.infrastructure.android.TextToSpeechManager
 import me.ash.reader.infrastructure.di.ApplicationScope
 import me.ash.reader.infrastructure.di.IODispatcher
 import me.ash.reader.infrastructure.preference.PullToLoadNextFeedPreference
 import me.ash.reader.infrastructure.preference.SettingsProvider
 import me.ash.reader.infrastructure.rss.ReaderCacheHelper
+import me.ash.reader.ui.page.home.flow.TriageNextGroup
 import me.ash.reader.ui.page.home.flow.TriageSession
 import timber.log.Timber
 
@@ -63,6 +67,7 @@ constructor(
     private val filterStateUseCase: FilterStateUseCase,
     private val groupWithFeedsListUseCase: GroupWithFeedsListUseCase,
     private val settingsProvider: SettingsProvider,
+    private val androidStringsHelper: AndroidStringsHelper,
     private val readerCacheHelper: ReaderCacheHelper,
     val textToSpeechManager: TextToSpeechManager,
     private val imageDownloader: AndroidImageDownloader,
@@ -131,6 +136,61 @@ constructor(
 
     /** Set when triage opened an article: triage reappears once the article is closed. */
     var triageResume: Boolean = false
+
+    /**
+     * The next group, in the Feeds page order, that still has unread articles and was not triaged
+     * yet in this session. Looks after [afterGroupId] first, then wraps round to the groups before
+     * it. Null when triage was opened on everything (nothing is left to move on to).
+     */
+    fun nextTriageGroup(afterGroupId: String?, visited: Set<String>): TriageNextGroup? {
+        if (afterGroupId == null) return null
+        // The group counts are unread counts only while the Unread filter is on.
+        if (!filterStateUseCase.filterStateFlow.value.filter.isUnread()) return null
+        val groups = groupWithFeedsListUseCase.groupWithFeedListFlow.value
+        val start = groups.indexOfFirst { it.group.id == afterGroupId }
+        val ordered = if (start < 0) groups else groups.drop(start + 1) + groups.take(start)
+        for (item in ordered) {
+            if (item.group.id in visited) continue
+            val unread = item.feeds.sumOf { it.important }
+            if (unread > 0) return TriageNextGroup(item.group.id, item.group.name, unread)
+        }
+        return null
+    }
+
+    /** The unread articles of a group, newest first like the list, for triage to continue with. */
+    suspend fun loadTriageGroup(groupId: String): List<ArticleWithFeed> =
+        withContext(ioDispatcher) {
+            val source =
+                rssService
+                    .get()
+                    .pullArticles(
+                        groupId = groupId,
+                        feedId = null,
+                        isStarred = false,
+                        isUnread = true,
+                        sortAscending = settingsProvider.settings.flowSortUnreadArticles.value,
+                    )
+            val result =
+                source.load(
+                    PagingSource.LoadParams.Refresh(
+                        key = null,
+                        loadSize = 200,
+                        placeholdersEnabled = false,
+                    )
+                )
+            (result as? PagingSource.LoadResult.Page)
+                ?.data
+                .orEmpty()
+                .filter { diffMapHolder.checkIfUnread(it) }
+                .distinctBy { it.article.id }
+                .onEach {
+                    it.article.dateString =
+                        androidStringsHelper.formatAsString(
+                            date = it.article.date,
+                            onlyHourMinute = true,
+                        )
+                }
+        }
 
     private val syncWorkerStatusFlow =
         workManager
