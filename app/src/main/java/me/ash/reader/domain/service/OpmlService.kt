@@ -31,6 +31,7 @@ class OpmlService @Inject constructor(
     private val accountService: AccountService,
     private val rssService: RssService,
     private val OPMLDataSource: OPMLDataSource,
+    private val iconOverrides: FeedIconOverrides,
     @IODispatcher
     private val ioDispatcher: CoroutineDispatcher,
 ) {
@@ -57,7 +58,10 @@ class OpmlService @Inject constructor(
                         repeatList.add(it)
                     }
                 }
-                feedDao.insertList((groupWithFeed.feeds subtract repeatList.toSet()).toList())
+                val toInsert = (groupWithFeed.feeds subtract repeatList.toSet()).toList()
+                feedDao.insertList(toInsert)
+                // Custom icons from the file's additional info (emoji or embedded image).
+                toInsert.forEach { feed -> feed.icon?.let { iconOverrides.adopt(feed.id, it) } }
             }
         }
     }
@@ -99,6 +103,9 @@ class OpmlService @Inject constructor(
                                         put("isNotification", feed.isNotification.toString())
                                         put("isFullContent", feed.isFullContent.toString())
                                         put("isBrowser", feed.isBrowser.toString())
+                                        iconOverrides.exportValue(feed.id)?.let {
+                                            put("customIcon", it)
+                                        }
                                     }
                                 },
                                 listOf()
