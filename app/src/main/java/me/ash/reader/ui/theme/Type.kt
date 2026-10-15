@@ -121,6 +121,21 @@ val GoogleSansFontFamily =
     )
 
 /**
+ * Google Sans Flex at the wide end of its width axis (100 is normal, 151 the maximum) with the
+ * rounded corners: the wide, expressive look Material 3 Expressive uses for large headings. Meant
+ * for a few short, big titles only, as wide letters take a lot of room.
+ */
+val GoogleSansWideFontFamily =
+    FontFamily(
+        Font(
+            R.font.google_sans_flex,
+            weight = FontWeight.W600,
+            variationSettings =
+                FontVariation.Settings(Rounded, FontVariation.weight(600), FontVariation.width(135f)),
+        )
+    )
+
+/**
  * Resolve the text to Rtl if the text requires BiDirectional
  *
  * @see [android.view.View.TEXT_DIRECTION_ANY_RTL]
