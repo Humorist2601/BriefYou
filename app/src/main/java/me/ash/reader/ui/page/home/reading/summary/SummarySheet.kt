@@ -93,7 +93,12 @@ fun SummarySheet(
     // and never grows or expands to full screen; the summary text scrolls inside it. It closes with
     // the ✕ button, Back, or a tap outside.
     val sheetHeight = (LocalConfiguration.current.screenHeightDp * 0.6f).dp
-    val horizontalPadding = LocalReadingTextHorizontalPadding.current.dp
+    // The summary text sits in a card, so the sheet's own padding is the reading padding minus the
+    // card's inner padding: the summary text then lines up with the article text instead of being
+    // indented twice.
+    val cardInnerPadding = 14.dp
+    val horizontalPadding =
+        (LocalReadingTextHorizontalPadding.current.dp - cardInnerPadding).coerceAtLeast(12.dp)
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -289,7 +294,11 @@ fun SummarySheet(
                             Text(
                                 state.text + if (state.done) "" else " ▍",
                                 style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(20.dp),
+                                modifier =
+                                    Modifier.padding(
+                                        horizontal = cardInnerPadding,
+                                        vertical = 16.dp,
+                                    ),
                             )
                         }
                     }
