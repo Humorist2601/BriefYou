@@ -38,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.LargeTopAppBar
@@ -169,6 +170,7 @@ fun FlowPage(
     var markAsRead by remember { mutableStateOf(false) }
     var onSearch by rememberSaveable { mutableStateOf(false) }
     var showGist by remember { mutableStateOf(false) }
+    var showTriage by rememberSaveable { mutableStateOf(false) }
 
     var currentPullToLoadState: PullToLoadState? by remember { mutableStateOf(null) }
     var currentLoadAction: LoadAction? by remember { mutableStateOf(null) }
@@ -311,6 +313,44 @@ fun FlowPage(
 
     val isSyncing = viewModel.isSyncingFlow.collectAsStateValue()
 
+    if (showTriage) {
+        // A snapshot of what is unread right now, taken when triage opens.
+        val triageArticles = remember {
+            pagingItems
+                ?.itemSnapshotList
+                ?.filterIsInstance<ArticleFlowItem.Article>()
+                ?.map { it.articleWithFeed }
+                ?.filter { viewModel.diffMapHolder.checkIfUnread(it) }
+                ?.distinctBy { it.article.id } ?: emptyList()
+        }
+        TriageScreen(
+            articles = triageArticles,
+            onRead = { viewModel.diffMapHolder.updateDiff(it, isUnread = false) },
+            onUnread = { viewModel.diffMapHolder.updateDiff(it, isUnread = true) },
+            onStar = { article, starred ->
+                viewModel.updateStarredStatus(articleId = article.article.id, isStarred = starred)
+            },
+            onOpen = { articleWithFeed ->
+                showTriage = false
+                if (articleWithFeed.feed.isBrowser) {
+                    viewModel.diffMapHolder.updateDiff(articleWithFeed, isUnread = false)
+                    context.openURL(articleWithFeed.article.link, openLink, openLinkSpecificBrowser)
+                } else {
+                    val index =
+                        pagingItems
+                            ?.itemSnapshotList
+                            ?.indexOfFirst {
+                                it is ArticleFlowItem.Article &&
+                                    it.articleWithFeed.article.id == articleWithFeed.article.id
+                            }
+                            ?.coerceAtLeast(0) ?: 0
+                    navigateToArticle(articleWithFeed.article.id, index)
+                }
+            },
+            onClose = { showTriage = false },
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         RYScaffold(
             containerTonalElevation = articleListTonalElevation.value.dp,
@@ -358,7 +398,7 @@ fun FlowPage(
                                     style =
                                         textStyle.copy(
                                             fontFamily = GoogleSansWideFontFamily,
-                                            fontWeight = FontWeight.SemiBold,
+                                            fontWeight = FontWeight.Medium,
                                         ),
                                     color = { color },
                                     autoSize =
@@ -388,6 +428,15 @@ fun FlowPage(
                             }
                         },
                         actions = {
+                            RYExtensibleVisibility(visible = !filterUiState.filter.isStarred()) {
+                                FeedbackIconButton(
+                                    imageVector = Icons.Rounded.Style,
+                                    contentDescription = stringResource(R.string.triage),
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                ) {
+                                    showTriage = true
+                                }
+                            }
                             FeedbackIconButton(
                                 imageVector = Icons.Outlined.AutoAwesome,
                                 contentDescription = stringResource(R.string.ai_gist_action),
