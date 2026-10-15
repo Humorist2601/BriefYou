@@ -19,6 +19,7 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 
 ### Calmer feeds
 - **One digest notification** ("12 new articles · From 5 feeds") instead of one notification per article grouped by site. It is posted once, a couple of seconds after a sync finishes, so everything arrives together. It lists one line per feed (for example `Feed name (3) · latest title`), so busy feeds never push the others out.
+- **Full backup and restore** — *Account → Advanced → Back up everything* writes one ZIP with your subscriptions (including notification settings and custom feed icons), muted keywords and filters, and your appearance and reading settings. *Restore from backup* adds them back on any phone; feeds you already have are kept. Articles come back with the next sync.
 - **Reading time** — article items in the list show an estimate like `2h · 4 min read` next to the time. Feeds that only send a short teaser show no estimate rather than a wrong one.
 - **Muted keywords** — unread articles mentioning them are marked read after each sync.
 - **Duplicate stories** — when several feeds publish the same story, only the first stays unread.
@@ -26,7 +27,7 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 
 ### Feeds that look like themselves
 - **Feed accent colors** — feed names in the article list take a muted accent from the feed's icon (or emoji), harmonized with your Material You theme.
-- **Custom feed icons** — in a feed's options, tap its icon to use an emoji, an image from your phone, or the website icon again. Custom icons survive syncs.
+- **Custom feed icons** — in a feed's options, tap its icon to use an emoji, an image from your phone, or the website icon again. Custom icons survive syncs, and they travel with your data: *Export as OPML → Include additional info* and the full backup both save them (emoji as text, images embedded in the file), and importing that file brings them back.
 
 ### Settings
 - **Settings → AI model**: import or remove the model, and edit the exact instructions given to the model for summaries and gists.
