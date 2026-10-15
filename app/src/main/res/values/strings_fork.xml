@@ -124,7 +124,7 @@
     <string name="restore_failed">Could not restore: %1$s</string>
     
     <!-- Triage mode -->
-    <string name="flow_fab_gist">AI gist</string>
+    <string name="flow_fab_gist">AI Gist</string>
     <string name="triage">Triage</string>
     <plurals name="triage_left">
         <item quantity="one">%d left</item>
