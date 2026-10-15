@@ -84,7 +84,7 @@ import me.ash.reader.ui.component.base.SIZE_1000
 import me.ash.reader.ui.theme.GoogleSansWideFontFamily
 
 /** What a card can be swiped to. */
-private enum class TriageAction {
+internal enum class TriageAction {
     /** Mark as read and move on. */
     Read,
     /** Star it and mark it as read. */
@@ -95,7 +95,16 @@ private enum class TriageAction {
     Open,
 }
 
-private data class TriageStep(val article: ArticleWithFeed, val action: TriageAction)
+internal data class TriageStep(val article: ArticleWithFeed, val action: TriageAction)
+
+/**
+ * One triage run: the cards, where you are, and what you did (for Undo). It lives outside the
+ * screen, so opening an article from triage and coming back continues exactly where you were.
+ */
+class TriageSession(val articles: List<ArticleWithFeed>) {
+    var index by mutableIntStateOf(0)
+    internal val history = mutableStateListOf<TriageStep>()
+}
 
 /**
  * Triage mode: a full-screen stack of cards for clearing a backlog quickly. Swipe right to mark
@@ -103,7 +112,7 @@ private data class TriageStep(val article: ArticleWithFeed, val action: TriageAc
  */
 @Composable
 fun TriageScreen(
-    articles: List<ArticleWithFeed>,
+    session: TriageSession,
     onRead: (ArticleWithFeed) -> Unit,
     onUnread: (ArticleWithFeed) -> Unit,
     onStar: (ArticleWithFeed, Boolean) -> Unit,
@@ -115,22 +124,23 @@ fun TriageScreen(
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            TriageContent(articles, onRead, onUnread, onStar, onOpen, onClose)
+            TriageContent(session, onRead, onUnread, onStar, onOpen, onClose)
         }
     }
 }
 
 @Composable
 private fun TriageContent(
-    articles: List<ArticleWithFeed>,
+    session: TriageSession,
     onRead: (ArticleWithFeed) -> Unit,
     onUnread: (ArticleWithFeed) -> Unit,
     onStar: (ArticleWithFeed, Boolean) -> Unit,
     onOpen: (ArticleWithFeed) -> Unit,
     onClose: () -> Unit,
 ) {
-    var index by remember { mutableIntStateOf(0) }
-    val history = remember { mutableStateListOf<TriageStep>() }
+    val articles = session.articles
+    val history = session.history
+    val index = session.index
     val total = articles.size
     val current = articles.getOrNull(index)
 
@@ -143,26 +153,31 @@ private fun TriageContent(
                 onRead(article)
             }
             TriageAction.Skip -> {}
+            // Opening marks it read. The step is recorded first, so the session is already
+            // up to date if the screen is hidden while you read the article.
             TriageAction.Open -> {
+                history += TriageStep(article, action)
+                session.index++
                 onOpen(article)
                 return
             }
         }
         history += TriageStep(article, action)
-        index++
+        session.index++
     }
 
     fun undo() {
         val step = history.removeLastOrNull() ?: return
         when (step.action) {
-            TriageAction.Read -> onUnread(step.article)
+            TriageAction.Read,
+            TriageAction.Open -> onUnread(step.article)
             TriageAction.Save -> {
                 onStar(step.article, false)
                 onUnread(step.article)
             }
             else -> {}
         }
-        index = (index - 1).coerceAtLeast(0)
+        session.index = (session.index - 1).coerceAtLeast(0)
     }
 
     Column(modifier = Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 16.dp)) {
@@ -206,7 +221,7 @@ private fun TriageContent(
         if (current == null) {
             TriageDone(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-                read = history.count { it.action == TriageAction.Read },
+                read = history.count { it.action == TriageAction.Read || it.action == TriageAction.Open },
                 saved = history.count { it.action == TriageAction.Save },
                 skipped = history.count { it.action == TriageAction.Skip },
                 nothingToDo = total == 0,
@@ -497,8 +512,7 @@ private fun TriageCard(
                 Text(
                     text = item.title,
                     style = MaterialTheme.typography.headlineSmall,
-                    fontFamily = GoogleSansWideFontFamily,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 5,
                     overflow = TextOverflow.Ellipsis,
                 )
