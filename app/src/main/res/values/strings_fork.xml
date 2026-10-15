@@ -103,4 +103,23 @@
     <string name="feed_icon_use">Use</string>
     <string name="feed_icon_image">Choose an image</string>
     <string name="feed_icon_website">Use the website\'s icon</string>
+
+    <!-- Custom icons in "Include additional info" export -->
+    <string name="additional_info_desc_brief">Additional information includes configuration options for each feed, such as whether to allow notification, parse full content, etc., and any custom feed icons (emoji or images you chose). When you intend to use the exported OPML file with other readers, please select \"Exclude\".</string>
+
+    <!-- Full backup and restore -->
+    <string name="backup_everything">Back up everything</string>
+    <string name="backup_everything_desc">One file with your subscriptions, custom icons, filters and settings</string>
+    <string name="restore_from_backup">Restore from backup</string>
+    <string name="restore_from_backup_desc">Add the subscriptions, filters and settings from a backup file</string>
+    <string name="restore_confirm_text">Subscriptions are added, and feeds you already have are kept. Muted keywords are merged with yours. Appearance, reading and sync settings are replaced by the ones in the backup.</string>
+    <string name="restore">Restore</string>
+    <string name="backup_saved">Backup saved</string>
+    <string name="backup_failed">Could not create the backup</string>
+    <string name="backup_part_subscriptions">subscriptions</string>
+    <string name="backup_part_filters">filters</string>
+    <string name="backup_part_settings">settings</string>
+    <string name="restore_done">Restored: %1$s</string>
+    <string name="restore_partly_failed">Could not restore: %1$s</string>
+    <string name="restore_failed">Could not restore: %1$s</string>
 </resources>
