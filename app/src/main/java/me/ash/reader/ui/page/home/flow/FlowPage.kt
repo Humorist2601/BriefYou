@@ -1,6 +1,5 @@
 package me.ash.reader.ui.page.home.flow
 
-import androidx.compose.material.icons.outlined.AutoAwesome
 import me.ash.reader.ui.page.home.reading.summary.SummaryRequest
 import me.ash.reader.ui.page.home.reading.summary.SummarySheet
 import androidx.activity.compose.BackHandler
@@ -38,7 +37,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.LargeTopAppBar
@@ -171,6 +169,11 @@ fun FlowPage(
     var onSearch by rememberSaveable { mutableStateOf(false) }
     var showGist by remember { mutableStateOf(false) }
     var showTriage by rememberSaveable { mutableStateOf(false) }
+
+    // The AI gist / Triage button: only in Unread, hidden while scrolling down and while searching.
+    val scrollingUp = listState.isScrollingUp()
+    val atTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+    val showActionsFab = filterUiState.filter.isUnread() && !onSearch && (scrollingUp || atTop)
 
     var currentPullToLoadState: PullToLoadState? by remember { mutableStateOf(null) }
     var currentLoadAction: LoadAction? by remember { mutableStateOf(null) }
@@ -448,25 +451,6 @@ fun FlowPage(
                             }
                         },
                         actions = {
-                            RYExtensibleVisibility(visible = !filterUiState.filter.isStarred()) {
-                                FeedbackIconButton(
-                                    imageVector = Icons.Rounded.Style,
-                                    contentDescription = stringResource(R.string.triage),
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                ) {
-                                    // A new run each time the button is pressed.
-                                    viewModel.triageSession = null
-                                    viewModel.triageResume = false
-                                    showTriage = true
-                                }
-                            }
-                            FeedbackIconButton(
-                                imageVector = Icons.Outlined.AutoAwesome,
-                                contentDescription = stringResource(R.string.ai_gist_action),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            ) {
-                                showGist = true
-                            }
                             RYExtensibleVisibility(visible = !filterUiState.filter.isStarred()) {
                                 FeedbackIconButton(
                                     imageVector = Icons.Rounded.DoneAll,
@@ -795,6 +779,18 @@ fun FlowPage(
                         }
                     }
                 }
+            },
+            floatingActionButton = {
+                FlowActionsFab(
+                    visible = showActionsFab,
+                    onGist = { showGist = true },
+                    onTriage = {
+                        // A new run each time the button is pressed.
+                        viewModel.triageSession = null
+                        viewModel.triageResume = false
+                        showTriage = true
+                    },
+                )
             },
             floatingActionButtonPosition = FabPosition.Center,
             bottomBar = {
