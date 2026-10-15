@@ -313,29 +313,45 @@ fun FlowPage(
 
     val isSyncing = viewModel.isSyncingFlow.collectAsStateValue()
 
+    // Triage comes back when you close an article that was opened from one of its cards.
+    LaunchedEffect(readerState.articleId) {
+        if (viewModel.triageResume && readerState.articleId == null) {
+            viewModel.triageResume = false
+            showTriage = true
+        }
+    }
+
     if (showTriage) {
-        // A snapshot of what is unread right now, taken when triage opens.
-        val triageArticles = remember {
-            pagingItems
-                ?.itemSnapshotList
-                ?.filterIsInstance<ArticleFlowItem.Article>()
-                ?.map { it.articleWithFeed }
-                ?.filter { viewModel.diffMapHolder.checkIfUnread(it) }
-                ?.distinctBy { it.article.id } ?: emptyList()
+        // The unread articles at the moment triage was opened. The session itself is kept in the
+        // view model, so it survives reading an article and coming back.
+        val session = remember {
+            viewModel.triageSession
+                ?: TriageSession(
+                        pagingItems
+                            ?.itemSnapshotList
+                            ?.filterIsInstance<ArticleFlowItem.Article>()
+                            ?.map { it.articleWithFeed }
+                            ?.filter { viewModel.diffMapHolder.checkIfUnread(it) }
+                            ?.distinctBy { it.article.id } ?: emptyList()
+                    )
+                    .also { viewModel.triageSession = it }
         }
         TriageScreen(
-            articles = triageArticles,
+            session = session,
             onRead = { viewModel.diffMapHolder.updateDiff(it, isUnread = false) },
             onUnread = { viewModel.diffMapHolder.updateDiff(it, isUnread = true) },
             onStar = { article, starred ->
                 viewModel.updateStarredStatus(articleId = article.article.id, isStarred = starred)
             },
             onOpen = { articleWithFeed ->
-                showTriage = false
                 if (articleWithFeed.feed.isBrowser) {
+                    // Triage stays open underneath; you return to it from the browser.
                     viewModel.diffMapHolder.updateDiff(articleWithFeed, isUnread = false)
                     context.openURL(articleWithFeed.article.link, openLink, openLinkSpecificBrowser)
                 } else {
+                    // Hide triage while the article is open; it returns when you go back.
+                    viewModel.triageResume = !isTwoPane
+                    showTriage = false
                     val index =
                         pagingItems
                             ?.itemSnapshotList
@@ -347,7 +363,11 @@ fun FlowPage(
                     navigateToArticle(articleWithFeed.article.id, index)
                 }
             },
-            onClose = { showTriage = false },
+            onClose = {
+                showTriage = false
+                viewModel.triageSession = null
+                viewModel.triageResume = false
+            },
         )
     }
 
@@ -434,6 +454,9 @@ fun FlowPage(
                                     contentDescription = stringResource(R.string.triage),
                                     tint = MaterialTheme.colorScheme.onSurface,
                                 ) {
+                                    // A new run each time the button is pressed.
+                                    viewModel.triageSession = null
+                                    viewModel.triageResume = false
                                     showTriage = true
                                 }
                             }
