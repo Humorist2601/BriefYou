@@ -4,10 +4,6 @@ import me.ash.reader.infrastructure.preference.LocalReadingTextHorizontalPadding
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.animateContentSize
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -64,8 +60,8 @@ import me.ash.reader.ui.ext.collectAsStateValue
 /**
  * Bottom sheet that streams an on-device summary of one article, or a gist of a whole list.
  *
- * The sheet opens above half height and grows upward as the text streams in; once it reaches the
- * top, only the text area scrolls. Horizontal padding matches the reading page.
+ * The sheet opens at 60% of the screen height and stays that size: it does not grow as the text
+ * streams in, and the text area inside it scrolls. Horizontal padding matches the reading page.
  *
  * @param requestKey changes when the thing being summarized changes (article id, filter).
  */
@@ -93,10 +89,10 @@ fun SummarySheet(
             uri?.let(viewModel::importModel)
         }
 
-    // Brief You: no drag gestures on this sheet. Dragging a sheet whose content is still growing
-    // made it bounce; now it simply grows upward with the summary (starting above half height),
-    // scrolls once it reaches the top, and closes with the ✕ button, Back, or a tap outside.
-    val minHeight = (LocalConfiguration.current.screenHeightDp * 0.6f).dp
+    // Brief You: no drag gestures on this sheet, and a fixed height. It opens at 60% of the screen
+    // and never grows or expands to full screen; the summary text scrolls inside it. It closes with
+    // the ✕ button, Back, or a tap outside.
+    val sheetHeight = (LocalConfiguration.current.screenHeightDp * 0.6f).dp
     val horizontalPadding = LocalReadingTextHorizontalPadding.current.dp
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -108,8 +104,7 @@ fun SummarySheet(
         Column(
             modifier =
                 Modifier.fillMaxWidth()
-                    .heightIn(min = minHeight)
-                    .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
+                    .height(sheetHeight)
                     .padding(horizontal = horizontalPadding)
                     .padding(top = 24.dp)
                     .navigationBarsPadding()
@@ -222,7 +217,7 @@ fun SummarySheet(
 
             Column(
                 modifier =
-                    Modifier.weight(1f, fill = false)
+                    Modifier.weight(1f)
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
             ) {
