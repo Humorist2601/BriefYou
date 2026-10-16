@@ -53,6 +53,7 @@ import me.ash.reader.ui.page.settings.tips.LicenseListPage
 import me.ash.reader.ui.page.settings.tips.TipsAndSupportPage
 import me.ash.reader.ui.page.settings.ai.AiSettingsPage
 import me.ash.reader.ui.page.settings.filters.FiltersPage
+import me.ash.reader.ui.page.settings.sort.SortFeedsPage
 import me.ash.reader.ui.page.settings.troubleshooting.TroubleshootingPage
 import me.ash.reader.ui.page.startup.StartupPage
 
@@ -124,6 +125,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                                     backStack.add(Route.AccountDetails(it))
                                 },
                                 navigateToFilters = { backStack.add(Route.Filters) },
+                                navigateToSortFeeds = { backStack.add(Route.SortFeeds) },
                             )
                         }
                     }
@@ -189,6 +191,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                                 navigateToLanguages = { backStack.add(Route.Languages) },
                                 navigateToAiModel = { backStack.add(Route.AiModel) },
                                 navigateToFilters = { backStack.add(Route.Filters) },
+                                navigateToSortFeeds = { backStack.add(Route.SortFeeds) },
                                 navigateToTroubleshooting = {
                                     backStack.add(Route.Troubleshooting)
                                 },
@@ -271,6 +274,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     Route.Languages -> NavEntry(key) { LanguagesPage(onBack = onBack) }
                     Route.AiModel -> NavEntry(key) { AiSettingsPage(onBack = onBack) }
                     Route.Filters -> NavEntry(key) { FiltersPage(onBack = onBack) }
+                    Route.SortFeeds -> NavEntry(key) { SortFeedsPage(onBack = onBack) }
                     Route.Troubleshooting -> NavEntry(key) { TroubleshootingPage(onBack = onBack) }
                     Route.TipsAndSupport ->
                         NavEntry(key) {
