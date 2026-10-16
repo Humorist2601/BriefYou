@@ -13,8 +13,6 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 
 ## What's new compared to Read You
 
-*Tap a section to open it.*
-
 <details>
 <summary><b>On-device AI</b></summary>
 
