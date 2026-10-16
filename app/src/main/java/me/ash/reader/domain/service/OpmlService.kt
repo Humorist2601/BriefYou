@@ -32,6 +32,7 @@ class OpmlService @Inject constructor(
     private val rssService: RssService,
     private val OPMLDataSource: OPMLDataSource,
     private val iconOverrides: FeedIconOverrides,
+    private val feedOrdering: FeedOrdering,
     @IODispatcher
     private val ioDispatcher: CoroutineDispatcher,
 ) {
@@ -96,7 +97,8 @@ class OpmlService @Inject constructor(
                     null, null, null, null,
                     null, null, null, null,
                 ),
-                Body(groupDao.queryAllGroupWithFeed(accountId).map {
+                // In the user's order (see FeedOrdering), so the file keeps it too.
+                Body(feedOrdering.sort(groupDao.queryAllGroupWithFeed(accountId), accountId).map {
                     Outline(
                         mutableMapOf(
                             "text" to it.group.name,
