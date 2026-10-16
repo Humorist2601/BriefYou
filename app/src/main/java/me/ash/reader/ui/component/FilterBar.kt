@@ -20,7 +20,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -49,22 +52,39 @@ fun FilterBar(
         MaterialTheme.colorScheme.primaryContainer
     } onDark MaterialTheme.colorScheme.secondaryContainer
 
+    // Brief You: a tall bar, like a music player's. Taller than the stock navigation bar.
     val containerHeight = when (filterBarStyle) {
-        FlowFilterBarStylePreference.Icon.value -> 64.dp
-        else -> 80.dp
+        FlowFilterBarStylePreference.Icon.value -> 76.dp
+        else -> 88.dp
     }
 
-    // Brief You: a floating bar with rounded-rectangle corners (not a full-width strip, and not a
-    // pill). The system bar inset and the margins sit outside the surface, so it hovers above them.
+    // A fade to black behind the bar: clear at the top of the bar, fully black for the last quarter
+    // (the area under the bar down to the screen edge). On a light theme it fades into the page
+    // color instead, since black would look harsh there.
+    val scrim =
+        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color.Black
+        else MaterialTheme.colorScheme.background
+
+    // Brief You: a floating bar with rounded corners (not a full-width strip, and not a pill). It
+    // sits right on top of the system gesture area, with side margins and a little room above.
     Box(
         modifier =
             modifier
+                .drawBehind {
+                    drawRect(
+                        Brush.verticalGradient(
+                            0f to scrim.copy(alpha = 0f),
+                            0.75f to scrim,
+                            1f to scrim,
+                        )
+                    )
+                }
                 .windowInsetsPadding(NavigationBarDefaults.windowInsets)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp)
     ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceColorAtElevation(filterBarTonalElevation),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(32.dp),
         shadowElevation = 6.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
