@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Add
@@ -106,6 +107,7 @@ fun FeedsPage(
     navigateToAccountList: () -> Unit,
     navigateToAccountDetail: (Int) -> Unit,
     navigateToFilters: () -> Unit = {},
+    navigateToSortFeeds: () -> Unit = {},
 ) {
     var accountTabVisible by remember { mutableStateOf(false) }
 
@@ -218,6 +220,14 @@ fun FeedsPage(
                     }
                 },
                 actions = {
+                    // Brief You: sort groups and feeds (by name, by count or by hand).
+                    FeedbackIconButton(
+                        imageVector = Icons.AutoMirrored.Outlined.Sort,
+                        contentDescription = stringResource(R.string.sort_title),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    ) {
+                        navigateToSortFeeds()
+                    }
                     // Brief You: quick access to mute keywords, duplicates and the filter log.
                     FeedbackIconButton(
                         imageVector = Icons.Outlined.FilterAlt,
