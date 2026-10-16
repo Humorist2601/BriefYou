@@ -47,11 +47,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -61,7 +58,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -173,8 +169,6 @@ fun FlowPage(
     var onSearch by rememberSaveable { mutableStateOf(false) }
     var showGist by remember { mutableStateOf(false) }
     var showTriage by rememberSaveable { mutableStateOf(false) }
-    // How far the back gesture has closed Triage (0..1): the list underneath comes in with it.
-    var triageBack by remember { mutableFloatStateOf(0f) }
 
     // The AI gist / Triage button: only in Unread, hidden while scrolling down and while searching.
     val scrollingUp = listState.isScrollingUp()
@@ -332,17 +326,6 @@ fun FlowPage(
 
     Box(modifier = Modifier.fillMaxSize()) {
         RYScaffold(
-            modifier =
-                Modifier.graphicsLayer {
-                    val p = triageBack
-                    if (p > 0f) {
-                        // While Triage is dismissed with the back gesture the list comes in like a
-                        // page does on back (shared axis): from 10% to the left, fading in after the
-                        // first 35% of the way.
-                        translationX = -(1f - FastOutSlowInEasing.transform(p)) * 0.10f * size.width
-                        alpha = LinearOutSlowInEasing.transform(((p - 0.35f) / 0.65f).coerceIn(0f, 1f))
-                    }
-                },
             containerTonalElevation = articleListTonalElevation.value.dp,
             topBar = {
                 MaterialTheme(
@@ -864,7 +847,6 @@ fun FlowPage(
                     viewModel.nextTriage(groupId, feedId, visited)
                 },
                 loadNext = { next -> viewModel.loadTriage(next) },
-                onBackProgress = { triageBack = it },
             )
         }
     }
