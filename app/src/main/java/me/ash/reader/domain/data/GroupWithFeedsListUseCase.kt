@@ -8,6 +8,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -19,6 +21,7 @@ import kotlinx.coroutines.launch
 import me.ash.reader.domain.model.general.Filter
 import me.ash.reader.domain.model.group.GroupWithFeed
 import me.ash.reader.domain.service.AccountService
+import me.ash.reader.domain.service.FeedOrdering
 import me.ash.reader.domain.service.RssService
 import me.ash.reader.infrastructure.di.ApplicationScope
 import me.ash.reader.infrastructure.di.IODispatcher
@@ -35,6 +38,7 @@ class GroupWithFeedsListUseCase @Inject constructor(
     private val filterStateUseCase: FilterStateUseCase,
     private val diffMapHolder: DiffMapHolder,
     private val accountService: AccountService,
+    private val feedOrdering: FeedOrdering,
 ) {
 
     private var currentJob: Job? = null
@@ -61,9 +65,17 @@ class GroupWithFeedsListUseCase @Inject constructor(
         }
     }
 
+    // The groups and feeds in their default order, with the counts of the current filter.
     private val _groupWithFeedsListFlow: MutableStateFlow<List<GroupWithFeed>> =
         MutableStateFlow<List<GroupWithFeed>>(emptyList())
-    val groupWithFeedListFlow: StateFlow<List<GroupWithFeed>> = _groupWithFeedsListFlow
+
+    /** The same list in the order the user chose (see [FeedOrdering]); re-sorts when it changes. */
+    val groupWithFeedListFlow: StateFlow<List<GroupWithFeed>> =
+        combine(_groupWithFeedsListFlow, feedOrdering.version) { groups, _ ->
+                feedOrdering.sort(groups, accountService.getCurrentAccountId())
+            }
+            .flowOn(ioDispatcher)
+            .stateIn(applicationScope, SharingStarted.Eagerly, emptyList())
 
     private val feedsFlow: MutableStateFlow<List<GroupWithFeed>> = MutableStateFlow(emptyList())
 
