@@ -49,7 +49,7 @@ import me.ash.reader.infrastructure.di.IODispatcher
 import me.ash.reader.infrastructure.preference.PullToLoadNextFeedPreference
 import me.ash.reader.infrastructure.preference.SettingsProvider
 import me.ash.reader.infrastructure.rss.ReaderCacheHelper
-import me.ash.reader.ui.page.home.flow.TriageNextGroup
+import me.ash.reader.ui.page.home.flow.TriageNext
 import me.ash.reader.ui.page.home.flow.TriageSession
 import timber.log.Timber
 
@@ -138,34 +138,47 @@ constructor(
     var triageResume: Boolean = false
 
     /**
-     * The next group, in the Feeds page order, that still has unread articles and was not triaged
-     * yet in this session. Looks after [afterGroupId] first, then wraps round to the groups before
-     * it. Null when triage was opened on everything (nothing is left to move on to).
+     * What triage can continue with, in the Feeds page order, that still has unread articles and was
+     * not triaged yet in this session.
+     * - Started from a feed: the next feed, one group after the other.
+     * - Started from a group: the next group.
+     * Both look after the current one first, then wrap round to the ones before it. Null when
+     * triage was opened on everything (nothing is left to move on to).
      */
-    fun nextTriageGroup(afterGroupId: String?, visited: Set<String>): TriageNextGroup? {
-        if (afterGroupId == null) return null
-        // The group counts are unread counts only while the Unread filter is on.
+    fun nextTriage(groupId: String?, feedId: String?, visited: Set<String>): TriageNext? {
+        if (groupId == null && feedId == null) return null
+        // The counts are unread counts only while the Unread filter is on.
         if (!filterStateUseCase.filterStateFlow.value.filter.isUnread()) return null
         val groups = groupWithFeedsListUseCase.groupWithFeedListFlow.value
-        val start = groups.indexOfFirst { it.group.id == afterGroupId }
+
+        if (feedId != null) {
+            val feeds = groups.flatMap { it.feeds }
+            val start = feeds.indexOfFirst { it.id == feedId }
+            val ordered = if (start < 0) feeds else feeds.drop(start + 1) + feeds.take(start)
+            return ordered
+                .firstOrNull { it.id !in visited && it.important > 0 }
+                ?.let { TriageNext(it.id, it.name, it.important, isFeed = true) }
+        }
+
+        val start = groups.indexOfFirst { it.group.id == groupId }
         val ordered = if (start < 0) groups else groups.drop(start + 1) + groups.take(start)
         for (item in ordered) {
             if (item.group.id in visited) continue
             val unread = item.feeds.sumOf { it.important }
-            if (unread > 0) return TriageNextGroup(item.group.id, item.group.name, unread)
+            if (unread > 0) return TriageNext(item.group.id, item.group.name, unread)
         }
         return null
     }
 
-    /** The unread articles of a group, newest first like the list, for triage to continue with. */
-    suspend fun loadTriageGroup(groupId: String): List<ArticleWithFeed> =
+    /** The unread articles of a group or feed, newest first like the list, for triage to continue. */
+    suspend fun loadTriage(next: TriageNext): List<ArticleWithFeed> =
         withContext(ioDispatcher) {
             val source =
                 rssService
                     .get()
                     .pullArticles(
-                        groupId = groupId,
-                        feedId = null,
+                        groupId = if (next.isFeed) null else next.id,
+                        feedId = if (next.isFeed) next.id else null,
                         isStarred = false,
                         isUnread = true,
                         sortAscending = settingsProvider.settings.flowSortUnreadArticles.value,
