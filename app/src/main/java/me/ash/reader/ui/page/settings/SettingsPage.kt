@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Language
@@ -55,6 +56,7 @@ fun SettingsPage(
     navigateToLanguages: () -> Unit,
     navigateToAiModel: () -> Unit,
     navigateToFilters: () -> Unit,
+    navigateToSortFeeds: () -> Unit = {},
     navigateToTroubleshooting: () -> Unit,
     navigateToTipsAndSupport: () -> Unit,
 ) {
@@ -145,6 +147,14 @@ fun SettingsPage(
                         desc = stringResource(R.string.ai_settings_desc),
                         icon = Icons.Outlined.AutoAwesome,
                         onClick = navigateToAiModel
+                    )
+                }
+                item {
+                    SelectableSettingGroupItem(
+                        title = stringResource(R.string.sort_title),
+                        desc = stringResource(R.string.sort_desc),
+                        icon = Icons.AutoMirrored.Outlined.Sort,
+                        onClick = navigateToSortFeeds
                     )
                 }
                 item {
