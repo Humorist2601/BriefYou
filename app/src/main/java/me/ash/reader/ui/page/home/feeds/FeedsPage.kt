@@ -34,6 +34,11 @@ import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.runtime.saveable.rememberSaveable
+import me.ash.reader.ui.page.home.feeds.sort.FeedSortViewModel
+import me.ash.reader.ui.page.home.feeds.sort.FeedSortSheet
+import me.ash.reader.ui.page.home.feeds.sort.FeedReorderEditor
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -102,14 +107,20 @@ fun FeedsPage(
     accountViewModel: AccountViewModel = hiltViewModel(),
     feedsViewModel: FeedsViewModel = hiltViewModel(),
     subscribeViewModel: SubscribeViewModel = hiltViewModel(),
+    sortViewModel: FeedSortViewModel = hiltViewModel(),
     navigateToSettings: () -> Unit,
     navigationToFlow: () -> Unit,
     navigateToAccountList: () -> Unit,
     navigateToAccountDetail: (Int) -> Unit,
     navigateToFilters: () -> Unit = {},
-    navigateToSortFeeds: () -> Unit = {},
 ) {
     var accountTabVisible by remember { mutableStateOf(false) }
+
+    // Sorting: the sheet with the modes, and the in-place drag-to-reorder mode.
+    var sortSheetVisible by remember { mutableStateOf(false) }
+    var reorderMode by rememberSaveable { mutableStateOf(false) }
+    val sortSettings = sortViewModel.settings.collectAsStateValue()
+    val allGroups = sortViewModel.ordered.collectAsStateValue()
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -190,6 +201,8 @@ fun FeedsPage(
         context.findActivity()?.moveTaskToBack(false)
     }
 
+    BackHandler(enabled = reorderMode) { reorderMode = false }
+
     RYScaffold(
         topBarTonalElevation = topBarTonalElevation.value.dp,
         //        containerTonalElevation = groupListTonalElevation.value.dp,
@@ -226,7 +239,7 @@ fun FeedsPage(
                         contentDescription = stringResource(R.string.sort_title),
                         tint = MaterialTheme.colorScheme.onSurface,
                     ) {
-                        navigateToSortFeeds()
+                        sortSheetVisible = true
                     }
                     // Brief You: quick access to mute keywords, duplicates and the filter log.
                     FeedbackIconButton(
@@ -296,11 +309,18 @@ fun FeedsPage(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = stringResource(R.string.feeds),
+                                text =
+                                    stringResource(
+                                        if (reorderMode) R.string.sort_reordering else R.string.feeds
+                                    ),
                                 color = MaterialTheme.colorScheme.primary,
                                 style = MaterialTheme.typography.labelLarge,
                             )
-                            IconButton(
+                            if (reorderMode) {
+                                FilledTonalButton(onClick = { reorderMode = false }) {
+                                    Text(stringResource(R.string.sort_done))
+                                }
+                            } else IconButton(
                                 onClick = {
                                     if (hasGroupVisible) collapseAllGroups() else expandAllGroups()
                                 },
@@ -320,42 +340,52 @@ fun FeedsPage(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    itemsIndexed(groupWithFeedList) { _, (group, feeds) ->
-                        GroupWithFeedsContainer {
-                            GroupItem(
-                                isExpanded = {
-                                    groupsVisible.getOrPut(group.id, groupListExpand::value)
-                                },
-                                group = group,
-                                onExpanded = {
-                                    groupsVisible[group.id] =
-                                        groupsVisible
-                                            .getOrPut(group.id, groupListExpand::value)
-                                            .not()
-                                },
-                                onLongClick = { scope.launch { groupDrawerState.show() } },
-                            ) {
-                                feedsViewModel.changeFilter(
-                                    filterState.copy(group = group, feed = null)
-                                )
-                                navigationToFlow()
-                            }
-
-                            feeds.forEachIndexed { index, feed ->
-                                FeedItem(
-                                    feed = feed,
-                                    isLastItem = { index == feeds.lastIndex },
+                    if (reorderMode) {
+                        item {
+                            FeedReorderEditor(
+                                groups = allGroups,
+                                onMoveGroups = sortViewModel::moveGroups,
+                                onMoveFeeds = sortViewModel::moveFeeds,
+                            )
+                        }
+                    } else {
+                        itemsIndexed(groupWithFeedList) { _, (group, feeds) ->
+                            GroupWithFeedsContainer {
+                                GroupItem(
                                     isExpanded = {
-                                        groupsVisible.getOrPut(feed.groupId, groupListExpand::value)
+                                        groupsVisible.getOrPut(group.id, groupListExpand::value)
                                     },
-                                    onClick = {
-                                        feedsViewModel.changeFilter(
-                                            filterState.copy(feed = feed, group = null)
-                                        )
-                                        navigationToFlow()
+                                    group = group,
+                                    onExpanded = {
+                                        groupsVisible[group.id] =
+                                            groupsVisible
+                                                .getOrPut(group.id, groupListExpand::value)
+                                                .not()
                                     },
-                                    onLongClick = { scope.launch { feedDrawerState.show() } },
-                                )
+                                    onLongClick = { scope.launch { groupDrawerState.show() } },
+                                ) {
+                                    feedsViewModel.changeFilter(
+                                        filterState.copy(group = group, feed = null)
+                                    )
+                                    navigationToFlow()
+                                }
+
+                                feeds.forEachIndexed { index, feed ->
+                                    FeedItem(
+                                        feed = feed,
+                                        isLastItem = { index == feeds.lastIndex },
+                                        isExpanded = {
+                                            groupsVisible.getOrPut(feed.groupId, groupListExpand::value)
+                                        },
+                                        onClick = {
+                                            feedsViewModel.changeFilter(
+                                                filterState.copy(feed = feed, group = null)
+                                            )
+                                            navigationToFlow()
+                                        },
+                                        onLongClick = { scope.launch { feedDrawerState.show() } },
+                                    )
+                                }
                             }
                         }
                     }
@@ -391,6 +421,20 @@ fun FeedsPage(
     )
 
     SubscribeDialog(subscribeViewModel = subscribeViewModel)
+
+    FeedSortSheet(
+        visible = sortSheetVisible,
+        settings = sortSettings,
+        onDismiss = { sortSheetVisible = false },
+        onGroupMode = sortViewModel::setGroupMode,
+        onFeedMode = sortViewModel::setFeedMode,
+        onReorder = {
+            sortViewModel.startManual()
+            sortSheetVisible = false
+            reorderMode = true
+        },
+        onReset = sortViewModel::reset,
+    )
 
     GroupOptionDrawer(drawerState = groupDrawerState)
     FeedOptionDrawer(drawerState = feedDrawerState)
