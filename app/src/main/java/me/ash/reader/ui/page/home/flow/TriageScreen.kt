@@ -6,6 +6,8 @@ import androidx.activity.BackEventCompat
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -46,6 +48,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -57,6 +60,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -92,6 +96,7 @@ import me.ash.reader.ui.component.FeedIcon
 import me.ash.reader.ui.component.base.RYAsyncImage
 import me.ash.reader.ui.component.base.SIZE_1000
 import me.ash.reader.ui.component.rememberFeedAccent
+import me.ash.reader.ui.motion.MotionConstants
 import me.ash.reader.ui.theme.GoogleSansWideFontFamily
 
 /** What a card can be swiped to. */
@@ -186,47 +191,66 @@ fun TriageScreen(
     onClose: () -> Unit,
     findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
+    onBackProgress: (Float) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val enter = remember { Animatable(0f) }
     var backProgress by remember { mutableFloatStateOf(0f) }
     var exit by remember { mutableFloatStateOf(0f) }
     var closing by remember { mutableStateOf(false) }
-    // Which way the screen slides while closing: towards the edge the back gesture started from.
-    // Closing with a button (or the back key) has no edge, so it stays 0 and the screen just shrinks
-    // and fades towards its center.
-    var slideDirection by remember { mutableFloatStateOf(0f) }
+    // True while the back gesture (or the back key) is closing Triage: it then moves exactly like
+    // the app's other pages do on back (the Material shared axis transition). Closing with a button
+    // keeps the shrink-and-fade towards the center.
+    var sharedAxis by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { enter.animateTo(1f, tween(220)) }
 
-    // Finishes the exit: the screen keeps shrinking and slides away while it fades all the way out,
-    // and only then is it removed, so it never vanishes in a single frame.
-    suspend fun playExit() {
+    // Tells the list underneath how far back we are, so it can come in the way a page does.
+    LaunchedEffect(Unit) {
+        snapshotFlow { if (sharedAxis) backProgress else 0f }.collect { onBackProgress(it) }
+    }
+    DisposableEffect(Unit) { onDispose { onBackProgress(0f) } }
+
+    // Finishes the exit and only then removes Triage, so it never vanishes in a single frame.
+    suspend fun playExit(axis: Boolean) {
         if (closing) return
         closing = true
-        val spec = tween<Float>(durationMillis = 240, easing = FastOutLinearInEasing)
-        coroutineScope {
-            launch { animate(backProgress, 1f, animationSpec = spec) { v, _ -> backProgress = v } }
-            launch { animate(0f, 1f, animationSpec = spec) { v, _ -> exit = v } }
+        sharedAxis = axis
+        if (axis) {
+            // The rest of the page transition: the same 300 ms the app uses, from where you are.
+            val remaining =
+                (MotionConstants.DefaultMotionDuration * (1f - backProgress)).toInt().coerceAtLeast(60)
+            animate(backProgress, 1f, animationSpec = tween(remaining, easing = LinearEasing)) { v, _ ->
+                backProgress = v
+            }
+        } else {
+            val spec = tween<Float>(durationMillis = 240, easing = FastOutLinearInEasing)
+            coroutineScope {
+                launch { animate(backProgress, 1f, animationSpec = spec) { v, _ -> backProgress = v } }
+                launch { animate(0f, 1f, animationSpec = spec) { v, _ -> exit = v } }
+            }
         }
         onClose()
     }
 
-    // Predictive back: while you swipe, the whole screen shrinks and slides towards the swipe edge,
-    // showing the list behind it. Let go to close it (it then finishes sliding and fading out);
+    // Predictive back, in the app's own style: while you swipe, Triage slides to the right and fades
+    // out while the list slides in from the left (see the shared axis motion). Let go to finish it;
     // drag back to cancel.
     PredictiveBackHandler(enabled = true) { progress ->
         try {
             progress.collect { event ->
+                sharedAxis = true
                 backProgress = event.progress
-                slideDirection = if (event.swipeEdge == BackEventCompat.EDGE_LEFT) 1f else -1f
             }
-            playExit()
+            playExit(axis = true)
         } catch (e: CancellationException) {
             if (!closing) {
                 scope.launch {
-                    animate(backProgress, 0f, animationSpec = tween(180)) { value, _ ->
+                    val back = (MotionConstants.DefaultMotionDuration * backProgress).toInt()
+                    animate(backProgress, 0f, animationSpec = tween(back.coerceAtLeast(60), easing = LinearEasing)) {
+                        value, _ ->
                         backProgress = value
                     }
+                    sharedAxis = false
                 }
             }
         }
@@ -236,14 +260,22 @@ fun TriageScreen(
         modifier =
             Modifier.fillMaxSize().graphicsLayer {
                 val e = enter.value
-                val scale = (0.94f + 0.06f * e) * (1f - 0.12f * backProgress) * (1f - 0.06f * exit) *
-                    (if (slideDirection == 0f) 1f - 0.1f * exit else 1f)
-                scaleX = scale
-                scaleY = scale
-                alpha = e * (1f - 0.3f * backProgress) * (1f - exit)
-                translationX = slideDirection * (backProgress * 24.dp.toPx() + exit * 32.dp.toPx())
-                shape = RoundedCornerShape(backProgress * 40.dp.toPx())
-                clip = backProgress > 0f
+                if (sharedAxis) {
+                    // The app's page "pop" transition: slides 10% of the width to the right with the
+                    // standard easing, and is faded out within the first 35% of the way.
+                    translationX = FastOutSlowInEasing.transform(backProgress) * 0.10f * size.width
+                    alpha =
+                        e * (1f - FastOutLinearInEasing.transform((backProgress / 0.35f).coerceIn(0f, 1f)))
+                } else {
+                    val scale =
+                        (0.94f + 0.06f * e) * (1f - 0.12f * backProgress) * (1f - 0.06f * exit) *
+                            (1f - 0.1f * exit)
+                    scaleX = scale
+                    scaleY = scale
+                    alpha = e * (1f - 0.3f * backProgress) * (1f - exit)
+                    shape = RoundedCornerShape(backProgress * 40.dp.toPx())
+                    clip = backProgress > 0f
+                }
             },
         color = MaterialTheme.colorScheme.surface,
     ) {
@@ -253,7 +285,7 @@ fun TriageScreen(
             onUnread,
             onStar,
             onOpen,
-            onClose = { scope.launch { playExit() } },
+            onClose = { scope.launch { playExit(axis = false) } },
             findNext,
             loadNext,
         )
