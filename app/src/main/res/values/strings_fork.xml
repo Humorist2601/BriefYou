@@ -140,4 +140,25 @@
     <string name="triage_summary">%1$d read · %2$d saved · %3$d skipped</string>
     <string name="triage_back_to_list">Back to list</string>
     <string name="triage_next_group">Next: %1$s · %2$d unread</string>
+
+    <!-- Sort feeds and groups -->
+    <string name="sort_title">Sort feeds and groups</string>
+    <string name="sort_desc">Order them by name, by count, or by dragging</string>
+    <string name="sort_intro">Choose how groups and feeds are ordered on the Feeds page. Your order is saved in backups and OPML exports.</string>
+    <string name="sort_groups">Groups</string>
+    <string name="sort_feeds">Feeds</string>
+    <string name="sort_default">Default</string>
+    <string name="sort_name_asc">A–Z</string>
+    <string name="sort_name_desc">Z–A</string>
+    <string name="sort_most_unread">Most unread</string>
+    <string name="sort_manual">Manual</string>
+    <string name="sort_most_unread_note">Follows the filter you are viewing: the most unread, starred or total articles first.</string>
+    <string name="sort_manual_groups_hint">Press and drag the handle to move a group.</string>
+    <string name="sort_manual_feeds_hint">Tap a group, then press and drag a handle to move its feeds.</string>
+    <string name="sort_drag_handle">Drag to reorder</string>
+    <string name="sort_reset">Reset to default order</string>
+    <plurals name="sort_feed_count">
+        <item quantity="one">%d feed</item>
+        <item quantity="other">%d feeds</item>
+    </plurals>
 </resources>
