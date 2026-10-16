@@ -156,6 +156,9 @@
     <string name="sort_manual_groups_hint">Press and drag the handle to move a group.</string>
     <string name="sort_manual_feeds_hint">Tap a group, then press and drag a handle to move its feeds.</string>
     <string name="sort_drag_handle">Drag to reorder</string>
+    <string name="sort_reorder">Reorder by dragging</string>
+    <string name="sort_reordering">Drag the handles to reorder</string>
+    <string name="sort_done">Done</string>
     <string name="sort_reset">Reset to default order</string>
     <plurals name="sort_feed_count">
         <item quantity="one">%d feed</item>
