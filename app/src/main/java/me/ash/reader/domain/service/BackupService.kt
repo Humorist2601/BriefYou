@@ -31,6 +31,8 @@ data class FiltersBackup(val mutedKeywords: List<String>, val hideDuplicates: Bo
  * - `subscriptions.opml`: groups and feeds with the additional info (notification, full content,
  *   browser flags and custom feed icons), the same file "Export as OPML" writes.
  * - `filters.json`: muted keywords and the duplicate-stories switch.
+ * - `order.json`: how groups and feeds are sorted (by name, by count or by hand), if you set one.
+ *   The OPML above is written in that same order, too.
  * - `preferences.json`: appearance, reading and sync settings.
  * - `manifest.json`: format version, so future versions can still read old backups.
  *
@@ -44,6 +46,7 @@ constructor(
     @ApplicationContext private val context: Context,
     private val opmlService: OpmlService,
     private val filters: BriefFilters,
+    private val feedOrdering: FeedOrdering,
     @IODispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
     private val json = Json {
@@ -79,6 +82,8 @@ constructor(
                 zip.put(MANIFEST, json.encodeToString(manifest))
                 zip.put(SUBSCRIPTIONS, opmlService.saveToString(accountId, attachInfo = true))
                 zip.put(FILTERS, json.encodeToString(filtersBackup))
+                // The order of groups and feeds (only when it isn't the default one).
+                feedOrdering.export(accountId)?.let { zip.put(ORDER, json.encodeToString(it)) }
                 zip.put(PREFERENCES, portablePreferences())
             }
             out.toByteArray()
@@ -115,8 +120,13 @@ constructor(
                                 f.mutedKeywords.forEach { filters.addKeyword(it) }
                                 filters.setHideDuplicates(f.hideDuplicates)
                             }
-                            Part.Subscriptions ->
+                            Part.Subscriptions -> {
                                 opmlService.saveToDatabase(ByteArrayInputStream(data))
+                                // The order is applied once the groups and feeds exist again.
+                                entries[ORDER]?.let {
+                                    feedOrdering.import(json.decodeFromString<OrderBackup>(String(it)))
+                                }
+                            }
                             Part.Settings -> String(data).fromJSONStringToDataStore(context)
                         }
                     }
@@ -150,7 +160,7 @@ constructor(
 
     /** Reads the few files we know about into memory; anything else in the ZIP is ignored. */
     private fun readZip(bytes: ByteArray): Map<String, ByteArray> {
-        val known = setOf(MANIFEST, SUBSCRIPTIONS, FILTERS, PREFERENCES)
+        val known = setOf(MANIFEST, SUBSCRIPTIONS, FILTERS, PREFERENCES, ORDER)
         val result = mutableMapOf<String, ByteArray>()
         var total = 0L
         ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
@@ -182,6 +192,7 @@ constructor(
         const val SUBSCRIPTIONS = "subscriptions.opml"
         const val FILTERS = "filters.json"
         const val PREFERENCES = "preferences.json"
+        const val ORDER = "order.json"
 
         /** Value of the "external font" choice in the reading and basic font settings. */
         private const val EXTERNAL_FONT = 5
