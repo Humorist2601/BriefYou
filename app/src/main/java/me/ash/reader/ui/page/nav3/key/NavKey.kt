@@ -63,6 +63,9 @@ sealed interface Route : NavKey {
 
     @Serializable data object Filters : Route
 
+    // Order of groups and feeds
+    @Serializable data object SortFeeds : Route
+
     // Troubleshooting
     @Serializable data object Troubleshooting : Route
 
