@@ -178,7 +178,10 @@ fun TriageScreen(
     var backProgress by remember { mutableFloatStateOf(0f) }
     var exit by remember { mutableFloatStateOf(0f) }
     var closing by remember { mutableStateOf(false) }
-    var swipeFromLeft by remember { mutableStateOf(true) }
+    // Which way the screen slides while closing: towards the edge the back gesture started from.
+    // Closing with a button (or the back key) has no edge, so it stays 0 and the screen just shrinks
+    // and fades towards its center.
+    var slideDirection by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(Unit) { enter.animateTo(1f, tween(220)) }
 
     // Finishes the exit: the screen keeps shrinking and slides away while it fades all the way out,
@@ -201,7 +204,7 @@ fun TriageScreen(
         try {
             progress.collect { event ->
                 backProgress = event.progress
-                swipeFromLeft = event.swipeEdge == BackEventCompat.EDGE_LEFT
+                slideDirection = if (event.swipeEdge == BackEventCompat.EDGE_LEFT) 1f else -1f
             }
             playExit()
         } catch (e: CancellationException) {
@@ -219,13 +222,12 @@ fun TriageScreen(
         modifier =
             Modifier.fillMaxSize().graphicsLayer {
                 val e = enter.value
-                val scale = (0.94f + 0.06f * e) * (1f - 0.12f * backProgress) * (1f - 0.06f * exit)
+                val scale = (0.94f + 0.06f * e) * (1f - 0.12f * backProgress) * (1f - 0.06f * exit) *
+                    (if (slideDirection == 0f) 1f - 0.1f * exit else 1f)
                 scaleX = scale
                 scaleY = scale
                 alpha = e * (1f - 0.3f * backProgress) * (1f - exit)
-                translationX =
-                    (if (swipeFromLeft) 1f else -1f) *
-                        (backProgress * 24.dp.toPx() + exit * 32.dp.toPx())
+                translationX = slideDirection * (backProgress * 24.dp.toPx() + exit * 32.dp.toPx())
                 shape = RoundedCornerShape(backProgress * 40.dp.toPx())
                 clip = backProgress > 0f
             },
