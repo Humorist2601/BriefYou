@@ -797,8 +797,10 @@ fun FlowPage(
                                     ?.map { it.articleWithFeed }
                                     ?.filter { viewModel.diffMapHolder.checkIfUnread(it) }
                                     ?.distinctBy { it.article.id } ?: emptyList(),
-                            groupId = filterUiState.group?.id ?: filterUiState.feed?.groupId,
-                            groupName = filterUiState.group?.name ?: filterUiState.feed?.name,
+                            // A feed wins over its group: after a feed comes the next feed.
+                            groupId = if (filterUiState.feed == null) filterUiState.group?.id else null,
+                            feedId = filterUiState.feed?.id,
+                            title = filterUiState.feed?.name ?: filterUiState.group?.name,
                         )
                         .also { viewModel.triageSession = it }
             }
@@ -841,8 +843,10 @@ fun FlowPage(
                     viewModel.triageSession = null
                     viewModel.triageResume = false
                 },
-                findNextGroup = { groupId, visited -> viewModel.nextTriageGroup(groupId, visited) },
-                loadGroupArticles = { groupId -> viewModel.loadTriageGroup(groupId) },
+                findNext = { groupId, feedId, visited ->
+                    viewModel.nextTriage(groupId, feedId, visited)
+                },
+                loadNext = { next -> viewModel.loadTriage(next) },
             )
         }
     }
