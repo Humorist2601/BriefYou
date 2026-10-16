@@ -36,8 +36,8 @@
     <string name="ai_gist_of">Gist of %1$s</string>
     <string name="ai_gist_action">Generate gist of this list</string>
     <plurals name="ai_gist_based_on">
-        <item quantity="one">Based on %1$d article · on this device</item>
-        <item quantity="other">Based on %1$d articles · on this device</item>
+        <item quantity="one">Based on %1$d article</item>
+        <item quantity="other">Based on %1$d articles</item>
     </plurals>
 
     <!-- Settings → AI model -->
