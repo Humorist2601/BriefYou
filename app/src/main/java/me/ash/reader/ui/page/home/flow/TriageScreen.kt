@@ -119,39 +119,53 @@ private fun HapticFeedback.commit(action: TriageAction) =
 
 internal data class TriageStep(val article: ArticleWithFeed, val action: TriageAction)
 
-/** The next group triage can continue with, once the current one is done. */
-data class TriageNextGroup(val id: String, val name: String, val unread: Int)
+/** What triage can continue with once the current group or feed is done. */
+data class TriageNext(
+    val id: String,
+    val name: String,
+    val unread: Int,
+    /** True for a feed (when triage was started from a feed), false for a group. */
+    val isFeed: Boolean = false,
+)
 
 /**
  * One triage run: the cards, where you are, and what you did (for Undo). It lives outside the
  * screen, so opening an article from triage and coming back continues exactly where you were. When
- * a group is finished, [startGroup] carries on with the next one in the same session.
+ * a group or feed is finished, [startNext] carries on with the next one in the same session.
  */
 class TriageSession(
     articles: List<ArticleWithFeed>,
     groupId: String? = null,
-    groupName: String? = null,
+    feedId: String? = null,
+    title: String? = null,
 ) {
     var articles by mutableStateOf(articles)
         private set
 
+    /** The group being triaged, or null when it is a single feed or everything. */
     var groupId by mutableStateOf(groupId)
         private set
 
-    var groupName by mutableStateOf(groupName)
+    /** The feed being triaged, or null when it is a group or everything. */
+    var feedId by mutableStateOf(feedId)
         private set
 
-    /** Groups already triaged in this session, so "next group" never goes round in circles. */
-    var visited by mutableStateOf(setOfNotNull(groupId))
+    /** The name of the group or feed, shown in the header. */
+    var title by mutableStateOf(title)
+        private set
+
+    /** Groups and feeds already triaged in this session, so "next" never goes round in circles. */
+    var visited by mutableStateOf(setOfNotNull(groupId, feedId))
         private set
 
     var index by mutableIntStateOf(0)
     internal val history = mutableStateListOf<TriageStep>()
 
-    fun startGroup(id: String, name: String, cards: List<ArticleWithFeed>) {
-        visited = visited + id
-        groupId = id
-        groupName = name
+    fun startNext(next: TriageNext, cards: List<ArticleWithFeed>) {
+        visited = visited + next.id
+        groupId = if (next.isFeed) null else next.id
+        feedId = if (next.isFeed) next.id else null
+        title = next.name
         articles = cards
         index = 0
         history.clear()
@@ -170,8 +184,8 @@ fun TriageScreen(
     onStar: (ArticleWithFeed, Boolean) -> Unit,
     onOpen: (ArticleWithFeed) -> Unit,
     onClose: () -> Unit,
-    findNextGroup: (currentGroupId: String?, visited: Set<String>) -> TriageNextGroup?,
-    loadGroupArticles: suspend (groupId: String) -> List<ArticleWithFeed>,
+    findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
+    loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
 ) {
     val scope = rememberCoroutineScope()
     val enter = remember { Animatable(0f) }
@@ -240,8 +254,8 @@ fun TriageScreen(
             onStar,
             onOpen,
             onClose = { scope.launch { playExit() } },
-            findNextGroup,
-            loadGroupArticles,
+            findNext,
+            loadNext,
         )
     }
 }
@@ -254,8 +268,8 @@ private fun TriageContent(
     onStar: (ArticleWithFeed, Boolean) -> Unit,
     onOpen: (ArticleWithFeed) -> Unit,
     onClose: () -> Unit,
-    findNextGroup: (currentGroupId: String?, visited: Set<String>) -> TriageNextGroup?,
-    loadGroupArticles: suspend (groupId: String) -> List<ArticleWithFeed>,
+    findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
+    loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -266,11 +280,12 @@ private fun TriageContent(
     val total = articles.size
     val current = articles.getOrNull(index)
 
-    // When this group is finished: the next group (in the Feeds page order) that has unread articles.
+    // When this group or feed is finished: the next one (in the Feeds page order) with unread
+    // articles. After a group it is the next group; after a feed, the next feed.
     val done = current == null
-    val nextGroup =
-        remember(session.groupId, session.visited, done) {
-            if (done) findNextGroup(session.groupId, session.visited) else null
+    val next =
+        remember(session.groupId, session.feedId, session.visited, done) {
+            if (done) findNext(session.groupId, session.feedId, session.visited) else null
         }
 
     fun decide(action: TriageAction) {
@@ -337,7 +352,7 @@ private fun TriageContent(
                     val left =
                         pluralStringResource(R.plurals.triage_left, total - index, total - index)
                     Text(
-                        text = session.groupName?.takeIf { it.isNotBlank() }?.let { "$it · $left" } ?: left,
+                        text = session.title?.takeIf { it.isNotBlank() }?.let { "$it · $left" } ?: left,
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -363,16 +378,16 @@ private fun TriageContent(
                 saved = history.count { it.action == TriageAction.Save },
                 skipped = history.count { it.action == TriageAction.Skip },
                 nothingToDo = total == 0,
-                nextGroup = nextGroup,
+                next = next,
                 loadingNext = loadingNext,
-                onNextGroup = {
-                    val next = nextGroup
-                    if (next != null && !loadingNext) {
+                onNext = {
+                    val target = next
+                    if (target != null && !loadingNext) {
                         loadingNext = true
                         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                         scope.launch {
-                            val cards = runCatching { loadGroupArticles(next.id) }.getOrDefault(emptyList())
-                            session.startGroup(next.id, next.name, cards)
+                            val cards = runCatching { loadNext(target) }.getOrDefault(emptyList())
+                            session.startNext(target, cards)
                             loadingNext = false
                         }
                     }
@@ -473,7 +488,20 @@ private fun TriageStack(
             val progress =
                 (hypot(dragX.value / thresholdX, dragY.value / thresholdY)).coerceIn(0f, 1f)
             val pending = actionFor(dragX.value, dragY.value)
-            val hint = actionFor(dragX.value * 3.5f, dragY.value * 3.5f)
+
+            // The colored hint follows the drag from the very first pixel: the direction is the
+            // dominant axis, and the strength is how far along it you are, eased (smoothstep) so it
+            // fades in gently instead of jumping in when you move slowly.
+            val fx = abs(dragX.value) / thresholdX
+            val fy = abs(dragY.value) / thresholdY
+            val strength = maxOf(fx, fy).coerceIn(0f, 1f)
+            val hintAction: TriageAction? =
+                when {
+                    strength < 0.01f -> null
+                    fx >= fy -> if (dragX.value > 0) TriageAction.Read else TriageAction.Save
+                    else -> if (dragY.value < 0) TriageAction.Open else TriageAction.Skip
+                }
+            val hintAlpha = strength * strength * (3f - 2f * strength)
 
             // A light tick as the drag passes the point where letting go would act.
             LaunchedEffect(pending) {
@@ -532,8 +560,8 @@ private fun TriageStack(
                         key(card.article.id) {
                             TriageCard(
                                 article = card,
-                                overlay = if (isFront) hint ?: pending else null,
-                                overlayAlpha = if (isFront) progress else 0f,
+                                overlay = if (isFront) hintAction else null,
+                                overlayAlpha = if (isFront) hintAlpha else 0f,
                                 modifier = if (isFront) frontModifier else backModifier,
                             )
                         }
@@ -711,7 +739,7 @@ private fun TriageCard(
             }
 
             // Colored hint that fades in while you drag.
-            if (overlay != null && overlayAlpha > 0.02f) {
+            if (overlay != null && overlayAlpha > 0.005f) {
                 val (color, icon, label) = overlayStyle(overlay)
                 Box(
                     modifier =
@@ -721,7 +749,14 @@ private fun TriageCard(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.graphicsLayer { alpha = overlayAlpha },
+                        modifier =
+                            Modifier.graphicsLayer {
+                                alpha = overlayAlpha
+                                // The icon and label also grow in, instead of just appearing.
+                                val grow = 0.7f + 0.3f * overlayAlpha
+                                scaleX = grow
+                                scaleY = grow
+                            },
                     ) {
                         Box(
                             modifier =
@@ -783,9 +818,9 @@ private fun TriageDone(
     saved: Int,
     skipped: Int,
     nothingToDo: Boolean,
-    nextGroup: TriageNextGroup?,
+    next: TriageNext?,
     loadingNext: Boolean,
-    onNextGroup: () -> Unit,
+    onNext: () -> Unit,
     onClose: () -> Unit,
 ) {
     Column(
@@ -828,9 +863,9 @@ private fun TriageDone(
             )
         }
         Spacer(Modifier.height(32.dp))
-        if (nextGroup != null) {
-            Button(onClick = onNextGroup, enabled = !loadingNext) {
-                Text(stringResource(R.string.triage_next_group, nextGroup.name, nextGroup.unread))
+        if (next != null) {
+            Button(onClick = onNext, enabled = !loadingNext) {
+                Text(stringResource(R.string.triage_next_group, next.name, next.unread))
             }
             TextButton(onClick = onClose) { Text(stringResource(R.string.triage_back_to_list)) }
         } else {
