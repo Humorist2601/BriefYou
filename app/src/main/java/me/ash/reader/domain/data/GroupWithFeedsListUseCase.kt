@@ -7,7 +7,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -56,10 +58,8 @@ class GroupWithFeedsListUseCase @Inject constructor(
                     filter
                 }.collectLatest {
                     currentJob?.cancel()
-                    currentJob = when (it) {
-                        Filter.Unread -> pullUnreadFeeds()
-                        Filter.Starred -> pullStarredFeeds()
-                        else -> pullAllFeeds()
+                    currentJob = applicationScope.launch {
+                        feedsFlowFor(it).collect { list -> _groupWithFeedsListFlow.value = list }
                     }
                 }
         }
@@ -77,6 +77,34 @@ class GroupWithFeedsListUseCase @Inject constructor(
             .flowOn(ioDispatcher)
             .stateIn(applicationScope, SharingStarted.Eagerly, emptyList())
 
+    /** The groups and feeds with the counts of one filter. */
+    private fun feedsFlowFor(filter: Filter): Flow<List<GroupWithFeed>> =
+        when (filter) {
+            Filter.Unread -> unreadFeedsFlow()
+            Filter.Starred -> starredFeedsFlow()
+            else -> allFeedsFlow()
+        }
+
+    private val perFilterFlows = mutableMapOf<Int, StateFlow<List<GroupWithFeed>>>()
+
+    /**
+     * The list for any [filter], not just the current one, in the user's order. The Feeds page shows
+     * Starred, Unread and All as pages side by side, and each page needs its own list so swiping
+     * never shows another filter's groups. Shared while someone watches it.
+     */
+    fun groupWithFeedListFlow(filter: Filter): StateFlow<List<GroupWithFeed>> =
+        synchronized(perFilterFlows) {
+            perFilterFlows.getOrPut(filter.index) {
+                accountFlow
+                    .flatMapLatest { feedsFlowFor(filter) }
+                    .combine(feedOrdering.version) { groups, _ ->
+                        feedOrdering.sort(groups, accountService.getCurrentAccountId())
+                    }
+                    .flowOn(ioDispatcher)
+                    .stateIn(applicationScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            }
+        }
+
     private val feedsFlow: MutableStateFlow<List<GroupWithFeed>> = MutableStateFlow(emptyList())
 
     private val defaultGroupId get() = accountService.getCurrentAccountId().getDefaultGroupId()
@@ -84,11 +112,11 @@ class GroupWithFeedsListUseCase @Inject constructor(
     private val hideEmptyGroups get() = settingsProvider.settings.hideEmptyGroups.value
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private fun pullAllFeeds(): Job {
+    private fun allFeedsFlow(): Flow<List<GroupWithFeed>> {
         val articleCountMapFlow =
             rssService.get().pullImportant(isStarred = false, isUnread = false)
 
-        return applicationScope.launch {
+        return run {
             feedsFlow.combine(articleCountMapFlow) { groupWithFeedsList, articleCountMap ->
                 groupWithFeedsList.fastFilteredMap(predicate = {
                     it.group.id != defaultGroupId || it.feeds.isNotEmpty()
@@ -98,15 +126,15 @@ class GroupWithFeedsListUseCase @Inject constructor(
                     }
                     it.copy(feeds = feedList.toMutableList())
                 })
-            }.flowOn(ioDispatcher).collect { _groupWithFeedsListFlow.value = it }
+            }.flowOn(ioDispatcher)
 
         }
     }
 
-    private fun pullStarredFeeds(): Job {
+    private fun starredFeedsFlow(): Flow<List<GroupWithFeed>> {
         val starredCountMap = rssService.get().pullImportant(isStarred = true, isUnread = false)
 
-        return applicationScope.launch {
+        return run {
 
             feedsFlow.combine(starredCountMap) { groupWithFeedsList, starredCountMap ->
                 val result = mutableListOf<GroupWithFeed>()
@@ -133,16 +161,14 @@ class GroupWithFeedsListUseCase @Inject constructor(
                     }
                 }
                 result
-            }.flowOn(ioDispatcher).collect {
-                _groupWithFeedsListFlow.value = it
-            }
+            }.flowOn(ioDispatcher)
         }
     }
 
     @OptIn(FlowPreview::class)
-    private fun pullUnreadFeeds(): Job {
+    private fun unreadFeedsFlow(): Flow<List<GroupWithFeed>> {
         val unreadCountMapFlow = rssService.get().pullImportant(isStarred = false, isUnread = true)
-        return applicationScope.launch {
+        return run {
             combine(
                 feedsFlow, unreadCountMapFlow, diffMapHolder.diffMapSnapshotFlow
             ) { groupWithFeedsList, unreadCountMap, diffMap ->
@@ -177,7 +203,7 @@ class GroupWithFeedsListUseCase @Inject constructor(
 
                 }
                 result
-            }.debounce(200L).flowOn(ioDispatcher).collect { _groupWithFeedsListFlow.value = it }
+            }.debounce(200L).flowOn(ioDispatcher)
         }
     }
 

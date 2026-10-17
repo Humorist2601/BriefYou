@@ -6,27 +6,19 @@ import androidx.compose.material3.adaptive.layout.PaneScaffoldMotionDataProvider
 import androidx.compose.material3.adaptive.layout.PaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.calculateDefaultEnterTransition
 import androidx.compose.material3.adaptive.layout.calculateDefaultExitTransition
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import me.ash.reader.ui.motion.DEPTH_DURATION
-import me.ash.reader.ui.motion.depthEnterBack
-import me.ash.reader.ui.motion.depthEnterForward
-import me.ash.reader.ui.motion.depthExitBack
-import me.ash.reader.ui.motion.depthExitForward
+import me.ash.reader.ui.motion.materialSharedAxisXIn
+import me.ash.reader.ui.motion.materialSharedAxisXOut
 
-// Opening and closing an article uses the app's "depth slide" (see DepthTransitions.kt): the article
-// comes in from halfway across and grows into place; closing it slides it away as a shrinking card.
+private const val INITIAL_OFFSET_FACTOR = 0.10f
 
 @ExperimentalMaterial3AdaptiveApi
 internal fun <Role : PaneScaffoldRole> PaneScaffoldMotionDataProvider<Role>
     .calculateEnterTransition(role: Role) =
     when (this[role].motion) {
-        PaneMotion.EnterFromRight -> depthEnterForward()
-        // The scaffold draws the list above the article while closing it, so the list fades in
-        // over the article as it leaves, instead of covering it at once.
+        PaneMotion.EnterFromRight ->
+            materialSharedAxisXIn(initialOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() })
         PaneMotion.EnterFromLeft ->
-            depthEnterBack() + fadeIn(tween(DEPTH_DURATION, easing = LinearEasing))
+            materialSharedAxisXIn(initialOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() })
         else -> calculateDefaultEnterTransition(role)
     }
 
@@ -35,7 +27,9 @@ internal fun <Role : PaneScaffoldRole> PaneScaffoldMotionDataProvider<Role>.calc
     role: Role
 ) =
     when (this[role].motion) {
-        PaneMotion.ExitToLeft -> depthExitForward()
-        PaneMotion.ExitToRight -> depthExitBack()
+        PaneMotion.ExitToLeft ->
+            materialSharedAxisXOut(targetOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() })
+        PaneMotion.ExitToRight ->
+            materialSharedAxisXOut(targetOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() })
         else -> calculateDefaultExitTransition(role)
     }

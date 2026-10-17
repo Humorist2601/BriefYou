@@ -13,6 +13,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -24,6 +27,7 @@ import kotlinx.coroutines.launch
 import me.ash.reader.R
 import me.ash.reader.domain.model.account.Account
 import me.ash.reader.domain.model.general.Filter
+import me.ash.reader.domain.model.group.GroupWithFeed
 import me.ash.reader.domain.service.AccountService
 import me.ash.reader.domain.service.RssService
 import me.ash.reader.infrastructure.android.AndroidStringsHelper
@@ -83,6 +87,55 @@ class FeedsViewModel @Inject constructor(
     }
 
     private val accountFlow = accountService.currentAccountFlow
+
+    /**
+     * The Feeds page shows Starred, Unread and All side by side as pages; each one has its own list
+     * and count line, so swiping never shows another filter's groups.
+     */
+    fun groupWithFeedsListFlow(filter: Filter): StateFlow<List<GroupWithFeed>> =
+        groupWithFeedsListUseCase.groupWithFeedListFlow(filter)
+
+    private val importantSumFlows = mutableMapOf<Int, StateFlow<String>>()
+
+    /** The count line ("123 unread") of any filter, not just the current one. */
+    @OptIn(FlowPreview::class)
+    fun importantSumFlow(filter: Filter): StateFlow<String> =
+        importantSumFlows.getOrPut(filter.index) {
+            accountFlow
+                .flatMapLatest {
+                    when (filter) {
+                        Filter.Starred ->
+                            rssService.get().pullImportant(isStarred = true, isUnread = false)
+                                .mapLatest {
+                                    val sum = it.values.sum()
+                                    androidStringsHelper.getQuantityString(
+                                        R.plurals.starred_desc, sum, sum
+                                    )
+                                }
+                        Filter.Unread ->
+                            diffMapHolder.diffMapSnapshotFlow
+                                .combine(
+                                    rssService.get().pullImportant(isStarred = false, isUnread = true)
+                                ) { diffMap, unreadCountMap ->
+                                    val sum =
+                                        unreadCountMap.values.sum() +
+                                            diffMap.values.sumOf { if (it.isUnread) 1.toInt() else -1 }
+                                    androidStringsHelper.getQuantityString(
+                                        R.plurals.unread_desc, sum, sum
+                                    )
+                                }
+                                .debounce(200L)
+                        else ->
+                            rssService.get().pullImportant(isStarred = false, isUnread = false)
+                                .mapLatest {
+                                    val sum = it.values.sum()
+                                    androidStringsHelper.getQuantityString(R.plurals.all_desc, sum, sum)
+                                }
+                    }
+                }
+                .flowOn(defaultDispatcher)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
+        }
 
     init {
         viewModelScope.launch {

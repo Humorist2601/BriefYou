@@ -59,8 +59,8 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 - **Google Sans Flex Rounded** throughout the app, and **Literata** — Google's serif designed for long reading — as a reading font option.
 - **Wide headings** — the large titles use the wide end of Google Sans Flex's width axis at a SemiBold weight, the expressive look Material 3 Expressive uses for large headings: All, Unread and Starred, group and feed names, the Feeds page, and the Settings pages. Long names shrink or wrap to fit.
 - **Material 3 Expressive**: shape-morphing buttons, shaped and tinted settings icons, the Expressive pull-to-refresh and loading indicators, and wavy progress bars.
-- **Depth slide** — screens are stacked cards. A new screen (a settings page, a list, an article) slides in from halfway across and grows out of a rounded card, its corners squaring off as it lands, while the screen it covers drifts back, rounds its corners and dims. Going back plays it in reverse, and the predictive back gesture drives it with your finger: the screen shrinks into a rounded card towards the side you swipe from while the one underneath brightens and comes forward. Triage keeps its own pull-and-toss card. The back-to-home preview on the Feeds page is kept.
-- **Swipe between Starred, Unread and All** on the Feeds page. Each one is a page with its own scroll position; the page you leave shrinks and dims as the next one slides in, with a light tick as you pass the middle. Tapping the bar at the bottom slides to the page too, instead of jumping.
+- **Predictive back** gestures, including the back-to-home preview.
+- **Swipe between Starred, Unread and All** on the Feeds page. Each one is a page with its own list, counts and scroll position; the page you leave shrinks and dims as the next one slides in, with a light tick as you pass the middle. Tapping the bar at the bottom slides to the page too, instead of jumping.
 
 </details>
 

@@ -53,7 +53,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.derivedStateOf
@@ -167,16 +167,6 @@ fun FeedsPage(
     val pagerState = rememberPagerState(initialPage = currentPage) { filters.size }
     val listStates = List(filters.size) { rememberLazyListState() }
     val listState = listStates[pagerState.currentPage.coerceIn(0, filters.lastIndex)]
-
-    // The live data belongs to the current filter; the other pages show what they had the last
-    // time they were current, so swiping to them never shows another filter's counts.
-    val pageCache = remember { mutableStateMapOf<Int, FeedsPageData>() }
-    LaunchedEffect(currentPage, groupWithFeedList, importantSum) {
-        pageCache[currentPage] = FeedsPageData(groupWithFeedList, importantSum)
-    }
-    fun pageData(page: Int): FeedsPageData =
-        if (page == currentPage) FeedsPageData(groupWithFeedList, importantSum)
-        else pageCache[page] ?: FeedsPageData(groupWithFeedList, "")
 
     // Tapping the bar (or a filter changed on another screen): slide to that page. While it
     // slides past the pages in between, those must not become the filter.
@@ -349,9 +339,16 @@ fun FeedsPage(
                     // Reordering drags items around, so the pages stay put meanwhile.
                     userScrollEnabled = !reorderMode,
                     key = { filters[it].index },
+                    // All three pages stay ready, so the one you swipe to is already filled in.
+                    beyondViewportPageCount = filters.size - 1,
                 ) { page ->
                     val pageFilter = filters[page]
-                    val data = pageData(page)
+                    // Each page has its own list and count line, so a page never shows
+                    // another filter's groups, even for a moment while swiping.
+                    val pageGroups by
+                        feedsViewModel.groupWithFeedsListFlow(pageFilter).collectAsState()
+                    val pageSum by feedsViewModel.importantSumFlow(pageFilter).collectAsState()
+                    val data = FeedsPageData(pageGroups, pageSum)
                     val pageListState = listStates[page]
                     Box(
                         modifier =
