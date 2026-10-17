@@ -48,9 +48,10 @@ import androidx.navigationevent.NavigationEvent
  * The motion follows Material 3 Expressive's emphasized easing curves.
  */
 
-/** Material 3's emphasized easings: quick to respond, long and gentle to settle. */
-private val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
-private val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
+/*
+ * Material 3's emphasized easings: quick to respond, long and gentle to settle. The accelerate and
+ * decelerate ones are shared with the rest of the app (MaterialEasing.kt).
+ */
 private val Emphasized = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
 /** Starts late: used so a screen only fades once it is well on its way out. */
