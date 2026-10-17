@@ -146,24 +146,29 @@
     <string name="triage_next_group">Next: %1$s · %2$d unread</string>
 
     <!-- Sort feeds and groups -->
-    <string name="sort_title">Sort feeds and groups</string>
+    <string name="sort_title">Sort feeds</string>
     <string name="sort_desc">Order them by name, by count, or by dragging</string>
     <string name="sort_intro">Choose how groups and feeds are ordered on the Feeds page. Your order is saved in backups and OPML exports.</string>
     <string name="sort_groups">Groups</string>
-    <string name="sort_feeds">Feeds</string>
-    <string name="sort_default">Default</string>
+    <string name="sort_feeds">Feeds inside groups</string>
+    <string name="sort_default">Your order</string>
     <string name="sort_name_asc">A–Z</string>
     <string name="sort_name_desc">Z–A</string>
     <string name="sort_most_unread">Most unread</string>
+    <string name="sort_name">Name</string>
+    <string name="sort_count">Unread</string>
+    <string name="sort_most_first">Most first</string>
+    <string name="sort_fewest_first">Fewest first</string>
+    <string name="sort_your_order_note">Drag to change your order. It is saved with your feeds and used everywhere: Triage, backups and OPML exports.</string>
     <string name="sort_manual">Manual</string>
-    <string name="sort_most_unread_note">Follows the filter you are viewing: the most unread, starred or total articles first.</string>
+    <string name="sort_most_unread_note">Follows the filter you are viewing: unread, starred or total articles.</string>
     <string name="sort_manual_groups_hint">Press and drag the handle to move a group.</string>
     <string name="sort_manual_feeds_hint">Tap a group, then press and drag a handle to move its feeds.</string>
     <string name="sort_drag_handle">Drag to reorder</string>
     <string name="sort_reorder">Reorder by dragging</string>
     <string name="sort_reordering">Drag the handles to reorder</string>
     <string name="sort_done">Done</string>
-    <string name="sort_reset">Reset to default order</string>
+    <string name="sort_reset">Reset to the order added</string>
     <plurals name="sort_feed_count">
         <item quantity="one">%d feed</item>
         <item quantity="other">%d feeds</item>

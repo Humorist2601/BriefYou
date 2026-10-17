@@ -1,14 +1,37 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package me.ash.reader.ui.page.home.feeds.sort
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.Reorder
+import androidx.compose.material.icons.rounded.Title
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +47,6 @@ import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -50,7 +72,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -91,7 +112,7 @@ constructor(
             .map { feedOrdering.settings() }
             .stateIn(viewModelScope, SharingStarted.Eagerly, feedOrdering.settings())
 
-    /** All groups and feeds, whatever the filter, in their default order. */
+    /** All groups and feeds, whatever the filter, in the order they were added. */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val groups: StateFlow<List<GroupWithFeed>> =
         accountService.currentAccountIdFlow
@@ -99,53 +120,64 @@ constructor(
             .flatMapLatest { groupDao.queryAllGroupWithFeedAsFlow(it) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    /** The same groups and feeds in the order the settings give them. */
+    /** The same groups and feeds, sorted the way the sheet says (re-sorts when your order changes). */
     val ordered: StateFlow<List<GroupWithFeed>> =
-        combine(groups, settings) { groups, settings -> feedOrdering.sort(groups, settings) }
+        combine(groups, feedOrdering.version) { groups, _ -> feedOrdering.sort(groups) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    fun setGroupMode(mode: SortMode) =
-        feedOrdering.update { s ->
-            if (mode == SortMode.Manual && s.groupOrder.isEmpty()) {
-                // Start from the order you see right now.
-                s.copy(
-                    groupMode = mode,
-                    groupOrder = feedOrdering.sort(groups.value, s).map { it.group.id },
-                )
-            } else s.copy(groupMode = mode)
-        }
+    fun setGroupMode(mode: SortMode) = feedOrdering.update { it.copy(groupMode = mode) }
 
-    fun setFeedMode(mode: SortMode) =
-        feedOrdering.update { s ->
-            if (mode == SortMode.Manual) {
-                val current = feedOrdering.sort(groups.value, s)
-                val seeded =
-                    current
-                        .filter { it.group.id !in s.feedOrder }
-                        .associate { it.group.id to it.feeds.map { feed -> feed.id } }
-                s.copy(feedMode = mode, feedOrder = s.feedOrder + seeded)
-            } else s.copy(feedMode = mode)
-        }
+    fun setFeedMode(mode: SortMode) = feedOrdering.update { it.copy(feedMode = mode) }
 
-    /** Both groups and feeds by hand, starting from the order you see now. */
-    fun startManual() {
-        setGroupMode(SortMode.Manual)
-        setFeedMode(SortMode.Manual)
+    /**
+     * Dragging always changes your order, so starting it switches both groups and feeds to "Your
+     * order" (the list then shows the order you are editing).
+     */
+    fun startReorder() =
+        feedOrdering.update { it.copy(groupMode = SortMode.Default, feedMode = SortMode.Default) }
+
+    fun moveGroups(ids: List<String>) {
+        viewModelScope.launch { feedOrdering.setGroupOrder(ids) }
     }
 
-    fun moveGroups(ids: List<String>) = feedOrdering.update { it.copy(groupOrder = ids) }
+    @Suppress("UNUSED_PARAMETER")
+    fun moveFeeds(groupId: String, ids: List<String>) {
+        viewModelScope.launch { feedOrdering.setFeedOrder(ids) }
+    }
 
-    fun moveFeeds(groupId: String, ids: List<String>) =
-        feedOrdering.update { it.copy(feedOrder = it.feedOrder + (groupId to ids)) }
+    /** Back to the order things were added in, sorted that way. */
+    fun reset() {
+        feedOrdering.update { OrderSettings() }
+        viewModelScope.launch { feedOrdering.clearOrder() }
+    }
+}
 
-    fun reset() = feedOrdering.update { OrderSettings() }
+/** The three ways to sort in the sheet; Name and Unread each have two directions. */
+private enum class SortKind(val icon: ImageVector, val label: Int) {
+    Yours(Icons.Rounded.Reorder, R.string.sort_default),
+    Name(Icons.Rounded.Title, R.string.sort_name),
+    Count(Icons.Rounded.BarChart, R.string.sort_count);
+
+    companion object {
+        fun of(mode: SortMode): SortKind =
+            when (mode.normalized) {
+                SortMode.NameAsc,
+                SortMode.NameDesc -> Name
+                SortMode.MostUnread,
+                SortMode.FewestUnread -> Count
+                else -> Yours
+            }
+    }
 }
 
 /**
- * The sort sheet: how groups and feeds are ordered, and a button that turns the Feeds list into
- * the drag-to-reorder editor. Changes apply to the list behind the sheet right away.
+ * The sort sheet, in the style of Material 3 Expressive pickers: for groups and for the feeds inside
+ * them, three big tonal tiles (Your order, Name, Unread), the chosen one filled with the accent
+ * color and its corners morphing rounder, and under Name or Unread a connected button for the
+ * direction. At the bottom, a button turns the Feeds list into the drag-to-reorder editor. Changes
+ * apply to the list behind the sheet right away.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedSortSheet(
     visible: Boolean,
@@ -161,76 +193,185 @@ fun FeedSortSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        Column(modifier = Modifier.padding(horizontal = 24.dp).navigationBarsPadding()) {
+        Column(
+            modifier =
+                Modifier.padding(horizontal = 24.dp)
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+        ) {
             Text(
                 text = stringResource(R.string.sort_title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
             )
-            Spacer(Modifier.height(20.dp))
-            SortSection(stringResource(R.string.sort_groups), settings.groupMode, onGroupMode)
             Spacer(Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(20.dp))
+
+            SortSection(stringResource(R.string.sort_groups), settings.groupMode, onGroupMode)
+            Spacer(Modifier.height(24.dp))
             SortSection(stringResource(R.string.sort_feeds), settings.feedMode, onFeedMode)
 
-            if (settings.groupMode == SortMode.MostUnread || settings.feedMode == SortMode.MostUnread) {
+            Spacer(Modifier.height(16.dp))
+            val counting =
+                SortKind.of(settings.groupMode) == SortKind.Count ||
+                    SortKind.of(settings.feedMode) == SortKind.Count
+            Text(
+                text =
+                    stringResource(
+                        if (counting) R.string.sort_most_unread_note else R.string.sort_your_order_note
+                    ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(Modifier.height(20.dp))
+            FilledTonalButton(
+                onClick = onReorder,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+            ) {
+                Icon(Icons.Rounded.DragHandle, contentDescription = null, modifier = Modifier.size(20.dp))
                 Text(
-                    modifier = Modifier.padding(top = 12.dp),
-                    text = stringResource(R.string.sort_most_unread_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 10.dp),
+                    text = stringResource(R.string.sort_reorder),
+                    style = MaterialTheme.typography.titleSmall,
                 )
             }
-
-            Spacer(Modifier.height(24.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                FilledTonalButton(onClick = onReorder) {
-                    Icon(Icons.Rounded.DragHandle, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text(
-                        modifier = Modifier.padding(start = 8.dp),
-                        text = stringResource(R.string.sort_reorder),
-                    )
-                }
-                if (!settings.isDefault) {
-                    Spacer(Modifier.weight(1f))
-                    TextButton(onClick = onReset) { Text(stringResource(R.string.sort_reset)) }
-                }
+            TextButton(
+                onClick = onReset,
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp),
+            ) {
+                Text(stringResource(R.string.sort_reset))
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SortSection(title: String, selected: SortMode, onSelect: (SortMode) -> Unit) {
+    val haptic = LocalHapticFeedback.current
+    val kind = SortKind.of(selected)
     Text(
         text = title,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    Spacer(Modifier.height(8.dp))
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        SortMode.entries.forEach { mode ->
-            FilterChip(
-                selected = selected == mode,
-                onClick = { onSelect(mode) },
-                label = { Text(modeLabel(mode)) },
+    Spacer(Modifier.height(14.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+    ) {
+        SortKind.entries.forEach { tile ->
+            SortTile(
+                kind = tile,
+                selected = tile == kind,
+                onClick = {
+                    if (tile != kind) {
+                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        onSelect(
+                            when (tile) {
+                                SortKind.Yours -> SortMode.Default
+                                SortKind.Name -> SortMode.NameAsc
+                                SortKind.Count -> SortMode.MostUnread
+                            }
+                        )
+                    }
+                },
             )
         }
     }
+    // The direction, for Name and Unread: a connected two-part button that slides in under them.
+    AnimatedVisibility(
+        visible = kind != SortKind.Yours,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut(),
+    ) {
+        val options =
+            if (kind == SortKind.Count) {
+                listOf(
+                    Triple(SortMode.MostUnread, Icons.Rounded.KeyboardArrowDown, R.string.sort_most_first),
+                    Triple(SortMode.FewestUnread, Icons.Rounded.KeyboardArrowUp, R.string.sort_fewest_first),
+                )
+            } else {
+                listOf(
+                    Triple(SortMode.NameAsc, Icons.Rounded.KeyboardArrowUp, R.string.sort_name_asc),
+                    Triple(SortMode.NameDesc, Icons.Rounded.KeyboardArrowDown, R.string.sort_name_desc),
+                )
+            }
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 18.dp)) {
+            options.forEachIndexed { index, (mode, icon, label) ->
+                SegmentedButton(
+                    selected = selected.normalized == mode,
+                    onClick = {
+                        if (selected.normalized != mode) {
+                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            onSelect(mode)
+                        }
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                    modifier = Modifier.height(52.dp),
+                    icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                ) {
+                    Text(stringResource(label), style = MaterialTheme.typography.titleSmall)
+                }
+            }
+        }
+    }
 }
 
+/** A big square tile with an icon, its label under it. The chosen one is filled and rounder. */
 @Composable
-private fun modeLabel(mode: SortMode): String =
-    stringResource(
-        when (mode) {
-            SortMode.Default -> R.string.sort_default
-            SortMode.NameAsc -> R.string.sort_name_asc
-            SortMode.NameDesc -> R.string.sort_name_desc
-            SortMode.MostUnread -> R.string.sort_most_unread
-            SortMode.Manual -> R.string.sort_manual
+private fun SortTile(kind: SortKind, selected: Boolean, onClick: () -> Unit) {
+    val spatial = MaterialTheme.motionScheme.fastSpatialSpec<Dp>()
+    val effects = MaterialTheme.motionScheme.fastEffectsSpec<Color>()
+    val corner by animateDpAsState(if (selected) 32.dp else 22.dp, spatial, label = "tileCorner")
+    val container by
+        animateColorAsState(
+            if (selected) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surfaceContainerHigh,
+            effects,
+            label = "tileColor",
+        )
+    val content by
+        animateColorAsState(
+            if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+            effects,
+            label = "tileContent",
+        )
+    val labelColor by
+        animateColorAsState(
+            if (selected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+            effects,
+            label = "tileLabel",
+        )
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier =
+                Modifier.size(88.dp)
+                    .clip(RoundedCornerShape(corner))
+                    .background(container)
+                    .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                kind.icon,
+                contentDescription = null,
+                tint = content,
+                modifier = Modifier.size(36.dp),
+            )
         }
-    )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = stringResource(kind.label),
+            style = MaterialTheme.typography.titleSmall,
+            color = labelColor,
+        )
+    }
+}
 
 /**
  * The Feeds list in reorder mode: every group is a card you can drag by its handle, and tapping a

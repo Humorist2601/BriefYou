@@ -520,7 +520,7 @@ fun FeedsPage(
         onGroupMode = sortViewModel::setGroupMode,
         onFeedMode = sortViewModel::setFeedMode,
         onReorder = {
-            sortViewModel.startManual()
+            sortViewModel.startReorder()
             sortSheetVisible = false
             reorderMode = true
         },
