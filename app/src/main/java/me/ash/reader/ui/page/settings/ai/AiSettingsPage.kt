@@ -17,12 +17,6 @@ import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.outlined.CloudDownload
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.FileOpen
-import androidx.compose.material.icons.outlined.Memory
-import androidx.compose.material.icons.outlined.Summarize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -44,11 +38,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import me.ash.reader.R
 import me.ash.reader.infrastructure.ai.GemmaSummarizer
 import me.ash.reader.infrastructure.ai.ModelState
-import me.ash.reader.ui.component.base.Banner
 import me.ash.reader.ui.component.base.DisplayText
 import me.ash.reader.ui.component.base.FeedbackIconButton
 import me.ash.reader.ui.component.base.RYScaffold
 import me.ash.reader.ui.component.base.Subtitle
+import me.ash.reader.ui.component.base.Tips
 import me.ash.reader.ui.ext.collectAsStateValue
 import me.ash.reader.ui.page.settings.SettingItem
 import me.ash.reader.ui.theme.palette.onLight
@@ -101,14 +95,19 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
         },
         content = {
             LazyColumn {
+                // Laid out like the other settings pages: sections with a title, plain setting rows,
+                // and the explanation at the bottom behind an info icon (as on the account page).
                 item {
                     DisplayText(text = stringResource(R.string.ai_settings), desc = "")
                     Spacer(modifier = Modifier.height(16.dp))
-                    Banner(
-                        title = statusText,
-                        desc = stringResource(R.string.ai_settings_privacy),
-                        icon = Icons.Outlined.Memory,
+                }
+                item {
+                    Subtitle(
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        text = stringResource(R.string.ai_settings_model),
                     )
+                    // Where the model stands: missing, importing, imported (with its size), or failed.
+                    SettingItem(title = statusText, onClick = {}) {}
                     if (model is ModelState.Importing) {
                         Spacer(modifier = Modifier.height(12.dp))
                         val p = model.progress
@@ -123,17 +122,9 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-                item {
-                    Subtitle(
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        text = stringResource(R.string.ai_settings_model),
-                    )
                     SettingItem(
                         title = stringResource(R.string.ai_settings_download),
                         desc = stringResource(R.string.ai_settings_download_desc),
-                        icon = Icons.Outlined.CloudDownload,
                         onClick = {
                             context.startActivity(
                                 Intent(Intent.ACTION_VIEW, GemmaSummarizer.MODEL_PAGE.toUri())
@@ -144,14 +135,12 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                         enabled = model !is ModelState.Importing,
                         title = stringResource(R.string.ai_settings_import),
                         desc = stringResource(R.string.ai_settings_import_desc),
-                        icon = Icons.Outlined.FileOpen,
                         onClick = { picker.launch(arrayOf("*/*")) },
                     ) {}
                     SettingItem(
                         enabled = model is ModelState.Ready,
                         title = stringResource(R.string.ai_settings_remove),
                         desc = stringResource(R.string.ai_settings_remove_desc),
-                        icon = Icons.Outlined.DeleteOutline,
                         onClick = viewModel::removeModel,
                     ) {}
                     Spacer(modifier = Modifier.height(24.dp))
@@ -164,17 +153,16 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                     SettingItem(
                         title = stringResource(R.string.ai_settings_article_prompt),
                         desc = articlePrompt.preview(),
-                        icon = Icons.Outlined.Summarize,
                         onClick = { editing = PromptKind.Article },
                     ) {}
                     SettingItem(
                         title = stringResource(R.string.ai_settings_gist_prompt),
                         desc = gistPrompt.preview(),
-                        icon = Icons.Outlined.EditNote,
                         onClick = { editing = PromptKind.Gist },
                     ) {}
                 }
                 item {
+                    Tips(text = stringResource(R.string.ai_settings_privacy))
                     Spacer(modifier = Modifier.height(24.dp))
                     Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                 }

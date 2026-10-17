@@ -116,7 +116,8 @@ fun ReadingPage(
                         navigationAction = navigationAction,
                         onNavButtonClick = onNavAction,
                         onNavigateToStylePage = onNavigateToStylePage,
-                        onSummarize = { showSummary = true },
+                        // The AI summary button is in the bottom bar now.
+                        onSummarize = null,
                     )
                 }
 
@@ -306,6 +307,7 @@ fun ReadingPage(
                             else viewModel.renderDescriptionContent()
                         },
                         onBoldCharacters = { (!boldCharacters).put(context, coroutineScope) },
+                        onSummarize = { showSummary = true },
                         onReadAloud = {
                             viewModel.textToSpeechManager.readHtml(
                                 readerState.content.text ?: return@BottomBar

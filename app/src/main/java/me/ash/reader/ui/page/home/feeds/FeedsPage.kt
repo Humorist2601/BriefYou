@@ -41,7 +41,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.saveable.rememberSaveable
 import me.ash.reader.ui.page.home.feeds.sort.FeedSortViewModel
 import me.ash.reader.ui.page.home.feeds.sort.FeedSortSheet
-import me.ash.reader.ui.page.home.feeds.sort.FeedReorderEditor
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -129,11 +128,9 @@ fun FeedsPage(
 ) {
     var accountTabVisible by remember { mutableStateOf(false) }
 
-    // Sorting: the sheet with the modes, and the in-place drag-to-reorder mode.
+    // Sorting: the sheet with the sort for groups and for feeds.
     var sortSheetVisible by remember { mutableStateOf(false) }
-    var reorderMode by rememberSaveable { mutableStateOf(false) }
     val sortSettings = sortViewModel.settings.collectAsStateValue()
-    val allGroups = sortViewModel.ordered.collectAsStateValue()
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -253,8 +250,6 @@ fun FeedsPage(
         context.findActivity()?.moveTaskToBack(false)
     }
 
-    BackHandler(enabled = reorderMode) { reorderMode = false }
-
     RYScaffold(
         topBarTonalElevation = topBarTonalElevation.value.dp,
         //        containerTonalElevation = groupListTonalElevation.value.dp,
@@ -337,8 +332,6 @@ fun FeedsPage(
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    // Reordering drags items around, so the pages stay put meanwhile.
-                    userScrollEnabled = !reorderMode,
                     key = { filters[it].index },
                     // All three pages stay ready, so the one you swipe to is already filled in.
                     beyondViewportPageCount = filters.size - 1,
@@ -399,18 +392,11 @@ fun FeedsPage(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Text(
-                                        text =
-                                            stringResource(
-                                                if (reorderMode) R.string.sort_reordering else R.string.feeds
-                                            ),
+                                        text = stringResource(R.string.feeds),
                                         color = MaterialTheme.colorScheme.primary,
                                         style = MaterialTheme.typography.labelLarge,
                                     )
-                                    if (reorderMode) {
-                                        FilledTonalButton(onClick = { reorderMode = false }) {
-                                            Text(stringResource(R.string.sort_done))
-                                        }
-                                    } else IconButton(
+                                    IconButton(
                                         onClick = {
                                             if (hasGroupVisible) collapseAllGroups() else expandAllGroups()
                                         },
@@ -430,15 +416,6 @@ fun FeedsPage(
                                 Spacer(modifier = Modifier.height(8.dp))
                             }
 
-                            if (reorderMode && page == currentPage) {
-                                item {
-                                    FeedReorderEditor(
-                                        groups = allGroups,
-                                        onMoveGroups = sortViewModel::moveGroups,
-                                        onMoveFeeds = sortViewModel::moveFeeds,
-                                    )
-                                }
-                            } else {
                                 itemsIndexed(data.groupWithFeedList) { _, (group, feeds) ->
                                     GroupWithFeedsContainer {
                                         GroupItem(
@@ -478,7 +455,6 @@ fun FeedsPage(
                                         }
                                     }
                                 }
-                            }
 
                             item {
                                 Spacer(modifier = Modifier.height(128.dp))
@@ -524,12 +500,6 @@ fun FeedsPage(
         onDismiss = { sortSheetVisible = false },
         onGroupMode = sortViewModel::setGroupMode,
         onFeedMode = sortViewModel::setFeedMode,
-        onReorder = {
-            sortViewModel.startReorder()
-            sortSheetVisible = false
-            reorderMode = true
-        },
-        onReset = sortViewModel::reset,
     )
 
     GroupOptionDrawer(drawerState = groupDrawerState)

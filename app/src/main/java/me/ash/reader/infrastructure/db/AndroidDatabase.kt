@@ -1,7 +1,5 @@
 package me.ash.reader.infrastructure.db
 
-import me.ash.reader.domain.model.order.SortPosition
-import me.ash.reader.domain.repository.SortPositionDao
 import android.content.Context
 import androidx.room.*
 import androidx.room.migration.Migration
@@ -21,21 +19,12 @@ import me.ash.reader.ui.ext.toInt
 import java.util.*
 
 @Database(
-    entities = [
-        Account::class,
-        Feed::class,
-        Article::class,
-        Group::class,
-        ArchivedArticle::class,
-        SortPosition::class,
-    ],
-    version = 8,
+    entities = [Account::class, Feed::class, Article::class, Group::class, ArchivedArticle::class],
+    version = 7,
     autoMigrations = [
         AutoMigration(from = 5, to = 6),
         AutoMigration(from = 5, to = 7),
         AutoMigration(from = 6, to = 7),
-        // Brief You: the user's own order of groups and feeds (a new table, nothing else changes).
-        AutoMigration(from = 7, to = 8),
     ]
 )
 @TypeConverters(
@@ -54,7 +43,6 @@ abstract class AndroidDatabase : RoomDatabase() {
     abstract fun feedDao(): FeedDao
     abstract fun articleDao(): ArticleDao
     abstract fun groupDao(): GroupDao
-    abstract fun sortPositionDao(): SortPositionDao
 
     companion object {
 

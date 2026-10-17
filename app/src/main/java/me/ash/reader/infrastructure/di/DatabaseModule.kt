@@ -1,6 +1,5 @@
 package me.ash.reader.infrastructure.di
 
-import me.ash.reader.domain.repository.SortPositionDao
 import android.content.Context
 import dagger.Module
 import dagger.Provides
@@ -40,11 +39,6 @@ object DatabaseModule {
     @Singleton
     fun provideGroupDao(androidDatabase: AndroidDatabase): GroupDao =
         androidDatabase.groupDao()
-
-    @Provides
-    @Singleton
-    fun provideSortPositionDao(androidDatabase: AndroidDatabase): SortPositionDao =
-        androidDatabase.sortPositionDao()
 
     @Provides
     @Singleton

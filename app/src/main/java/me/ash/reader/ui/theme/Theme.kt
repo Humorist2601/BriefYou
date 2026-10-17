@@ -17,8 +17,11 @@ import me.ash.reader.ui.theme.palette.LocalTonalPalettes
 import me.ash.reader.ui.theme.palette.TonalPalettes
 import me.ash.reader.ui.theme.palette.core.ProvideZcamViewingConditions
 import me.ash.reader.ui.theme.palette.dynamic.extractTonalPalettesFromUserWallpaper
-import me.ash.reader.ui.theme.palette.dynamicDarkColorScheme
-import me.ash.reader.ui.theme.palette.dynamicLightColorScheme
+import me.ash.reader.ui.theme.palette.ThemeColorSource
+import me.ash.reader.ui.theme.palette.materialYouColorScheme
+import me.ash.reader.ui.theme.palette.themeColorSources
+import me.ash.reader.ui.theme.palette.dynamic.PresetColor
+import me.ash.reader.infrastructure.preference.LocalAmoledDarkTheme
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -64,11 +67,22 @@ fun AppTheme(
             LocalTonalPalettes provides tonalPalettes.apply { Preparing() },
             LocalTextStyle provides LocalTextStyle.current.applyTextDirection(),
         ) {
-            val lightColors = dynamicLightColorScheme()
-            val darkColors = dynamicDarkColorScheme()
+            // Brief You: Material You colors, from the system or from Google's color utilities
+            // (see MaterialYouScheme.kt). The tonal palettes above still color the illustrations.
+            val sources = themeColorSources()
+            val source =
+                sources.getOrNull(themeIndex)
+                    ?: sources.getOrNull(if (sources.size > 5) 5 else 0)
+                    ?: ThemeColorSource.Seed(PresetColor.blue)
+            val colorScheme =
+                materialYouColorScheme(
+                    source = source,
+                    isDark = useDarkTheme,
+                    isAmoled = useDarkTheme && LocalAmoledDarkTheme.current.value,
+                )
             MaterialTheme(
                 motionScheme = MotionScheme.expressive(),
-                colorScheme = if (useDarkTheme) darkColors else lightColors,
+                colorScheme = colorScheme,
                 typography =
                     LocalBasicFonts.current
                         .asTypography(LocalContext.current)

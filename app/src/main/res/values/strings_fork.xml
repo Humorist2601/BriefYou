@@ -80,6 +80,10 @@
     <string name="filters_dupes">Hide duplicate stories</string>
     <string name="filters_dupes_desc">When several feeds publish the same story, keep only the first one unread</string>
     <string name="filters_keywords">Muted keywords</string>
+    <string name="filters_duplicates">Duplicates</string>
+    <string name="filters_add_keyword">Add a muted keyword</string>
+    <string name="filters_apply_now_desc">Run your filters on unread articles now</string>
+    <string name="filters_log_clear_all">Clear the list</string>
     <string name="filters_add_hint">Add a word or phrase</string>
     <string name="filters_add">Add</string>
     <string name="filters_none">No muted keywords yet</string>
@@ -147,11 +151,11 @@
 
     <!-- Sort feeds and groups -->
     <string name="sort_title">Sort feeds</string>
-    <string name="sort_desc">Order them by name, by count, or by dragging</string>
-    <string name="sort_intro">Choose how groups and feeds are ordered on the Feeds page. Your order is saved in backups and OPML exports.</string>
+    <string name="sort_desc">Order them by name or by count</string>
+    <string name="sort_intro">Choose how groups and feeds are ordered on the Feeds page.</string>
     <string name="sort_groups">Groups</string>
     <string name="sort_feeds">Feeds inside groups</string>
-    <string name="sort_default">Your order</string>
+    <string name="sort_default">Default</string>
     <string name="sort_name_asc">A–Z</string>
     <string name="sort_name_desc">Z–A</string>
     <string name="sort_most_unread">Most unread</string>
@@ -159,16 +163,4 @@
     <string name="sort_count">Unread</string>
     <string name="sort_most_first">Most first</string>
     <string name="sort_fewest_first">Fewest first</string>
-    <string name="sort_manual">Manual</string>
-    <string name="sort_manual_groups_hint">Press and drag the handle to move a group.</string>
-    <string name="sort_manual_feeds_hint">Tap a group, then press and drag a handle to move its feeds.</string>
-    <string name="sort_drag_handle">Drag to reorder</string>
-    <string name="sort_reorder">Reorder by dragging</string>
-    <string name="sort_reordering">Drag the handles to reorder</string>
-    <string name="sort_done">Done</string>
-    <string name="sort_reset">Reset to the order added</string>
-    <plurals name="sort_feed_count">
-        <item quantity="one">%d feed</item>
-        <item quantity="other">%d feeds</item>
-    </plurals>
 </resources>
