@@ -3,7 +3,6 @@ package me.ash.reader.ui.page.home.reading
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
@@ -44,7 +43,6 @@ import me.ash.reader.infrastructure.preference.LocalReadingSubheadUpperCase
 import me.ash.reader.infrastructure.preference.ReadingRendererPreference
 import me.ash.reader.ui.component.reader.LocalTextContentWidth
 import me.ash.reader.ui.component.reader.Reader
-import me.ash.reader.ui.component.scrollbar.drawVerticalScrollIndicator
 import me.ash.reader.ui.component.webview.RYWebView
 import me.ash.reader.ui.ext.extractDomain
 import me.ash.reader.ui.ext.roundClick
@@ -66,12 +64,8 @@ fun Content(
     isLoading: Boolean,
     contentPadding: PaddingValues = PaddingValues(),
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
-    /** Shown between the title and the article (the AI key points card). */
-    beforeArticle: (@Composable () -> Unit)? = null,
     /** Shown after the article (the next article card). */
     afterArticle: (@Composable () -> Unit)? = null,
-    /** The text selected in the article, as it changes ("" when nothing is selected). */
-    onSelectionChanged: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val subheadUpperCase = LocalReadingSubheadUpperCase.current
@@ -98,7 +92,6 @@ fun Content(
                         .padding(horizontal = (textHorizontalPadding - 12).coerceAtLeast(0).dp)
             ) {
                 hero?.let { heroUrl ->
-                    // Slides a little slower than the text while scrolling (a gentle parallax).
                     RYAsyncImage(
                         modifier =
                             Modifier.fillMaxWidth()
@@ -106,11 +99,6 @@ fun Content(
                                 .padding(top = 8.dp, bottom = 8.dp)
                                 .heightIn(max = 280.dp)
                                 .aspectRatio(16f / 10f)
-                                .graphicsLayer {
-                                    if (renderer == ReadingRendererPreference.WebView) {
-                                        translationY = scrollState.value * 0.25f
-                                    }
-                                }
                                 .clip(RoundedCornerShape(imageCorners.dp.coerceAtLeast(16.dp)))
                                 .clickable { onImageClick?.invoke(heroUrl, title) },
                         data = heroUrl,
@@ -145,7 +133,6 @@ fun Content(
                         modifier
                             .padding(top = contentPadding.calculateTopPadding())
                             .fillMaxSize()
-                            .drawVerticalScrollIndicator(scrollState)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
@@ -156,7 +143,6 @@ fun Content(
                             Spacer(modifier = Modifier.height(64.dp))
                             // padding
                             headline()
-                            beforeArticle?.invoke()
 
                             RYWebView(
                                 modifier = Modifier.fillMaxSize(),
@@ -164,7 +150,6 @@ fun Content(
                                 baseUrl = link,
                                 refererDomain = link.extractDomain(),
                                 onImageClick = onImageClick,
-                                onSelectionChanged = onSelectionChanged,
                             )
                             afterArticle?.invoke()
                             Spacer(modifier = Modifier.height(128.dp))
@@ -179,7 +164,7 @@ fun Content(
             ReadingRendererPreference.NativeComponent -> {
                 SelectionContainer {
                     LazyColumn(
-                        modifier = modifier.fillMaxSize().drawVerticalScrollIndicator(listState),
+                        modifier = modifier.fillMaxSize(),
                         state = listState,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -189,7 +174,6 @@ fun Content(
                             // padding
                             Spacer(modifier = Modifier.height(contentPadding.calculateTopPadding()))
                             headline()
-                            beforeArticle?.invoke()
                         }
 
                         Reader(

@@ -6,14 +6,6 @@
 
 package me.ash.reader.ui.page.home.reading
 
-import android.content.Context
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -24,13 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
@@ -41,7 +27,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,19 +35,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.edit
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.size.Precision
 import coil.size.Scale
-import kotlin.math.abs
 import kotlin.math.roundToInt
 import me.ash.reader.R
 import me.ash.reader.domain.model.article.ArticleWithFeed
@@ -78,63 +58,16 @@ import me.ash.reader.infrastructure.preference.ReadingTextHorizontalPaddingPrefe
 import me.ash.reader.infrastructure.preference.ReadingTextLineHeightPreference
 import me.ash.reader.ui.component.base.RYAsyncImage
 import me.ash.reader.ui.component.base.SIZE_1000
-import me.ash.reader.ui.page.home.reading.summary.SummaryRequest
-import me.ash.reader.ui.page.home.reading.summary.SummaryUiState
-import me.ash.reader.ui.page.home.reading.summary.SummaryViewModel
 
 /*
- * Reading page additions (an experiment, on its own branch): the quick text settings sheet, the
- * AI key points card, the Explain chip for selected text, the next article card at the end, and
- * swiping sideways between articles.
- *
- * Nothing here changes how existing settings are stored: the text sheet writes the same settings
- * as the reading style pages, and the one new switch (key points) lives in its own small file.
+ * Reading page additions (an experiment, on its own branch): the quick text settings sheet and the
+ * next article card at the end. The text sheet writes the same settings as the reading style
+ * pages, so nothing new is stored.
  */
 
-/** The reading page's own new switches, kept apart from the app's settings and backups. */
-object ReadingExperiments {
-    private const val FILE = "reading_experiments"
-    private const val KEY_POINTS = "key_points"
-
-    fun keyPoints(context: Context): Boolean =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_POINTS, false)
-
-    fun setKeyPoints(context: Context, value: Boolean) =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit { putBoolean(KEY_POINTS, value) }
-}
-
-/**
- * Swiping sideways over the article: left for the next article, right for the previous one. It
- * only watches (never takes the touch from the article), and only counts quick, clearly sideways
- * swipes that don't start at the screen edges (those belong to the back gesture).
- */
-fun Modifier.swipeBetweenArticles(onNext: (() -> Unit)?, onPrevious: (() -> Unit)?): Modifier =
-    pointerInput(onNext, onPrevious) {
-        val edge = 32.dp.toPx()
-        awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-            if (down.position.x < edge || down.position.x > size.width - edge) return@awaitEachGesture
-            var last = down.position
-            var lastTime = down.uptimeMillis
-            while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Initial)
-                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                last = change.position
-                lastTime = change.uptimeMillis
-                if (!change.pressed) break
-            }
-            val dx = last.x - down.position.x
-            val dy = last.y - down.position.y
-            val quick = lastTime - down.uptimeMillis < 600
-            if (quick && abs(dx) > size.width * 0.3f && abs(dx) > abs(dy) * 2.5f) {
-                if (dx < 0) onNext?.invoke() else onPrevious?.invoke()
-            }
-        }
-    }
-
-/** At the end of an article: the next one, and a way back to the list. */
+/** At the end of an article: the next one. */
 @Composable
-fun NextArticleCard(next: ArticleWithFeed?, onNext: () -> Unit, onBackToList: () -> Unit) {
+fun NextArticleCard(next: ArticleWithFeed?, onNext: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -193,102 +126,12 @@ fun NextArticleCard(next: ArticleWithFeed?, onNext: () -> Unit, onBackToList: ()
                 modifier = Modifier.padding(horizontal = 8.dp),
             )
         }
-        FilledTonalButton(onClick = onBackToList, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-            Text(stringResource(R.string.reading_back_to_list))
-        }
-    }
-}
-
-/**
- * AI key points above the article (when switched on in the text sheet). Nothing runs until you tap
- * Show, so opening articles stays as fast as before.
- */
-@Composable
-fun KeyPointsCard(articleId: String, title: String?, html: String) {
-    val viewModel: SummaryViewModel = hiltViewModel(key = "keypoints-$articleId")
-    if (!viewModel.hasModel()) return
-    var shown by remember(articleId) { mutableStateOf(false) }
-    val state by viewModel.state.collectAsState()
-    Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.AutoAwesome, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.reading_key_points),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                )
-                if (!shown) {
-                    TextButton(
-                        onClick = {
-                            shown = true
-                            viewModel.start(SummaryRequest.Article(articleId, title, html))
-                        }
-                    ) {
-                        Text(stringResource(R.string.reading_key_points_show))
-                    }
-                }
-            }
-            if (shown) {
-                Spacer(Modifier.height(8.dp))
-                when (val s = state) {
-                    is SummaryUiState.Streaming ->
-                        Text(
-                            text = s.text,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    is SummaryUiState.Error ->
-                        Text(
-                            text = s.message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    else -> LoadingIndicator(modifier = Modifier.size(40.dp))
-                }
-            }
-        }
-    }
-}
-
-/** Shown above the bottom bar while text is selected: explain it with the on-device model. */
-@Composable
-fun ExplainChip(visible: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn() + scaleIn(initialScale = 0.8f),
-        exit = fadeOut() + scaleOut(targetScale = 0.8f),
-        modifier = modifier,
-    ) {
-        Surface(
-            onClick = onClick,
-            color = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-            shape = RoundedCornerShape(50),
-            shadowElevation = 4.dp,
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Outlined.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.reading_explain), style = MaterialTheme.typography.labelLarge)
-            }
-        }
     }
 }
 
 /**
  * The quick text settings, right over the article (the Style button). It writes the same settings
- * as the reading style pages, so the article updates live and nothing new is stored, except the
- * key points switch.
+ * as the reading style pages, so the article updates live and nothing new is stored.
  */
 @Composable
 fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
@@ -299,7 +142,6 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
     val padding = LocalReadingTextHorizontalPadding.current
     val font = LocalReadingFonts.current
     val align = LocalReadingTextAlign.current
-    var keyPoints by remember { mutableStateOf(ReadingExperiments.keyPoints(context)) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -365,14 +207,6 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
             ) {
                 (if (it) ReadingTextAlignPreference.Justify else ReadingTextAlignPreference.Start)
                     .put(context, scope)
-            }
-            SwitchRow(
-                label = stringResource(R.string.text_settings_key_points),
-                desc = stringResource(R.string.text_settings_key_points_desc),
-                checked = keyPoints,
-            ) {
-                keyPoints = it
-                ReadingExperiments.setKeyPoints(context, it)
             }
 
             TextButton(onClick = onAllSettings, modifier = Modifier.align(Alignment.End)) {

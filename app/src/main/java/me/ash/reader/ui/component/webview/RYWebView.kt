@@ -43,10 +43,7 @@ fun RYWebView(
     baseUrl: String? = null,
     refererDomain: String? = null,
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
-    /** The text selected in the article, as it changes ("" when nothing is selected). */
-    onSelectionChanged: ((String) -> Unit)? = null,
 ) {
-    val latestOnSelectionChanged = androidx.compose.runtime.rememberUpdatedState(onSelectionChanged)
     val context = LocalContext.current
     val maxWidth = LocalConfiguration.current.screenWidthDp.dp.value
     val openLink = LocalOpenLink.current
@@ -92,7 +89,6 @@ fun RYWebView(
                             },
                         ),
                     onImageClick = onImageClick,
-                    onSelectionChanged = { latestOnSelectionChanged.value?.invoke(it) },
                 )
             )
         }
