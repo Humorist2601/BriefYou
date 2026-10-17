@@ -49,6 +49,8 @@ fun SettingItem(
     separatedActions: Boolean = false,
     /** The title's color; the usual one when unspecified. */
     titleColor: Color = Color.Unspecified,
+    /** How many lines the description may take. */
+    descMaxLines: Int = 1,
     onClick: () -> Unit,
     action: (@Composable () -> Unit)? = null,
 ) {
@@ -97,7 +99,7 @@ fun SettingItem(
                     Text(
                         text = it,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        maxLines = descMaxLines,
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }

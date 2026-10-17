@@ -79,8 +79,8 @@
     <string name="filters_intro">Filters run after every sync and mark matching unread articles from the last 3 days as read.\n\nMuted keywords match whole words in the title or description.\n\nDuplicates: only the first copy of a story stays unread. A copy is a very similar title from another feed within 48 hours.\n\nUndone articles are skipped until you reset them.</string>
     <string name="filters_reset_undone">Reset undone articles</string>
     <plurals name="filters_reset_undone_desc">
-        <item quantity="one">%1$d article you brought back with Undo is skipped by the filters. Reset to let them catch it again.</item>
-        <item quantity="other">%1$d articles you brought back with Undo are skipped by the filters. Reset to let them catch them again.</item>
+        <item quantity="one">%1$d undone article is skipped by the filters</item>
+        <item quantity="other">%1$d undone articles are skipped by the filters</item>
     </plurals>
     <string name="filters_dupes">Hide duplicate stories</string>
     <string name="filters_dupes_desc">When several feeds publish the same story, keep only the first one unread</string>
