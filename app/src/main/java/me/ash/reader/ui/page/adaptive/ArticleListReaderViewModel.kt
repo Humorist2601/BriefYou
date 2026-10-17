@@ -397,6 +397,10 @@ constructor(
         }
     }
 
+    /** An article's title, feed and picture, for the next article card at the end of an article. */
+    suspend fun previewArticle(id: String): ArticleWithFeed? =
+        runCatching { rssService.get().findArticleById(id) }.getOrNull()
+
     fun clearReadingData() {
         _readingUiState.update { ReadingUiState() }
         _readerState.update { ReaderState() }

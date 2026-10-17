@@ -160,6 +160,21 @@ fun ReaderImageViewer(
                                 expanded = false
                             },
                         )
+                        // Brief You: share the picture's link.
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(id = R.string.share)) },
+                            onClick = {
+                                expanded = false
+                                val send =
+                                    android.content.Intent(android.content.Intent.ACTION_SEND)
+                                        .setType("text/plain")
+                                        .putExtra(android.content.Intent.EXTRA_TEXT, imageData.imageUrl)
+                                context.startActivity(
+                                    android.content.Intent.createChooser(send, null)
+                                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            },
+                        )
                     }
                     IconButton(
                         onClick = { expanded = true },
