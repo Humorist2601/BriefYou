@@ -35,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -43,10 +44,10 @@ import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -76,8 +77,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
@@ -86,12 +90,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.core.content.edit
 import coil.size.Precision
 import coil.size.Scale
 import dagger.hilt.android.EntryPointAccessors
 import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -102,6 +108,7 @@ import me.ash.reader.infrastructure.ai.SummaryStoreEntryPoint
 import me.ash.reader.ui.component.FeedIcon
 import me.ash.reader.ui.component.base.RYAsyncImage
 import me.ash.reader.ui.component.base.SIZE_1000
+import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.ui.component.rememberFeedAccent
 import me.ash.reader.ui.theme.GoogleSansWideFontFamily
 
@@ -206,62 +213,41 @@ fun TriageScreen(
     var backProgress by remember { mutableFloatStateOf(0f) }
     var exit by remember { mutableFloatStateOf(0f) }
     var closing by remember { mutableStateOf(false) }
-    // Which way the screen is thrown while closing: towards the edge the back gesture started from.
+    // Which way the screen slides while closing: towards the edge the back gesture started from.
     // Closing with a button (or the back key) has no edge, so it stays 0 and the screen just shrinks
     // and fades towards its center.
     var slideDirection by remember { mutableFloatStateOf(0f) }
-    // During a back gesture the screen follows your finger up and down, like one of its cards.
-    var touchDy by remember { mutableFloatStateOf(0f) }
-    var touchStartY by remember { mutableFloatStateOf(Float.NaN) }
-    val maxFollowY = with(LocalDensity.current) { 72.dp.toPx() }
-    val haptic = LocalHapticFeedback.current
-    // Material 3 Expressive springs: a lively one for the way back, a softer one for throwing away.
-    val settleSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
-    val tossSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
     LaunchedEffect(Unit) { enter.animateTo(1f, tween(220)) }
 
-    // Finishes the exit and only then removes Triage, so it never vanishes in a single frame.
+    // Finishes the exit: the screen keeps shrinking and slides away while it fades all the way out,
+    // and only then is it removed, so it never vanishes in a single frame.
     suspend fun playExit() {
         if (closing) return
         closing = true
-        if (slideDirection != 0f) {
-            // A back gesture: throw the whole screen off to the side, springing like the cards do.
-            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-            coroutineScope {
-                launch { animate(backProgress, 1f, animationSpec = tossSpec) { v, _ -> backProgress = v } }
-                launch { animate(0f, 1f, animationSpec = tossSpec) { v, _ -> exit = v } }
-            }
-        } else {
-            val spec = tween<Float>(durationMillis = 240, easing = FastOutLinearInEasing)
-            coroutineScope {
-                launch { animate(backProgress, 1f, animationSpec = spec) { v, _ -> backProgress = v } }
-                launch { animate(0f, 1f, animationSpec = spec) { v, _ -> exit = v } }
-            }
+        val spec = tween<Float>(durationMillis = 240, easing = FastOutLinearInEasing)
+        coroutineScope {
+            launch { animate(backProgress, 1f, animationSpec = spec) { v, _ -> backProgress = v } }
+            launch { animate(0f, 1f, animationSpec = spec) { v, _ -> exit = v } }
         }
         onClose()
     }
 
-    // Predictive back: while you swipe, the screen shrinks and its corners morph into a rounded
-    // card, it tilts a little and follows your finger. Let go to throw it away; drag back to cancel
-    // and it springs back.
+    // Predictive back: while you swipe, the whole screen shrinks and slides towards the swipe edge,
+    // showing the list behind it. Let go to close it (it then finishes sliding and fading out);
+    // drag back to cancel.
     PredictiveBackHandler(enabled = true) { progress ->
         try {
             progress.collect { event ->
-                if (touchStartY.isNaN()) touchStartY = event.touchY
                 backProgress = event.progress
                 slideDirection = if (event.swipeEdge == BackEventCompat.EDGE_LEFT) 1f else -1f
-                touchDy = ((event.touchY - touchStartY) * 0.4f).coerceIn(-maxFollowY, maxFollowY)
             }
             playExit()
         } catch (e: CancellationException) {
             if (!closing) {
                 scope.launch {
-                    coroutineScope {
-                        launch { animate(backProgress, 0f, animationSpec = settleSpec) { v, _ -> backProgress = v } }
-                        launch { animate(touchDy, 0f, animationSpec = settleSpec) { v, _ -> touchDy = v } }
+                    animate(backProgress, 0f, animationSpec = tween(180)) { value, _ ->
+                        backProgress = value
                     }
-                    touchStartY = Float.NaN
-                    slideDirection = 0f
                 }
             }
         }
@@ -271,33 +257,14 @@ fun TriageScreen(
         modifier =
             Modifier.fillMaxSize().graphicsLayer {
                 val e = enter.value
-                val p = backProgress.coerceIn(0f, 1f)
-                if (slideDirection != 0f) {
-                    // The screen becomes a rounded card (the corners morph in quickly), shrinks,
-                    // tilts, lifts on a shadow and follows your finger; once released it is thrown
-                    // off the side it came from (`exit` runs from 0 to 1 on a spring).
-                    val round = (p * 2.5f).coerceIn(0f, 1f)
-                    val s = (0.94f + 0.06f * e) * (1f - 0.14f * p)
-                    scaleX = s
-                    scaleY = s
-                    translationX = slideDirection * (p * 28.dp.toPx() + exit * size.width)
-                    translationY = touchDy
-                    rotationZ = slideDirection * (p * 3f + exit * 8f)
-                    alpha = e * (1f - exit.coerceIn(0f, 1f))
-                    shape = RoundedCornerShape(44.dp.toPx() * round)
-                    clip = p > 0f
-                    shadowElevation = 24.dp.toPx() * p
-                } else {
-                    // A button (or the back key): shrink and fade towards the center.
-                    val scale =
-                        (0.94f + 0.06f * e) * (1f - 0.12f * backProgress) * (1f - 0.06f * exit) *
-                            (1f - 0.1f * exit)
-                    scaleX = scale
-                    scaleY = scale
-                    alpha = e * (1f - 0.3f * backProgress) * (1f - exit)
-                    shape = RoundedCornerShape(backProgress * 40.dp.toPx())
-                    clip = backProgress > 0f
-                }
+                val scale = (0.94f + 0.06f * e) * (1f - 0.12f * backProgress) * (1f - 0.06f * exit) *
+                    (if (slideDirection == 0f) 1f - 0.1f * exit else 1f)
+                scaleX = scale
+                scaleY = scale
+                alpha = e * (1f - 0.3f * backProgress) * (1f - exit)
+                translationX = slideDirection * (backProgress * 24.dp.toPx() + exit * 32.dp.toPx())
+                shape = RoundedCornerShape(backProgress * 40.dp.toPx())
+                clip = backProgress > 0f
             },
         color = MaterialTheme.colorScheme.surface,
     ) {
@@ -433,7 +400,7 @@ private fun TriageContent(
                     prefs.edit { putInt("auto_seconds", it) }
                 },
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(4.dp))
             FilledTonalIconButton(onClick = { undo() }, enabled = history.isNotEmpty()) {
                 Icon(
                     Icons.AutoMirrored.Rounded.Undo,
@@ -1022,7 +989,20 @@ private fun AutoAdvanceButton(
 ) {
     val haptic = LocalHapticFeedback.current
     var menuOpen by remember { mutableStateOf(false) }
-    Box(contentAlignment = Alignment.Center) {
+    // Where the button is on screen: the popup is centered on it, but kept inside the screen edges.
+    val density = LocalDensity.current
+    val screenWidth = with(density) { LocalConfiguration.current.screenWidthDp.dp.roundToPx() }
+    val halfMenu = with(density) { 120.dp.roundToPx() }
+    val edge = with(density) { 8.dp.roundToPx() }
+    var anchorX by remember { mutableIntStateOf(0) }
+    // Always as big as the countdown ring (48dp), so nothing around it moves when the ring appears.
+    Box(
+        modifier =
+            Modifier.size(48.dp).onGloballyPositioned {
+                anchorX = it.boundsInWindow().center.x.roundToInt()
+            },
+        contentAlignment = Alignment.Center,
+    ) {
         Box(
             modifier =
                 Modifier.size(40.dp)
@@ -1059,22 +1039,48 @@ private fun AutoAdvanceButton(
                 trackColor = Color.Transparent,
             )
         }
-        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+        // The same popup as the one on an article's long-press: same component, shape and item style.
+        AnimatedDropdownMenu(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            expanded = menuOpen,
+            onDismissRequest = { menuOpen = false },
+            offset =
+                IntOffset(
+                    anchorX.coerceIn(halfMenu + edge, (screenWidth - halfMenu - edge).coerceAtLeast(halfMenu + edge)),
+                    0,
+                ),
+        ) {
             Text(
                 text = stringResource(R.string.triage_auto_delay),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
+            HorizontalDivider()
             listOf(3, 5, 8, 10, 15, 30).forEach { option ->
+                val selected = option == seconds
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.triage_auto_seconds, option)) },
-                    trailingIcon = {
-                        if (option == seconds) Icon(Icons.Rounded.Check, contentDescription = null)
+                    text = {
+                        Text(
+                            text = stringResource(R.string.triage_auto_seconds, option),
+                            color =
+                                if (selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface,
+                        )
                     },
                     onClick = {
                         onSeconds(option)
                         menuOpen = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = if (selected) Icons.Rounded.Check else Icons.Outlined.Timer,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint =
+                                if (selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     },
                 )
             }
