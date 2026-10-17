@@ -26,6 +26,8 @@ import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.delay
 import me.ash.reader.ui.motion.materialSharedAxisXIn
 import me.ash.reader.ui.motion.materialSharedAxisXOut
+import me.ash.reader.ui.motion.BackPreviewPage
+import me.ash.reader.ui.motion.backPreviewPopTransform
 import me.ash.reader.ui.page.adaptive.ArticleData
 import me.ash.reader.ui.page.adaptive.ArticleListReaderPage
 import me.ash.reader.ui.page.adaptive.ArticleListReaderViewModel
@@ -57,6 +59,10 @@ import me.ash.reader.ui.page.settings.troubleshooting.TroubleshootingPage
 import me.ash.reader.ui.page.startup.StartupPage
 
 private const val INITIAL_OFFSET_FACTOR = 0.10f
+
+/** A screen of the app, wrapped so the predictive back gesture shows the back preview on it. */
+private fun page(key: NavKey, content: @Composable () -> Unit): NavEntry<NavKey> =
+    NavEntry(key) { BackPreviewPage(content) }
 
 @OptIn(
     ExperimentalSharedTransitionApi::class,
@@ -102,17 +108,14 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                 ) togetherWith
                     materialSharedAxisXOut(targetOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() })
             },
-            predictivePopTransitionSpec = {
-                materialSharedAxisXIn(
-                    initialOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
-                ) togetherWith
-                    materialSharedAxisXOut(targetOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() })
-            },
+            // Predictive back: the "back preview" (see BackPreview.kt). The screen shrinks into a card
+            // over the dimmed screen behind it and leaves to the right when you let go.
+            predictivePopTransitionSpec = { backPreviewPopTransform() },
             onBack = { backStack.removeLastOrNull() },
             entryProvider = { key ->
                 when (key) {
                     Route.Feeds -> {
-                        NavEntry(key) {
+                        page(key) {
                             FeedsPage(
                                 subscribeViewModel = subscribeViewModel,
                                 sharedTransitionScope = this@SharedTransitionLayout,
@@ -128,7 +131,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                         }
                     }
                     is Route.Reading -> {
-                        NavEntry(key) {
+                        page(key) {
                             val key = rememberSaveable(saver = Route.Reading.Saver) { key }
 
                             LaunchedEffect(key) {
@@ -155,7 +158,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                         }
                     }
                     //                    is Route.Reading -> {
-                    //                        NavEntry(key) {
+                    //                        page(key) {
                     //                            val articleId = key.articleId
                     //
                     //                            val readingViewModel: ReadingViewModel =
@@ -175,12 +178,12 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     //                        }
                     //                    }
                     Route.Startup -> {
-                        NavEntry(key) {
+                        page(key) {
                             StartupPage(onNavigateToFeeds = { backStack.add(Route.Feeds) })
                         }
                     }
                     Route.Settings ->
-                        NavEntry(key) {
+                        page(key) {
                             SettingsPage(
                                 onBack = onBack,
                                 navigateToAccounts = { backStack.add(Route.Accounts) },
@@ -196,7 +199,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             )
                         }
                     Route.Accounts ->
-                        NavEntry(key) {
+                        page(key) {
                             AccountsPage(
                                 onBack = onBack,
                                 navigateToAddAccount = { backStack.add(Route.AddAccounts) },
@@ -206,7 +209,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             )
                         }
                     is Route.AccountDetails ->
-                        NavEntry(key) {
+                        page(key) {
                             AccountDetailsPage(
                                 viewModel =
                                     hiltViewModel<AccountViewModel>().also {
@@ -217,7 +220,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             )
                         }
                     Route.AddAccounts ->
-                        NavEntry(key) {
+                        page(key) {
                             AddAccountsPage(
                                 onBack = onBack,
                                 navigateToAccountDetails = {
@@ -226,7 +229,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             )
                         }
                     Route.ColorAndStyle ->
-                        NavEntry(key) {
+                        page(key) {
                             ColorAndStylePage(
                                 onBack = onBack,
                                 navigateToDarkTheme = { backStack.add(Route.DarkTheme) },
@@ -237,11 +240,11 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                                 },
                             )
                         }
-                    Route.DarkTheme -> NavEntry(key) { DarkThemePage(onBack = onBack) }
-                    Route.FeedsPageStyle -> NavEntry(key) { FeedsPageStylePage(onBack = onBack) }
-                    Route.FlowPageStyle -> NavEntry(key) { FlowPageStylePage(onBack = onBack) }
+                    Route.DarkTheme -> page(key) { DarkThemePage(onBack = onBack) }
+                    Route.FeedsPageStyle -> page(key) { FeedsPageStylePage(onBack = onBack) }
+                    Route.FlowPageStyle -> page(key) { FlowPageStylePage(onBack = onBack) }
                     Route.ReadingPageStyle ->
-                        NavEntry(key) {
+                        page(key) {
                             ReadingStylePage(
                                 onBack = onBack,
                                 navigateToReadingBoldCharacters = {
@@ -262,25 +265,25 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             )
                         }
                     Route.ReadingBoldCharacters ->
-                        NavEntry(key) { BoldCharactersPage(onBack = onBack) }
-                    Route.ReadingPageTitle -> NavEntry(key) { ReadingTitlePage(onBack = onBack) }
-                    Route.ReadingPageText -> NavEntry(key) { ReadingTextPage(onBack = onBack) }
-                    Route.ReadingPageImage -> NavEntry(key) { ReadingImagePage(onBack = onBack) }
-                    Route.ReadingPageVideo -> NavEntry(key) { ReadingVideoPage(onBack = onBack) }
-                    Route.Interaction -> NavEntry(key) { InteractionPage(onBack = onBack) }
-                    Route.Languages -> NavEntry(key) { LanguagesPage(onBack = onBack) }
-                    Route.AiModel -> NavEntry(key) { AiSettingsPage(onBack = onBack) }
-                    Route.Filters -> NavEntry(key) { FiltersPage(onBack = onBack) }
-                    Route.Troubleshooting -> NavEntry(key) { TroubleshootingPage(onBack = onBack) }
+                        page(key) { BoldCharactersPage(onBack = onBack) }
+                    Route.ReadingPageTitle -> page(key) { ReadingTitlePage(onBack = onBack) }
+                    Route.ReadingPageText -> page(key) { ReadingTextPage(onBack = onBack) }
+                    Route.ReadingPageImage -> page(key) { ReadingImagePage(onBack = onBack) }
+                    Route.ReadingPageVideo -> page(key) { ReadingVideoPage(onBack = onBack) }
+                    Route.Interaction -> page(key) { InteractionPage(onBack = onBack) }
+                    Route.Languages -> page(key) { LanguagesPage(onBack = onBack) }
+                    Route.AiModel -> page(key) { AiSettingsPage(onBack = onBack) }
+                    Route.Filters -> page(key) { FiltersPage(onBack = onBack) }
+                    Route.Troubleshooting -> page(key) { TroubleshootingPage(onBack = onBack) }
                     Route.TipsAndSupport ->
-                        NavEntry(key) {
+                        page(key) {
                             TipsAndSupportPage(
                                 onBack = onBack,
                                 navigateToLicenseList = { backStack.add(Route.LicenseList) },
                             )
                         }
-                    Route.LicenseList -> NavEntry(key) { LicenseListPage(onBack = onBack) }
-                    else -> NavEntry(key) { throw Exception("Unknown destination") }
+                    Route.LicenseList -> page(key) { LicenseListPage(onBack = onBack) }
+                    else -> page(key) { throw Exception("Unknown destination") }
                 }
             },
         )
