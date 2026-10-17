@@ -38,8 +38,9 @@ import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.saveable.rememberSaveable
-import me.ash.reader.ui.motion.isBackPreviewActive
-import me.ash.reader.ui.motion.stayPutDuringBackPreview
+import me.ash.reader.ui.component.FilterBarSpace
+import me.ash.reader.ui.component.FilterBarSpec
+import me.ash.reader.ui.component.ProvideFilterBar
 import me.ash.reader.ui.page.home.feeds.sort.FeedSortViewModel
 import me.ash.reader.ui.page.home.feeds.sort.FeedSortSheet
 import androidx.compose.material3.FilledTonalButton
@@ -469,33 +470,22 @@ fun FeedsPage(
                 }
             }
         },
-        bottomBar = {
-            FilterBar(
-                modifier =
-                    // The bar stays in place (above both screens) while moving between Feeds and
-                    // the article list, in both directions. During the back gesture the back
-                    // animation keeps it in place instead (it lifts the bar out of the moving card).
-                    with(sharedTransitionScope) {
-                        val barState = rememberSharedContentState("filterBar")
-                        if (isBackPreviewActive) {
-                            Modifier
-                        } else {
-                            Modifier.sharedElement(
-                                sharedContentState = barState,
-                                animatedVisibilityScope = animatedVisibilityScope,
-                            )
-                        }
-                    }
-                        .stayPutDuringBackPreview(),
-                filter = filterState.filter,
-                filterBarStyle = filterBarStyle.value,
-                filterBarFilled = true,
-                filterBarPadding = filterBarPadding.dp,
-                filterBarTonalElevation = filterBarTonalElevation.value.dp,
-            ) {
-                feedsViewModel.changeFilter(filterState.copy(filter = it))
-            }
-        },
+        // The filter bar is drawn once for the whole app, above every screen (SharedFilterBar),
+        // so it stays exactly in place while moving to and from the article list. This keeps its
+        // space.
+        bottomBar = { FilterBarSpace(filterBarStyle.value) },
+    )
+
+    ProvideFilterBar(
+        FilterBarSpec(
+            filter = filterState.filter,
+            style = filterBarStyle.value,
+            padding = filterBarPadding.dp,
+            tonalElevation = filterBarTonalElevation.value.dp,
+            // The option drawers are drawn inside the screen, so the bar steps aside for them.
+            enabled = !groupDrawerState.isVisible && !feedDrawerState.isVisible,
+            onClick = { feedsViewModel.changeFilter(filterState.copy(filter = it)) },
+        )
     )
 
     SubscribeDialog(subscribeViewModel = subscribeViewModel)

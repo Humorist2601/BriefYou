@@ -34,6 +34,13 @@ import me.ash.reader.infrastructure.preference.LocalThemeIndex
 import me.ash.reader.ui.ext.surfaceColorAtElevation
 import me.ash.reader.ui.theme.palette.onDark
 
+/** Brief You: a tall bar, like a music player's. Taller than the stock navigation bar. */
+fun filterBarContainerHeight(filterBarStyle: Int): Dp =
+    when (filterBarStyle) {
+        FlowFilterBarStylePreference.Icon.value -> 76.dp
+        else -> 88.dp
+    }
+
 /**
  * The gap under everything that floats at the bottom of the screen: the reading page's pill (above
  * the system gesture bar), and the article list's AI gist / Triage button and pull-up hint (above
@@ -59,11 +66,7 @@ fun FilterBar(
         MaterialTheme.colorScheme.primaryContainer
     } onDark MaterialTheme.colorScheme.secondaryContainer
 
-    // Brief You: a tall bar, like a music player's. Taller than the stock navigation bar.
-    val containerHeight = when (filterBarStyle) {
-        FlowFilterBarStylePreference.Icon.value -> 76.dp
-        else -> 88.dp
-    }
+    val containerHeight = filterBarContainerHeight(filterBarStyle)
 
     // A fade to black behind the bar: clear at the top of the bar, fully black for the last quarter
     // (the area under the bar down to the screen edge). On a light theme it fades into the page
@@ -87,7 +90,7 @@ fun FilterBar(
                     )
                 }
                 .windowInsetsPadding(NavigationBarDefaults.windowInsets)
-                .padding(start = 20.dp, end = 20.dp, top = 8.dp)
+                .padding(start = 20.dp, end = 20.dp, top = FILTER_BAR_TOP_PADDING)
     ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceColorAtElevation(filterBarTonalElevation),

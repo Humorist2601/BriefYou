@@ -1,7 +1,8 @@
 package me.ash.reader.ui.page.home.flow
 
-import me.ash.reader.ui.motion.isBackPreviewActive
-import me.ash.reader.ui.motion.stayPutDuringBackPreview
+import me.ash.reader.ui.component.FilterBarSpace
+import me.ash.reader.ui.component.FilterBarSpec
+import me.ash.reader.ui.component.ProvideFilterBar
 import me.ash.reader.ui.page.home.reading.summary.SummaryRequest
 import me.ash.reader.ui.page.home.reading.summary.SummarySheet
 import androidx.activity.compose.BackHandler
@@ -131,6 +132,8 @@ fun FlowPage(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     isTwoPane: Boolean,
+    /** False while the list is hidden (an article is open), so the filter bar slides away. */
+    showFilterBar: Boolean = true,
     viewModel: ArticleListReaderViewModel,
     onNavigateUp: () -> Unit,
     navigateToArticle: (String, Int) -> Unit,
@@ -778,30 +781,19 @@ fun FlowPage(
                 )
             },
             floatingActionButtonPosition = FabPosition.Center,
-            bottomBar = {
-                FilterBar(
-                    modifier =
-                        // The bar stays in place (above both screens) while moving between Feeds and
-                        // the article list, in both directions. During the back gesture the back
-                        // animation keeps it in place instead (it lifts the bar out of the moving card).
-                        with(sharedTransitionScope) {
-                            val barState = rememberSharedContentState("filterBar")
-                            if (isBackPreviewActive) {
-                                Modifier
-                            } else {
-                                Modifier.sharedElement(
-                                    sharedContentState = barState,
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                )
-                            }
-                        }
-                            .stayPutDuringBackPreview(),
-                    filter = filterUiState.filter,
-                    filterBarStyle = filterBarStyle.value,
-                    filterBarFilled = true,
-                    filterBarPadding = filterBarPadding.dp,
-                    filterBarTonalElevation = filterBarTonalElevation.value.dp,
-                ) {
+            // The filter bar is drawn once for the whole app, above every screen (SharedFilterBar),
+            // so it stays exactly in place while moving to and from Feeds. This keeps its space.
+            bottomBar = { FilterBarSpace(filterBarStyle.value) },
+        )
+        ProvideFilterBar(
+            FilterBarSpec(
+                filter = filterUiState.filter,
+                style = filterBarStyle.value,
+                padding = filterBarPadding.dp,
+                tonalElevation = filterBarTonalElevation.value.dp,
+                // Triage is drawn over the whole screen, so the bar steps aside for it.
+                enabled = showFilterBar && !showTriage,
+                onClick = {
                     if (filterUiState.filter != it) {
                         viewModel.changeFilter(filterUiState.copy(filter = it))
                     } else {
@@ -811,8 +803,8 @@ fun FlowPage(
                             }
                         }
                     }
-                }
-            },
+                },
+            )
         )
         currentPullToLoadState?.let {
             PullToSyncIndicator(pullToLoadState = it, isSyncing = isSyncing)

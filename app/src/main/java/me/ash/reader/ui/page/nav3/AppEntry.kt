@@ -12,6 +12,13 @@ import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Box
+import me.ash.reader.ui.component.SharedFilterBar
+import me.ash.reader.ui.component.LocalPageKey
+import me.ash.reader.ui.component.LocalFilterBarHost
+import me.ash.reader.ui.component.FilterBarHost
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -68,7 +75,11 @@ private const val INITIAL_OFFSET_FACTOR = 0.10f
 
 /** A screen of the app, wrapped so the predictive back gesture shows the back preview on it. */
 private fun page(key: NavKey, content: @Composable () -> Unit): NavEntry<NavKey> =
-    NavEntry(key) { BackPreviewPage(key, content) }
+    NavEntry(key) {
+        BackPreviewPage(key) {
+            CompositionLocalProvider(LocalPageKey provides key, content = content)
+        }
+    }
 
 @OptIn(
     ExperimentalSharedTransitionApi::class,
@@ -94,12 +105,16 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
     // The back animation (see BackPreview.kt): it follows the gesture, and while it runs the host's
     // own transitions draw nothing, whichever one the host picks.
     val backPreviewPicture = rememberGraphicsLayer()
+    // The filter bar of Feeds and the article list, drawn once above every screen.
+    val filterBarHost = remember { FilterBarHost() }
     val backPreviewRunning = rememberBackPreviewRunning()
     BackPreviewController(backStack)
     CompositionLocalProvider(
         LocalBackStack provides backStack,
         LocalBackPreviewPicture provides backPreviewPicture,
+        LocalFilterBarHost provides filterBarHost,
     ) {
+    Box(modifier = Modifier.fillMaxSize()) {
     SharedTransitionLayout {
         NavDisplay(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
@@ -311,6 +326,14 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     else -> page(key) { throw Exception("Unknown destination") }
                 }
             },
+        )
+    }
+        // Above every screen, so screen animations (including the back gesture) never move it.
+        SharedFilterBar(
+            host = filterBarHost,
+            top = backStack.lastOrNull(),
+            hasBar = { it == Route.Feeds || it is Route.Reading },
+            modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
     }

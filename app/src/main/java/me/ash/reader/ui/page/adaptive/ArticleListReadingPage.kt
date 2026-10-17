@@ -145,6 +145,9 @@ fun ArticleListReaderPage(
                             viewModel = viewModel,
                             onNavigateUp = onBack,
                             isTwoPane = isTwoPane,
+                            showFilterBar =
+                                navigator.scaffoldValue[ListDetailPaneScaffoldRole.List] ==
+                                    PaneAdaptedValue.Expanded,
                             navigateToArticle = { id, index ->
                                 scope.launch {
                                     navigator.navigateTo(
