@@ -6,12 +6,16 @@ import androidx.activity.BackEventCompat
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -23,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,9 +37,14 @@ import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -76,6 +86,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import coil.size.Precision
 import coil.size.Scale
 import dagger.hilt.android.EntryPointAccessors
@@ -160,6 +171,9 @@ class TriageSession(
 
     var index by mutableIntStateOf(0)
     internal val history = mutableStateListOf<TriageStep>()
+
+    /** Auto-advance is running: cards are skipped on their own after a few seconds. */
+    var autoRunning by mutableStateOf(false)
 
     fun startNext(next: TriageNext, cards: List<ArticleWithFeed>) {
         visited = visited + next.id
@@ -274,6 +288,13 @@ private fun TriageContent(
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     var loadingNext by remember { mutableStateOf(false) }
+
+    // Auto-advance: the delay is remembered between sessions; changing it is a long-press on the
+    // play button.
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("triage", android.content.Context.MODE_PRIVATE) }
+    var autoSeconds by remember { mutableIntStateOf(prefs.getInt("auto_seconds", 5)) }
+    val autoProgress = remember { mutableFloatStateOf(0f) }
     val articles = session.articles
     val history = session.history
     val index = session.index
@@ -358,6 +379,21 @@ private fun TriageContent(
                     )
                 }
             }
+            AutoAdvanceButton(
+                running = session.autoRunning,
+                seconds = autoSeconds,
+                // No ring on the "All caught up" screen, where there is no card left to skip.
+                progress = { if (current != null) autoProgress.floatValue else 0f },
+                onToggle = {
+                    session.autoRunning = !session.autoRunning
+                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                },
+                onSeconds = {
+                    autoSeconds = it
+                    prefs.edit { putInt("auto_seconds", it) }
+                },
+            )
+            Spacer(Modifier.width(8.dp))
             FilledTonalIconButton(onClick = { undo() }, enabled = history.isNotEmpty()) {
                 Icon(
                     Icons.AutoMirrored.Rounded.Undo,
@@ -399,6 +435,8 @@ private fun TriageContent(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 current = current,
                 next = articles.getOrNull(index + 1),
+                autoSeconds = if (session.autoRunning) autoSeconds else 0,
+                onAutoProgress = { autoProgress.floatValue = it },
                 onDecide = { decide(it) },
             )
         }
@@ -410,6 +448,8 @@ private fun TriageStack(
     modifier: Modifier,
     current: ArticleWithFeed,
     next: ArticleWithFeed?,
+    autoSeconds: Int,
+    onAutoProgress: (Float) -> Unit,
     onDecide: (TriageAction) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -418,6 +458,9 @@ private fun TriageStack(
     val dragX = remember(current.article.id) { Animatable(0f) }
     val dragY = remember(current.article.id) { Animatable(0f) }
     var busy by remember(current.article.id) { mutableStateOf(false) }
+    // Touching the card: being dragged, or held with a finger. Pauses auto-advance.
+    var dragging by remember(current.article.id) { mutableStateOf(false) }
+    var held by remember(current.article.id) { mutableStateOf(false) }
 
     Column(modifier = modifier) {
         BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 4.dp)) {
@@ -485,6 +528,24 @@ private fun TriageStack(
                 }
             }
 
+            // Auto-advance: when the time is up the card is skipped (left unread). Touching the card
+            // pauses the countdown; it starts again from the beginning when you let go, and on every
+            // new card.
+            val touching = dragging || held
+            LaunchedEffect(autoSeconds, current.article.id, touching, busy) {
+                onAutoProgress(0f)
+                if (autoSeconds > 0 && !touching && !busy) {
+                    animate(
+                        0f,
+                        1f,
+                        animationSpec = tween(autoSeconds * 1000, easing = LinearEasing),
+                    ) { value, _ ->
+                        onAutoProgress(value)
+                    }
+                    trigger(TriageAction.Skip)
+                }
+            }
+
             val progress =
                 (hypot(dragX.value / thresholdX, dragY.value / thresholdY)).coerceIn(0f, 1f)
             val pending = actionFor(dragX.value, dragY.value)
@@ -527,10 +588,21 @@ private fun TriageStack(
                                 translationY = dragY.value
                                 rotationZ = (dragX.value / widthPx) * 12f
                             }
+                            // Holding the card (without moving it) pauses auto-advance.
+                            .pointerInput(current.article.id + "hold") {
+                                detectTapGestures(
+                                    onPress = {
+                                        held = true
+                                        tryAwaitRelease()
+                                        held = false
+                                    }
+                                )
+                            }
                             .pointerInput(current.article.id) {
                                 detectDragGestures(
-                                    onDragStart = {},
+                                    onDragStart = { dragging = true },
                                     onDragEnd = {
+                                        dragging = false
                                         if (!busy) {
                                             busy = true
                                             scope.launch {
@@ -539,7 +611,10 @@ private fun TriageStack(
                                             }
                                         }
                                     },
-                                    onDragCancel = { scope.launch { settle(null) } },
+                                    onDragCancel = {
+                                        dragging = false
+                                        scope.launch { settle(null) }
+                                    },
                                     onDrag = { change, amount ->
                                         change.consume()
                                         if (!busy) {
@@ -890,4 +965,79 @@ private fun rememberSavedSummary(articleId: String): String? {
             value = store.get(articleId, SavedKind.Summary)
         }
     return summary
+}
+
+/**
+ * Starts and stops auto-advance. While it runs, a ring around the button counts down to the next
+ * skip. A long press opens the delay picker.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun AutoAdvanceButton(
+    running: Boolean,
+    seconds: Int,
+    progress: () -> Float,
+    onToggle: () -> Unit,
+    onSeconds: (Int) -> Unit,
+) {
+    val haptic = LocalHapticFeedback.current
+    var menuOpen by remember { mutableStateOf(false) }
+    Box(contentAlignment = Alignment.Center) {
+        Box(
+            modifier =
+                Modifier.size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (running) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.secondaryContainer
+                    )
+                    .combinedClickable(
+                        onClick = onToggle,
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            menuOpen = true
+                        },
+                    ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                contentDescription =
+                    stringResource(
+                        if (running) R.string.triage_auto_stop else R.string.triage_auto_start
+                    ),
+                tint =
+                    if (running) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+        if (running) {
+            CircularProgressIndicator(
+                progress = progress,
+                modifier = Modifier.size(48.dp),
+                strokeWidth = 3.dp,
+                trackColor = Color.Transparent,
+            )
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            Text(
+                text = stringResource(R.string.triage_auto_delay),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            listOf(3, 5, 8, 10, 15, 30).forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.triage_auto_seconds, option)) },
+                    trailingIcon = {
+                        if (option == seconds) Icon(Icons.Rounded.Check, contentDescription = null)
+                    },
+                    onClick = {
+                        onSeconds(option)
+                        menuOpen = false
+                    },
+                )
+            }
+        }
+    }
 }
