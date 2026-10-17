@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
@@ -78,7 +79,7 @@ fun TtsButton(
                         Icons.Rounded.Stop,
                         null,
                         modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.tertiary
+                        tint = LocalContentColor.current
                     )
                 }
             }
@@ -107,10 +108,12 @@ fun TtsButton(
                             }
                         }), contentAlignment = Alignment.Center
                 ) {
+                    // Same color as the other icons around it (the reading bar's content color).
                     Icon(
                         Icons.Outlined.Headphones,
                         stringResource(R.string.read_aloud),
-                        tint = MaterialTheme.colorScheme.outline
+                        modifier = Modifier.size(24.dp),
+                        tint = LocalContentColor.current
                     )
                 }
             }

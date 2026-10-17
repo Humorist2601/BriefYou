@@ -12,6 +12,7 @@ import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -27,6 +28,7 @@ import kotlinx.coroutines.delay
 import me.ash.reader.ui.motion.materialSharedAxisXIn
 import me.ash.reader.ui.motion.materialSharedAxisXOut
 import me.ash.reader.ui.motion.BackPreviewPage
+import me.ash.reader.ui.motion.LocalBackStackSize
 import me.ash.reader.ui.motion.backPreviewPopTransform
 import me.ash.reader.ui.page.adaptive.ArticleData
 import me.ash.reader.ui.page.adaptive.ArticleListReaderPage
@@ -85,6 +87,8 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
             isDestinationHistoryAware = false,
         )
 
+    // How many screens are open, for the back animation (see BackPreview.kt).
+    CompositionLocalProvider(LocalBackStackSize provides { backStack.size }) {
     SharedTransitionLayout {
         NavDisplay(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
@@ -287,5 +291,6 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                 }
             },
         )
+    }
     }
 }

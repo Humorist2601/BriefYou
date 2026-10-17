@@ -60,6 +60,12 @@ constructor(
     private val mutex = Mutex()
     private var postJob: Job? = null
 
+    /** Syncs running now; while any runs, new articles are collected but nothing is posted. */
+    private var runningSyncs = 0
+
+    /** Articles were collected during a sync and are waiting for it to finish. */
+    private var pendingPost = false
+
     fun notify(feed: Feed, articles: List<Article>) {
         if (!notificationManager.areNotificationsEnabled()) return
         if (articles.isEmpty()) return
@@ -68,7 +74,9 @@ constructor(
             mutex.withLock {
                 Timber.d("digest: +${articles.size} from ${feed.name}")
                 // Start fresh only if the user swiped the digest away AND no post is pending.
-                if (postJob?.isActive != true && !isDigestShowing()) resetStoredDigest()
+                if (postJob?.isActive != true && !pendingPost && !isDigestShowing()) {
+                    resetStoredDigest()
+                }
 
                 val total = prefs.getInt(KEY_COUNT, 0) + articles.size
                 val newLines =
@@ -83,13 +91,40 @@ constructor(
                     putString(KEY_LINES, lines.joinToString(LINE_SEP))
                 }
 
-                // Wait for the other feeds to finish, then post once.
-                postJob?.cancel()
-                postJob =
-                    coroutineScope.launch {
-                        delay(POST_DELAY_MS)
-                        mutex.withLock { postStored() }
-                    }
+                if (runningSyncs > 0) {
+                    // Brief You: during a sync, post only once it has finished (syncFinished).
+                    pendingPost = true
+                } else {
+                    // Outside a sync: wait for any other feeds, then post once.
+                    postJob?.cancel()
+                    postJob =
+                        coroutineScope.launch {
+                            delay(POST_DELAY_MS)
+                            mutex.withLock { postStored() }
+                        }
+                }
+            }
+        }
+    }
+
+    /** A sync is starting: hold any notification until it has finished. */
+    suspend fun syncStarted() {
+        mutex.withLock {
+            runningSyncs++
+            postJob?.cancel()
+        }
+    }
+
+    /**
+     * A sync (and everything after it, like the filters) has finished: post what it found, once.
+     * Articles reported a moment later still get posted, shortly after.
+     */
+    suspend fun syncFinished() {
+        mutex.withLock {
+            runningSyncs = (runningSyncs - 1).coerceAtLeast(0)
+            if (runningSyncs == 0 && pendingPost) {
+                pendingPost = false
+                postStored()
             }
         }
     }

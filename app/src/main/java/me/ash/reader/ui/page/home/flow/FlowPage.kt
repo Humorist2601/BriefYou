@@ -1,6 +1,5 @@
 package me.ash.reader.ui.page.home.flow
 
-import me.ash.reader.ui.motion.isBackPreviewActive
 import me.ash.reader.ui.page.home.reading.summary.SummaryRequest
 import me.ash.reader.ui.page.home.reading.summary.SummarySheet
 import androidx.activity.compose.BackHandler
@@ -25,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
@@ -174,9 +174,16 @@ fun FlowPage(
     // The AI gist / Triage button: only in Unread, hidden while scrolling down and while searching.
     val scrollingUp = listState.isScrollingUp()
     val atTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
-    val showActionsFab = filterUiState.filter.isUnread() && !onSearch && (scrollingUp || atTop)
-
     var currentPullToLoadState: PullToLoadState? by remember { mutableStateOf(null) }
+    // Pulling up at the end of the list shows the "next feed" hint just above the bottom bar, where
+    // the button is, so the button steps aside while you pull.
+    val pullingUp =
+        currentPullToLoadState?.status.let {
+            it == PullToLoadState.Status.PullingUp || it == PullToLoadState.Status.PulledUp
+        }
+    val showActionsFab =
+        filterUiState.filter.isUnread() && !onSearch && !pullingUp && (scrollingUp || atTop)
+
     var currentLoadAction: LoadAction? by remember { mutableStateOf(null) }
 
     val settleSpec = remember { spring<Float>(dampingRatio = Spring.DampingRatioLowBouncy) }
@@ -733,6 +740,8 @@ fun FlowPage(
             },
             floatingActionButton = {
                 FlowActionsFab(
+                    // Closer to the bottom bar than the standard gap.
+                    modifier = Modifier.offset(y = 12.dp),
                     visible = showActionsFab,
                     onGist = { showGist = true },
                     onTriage = {
@@ -747,16 +756,14 @@ fun FlowPage(
             bottomBar = {
                 FilterBar(
                     modifier =
-                        // During the predictive back gesture the bar is part of each screen, so it
-                        // moves with the card instead of staying put above both screens.
-                        if (isBackPreviewActive) Modifier
-                        else
-                            with(sharedTransitionScope) {
-                                Modifier.sharedElement(
-                                    sharedContentState = rememberSharedContentState("filterBar"),
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                )
-                            },
+                        // The bar stays in place (above both screens) while moving between Feeds and
+                        // the article list, in both directions and during the back gesture.
+                        with(sharedTransitionScope) {
+                            Modifier.sharedElement(
+                                sharedContentState = rememberSharedContentState("filterBar"),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                            )
+                        },
                     filter = filterUiState.filter,
                     filterBarStyle = filterBarStyle.value,
                     filterBarFilled = true,

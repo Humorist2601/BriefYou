@@ -8,6 +8,7 @@ import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
 import me.ash.reader.domain.model.account.Account
 import me.ash.reader.infrastructure.ai.SummaryStore
+import me.ash.reader.infrastructure.android.NotificationHelper
 import me.ash.reader.infrastructure.rss.ReaderCacheHelper
 
 @HiltWorker
@@ -22,6 +23,7 @@ constructor(
     private val briefFilters: BriefFilters,
     private val summaryStore: SummaryStore,
     private val feedIconOverrides: FeedIconOverrides,
+    private val notificationHelper: NotificationHelper,
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -31,6 +33,16 @@ constructor(
         val feedId = data.getString("feedId")
         val groupId = data.getString("groupId")
 
+        // Brief You: the new-articles notification is posted once, when everything below is done.
+        notificationHelper.syncStarted()
+        return try {
+            syncAndTidyUp(accountId, feedId, groupId)
+        } finally {
+            notificationHelper.syncFinished()
+        }
+    }
+
+    private suspend fun syncAndTidyUp(accountId: Int, feedId: String?, groupId: String?): Result {
         return rssService
             .get()
             .sync(accountId = accountId, feedId = feedId, groupId = groupId)

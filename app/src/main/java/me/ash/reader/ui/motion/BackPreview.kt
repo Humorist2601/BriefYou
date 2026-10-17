@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -91,10 +92,10 @@ private const val MAX_SCRIM_LIGHT = 0.2f
 
 /**
  * How long a predictive back takes in the navigation host from the first touch to the end. After
- * you let go, the host plays what is left of it, so letting go halfway leaves about the 450 ms the
- * system uses.
+ * you let go, the host plays what is left of it, so letting go a quarter of the way in leaves about
+ * the 450 ms the system uses.
  */
-const val BACK_PREVIEW_DURATION = 900
+const val BACK_PREVIEW_DURATION = 600
 
 /**
  * One back gesture, shared by the screen you leave (which sees the gesture and writes this) and the
@@ -109,6 +110,8 @@ internal object BackPreviewState {
     var fromRight by mutableStateOf(false)
     var startY by mutableFloatStateOf(0f)
     var rawDy by mutableFloatStateOf(0f)
+    /** How many screens were open when the gesture started (fewer afterwards means it went back). */
+    var stackAtStart by mutableStateOf(0)
 
     fun reset() {
         active = false
@@ -209,9 +212,27 @@ private fun placement(
 private fun dimFade(raw: Float): Float {
     val s = BackPreviewState
     return if (s.released && raw > s.releasedAt) {
-        1f - ((raw - s.releasedAt) / (1f - s.releasedAt)).coerceIn(0f, 1f)
+        val linear = ((raw - s.releasedAt) / (1f - s.releasedAt)).coerceIn(0f, 1f)
+        1f - EmphasizedEasing.transform(linear)
     } else 1f
 }
+
+/**
+ * True once the gesture has ended without going back: it is no longer running, and as many screens
+ * are open as when it started.
+ */
+private fun isCancelled(gesture: NavigationEventTransitionState, stackSize: Int): Boolean {
+    val s = BackPreviewState
+    return s.active &&
+        gesture !is NavigationEventTransitionState.InProgress &&
+        stackSize >= s.stackAtStart
+}
+
+/**
+ * How many screens are open in the navigation host, read when drawing. Provided by the app's
+ * navigation (AppEntry); used to tell a finished back gesture from a cancelled one.
+ */
+val LocalBackStackSize = compositionLocalOf<() -> Int> { { 0 } }
 
 private fun GraphicsLayerScope.place(placement: Placement) {
     scaleX = placement.scale
@@ -267,6 +288,7 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
         transition.currentState == EnterExitState.PreEnter &&
             transition.targetState == EnterExitState.Visible
 
+    val stackSize = LocalBackStackSize.current
     val density = LocalDensity.current
     val margin = with(density) { MARGIN.toPx() }
     val offset = with(density) { ENTERING_START_OFFSET.toPx() }
@@ -302,6 +324,7 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
                 s.released = false
                 s.startY = event.touchY
                 s.fromRight = event.swipeEdge == NavigationEvent.EDGE_RIGHT
+                s.stackAtStart = stackSize()
                 s.active = true
             }
             s.rawDy = event.touchY - s.startY
@@ -330,9 +353,19 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
                 // that card always stands out instead of blending into the space around the cards.
                 .drawBehind {
                     val s = BackPreviewState
-                    if (entering && s.active) {
+                    if (!s.active) return@drawBehind
+                    val cancelled = isCancelled(gesture, stackSize())
+                    if (entering && !cancelled) {
                         drawRect(backdrop)
                         val alpha = scrim * dimFade(1f - fraction.value)
+                        if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
+                    } else if (exiting && cancelled) {
+                        // Cancelled: the screen behind has stepped aside (see below), so the card
+                        // settles back over the dimmed backdrop, the dim lifting as it lands.
+                        drawRect(backdrop)
+                        val back =
+                            if (s.released) (fraction.value / s.releasedAt).coerceIn(0f, 1f) else 1f
+                        val alpha = scrim * back
                         if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
                     }
                 }
@@ -343,6 +376,10 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
                         place(placement(raw, entering, size.width, size.height, margin, offset))
                         shape = RoundedCornerShape(corner)
                         clip = true
+                        // When the gesture is cancelled, the navigation host puts the screen behind
+                        // on top of the card for the way back, which would cover it. It steps aside
+                        // instead, so the card can be seen settling back into place.
+                        if (entering && isCancelled(gesture, stackSize())) alpha = 0f
                     } else {
                         clip = false
                     }
