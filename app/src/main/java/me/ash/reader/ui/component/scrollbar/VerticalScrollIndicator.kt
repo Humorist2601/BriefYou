@@ -1,7 +1,7 @@
 package me.ash.reader.ui.component.scrollbar
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollIndicatorState
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.Orientation
@@ -74,8 +74,9 @@ data class VerticalScrollIndicatorFactory(
                         }
                         .collectLatest {
                             alpha.snapTo(1f)
-                            delay(3000)
-                            alpha.animateTo(0f, animationSpec = spring())
+                            // Like Android's own scrollbars: a moment after scrolling stops, it fades.
+                            delay(HIDE_DELAY_MS)
+                            alpha.animateTo(0f, animationSpec = tween(FADE_MS))
                         }
                 }
             }
@@ -128,3 +129,6 @@ data class VerticalScrollIndicatorFactory(
         }
     }
 }
+
+private const val HIDE_DELAY_MS = 800L
+private const val FADE_MS = 250

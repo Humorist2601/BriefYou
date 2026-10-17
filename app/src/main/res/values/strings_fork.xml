@@ -118,6 +118,8 @@
     <string name="filters_yesterday">Yesterday</string>
     <string name="filters_reason_muted">Muted “%1$s”</string>
     <string name="filters_reason_duplicate">Duplicate of %1$s</string>
+    <string name="filters_from_feed">from %1$s</string>
+    <string name="filters_original_story">Original: %1$s</string>
     <plurals name="filters_caught">
         <item quantity="one">Caught %1$d</item>
         <item quantity="other">Caught %1$d</item>

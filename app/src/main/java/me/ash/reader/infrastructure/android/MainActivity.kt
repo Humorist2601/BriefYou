@@ -69,9 +69,6 @@ class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var notificationHelper: NotificationHelper
 
-    /** Flips when the system splash has faded out; BriefSplash starts animating then. */
-    private val systemSplashGone = mutableStateOf(Build.VERSION.SDK_INT < Build.VERSION_CODES.S)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i("RLog", "onCreate: ${ProfileInstallerInitializer().create(this)}")
@@ -79,21 +76,11 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         // The animated splash plays on fresh launches only (not when the activity is recreated).
-        // Its first frame is the system splash's last one, so the system splash just fades out
-        // over it and BriefSplash takes over.
+        // Its first frame is the system splash's last one, so the system splash is removed at
+        // once and BriefSplash carries on without a pause.
         val playSplash = savedInstanceState == null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && playSplash) {
-            splashScreen.setOnExitAnimationListener { view ->
-                view
-                    .animate()
-                    .alpha(0f)
-                    .setDuration(SYSTEM_SPLASH_HANDOFF_MS)
-                    .withEndAction {
-                        view.remove()
-                        systemSplashGone.value = true
-                    }
-                    .start()
-            }
+            splashScreen.setOnExitAnimationListener { view -> view.remove() }
         }
 
         // Set the language
@@ -174,7 +161,6 @@ class MainActivity : AppCompatActivity() {
                                 AppEntry(backStack)
                                 if (showSplash) {
                                     BriefSplash(
-                                        systemSplashGone = systemSplashGone.value,
                                         onFinished = { showSplash = false },
                                     )
                                 }
@@ -307,4 +293,3 @@ private fun Intent.getLaunchAction(): LaunchAction? {
 }
 
 /** How long the system splash takes to fade out over the identical first frame of BriefSplash. */
-private const val SYSTEM_SPLASH_HANDOFF_MS = 150L

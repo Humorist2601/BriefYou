@@ -416,13 +416,25 @@ private fun FilterLogCard(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         )
                     }
+                    // The feed this copy came from (the chip names the feed that had it first).
                     Text(
-                        text = entry.feedName,
+                        text = stringResource(R.string.filters_from_feed, entry.feedName),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(start = 8.dp).weight(1f, fill = false),
+                    )
+                }
+                // For a duplicate: the original story it repeats.
+                if (entry.reason == FilterReason.Duplicate && entry.detailFeed != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.filters_original_story, entry.detail),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

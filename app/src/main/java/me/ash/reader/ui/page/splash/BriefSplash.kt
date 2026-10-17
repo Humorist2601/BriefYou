@@ -15,7 +15,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -40,17 +39,15 @@ import kotlin.math.ln
 import kotlin.math.max
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import me.ash.reader.R
 
 /*
  * The animated splash, drawn over the app right after the system splash hands over.
  *
  * It starts on the exact frame the system splash shows (icon A's front card alone, in the splash
- * colours, see ic_launcher_splash_screen and colors_splash), waits for the system splash to fade
- * out over it, then, in about 1.2 s:
+ * colours, see ic_launcher_splash_screen and colors_splash), so the system splash is simply
+ * removed, and then right away, in about 1.2 s:
  * 1. the two back cards fan out from behind the front card on a bouncy spring;
  * 2. the three lines of the brief write in from the left;
  * 3. the AI sparkle pops in with a little twist and settles;
@@ -69,7 +66,6 @@ import me.ash.reader.R
  */
 private val SystemSplashIconSize = 288.dp
 
-private const val SystemSplashWaitTimeoutMs = 700L
 private const val LinesDelayMs = 150L
 private const val SparkleDelayMs = 430L
 private const val GrowDelayMs = 680L
@@ -89,7 +85,7 @@ private const val FrontRotation = 3f
 private val GrowEasing = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)
 
 @Composable
-fun BriefSplash(systemSplashGone: Boolean, onFinished: () -> Unit, modifier: Modifier = Modifier) {
+fun BriefSplash(onFinished: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val background = colorResource(R.color.splash_background)
     val back = colorResource(R.color.splash_card_back)
@@ -107,7 +103,6 @@ fun BriefSplash(systemSplashGone: Boolean, onFinished: () -> Unit, modifier: Mod
     val twist = remember { Animatable(25f) }
     val grow = remember { Animatable(0f) }
 
-    val currentSystemSplashGone by rememberUpdatedState(systemSplashGone)
     LaunchedEffect(Unit) {
         // With animations switched off in the system settings, go straight to the app.
         val animationScale =
@@ -120,11 +115,7 @@ fun BriefSplash(systemSplashGone: Boolean, onFinished: () -> Unit, modifier: Mod
             currentOnFinished()
             return@LaunchedEffect
         }
-        // Hold the first frame until the system splash has faded out on top of it; animating
-        // under it would show two cards. The timeout covers launches without that callback.
-        withTimeoutOrNull(SystemSplashWaitTimeoutMs) {
-            snapshotFlow { currentSystemSplashGone }.first { it }
-        }
+        // No waiting: the two back cards start fanning out on the very first frame.
         coroutineScope {
             launch { fan.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 260f)) }
             launch {
