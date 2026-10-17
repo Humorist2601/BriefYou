@@ -38,6 +38,8 @@ import me.ash.reader.ui.theme.palette.alwaysLight
 fun RYWebView(
     modifier: Modifier = Modifier,
     content: String,
+    /** The article's address, which relative image and link addresses are read against. */
+    baseUrl: String? = null,
     refererDomain: String? = null,
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
 ) {
@@ -130,7 +132,9 @@ fun RYWebView(
                             selectionTextColor = selectionTextColor,
                             selectionBgColor = selectionBgColor,
                         ),
-                        url,
+                        // The article's address (this used to read the web view's own, empty one,
+                        // so relative images and links didn't work).
+                        baseUrl.orEmpty().replace("\"", "%22"),
                         content,
                         WebViewScript.get(boldCharacters.value),
                     ),

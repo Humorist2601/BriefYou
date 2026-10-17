@@ -228,7 +228,11 @@ constructor(
             rawDescription = content ?: desc ?: "",
             shortDescription = Readability.parseToText(desc ?: content, syndEntry.link).take(280),
             //            fullContent = content,
-            img = findThumbnail(syndEntry) ?: findThumbnail(content ?: desc),
+            img =
+                FeedContent.listImage(
+                    findThumbnail(syndEntry) ?: findThumbnail(content ?: desc),
+                    syndEntry.link,
+                ),
             link = syndEntry.link ?: "",
             updateAt = preDate,
         )

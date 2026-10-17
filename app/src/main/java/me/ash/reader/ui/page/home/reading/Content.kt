@@ -104,6 +104,7 @@ fun Content(
                             RYWebView(
                                 modifier = Modifier.fillMaxSize(),
                                 content = content,
+                                baseUrl = link,
                                 refererDomain = link.extractDomain(),
                                 onImageClick = onImageClick,
                             )

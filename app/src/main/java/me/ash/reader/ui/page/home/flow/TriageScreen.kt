@@ -2,6 +2,7 @@
 
 package me.ash.reader.ui.page.home.flow
 
+import me.ash.reader.infrastructure.rss.FeedContent
 import androidx.activity.BackEventCompat
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
@@ -938,7 +939,7 @@ private fun TriageCard(
                     RYAsyncImage(
                         modifier =
                             Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(24.dp)),
-                        data = item.img,
+                        data = FeedContent.listImage(item.img, item.link),
                         scale = Scale.FILL,
                         precision = Precision.INEXACT,
                         size = SIZE_1000,

@@ -38,6 +38,8 @@ import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.saveable.rememberSaveable
+import me.ash.reader.ui.motion.isBackPreviewActive
+import me.ash.reader.ui.motion.stayPutDuringBackPreview
 import me.ash.reader.ui.page.home.feeds.sort.FeedSortViewModel
 import me.ash.reader.ui.page.home.feeds.sort.FeedSortSheet
 import androidx.compose.material3.FilledTonalButton
@@ -471,13 +473,20 @@ fun FeedsPage(
             FilterBar(
                 modifier =
                     // The bar stays in place (above both screens) while moving between Feeds and
-                    // the article list, in both directions and during the back gesture.
+                    // the article list, in both directions. During the back gesture the back
+                    // animation keeps it in place instead (it lifts the bar out of the moving card).
                     with(sharedTransitionScope) {
-                        Modifier.sharedElement(
-                            sharedContentState = rememberSharedContentState("filterBar"),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                        )
-                    },
+                        val barState = rememberSharedContentState("filterBar")
+                        if (isBackPreviewActive) {
+                            Modifier
+                        } else {
+                            Modifier.sharedElement(
+                                sharedContentState = barState,
+                                animatedVisibilityScope = animatedVisibilityScope,
+                            )
+                        }
+                    }
+                        .stayPutDuringBackPreview(),
                 filter = filterState.filter,
                 filterBarStyle = filterBarStyle.value,
                 filterBarFilled = true,

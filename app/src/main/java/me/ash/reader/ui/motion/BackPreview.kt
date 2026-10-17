@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -44,7 +45,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -158,6 +164,9 @@ internal object BackPreviewState {
      * until the host lets them go.
      */
     val collapsedKeys = mutableStateListOf<Any>()
+
+    /** Screens with a bar that stays put during a back gesture (see [stayPutDuringBackPreview]). */
+    val fixedKeys = mutableStateListOf<Any>()
 
     /** The screens the host is showing right now, and whether its transition is moving them. */
     val composed = HashMap<Any, Boolean>()
@@ -383,6 +392,69 @@ private fun displayCornerRadius(): Float {
     }
 }
 
+/**
+ * Where a page's staying bar is during a back gesture:
+ * - [Normal]: drawn as part of the screen.
+ * - [Lifted]: drawn by the page on its own, at its normal place above the moving card.
+ * - [Hidden]: not drawn (the other screen draws the bar).
+ */
+private enum class BarMode {
+    Normal,
+    Lifted,
+    Hidden,
+}
+
+/** One page's staying bar: its picture and where it is. */
+private class StayingBar(val layer: GraphicsLayer) {
+    var pageCoords: LayoutCoordinates? = null
+    var barCoords: LayoutCoordinates? = null
+}
+
+private val LocalBackPreviewKey = staticCompositionLocalOf<Any?> { null }
+private val LocalStayingBar = staticCompositionLocalOf<StayingBar?> { null }
+
+/**
+ * Only when both screens of the gesture have a staying bar (Feeds and the article list): the
+ * screen you leave lifts its bar out of the card while you swipe, and the screen behind lifts its
+ * bar once it went back; the other copy is hidden. So the bar never moves.
+ */
+private fun barMode(key: Any): BarMode {
+    val s = BackPreviewState
+    if (s.phase == BackPhase.Idle) return BarMode.Normal
+    val leaving = s.leavingKey
+    val behind = s.behindKey
+    if (leaving !in s.fixedKeys || behind !in s.fixedKeys) return BarMode.Normal
+    return when (key) {
+        leaving ->
+            if (s.phase == BackPhase.Committing) BarMode.Hidden else BarMode.Lifted
+        behind ->
+            if (s.phase == BackPhase.Committing) BarMode.Lifted else BarMode.Hidden
+        else -> BarMode.Normal
+    }
+}
+
+/**
+ * For a bar at the bottom of a screen that should stay exactly where it is during the back
+ * gesture between two screens that both have it (the Feeds / article list filter bar).
+ */
+@Composable
+fun Modifier.stayPutDuringBackPreview(): Modifier {
+    val key = LocalBackPreviewKey.current ?: return this
+    val bar = LocalStayingBar.current ?: return this
+    DisposableEffect(key) {
+        BackPreviewState.fixedKeys.add(key)
+        onDispose { BackPreviewState.fixedKeys.remove(key) }
+    }
+    return this.onGloballyPositioned { bar.barCoords = it }
+        .drawWithContent {
+            when (barMode(key)) {
+                BarMode.Normal -> drawContent()
+                BarMode.Lifted -> bar.layer.record { this@drawWithContent.drawContent() }
+                BarMode.Hidden -> {}
+            }
+        }
+}
+
 private enum class Role {
     None,
     Leaving,
@@ -435,6 +507,8 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
     val growing = role == Role.Behind && phase == BackPhase.Committing
 
     val picture = LocalBackPreviewPicture.current
+    val barLayer = rememberGraphicsLayer()
+    val stayingBar = remember(barLayer) { StayingBar(barLayer) }
     val density = LocalDensity.current
     val margin = with(density) { MARGIN.toPx() }
     val offset = with(density) { ENTERING_START_OFFSET.toPx() }
@@ -447,6 +521,7 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
     Box(
         modifier =
             Modifier.fillMaxSize()
+                .onGloballyPositioned { stayingBar.pageCoords = it }
                 .layout { measurable, constraints ->
                     val placeable = measurable.measure(constraints)
                     if (collapsed) {
@@ -516,6 +591,15 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
                     } else {
                         drawContent()
                     }
+                    // The staying bar, lifted out of the card: at its own place, full size.
+                    if (barMode(key) == BarMode.Lifted) {
+                        val page = stayingBar.pageCoords
+                        val barCoords = stayingBar.barCoords
+                        if (page != null && barCoords != null && page.isAttached && barCoords.isAttached) {
+                            val at = page.localPositionOf(barCoords, Offset.Zero)
+                            translate(at.x, at.y) { drawLayer(stayingBar.layer) }
+                        }
+                    }
                 }
                 .drawWithContent {
                     drawContent()
@@ -526,6 +610,11 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
                     }
                 }
     ) {
-        content()
+        CompositionLocalProvider(
+            LocalBackPreviewKey provides key,
+            LocalStayingBar provides stayingBar,
+        ) {
+            content()
+        }
     }
 }

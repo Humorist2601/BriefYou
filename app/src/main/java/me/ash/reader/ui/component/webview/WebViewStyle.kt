@@ -211,6 +211,23 @@ img + small {
     text-align: var(--text-align) !important;
 }
 
+/* Brief You: pictures tidied by FeedContent (Wikipedia, xkcd) are shown across the page */
+img.brief-full {
+    display: block !important;
+    width: calc(100% + 2 * var(--text-margin) - 2 * var(--img-margin)) !important;
+    max-width: calc(100% + 2 * var(--text-margin) - 2 * var(--img-margin)) !important;
+}
+
+figure.brief-figure {
+    margin: 0.5em 0 1.2em 0 !important;
+}
+
+figure.brief-figure figcaption {
+    margin-top: 0.6em !important;
+    font-size: 13px !important;
+    opacity: 0.75;
+}
+
 /* List */
 ul,
 ol {

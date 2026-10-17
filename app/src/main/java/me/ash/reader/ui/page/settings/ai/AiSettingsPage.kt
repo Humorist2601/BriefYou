@@ -108,11 +108,11 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                         text = stringResource(R.string.ai_settings_model),
                     )
                     // Where the model stands: missing, importing, imported (with its size), or failed.
-                    // Once imported, in the secondary accent so it stands apart from the actions.
+                    // Once imported, in the tertiary accent so it stands apart from the actions.
                     SettingItem(
                         title = statusText,
                         titleColor =
-                            if (model is ModelState.Ready) MaterialTheme.colorScheme.secondary
+                            if (model is ModelState.Ready) MaterialTheme.colorScheme.tertiary
                             else Color.Unspecified,
                         onClick = {},
                     ) {}
@@ -160,12 +160,10 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                     )
                     SettingItem(
                         title = stringResource(R.string.ai_settings_article_prompt),
-                        desc = articlePrompt.preview(),
                         onClick = { editing = PromptKind.Article },
                     ) {}
                     SettingItem(
                         title = stringResource(R.string.ai_settings_gist_prompt),
-                        desc = gistPrompt.preview(),
                         onClick = { editing = PromptKind.Gist },
                     ) {}
                 }
@@ -237,4 +235,3 @@ private fun PromptDialog(
     )
 }
 
-private fun String.preview(): String = if (length <= 110) this else take(110).trimEnd() + "…"

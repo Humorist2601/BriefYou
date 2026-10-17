@@ -51,7 +51,7 @@ fun SettingItem(
     /** The title's color; the usual one when unspecified. */
     titleColor: Color = Color.Unspecified,
     /** How many lines the description may take before it ends with "…". */
-    descMaxLines: Int = 3,
+    descMaxLines: Int = 1,
     onClick: () -> Unit,
     action: (@Composable () -> Unit)? = null,
 ) {

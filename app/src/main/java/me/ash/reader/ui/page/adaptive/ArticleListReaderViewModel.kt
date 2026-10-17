@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.adaptive
 
+import me.ash.reader.infrastructure.rss.FeedContent
 import android.net.Uri
 import androidx.paging.PagingSource
 import androidx.compose.ui.util.fastFirstOrNull
@@ -406,12 +407,19 @@ constructor(
             if (articleWithFeed.feed.isFullContent) {
                 val fullContent =
                     readerCacheHelper.readFullContent(articleWithFeed.article.id).getOrNull()
-                if (fullContent != null) ReaderState.FullContent(fullContent)
+                if (fullContent != null)
+                    ReaderState.FullContent(FeedContent.forReader(fullContent, articleWithFeed.article.link))
                 else {
                     renderFullContent()
                     ReaderState.Loading
                 }
-            } else ReaderState.Description(articleWithFeed.article.rawDescription)
+            } else
+                ReaderState.Description(
+                    FeedContent.forReader(
+                        articleWithFeed.article.rawDescription,
+                        articleWithFeed.article.link,
+                    )
+                )
 
         return copy(content = contentState)
     }
@@ -419,7 +427,14 @@ constructor(
     fun renderDescriptionContent() {
         _readerState.update {
             it.copy(
-                content = ReaderState.Description(content = currentArticle?.rawDescription ?: "")
+                content =
+                    ReaderState.Description(
+                        content =
+                            FeedContent.forReader(
+                                currentArticle?.rawDescription ?: "",
+                                currentArticle?.link,
+                            )
+                    )
             )
         }
     }
@@ -431,7 +446,12 @@ constructor(
                     .readOrFetchFullContent(currentArticle!!)
                     .onSuccess { content ->
                         _readerState.update {
-                            it.copy(content = ReaderState.FullContent(content = content))
+                            it.copy(
+                                content =
+                                    ReaderState.FullContent(
+                                        content = FeedContent.forReader(content, currentArticle?.link)
+                                    )
+                            )
                         }
                     }
                     .onFailure { th ->

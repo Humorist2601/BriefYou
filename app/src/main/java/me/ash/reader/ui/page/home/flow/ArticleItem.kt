@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.home.flow
 
+import me.ash.reader.infrastructure.rss.FeedContent
 import androidx.compose.material.icons.outlined.AutoAwesome
 import me.ash.reader.ui.component.rememberFeedAccent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -42,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -79,6 +81,7 @@ import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.ui.component.swipe.SwipeAction
 import me.ash.reader.ui.component.swipe.SwipeableActionsBox
 import me.ash.reader.ui.component.swipe.rememberSwipeableActionsState
+import me.ash.reader.ui.component.swipe.SwipeableActionsState
 import androidx.compose.animation.animateColorAsState
 import me.ash.reader.ui.ext.requiresBidi
 import me.ash.reader.ui.ext.surfaceColorAtElevation
@@ -107,7 +110,7 @@ fun ArticleItem(
         title = article.title,
         shortDescription = article.shortDescription,
         timeString = article.dateString,
-        imgData = article.img,
+        imgData = FeedContent.listImage(article.img, article.link),
         isStarred = article.isStarred,
         isUnread = isUnread,
         readingMinutes = remember(article.id) { estimateReadingMinutes(article.rawDescription) },
@@ -416,16 +419,9 @@ private fun SwipeActionBox(
     // The icon sits on the page color until the swipe passes the threshold, then on the accent
     // container: it uses the accent there, and the container's own "on" color (which Material You
     // keeps readable on it, whatever the theme) after.
+    // The color is worked out inside each icon, so only the icon redraws while it changes: if the
+    // whole box redrew, the swipe would see "new" actions every frame and buzz again and again.
     val swipeState = rememberSwipeableActionsState()
-    val iconTint by
-        animateColorAsState(
-            if (swipeState.hasCrossedSwipeThreshold() || swipeState.isResettingOnRelease) {
-                MaterialTheme.colorScheme.onTertiaryContainer
-            } else {
-                MaterialTheme.colorScheme.tertiary
-            },
-            label = "swipeIconTint",
-        )
 
     val swipeToStartAction = LocalArticleListSwipeStartAction.current
     val swipeToEndAction = LocalArticleListSwipeEndAction.current
@@ -462,7 +458,7 @@ private fun SwipeActionBox(
                             Icon(
                                 imageVector = it,
                                 contentDescription = null,
-                                tint = iconTint,
+                                tint = swipeIconTint(swipeState),
                                 modifier = Modifier.padding(horizontal = 24.dp),
                             )
                         }
@@ -486,7 +482,7 @@ private fun SwipeActionBox(
                             Icon(
                                 imageVector = it,
                                 contentDescription = null,
-                                tint = iconTint,
+                                tint = swipeIconTint(swipeState),
                                 modifier = Modifier.padding(horizontal = 24.dp),
                             )
                         }
@@ -704,4 +700,19 @@ fun MenuContentPreview() {
             }
         }
     }
+}
+
+/** The swipe icon's color: the accent on the page color, then the container's "on" color. */
+@Composable
+private fun swipeIconTint(state: SwipeableActionsState): Color {
+    val tint by
+        animateColorAsState(
+            if (state.hasCrossedSwipeThreshold() || state.isResettingOnRelease) {
+                MaterialTheme.colorScheme.onTertiaryContainer
+            } else {
+                MaterialTheme.colorScheme.tertiary
+            },
+            label = "swipeIconTint",
+        )
+    return tint
 }

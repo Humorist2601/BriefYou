@@ -216,12 +216,13 @@ private fun SortSection(title: String, selected: SortMode, onSelect: (SortMode) 
     }
 }
 
-/** A big square tile with an icon, its label under it. The chosen one is filled and rounder. */
+/** A big rounded-square tile with an icon, its label under it. The chosen one is filled and becomes a circle. */
 @Composable
 private fun SortTile(kind: SortKind, selected: Boolean, onClick: () -> Unit) {
     val spatial = MaterialTheme.motionScheme.fastSpatialSpec<Dp>()
     val effects = MaterialTheme.motionScheme.fastEffectsSpec<Color>()
-    val corner by animateDpAsState(if (selected) 22.dp else 16.dp, spatial, label = "tileCorner")
+    // 30 dp is half the tile's size: the chosen tile morphs into a circle.
+    val corner by animateDpAsState(if (selected) 30.dp else 16.dp, spatial, label = "tileCorner")
     val container by
         animateColorAsState(
             if (selected) MaterialTheme.colorScheme.primaryContainer
