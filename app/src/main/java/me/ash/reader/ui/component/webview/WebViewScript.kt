@@ -88,9 +88,21 @@ images.forEach(function(img) {
         }
     };
 
-    img.onerror = function() {
-        console.error("Failed to load image:", img.src);
-    };
+    // Keep a picture's own fallback (a sharper version that can't load falls back to the
+    // normal one, see FeedContent).
+    if (!img.onerror) {
+        img.onerror = function() {
+            console.error("Failed to load image:", img.src);
+        };
+    }
+});
+
+// Brief You: tell the app what text is selected, for "Explain with AI".
+document.addEventListener("selectionchange", function() {
+    var text = window.getSelection ? window.getSelection().toString() : "";
+    if (window.JavaScriptInterface && window.JavaScriptInterface.onSelectionChanged) {
+        window.JavaScriptInterface.onSelectionChanged(text);
+    }
 });
 """
 }

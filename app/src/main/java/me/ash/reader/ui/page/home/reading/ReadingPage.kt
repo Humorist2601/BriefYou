@@ -1,5 +1,12 @@
 package me.ash.reader.ui.page.home.reading
 
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import me.ash.reader.ui.page.home.flow.readingMinutes
+import me.ash.reader.domain.model.article.ArticleWithFeed
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.mutableFloatStateOf
 import me.ash.reader.ui.ext.openURL
 import me.ash.reader.infrastructure.preference.LocalOpenLinkSpecificBrowser
 import me.ash.reader.infrastructure.preference.LocalOpenLink
@@ -87,6 +94,31 @@ fun ReadingPage(
     var isReaderScrollingDown by remember { mutableStateOf(false) }
     var showFullScreenImageViewer by remember { mutableStateOf(false) }
     var showSummary by remember { mutableStateOf(false) }
+    // Reading page additions: how far the article is scrolled, the selected text (for Explain),
+    // the quick text settings sheet, and the AI key points card switch.
+    var readingProgress by remember { mutableFloatStateOf(0f) }
+    var selectedText by remember { mutableStateOf("") }
+    var explainPassage by remember { mutableStateOf<String?>(null) }
+    var showTextSheet by remember { mutableStateOf(false) }
+    var keyPointsOn by remember { mutableStateOf(ReadingExperiments.keyPoints(context)) }
+    val totalMinutes = remember(readerState.content.text) { readingMinutes(readerState.content.text ?: "") }
+    val timeLeftLabel =
+        if (readingProgress < 0.01f) null
+        else {
+            val left = kotlin.math.ceil(totalMinutes * (1f - readingProgress)).toInt()
+            if (left <= 0) stringResource(R.string.reading_almost_done)
+            else stringResource(R.string.reading_time_left, left)
+        }
+    val nextArticleId = readerState.nextArticle?.articleId
+    val nextPreview by
+        produceState<ArticleWithFeed?>(initialValue = null, nextArticleId) {
+            value = nextArticleId?.let { viewModel.previewArticle(it) }
+        }
+    // A new article starts unscrolled with nothing selected.
+    LaunchedEffect(readerState.articleId) {
+        readingProgress = 0f
+        selectedText = ""
+    }
 
     var currentImageData by remember { mutableStateOf(ImageData()) }
 
@@ -116,11 +148,14 @@ fun ReadingPage(
                         isShow = isShowToolBar,
                         isScrolled = showTopDivider,
                         title = readerState.title,
+                        progress = { readingProgress },
+                        timeLeft = timeLeftLabel,
                         link = readerState.link,
                         onClick = { bringToTop = true },
                         navigationAction = navigationAction,
                         onNavButtonClick = onNavAction,
-                        onNavigateToStylePage = onNavigateToStylePage,
+                        // The Style button opens the quick text sheet right over the article.
+                        onNavigateToStylePage = { showTextSheet = true },
                         // The AI summary button is in the bottom bar now.
                         onSummarize = null,
                     )
@@ -236,6 +271,25 @@ fun ReadingPage(
                                         }
                                         .collectAsStateValue(initial = false)
 
+                                // How far the article is scrolled (exact, unlike read aloud).
+                                LaunchedEffect(scrollState, listState) {
+                                    snapshotFlow {
+                                            val max = scrollState.maxValue
+                                            if (max in 1 until Int.MAX_VALUE) {
+                                                scrollState.value.toFloat() / max
+                                            } else {
+                                                val info = listState.layoutInfo
+                                                val total = info.totalItemsCount
+                                                val last = info.visibleItemsInfo.lastOrNull()?.index ?: 0
+                                                if (total <= 1 || listState.firstVisibleItemIndex == 0 &&
+                                                    listState.firstVisibleItemScrollOffset == 0
+                                                ) 0f
+                                                else (last + 1).toFloat() / total
+                                            }
+                                        }
+                                        .collect { readingProgress = it.coerceIn(0f, 1f) }
+                                }
+
                                 CompositionLocalProvider(
                                     LocalTextStyle provides
                                         LocalTextStyle.current.run {
@@ -255,7 +309,25 @@ fun ReadingPage(
                                     ) {
                                         Content(
                                             modifier =
-                                                Modifier.pullToLoad(
+                                                Modifier.swipeBetweenArticles(
+                                                        onNext =
+                                                            // Off while selecting text, so a drag
+                                                            // on the selection handles stays put.
+                                                            readerState.nextArticle
+                                                                ?.takeIf { selectedText.isEmpty() }
+                                                                ?.let { (id, index) ->
+                                                                    { onLoadArticle(id, index) }
+                                                                },
+                                                        onPrevious =
+                                                            // Off while selecting text, so a drag
+                                                            // on the selection handles stays put.
+                                                            readerState.previousArticle
+                                                                ?.takeIf { selectedText.isEmpty() }
+                                                                ?.let { (id, index) ->
+                                                                    { onLoadArticle(id, index) }
+                                                                },
+                                                    )
+                                                    .pullToLoad(
                                                     state = state,
                                                     onScroll = { f ->
                                                         if (abs(f) > 2f)
@@ -277,6 +349,28 @@ fun ReadingPage(
                                                 currentImageData = ImageData(imgUrl, altText)
                                                 showFullScreenImageViewer = true
                                             },
+                                            beforeArticle =
+                                                if (keyPointsOn && articleId != null) {
+                                                    {
+                                                        KeyPointsCard(
+                                                            articleId = articleId,
+                                                            title = title,
+                                                            html = content.text ?: "",
+                                                        )
+                                                    }
+                                                } else null,
+                                            afterArticle = {
+                                                NextArticleCard(
+                                                    next = nextPreview,
+                                                    onNext = {
+                                                        readerState.nextArticle?.let { (id, index) ->
+                                                            onLoadArticle(id, index)
+                                                        }
+                                                    },
+                                                    onBackToList = { onNavAction(navigationAction) },
+                                                )
+                                            },
+                                            onSelectionChanged = { selectedText = it },
                                         )
                                         PullToLoadIndicator(
                                             state = state,
@@ -288,6 +382,15 @@ fun ReadingPage(
                             }
                     }
                 }
+                // Explain the selected text with the on-device model.
+                ExplainChip(
+                    visible = selectedText.length >= 20,
+                    onClick = { explainPassage = selectedText },
+                    modifier =
+                        Modifier.align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = 96.dp),
+                )
                 // Bottom Bar
                 if (readerState.articleId != null) {
                     BottomBar(
@@ -369,6 +472,26 @@ fun ReadingPage(
                 ),
             heading = stringResource(R.string.ai_summary),
             onDismissRequest = { showSummary = false },
+        )
+    }
+    explainPassage?.let { passage ->
+        SummarySheet(
+            requestKey = "explain-${passage.hashCode()}",
+            request = SummaryRequest.Explain(title = readerState.title, passage = passage),
+            heading = stringResource(R.string.reading_explain_heading),
+            onDismissRequest = { explainPassage = null },
+        )
+    }
+    if (showTextSheet) {
+        TextSettingsSheet(
+            onDismiss = {
+                showTextSheet = false
+                keyPointsOn = ReadingExperiments.keyPoints(context)
+            },
+            onAllSettings = {
+                showTextSheet = false
+                onNavigateToStylePage()
+            },
         )
     }
     if (showFullScreenImageViewer) {

@@ -39,6 +39,8 @@ object WebViewStyle {
         tableMargin: Int,
         selectionTextColor: Int,
         selectionBgColor: Int,
+        /** Dark theme: pictures are dimmed a little so they don't glare. */
+        isDark: Boolean = false,
     ): String = """
 ${applyFontFace(fontPath)}
 :root {
@@ -210,6 +212,22 @@ img + small {
     margin-top: var(--image-caption-margin) !important;
     text-align: var(--text-align) !important;
 }
+
+/* Brief You: wide tables scroll inside their own box (added by FeedContent) */
+.brief-table {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100% !important;
+}
+
+/* Brief You: captions under pictures, small and quiet */
+figcaption {
+    margin-top: 0.4em !important;
+    opacity: 0.75;
+    font-style: italic;
+}
+
+${if (isDark) "img { filter: brightness(0.88) !important; }" else ""}
 
 /* Brief You: pictures tidied by FeedContent (Wikipedia, xkcd) are shown across the page */
 img.brief-full {

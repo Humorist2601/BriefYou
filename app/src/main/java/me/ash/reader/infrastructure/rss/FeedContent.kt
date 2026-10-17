@@ -50,6 +50,7 @@ object FeedContent {
         return runCatching {
                 val doc = Jsoup.parseBodyFragment(html, link ?: "")
                 makeAddressesComplete(doc, link)
+                tidyGeneral(doc)
                 val host = link?.let { runCatching { URI(it).host }.getOrNull() }.orEmpty()
                 when {
                     host.endsWith("wikipedia.org") -> tidyWikipedia(doc)
@@ -58,6 +59,94 @@ object FeedContent {
                 doc.body().html()
             }
             .getOrDefault(html)
+    }
+
+    /**
+     * The article's lead picture, when the article starts with one (before any real text): it is
+     * taken out of the article so the reading page can show it as a large picture above the
+     * title. Returns the picture's address (or null) and the article without it.
+     */
+    fun extractHero(html: String): Pair<String?, String> {
+        if (html.isBlank()) return null to html
+        return runCatching {
+                val doc = Jsoup.parseBodyFragment(html)
+                var textBefore = 0
+                var hero: Element? = null
+                for (node in doc.body().allElements) {
+                    if (node.tagName() == "img") {
+                        hero = node
+                        break
+                    }
+                    textBefore += node.ownText().length
+                    if (textBefore > 120) break
+                }
+                val img = hero ?: return@runCatching null to html
+                val src = img.attr("src")
+                val width = img.attr("width").toIntOrNull()
+                // A picture with a caption (a comic, a captioned photo) stays with its caption.
+                val captioned = img.parents().any { it.tagName() == "figure" && it.selectFirst("figcaption") != null }
+                if (src.isBlank() || src.startsWith("data:") || (width != null && width < 300) || captioned) {
+                    return@runCatching null to html
+                }
+                // Take the picture out, with any wrapper it leaves empty (a link, a figure, a
+                // paragraph).
+                var parent = img.parent()
+                img.remove()
+                while (parent != null && parent != doc.body() && parent.text().isBlank() &&
+                    parent.select("img, video, iframe").isEmpty()
+                ) {
+                    val next = parent.parent()
+                    parent.remove()
+                    parent = next
+                }
+                src to doc.body().html()
+            }
+            .getOrDefault(null to html)
+    }
+
+    /**
+     * For every feed: tracking pixels, share and "related posts" widgets, "Read more" links and
+     * "The post … appeared first on …" lines are removed; tables get a box that scrolls sideways.
+     */
+    private fun tidyGeneral(doc: Document) {
+        // Tracking pixels: tiny or hidden images, and feed tracker images.
+        for (img in doc.select("img")) {
+            val w = img.attr("width").toIntOrNull()
+            val h = img.attr("height").toIntOrNull()
+            val src = img.attr("src")
+            val tiny = (w != null && w <= 2) || (h != null && h <= 2)
+            val tracker = src.contains("feeds.feedburner.com/~r") || src.contains("/~ff/") ||
+                src.contains("pixel.wp.com") || src.contains("stats.wordpress.com")
+            val hidden = img.attr("style").replace(" ", "").contains("display:none")
+            if (tiny || tracker || hidden) img.remove()
+        }
+        // Share buttons, social links and related-post lists that some feeds include.
+        doc.select(
+                ".sharedaddy, .jp-relatedposts, .addtoany_share_save_container, .feedflare, " +
+                    ".share-buttons, .social-share, .sharing, [class*=share-links], [class*=social-links]"
+            )
+            .remove()
+        // "The post … appeared first on …" (WordPress) and similar footers.
+        val footer = Regex("(?i)^\\s*the post .+ appeared first on .+$")
+        doc.select("p").filter { footer.matches(it.text()) }.forEach { it.remove() }
+        // "Read more" / "Continue reading" links (the reading page has its own way to the site).
+        val readMore =
+            Regex("(?i)^\\s*(read more|continue reading|keep reading|read the (full|rest of the) (story|article|post)|weiterlesen)\\b.*")
+        for (a in doc.select("a")) {
+            if (!readMore.matches(a.text())) continue
+            val parent = a.parent()
+            a.remove()
+            if (parent != null && parent.tagName() == "p" && parent.text().isBlank() &&
+                parent.select("img").isEmpty()
+            ) {
+                parent.remove()
+            }
+        }
+        // Wide tables scroll inside their own box instead of spilling off the page.
+        for (table in doc.select("table")) {
+            if (table.parent()?.hasClass("brief-table") == true) continue
+            table.wrap("<div class=\"brief-table\"></div>")
+        }
     }
 
     private fun makeAddressesComplete(doc: Document, link: String?) {

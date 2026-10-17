@@ -104,7 +104,8 @@ fun SummarySheet(
     val gistMarkedRead = viewModel.gistMarkedRead.collectAsStateValue()
     val ttsState = viewModel.textToSpeechManager.stateFlow.collectAsStateValue()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val isArticle = request is SummaryRequest.Article
+    // An explanation works like a summary (read aloud, write again); only a gist differs.
+    val isArticle = request !is SummaryRequest.Gist
 
     LaunchedEffect(requestKey) { viewModel.start(request) }
     DisposableEffect(Unit) { onDispose { viewModel.stop() } }

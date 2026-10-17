@@ -55,8 +55,15 @@ jobs:
                       echo "### Changes"
                       git log -1 --format='%s%n%n%b' | grep -vE '^(Co-Authored-By|Claude-Session):'
                   } > notes.md
+                  # Builds of other branches (experiments) are pre-releases, so they never
+                  # replace main's build as the latest release.
+                  if [ "${{ github.ref_name }}" = "main" ]; then
+                      release_kind="--latest"
+                  else
+                      release_kind="--prerelease"
+                  fi
                   gh release create "$tag" "$apk" \
                       --title "Brief You ${tag}" \
                       --notes-file notes.md \
                       --target "$GITHUB_SHA" \
-                      --latest
+                      $release_kind

@@ -32,6 +32,26 @@
     <string name="ai_read_aloud">Read aloud</string>
     <string name="ai_stop_reading">Stop</string>
 
+    <!-- Reading page (experiments) -->
+    <string name="reading_time_left">%1$d min left</string>
+    <string name="reading_almost_done">Almost done</string>
+    <string name="reading_up_next">Up next</string>
+    <string name="reading_back_to_list">Back to list</string>
+    <string name="reading_all_caught_up">That was the last article here</string>
+    <string name="reading_key_points">Key points</string>
+    <string name="reading_key_points_show">Show</string>
+    <string name="reading_explain">Explain</string>
+    <string name="reading_explain_heading">Explanation</string>
+    <string name="text_settings">Text</string>
+    <string name="text_settings_size">Text size</string>
+    <string name="text_settings_line_height">Line spacing</string>
+    <string name="text_settings_padding">Side margins</string>
+    <string name="text_settings_font">Font</string>
+    <string name="text_settings_justify">Justify text</string>
+    <string name="text_settings_key_points">AI key points above articles</string>
+    <string name="text_settings_key_points_desc">Uses the on-device model, only when you tap Show</string>
+    <string name="text_settings_all">All reading settings</string>
+
     <!-- Group gist -->
     <string name="ai_gist">Gist</string>
     <string name="ai_gist_of">Gist of %1$s</string>
