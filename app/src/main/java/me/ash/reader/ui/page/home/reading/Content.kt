@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.home.reading
 
+import me.ash.reader.infrastructure.preference.LocalReadingTextHorizontalPadding
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,6 +55,7 @@ fun Content(
     val context = LocalContext.current
     val subheadUpperCase = LocalReadingSubheadUpperCase.current
     val renderer = LocalReadingRenderer.current
+    val textHorizontalPadding = LocalReadingTextHorizontalPadding.current
 
     val textContentWidth = LocalTextContentWidth.current
     val maxWidthModifier = Modifier.widthIn(max = textContentWidth)
@@ -64,7 +66,13 @@ fun Content(
 
     val headline =
         @Composable {
-            Column(modifier = Modifier.then(maxWidthModifier).padding(horizontal = 12.dp)) {
+            // Lined up with the article text: the reading text padding setting, less the 12 dp
+            // the title block has inside it.
+            Column(
+                modifier =
+                    Modifier.then(maxWidthModifier)
+                        .padding(horizontal = (textHorizontalPadding - 12).coerceAtLeast(0).dp)
+            ) {
                 DisableSelection {
                     Metadata(
                         feedName = feedName,

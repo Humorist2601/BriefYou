@@ -1,26 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed (Android 13+) version of the launcher icon: one colour, the back cards lighter, the
+     lines and the sparkle cut out of the front card. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-        android:width="108dp"
-        android:height="108dp"
-        android:viewportWidth="108"
-        android:viewportHeight="108">
-    <group android:scaleX="0.72"
-           android:scaleY="0.72"
-           android:translateX="15.12"
-           android:translateY="15.12">
-        <path
-                android:pathData="M40.536,60.506L53.574,69.954L41.656,77.112C39.473,78.429 36.803,76.482 37.377,74.02L40.536,60.506Z"
-                android:strokeAlpha="0.25"
-                android:fillColor="#191C1E"
-                android:fillAlpha="0.5"/>
-        <path
-                android:pathData="M77.101,51.693L66.561,60.798L45.453,45.48L50.881,32.739C51.857,30.42 55.189,30.42 56.165,32.739L61.593,45.509L75.464,46.683C77.991,46.883 79.025,50.032 77.101,51.693Z"
-                android:strokeAlpha="0.5"
-                android:fillColor="#191C1E"
-                android:fillAlpha="0.8"/>
-        <path
-                android:pathData="M65.492,77.267L53.574,70.081L40.536,60.633L29.996,51.528C28.072,49.867 29.106,46.718 31.633,46.518L45.504,45.344L66.612,60.661L69.771,74.175C70.346,76.637 67.675,78.584 65.492,77.267Z"
-                android:strokeAlpha="0.8"
-                android:fillColor="#191C1E"
-                android:fillAlpha="1.0"/>
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:pivotX="49.9" android:pivotY="51.8" android:scaleX="0.8" android:scaleY="0.8" android:translateX="4.1" android:translateY="2.2">
+        <group android:pivotX="54" android:pivotY="72" android:rotation="-16">
+            <path android:pathData="M42,26H66A7,7 0 0 1 73,33V69A7,7 0 0 1 66,76H42A7,7 0 0 1 35,69V33A7,7 0 0 1 42,26Z" android:fillColor="#FFFFFF" android:fillAlpha="0.35"/>
+        </group>
+        <group android:pivotX="54" android:pivotY="72" android:rotation="-7">
+            <path android:pathData="M42,26H66A7,7 0 0 1 73,33V69A7,7 0 0 1 66,76H42A7,7 0 0 1 35,69V33A7,7 0 0 1 42,26Z" android:fillColor="#FFFFFF" android:fillAlpha="0.6"/>
+        </group>
+        <group android:pivotX="54" android:pivotY="72" android:rotation="3">
+            <path android:pathData="M42,26H66A7,7 0 0 1 73,33V69A7,7 0 0 1 66,76H42A7,7 0 0 1 35,69V33A7,7 0 0 1 42,26ZM43.25,35H62.75A2.25,2.25 0 0 1 65,37.25V37.25A2.25,2.25 0 0 1 62.75,39.5H43.25A2.25,2.25 0 0 1 41,37.25V37.25A2.25,2.25 0 0 1 43.25,35ZM42.5,44H65.5A1.5,1.5 0 0 1 67,45.5V45.5A1.5,1.5 0 0 1 65.5,47H42.5A1.5,1.5 0 0 1 41,45.5V45.5A1.5,1.5 0 0 1 42.5,44ZM42.5,50H58.5A1.5,1.5 0 0 1 60,51.5V51.5A1.5,1.5 0 0 1 58.5,53H42.5A1.5,1.5 0 0 1 41,51.5V51.5A1.5,1.5 0 0 1 42.5,50ZM62,57Q62,63.5 68.5,63.5Q62,63.5 62,70Q62,63.5 55.5,63.5Q62,63.5 62,57Z" android:fillColor="#FFFFFF" android:fillType="evenOdd"/>
+        </group>
     </group>
 </vector>

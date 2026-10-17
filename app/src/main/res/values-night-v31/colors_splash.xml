@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash screen colours from the wallpaper (Material You), dark theme. -->
+<resources>
+    <color name="splash_background">@android:color/system_accent1_800</color>
+    <color name="splash_card_back">@android:color/system_accent1_500</color>
+    <color name="splash_card_middle">@android:color/system_accent1_300</color>
+    <color name="splash_card_front">@android:color/system_accent1_50</color>
+    <color name="splash_line">@android:color/system_accent1_800</color>
+    <color name="splash_sparkle">@android:color/system_accent3_300</color>
+</resources>

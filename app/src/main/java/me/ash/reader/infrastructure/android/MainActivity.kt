@@ -1,5 +1,12 @@
 package me.ash.reader.infrastructure.android
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
+import me.ash.reader.ui.page.splash.BriefSplash
 import android.Manifest
 import android.content.Intent
 import android.database.CursorWindow
@@ -62,11 +69,32 @@ class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var notificationHelper: NotificationHelper
 
+    /** Flips when the system splash has faded out; BriefSplash starts animating then. */
+    private val systemSplashGone = mutableStateOf(Build.VERSION.SDK_INT < Build.VERSION_CODES.S)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i("RLog", "onCreate: ${ProfileInstallerInitializer().create(this)}")
 
         enableEdgeToEdge()
+
+        // The animated splash plays on fresh launches only (not when the activity is recreated).
+        // Its first frame is the system splash's last one, so the system splash just fades out
+        // over it and BriefSplash takes over.
+        val playSplash = savedInstanceState == null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && playSplash) {
+            splashScreen.setOnExitAnimationListener { view ->
+                view
+                    .animate()
+                    .alpha(0f)
+                    .setDuration(SYSTEM_SPLASH_HANDOFF_MS)
+                    .withEndAction {
+                        view.remove()
+                        systemSplashGone.value = true
+                    }
+                    .start()
+            }
+        }
 
         // Set the language
         if (Build.VERSION.SDK_INT < 33) {
@@ -141,7 +169,16 @@ class MainActivity : AppCompatActivity() {
                             val backStack = rememberNavBackStack(*startDestination.toTypedArray())
 
                             NewIntentHandlerEffect(backStack, subscribeViewModel)
-                            AppEntry(backStack)
+                            var showSplash by remember { mutableStateOf(playSplash) }
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                AppEntry(backStack)
+                                if (showSplash) {
+                                    BriefSplash(
+                                        systemSplashGone = systemSplashGone.value,
+                                        onFinished = { showSplash = false },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -268,3 +305,6 @@ private fun Intent.getLaunchAction(): LaunchAction? {
         }
     }
 }
+
+/** How long the system splash takes to fade out over the identical first frame of BriefSplash. */
+private const val SYSTEM_SPLASH_HANDOFF_MS = 150L

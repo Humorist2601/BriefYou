@@ -46,6 +46,12 @@
     <string name="ai_settings_desc">On-device Gemma, summaries, gist instructions</string>
     <string name="ai_settings_model">Model</string>
     <string name="ai_settings_status_missing">No model imported</string>
+    <string name="ai_model_tile_missing">No model</string>
+    <string name="ai_model_tile_missing_label">Download Gemma, then import it below</string>
+    <string name="ai_model_tile_ready_label">Gemma model, on this device</string>
+    <string name="ai_model_tile_importing">Importing</string>
+    <string name="ai_model_tile_importing_label">Copying the model into the app</string>
+    <string name="ai_model_tile_failed">Import failed</string>
     <string name="ai_settings_status_ready">Imported · %1$s</string>
     <string name="ai_settings_status_importing">Importing… %1$s</string>
     <string name="ai_settings_status_failed">Import failed: %1$s</string>

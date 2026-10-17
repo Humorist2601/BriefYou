@@ -2,6 +2,17 @@
 
 package me.ash.reader.ui.page.settings.ai
 
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Downloading
+import androidx.compose.material.icons.outlined.AutoAwesome
 import android.content.Intent
 import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -66,23 +77,6 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
             uri?.let(viewModel::importModel)
         }
 
-    val statusText =
-        when (model) {
-            ModelState.Missing -> stringResource(R.string.ai_settings_status_missing)
-            is ModelState.Ready ->
-                stringResource(
-                    R.string.ai_settings_status_ready,
-                    Formatter.formatShortFileSize(context, model.sizeBytes),
-                )
-            is ModelState.Importing ->
-                stringResource(
-                    R.string.ai_settings_status_importing,
-                    model.progress?.let { "${(it * 100).toInt()}%" } ?: "",
-                )
-            is ModelState.ImportFailed ->
-                stringResource(R.string.ai_settings_status_failed, model.message)
-        }
-
     RYScaffold(
         containerColor =
             MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
@@ -100,36 +94,17 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                 // and the explanation at the bottom behind an info icon (as on the account page).
                 item {
                     DisplayText(text = stringResource(R.string.ai_settings), desc = "")
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // At a glance, like the tiles at the top of Filters: one tile with where the
+                    // model stands (missing, importing, imported with its size, or failed).
+                    ModelTile(model = model)
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
                 item {
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.ai_settings_model),
                     )
-                    // Where the model stands: missing, importing, imported (with its size), or failed.
-                    // Once imported, in the tertiary accent so it stands apart from the actions.
-                    SettingItem(
-                        title = statusText,
-                        titleColor =
-                            if (model is ModelState.Ready) MaterialTheme.colorScheme.tertiary
-                            else Color.Unspecified,
-                        onClick = {},
-                    ) {}
-                    if (model is ModelState.Importing) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        val p = model.progress
-                        if (p != null) {
-                            LinearWavyProgressIndicator(
-                                progress = { p },
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                            )
-                        } else {
-                            LinearWavyProgressIndicator(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
-                            )
-                        }
-                    }
                     SettingItem(
                         title = stringResource(R.string.ai_settings_download),
                         desc = stringResource(R.string.ai_settings_download_desc),
@@ -235,3 +210,70 @@ private fun PromptDialog(
     )
 }
 
+/**
+ * The model at a glance: one big tonal tile like the ones at the top of Filters. Imported: its
+ * size. Importing: how far, with a wavy bar. Missing or failed: what to do.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ModelTile(model: ModelState) {
+    val context = LocalContext.current
+    val failed = model is ModelState.ImportFailed
+    Surface(
+        color =
+            if (failed) MaterialTheme.colorScheme.errorContainer
+            else MaterialTheme.colorScheme.primaryContainer,
+        contentColor =
+            if (failed) MaterialTheme.colorScheme.onErrorContainer
+            else MaterialTheme.colorScheme.onPrimaryContainer,
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
+            Icon(
+                imageVector =
+                    when (model) {
+                        is ModelState.Ready -> Icons.Outlined.AutoAwesome
+                        is ModelState.Importing -> Icons.Outlined.Downloading
+                        is ModelState.ImportFailed -> Icons.Outlined.ErrorOutline
+                        ModelState.Missing -> Icons.Outlined.CloudOff
+                    },
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text =
+                    when (model) {
+                        is ModelState.Ready -> Formatter.formatShortFileSize(context, model.sizeBytes)
+                        is ModelState.Importing ->
+                            model.progress?.let { "${(it * 100).toInt()}%" }
+                                ?: stringResource(R.string.ai_model_tile_importing)
+                        is ModelState.ImportFailed -> stringResource(R.string.ai_model_tile_failed)
+                        ModelState.Missing -> stringResource(R.string.ai_model_tile_missing)
+                    },
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text =
+                    when (model) {
+                        is ModelState.Ready -> stringResource(R.string.ai_model_tile_ready_label)
+                        is ModelState.Importing -> stringResource(R.string.ai_model_tile_importing_label)
+                        is ModelState.ImportFailed -> model.message
+                        ModelState.Missing -> stringResource(R.string.ai_model_tile_missing_label)
+                    },
+                style = MaterialTheme.typography.labelLarge,
+            )
+            if (model is ModelState.Importing) {
+                Spacer(Modifier.height(12.dp))
+                val p = model.progress
+                if (p != null) {
+                    LinearWavyProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth())
+                } else {
+                    LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+        }
+    }
+}
