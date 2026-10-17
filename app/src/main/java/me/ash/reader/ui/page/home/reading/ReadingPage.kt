@@ -101,7 +101,7 @@ fun ReadingPage(
     var explainPassage by remember { mutableStateOf<String?>(null) }
     var showTextSheet by remember { mutableStateOf(false) }
     var keyPointsOn by remember { mutableStateOf(ReadingExperiments.keyPoints(context)) }
-    val totalMinutes = remember(readerState.content.text) { readingMinutes(readerState.content.text ?: "") }
+    val totalMinutes = remember(readerState.content.text) { readingMinutes(readerState.content.text ?: "") ?: 1 }
     val timeLeftLabel =
         if (readingProgress < 0.01f) null
         else {
