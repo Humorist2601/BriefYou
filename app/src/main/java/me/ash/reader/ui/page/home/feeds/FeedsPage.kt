@@ -177,7 +177,10 @@ fun FeedsPage(
     var slidingToPage by remember { mutableStateOf(false) }
     val pageSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
     LaunchedEffect(currentPage) {
-        if (pagerState.currentPage != currentPage || pagerState.currentPageOffsetFraction != 0f) {
+        // A swipe changes the filter itself, half way; the pager is then already on that page and
+        // finishes the swipe on its own. Animating here too would fight your finger (and the fling)
+        // and make swiping feel laggy, so only a filter the pager isn't on yet slides it.
+        if (pagerState.currentPage != currentPage) {
             slidingToPage = true
             try {
                 pagerState.animateScrollToPage(currentPage, animationSpec = pageSpec)
