@@ -3,13 +3,12 @@ package me.ash.reader.ui.motion
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -133,14 +132,13 @@ internal object BackPreviewState {
 }
 
 /**
- * The navigation host's transition for a predictive back: the screen behind grows from 95% to full
- * size; the screen you leave is drawn by [BackPreviewPage] and only kept on screen here.
+ * The navigation host's transition for a predictive back. The screen behind is already in place at
+ * full size (only its dimming changes, see [BackPreviewPage]); the screen you leave is drawn by
+ * [BackPreviewPage] too. Both halves here only keep the screens on screen for the whole gesture.
  */
 fun backPreviewPopTransform(): ContentTransform =
-    scaleIn(
-        animationSpec = tween(BACK_PREVIEW_DURATION, easing = FastOutSlowInEasing),
-        initialScale = 0.95f,
-    ) togetherWith fadeOut(animationSpec = tween(BACK_PREVIEW_DURATION), targetAlpha = 1f)
+    fadeIn(animationSpec = tween(BACK_PREVIEW_DURATION), initialAlpha = 1f) togetherWith
+        fadeOut(animationSpec = tween(BACK_PREVIEW_DURATION), targetAlpha = 1f)
 
 /**
  * Wraps a screen of the navigation host so the predictive back gesture shows the back preview on
