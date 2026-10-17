@@ -71,7 +71,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -99,6 +105,7 @@ import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import me.ash.reader.R
@@ -213,57 +220,113 @@ fun TriageScreen(
     var backProgress by remember { mutableFloatStateOf(0f) }
     var exit by remember { mutableFloatStateOf(0f) }
     var closing by remember { mutableStateOf(false) }
-    // Which way the screen slides while closing: towards the edge the back gesture started from.
+    // Which way the screen is thrown while closing: towards the edge the back gesture started from.
     // Closing with a button (or the back key) has no edge, so it stays 0 and the screen just shrinks
     // and fades towards its center.
     var slideDirection by remember { mutableFloatStateOf(0f) }
+    // During a back gesture the screen follows your finger up and down, like one of its cards.
+    var touchDy by remember { mutableFloatStateOf(0f) }
+    var touchStartY by remember { mutableFloatStateOf(Float.NaN) }
+    val maxFollowY = with(LocalDensity.current) { 72.dp.toPx() }
+    val haptic = LocalHapticFeedback.current
+    // Material 3 Expressive springs: a lively one for the way back, a softer one for throwing away.
+    val settleSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    val tossSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
     LaunchedEffect(Unit) { enter.animateTo(1f, tween(220)) }
 
-    // Finishes the exit: the screen keeps shrinking and slides away while it fades all the way out,
-    // and only then is it removed, so it never vanishes in a single frame.
+    // Finishes the exit and only then removes Triage, so it never vanishes in a single frame.
     suspend fun playExit() {
         if (closing) return
         closing = true
-        val spec = tween<Float>(durationMillis = 240, easing = FastOutLinearInEasing)
-        coroutineScope {
-            launch { animate(backProgress, 1f, animationSpec = spec) { v, _ -> backProgress = v } }
-            launch { animate(0f, 1f, animationSpec = spec) { v, _ -> exit = v } }
+        if (slideDirection != 0f) {
+            // A back gesture: throw the whole screen off to the side, springing like the cards do.
+            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+            coroutineScope {
+                launch { animate(backProgress, 1f, animationSpec = tossSpec) { v, _ -> backProgress = v } }
+                launch { animate(0f, 1f, animationSpec = tossSpec) { v, _ -> exit = v } }
+            }
+        } else {
+            val spec = tween<Float>(durationMillis = 240, easing = FastOutLinearInEasing)
+            coroutineScope {
+                launch { animate(backProgress, 1f, animationSpec = spec) { v, _ -> backProgress = v } }
+                launch { animate(0f, 1f, animationSpec = spec) { v, _ -> exit = v } }
+            }
         }
         onClose()
     }
 
-    // Predictive back: while you swipe, the whole screen shrinks and slides towards the swipe edge,
-    // showing the list behind it. Let go to close it (it then finishes sliding and fading out);
-    // drag back to cancel.
+    // Predictive back: while you swipe, the screen shrinks and its corners morph into a rounded
+    // card, it tilts a little and follows your finger. Let go to throw it away; drag back to cancel
+    // and it springs back.
     PredictiveBackHandler(enabled = true) { progress ->
         try {
             progress.collect { event ->
+                if (touchStartY.isNaN()) touchStartY = event.touchY
                 backProgress = event.progress
                 slideDirection = if (event.swipeEdge == BackEventCompat.EDGE_LEFT) 1f else -1f
+                touchDy = ((event.touchY - touchStartY) * 0.4f).coerceIn(-maxFollowY, maxFollowY)
             }
             playExit()
         } catch (e: CancellationException) {
             if (!closing) {
                 scope.launch {
-                    animate(backProgress, 0f, animationSpec = tween(180)) { value, _ ->
-                        backProgress = value
+                    coroutineScope {
+                        launch { animate(backProgress, 0f, animationSpec = settleSpec) { v, _ -> backProgress = v } }
+                        launch { animate(touchDy, 0f, animationSpec = settleSpec) { v, _ -> touchDy = v } }
                     }
+                    touchStartY = Float.NaN
+                    slideDirection = 0f
                 }
             }
         }
     }
 
+    // The card is drawn on two layers. The outer one moves (scale, slide, tilt, fade) and draws a
+    // soft shadow around the card; the surface inside is clipped to the rounded shape. Without the
+    // shadow the card melts into the list behind it, as both have the same color.
+    val darkTheme = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    Box(
+        modifier =
+            Modifier.fillMaxSize()
+                .graphicsLayer {
+                    val e = enter.value
+                    val p = backProgress.coerceIn(0f, 1f)
+                    if (slideDirection != 0f) {
+                        // The screen becomes a rounded card (the corners morph in quickly), shrinks,
+                        // tilts and follows your finger; once released it is thrown off the side it
+                        // came from (`exit` runs from 0 to 1 on a spring).
+                        val s = (0.94f + 0.06f * e) * (1f - 0.14f * p)
+                        scaleX = s
+                        scaleY = s
+                        translationX = slideDirection * (p * 28.dp.toPx() + exit * size.width)
+                        translationY = touchDy
+                        rotationZ = slideDirection * (p * 3f + exit * 8f)
+                        alpha = e * (1f - exit.coerceIn(0f, 1f))
+                    } else {
+                        // A button (or the back key): shrink and fade towards the center.
+                        val scale =
+                            (0.94f + 0.06f * e) * (1f - 0.12f * backProgress) * (1f - 0.06f * exit) *
+                                (1f - 0.1f * exit)
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = e * (1f - 0.3f * backProgress) * (1f - exit)
+                    }
+                }
+                .drawBehind {
+                    val p = backProgress.coerceIn(0f, 1f)
+                    drawSoftShadow(
+                        // Fades in quickly as the pull starts, so the card is set apart from the list.
+                        strength = (p * 3f).coerceIn(0f, 1f),
+                        corner = closingCorner(slideDirection != 0f, p, backProgress),
+                        alpha = if (darkTheme) 0.075f else 0.05f,
+                    )
+                }
+    ) {
     Surface(
         modifier =
             Modifier.fillMaxSize().graphicsLayer {
-                val e = enter.value
-                val scale = (0.94f + 0.06f * e) * (1f - 0.12f * backProgress) * (1f - 0.06f * exit) *
-                    (if (slideDirection == 0f) 1f - 0.1f * exit else 1f)
-                scaleX = scale
-                scaleY = scale
-                alpha = e * (1f - 0.3f * backProgress) * (1f - exit)
-                translationX = slideDirection * (backProgress * 24.dp.toPx() + exit * 32.dp.toPx())
-                shape = RoundedCornerShape(backProgress * 40.dp.toPx())
+                val p = backProgress.coerceIn(0f, 1f)
+                shape = RoundedCornerShape(closingCorner(slideDirection != 0f, p, backProgress))
                 clip = backProgress > 0f
             },
         color = MaterialTheme.colorScheme.surface,
@@ -277,6 +340,36 @@ fun TriageScreen(
             onClose = { scope.launch { playExit() } },
             findNext,
             loadNext,
+        )
+    }
+    }
+}
+
+/** The corner radius of the screen while it is being closed: it morphs from square to a card. */
+private fun androidx.compose.ui.unit.Density.closingCorner(
+    gesture: Boolean,
+    p: Float,
+    backProgress: Float,
+): Float =
+    if (gesture) 44.dp.toPx() * (p * 2.5f).coerceIn(0f, 1f) else backProgress * 40.dp.toPx()
+
+/**
+ * A soft shadow around the whole shape, a little lower than the shape itself: many thin rounded
+ * rectangles of growing size, each faintly dark, so the darkness fades out smoothly.
+ */
+private fun DrawScope.drawSoftShadow(strength: Float, corner: Float, alpha: Float) {
+    if (strength <= 0.01f) return
+    val steps = 16
+    val spread = 40.dp.toPx() * strength
+    val drop = 10.dp.toPx() * strength
+    for (i in 1..steps) {
+        val f = i / steps.toFloat()
+        val grow = spread * f * f
+        drawRoundRect(
+            color = Color.Black.copy(alpha = alpha * strength),
+            topLeft = Offset(-grow, drop - grow),
+            size = Size(size.width + 2 * grow, size.height + 2 * grow),
+            cornerRadius = CornerRadius(corner + grow),
         )
     }
 }
@@ -295,6 +388,11 @@ private fun TriageContent(
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     var loadingNext by remember { mutableStateOf(false) }
+    // Going to the next group or feed: the "All caught up" screen floats up and away, then the new
+    // stack of cards swipes up from the bottom of the screen (on a lively Material 3 Expressive spring).
+    val doneExit = remember { Animatable(0f) }
+    val stackRise = remember { Animatable(0f) }
+    val riseSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
 
     // Auto-advance: the delay is remembered between sessions; changing it is a long-press on the
     // play button.
@@ -416,7 +514,11 @@ private fun TriageContent(
 
         if (current == null) {
             TriageDone(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                modifier =
+                    Modifier.weight(1f).fillMaxWidth().graphicsLayer {
+                        alpha = 1f - doneExit.value
+                        translationY = -doneExit.value * 56.dp.toPx()
+                    },
                 read = history.count { it.action == TriageAction.Read || it.action == TriageAction.Open },
                 saved = history.count { it.action == TriageAction.Save },
                 skipped = history.count { it.action == TriageAction.Skip },
@@ -429,8 +531,17 @@ private fun TriageContent(
                         loadingNext = true
                         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                         scope.launch {
-                            val cards = runCatching { loadNext(target) }.getOrDefault(emptyList())
+                            // Load the cards while the "All caught up" screen floats away.
+                            val loading = async {
+                                runCatching { loadNext(target) }.getOrDefault(emptyList())
+                            }
+                            doneExit.animateTo(1f, tween(180))
+                            val cards = loading.await()
+                            // The new cards start below the screen and swipe up into place.
+                            stackRise.snapTo(1f)
                             session.startNext(target, cards)
+                            doneExit.snapTo(0f)
+                            stackRise.animateTo(0f, riseSpec)
                             loadingNext = false
                         }
                     }
@@ -439,10 +550,13 @@ private fun TriageContent(
             )
         } else {
             TriageStack(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                modifier =
+                    Modifier.weight(1f).fillMaxWidth().graphicsLayer {
+                        translationY = stackRise.value * size.height
+                    },
                 current = current,
                 next = articles.getOrNull(index + 1),
-                autoSeconds = if (session.autoRunning) autoSeconds else 0,
+                autoSeconds = if (session.autoRunning && !loadingNext) autoSeconds else 0,
                 onAutoProgress = { autoProgress.floatValue = it },
                 onDecide = { decide(it) },
             )
