@@ -27,6 +27,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
@@ -49,8 +50,8 @@ fun SettingItem(
     separatedActions: Boolean = false,
     /** The title's color; the usual one when unspecified. */
     titleColor: Color = Color.Unspecified,
-    /** How many lines the description may take. */
-    descMaxLines: Int = 1,
+    /** How many lines the description may take before it ends with "…". */
+    descMaxLines: Int = 3,
     onClick: () -> Unit,
     action: (@Composable () -> Unit)? = null,
 ) {
@@ -93,6 +94,7 @@ fun SettingItem(
                     text = title,
                     color = titleColor,
                     maxLines = if (desc == null) 2 else 1,
+                    overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp)
                 )
                 desc?.let {
@@ -100,6 +102,7 @@ fun SettingItem(
                         text = it,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = descMaxLines,
+                        overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }

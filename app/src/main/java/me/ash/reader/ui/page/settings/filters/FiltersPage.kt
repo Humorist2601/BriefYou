@@ -261,7 +261,6 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                                     undoneCount,
                                     undoneCount,
                                 ),
-                            descMaxLines = 2,
                             onClick = viewModel::resetUndone,
                         )
                         Spacer(Modifier.height(12.dp))
