@@ -68,7 +68,7 @@ fun FilterBar(
 
     val containerHeight = filterBarContainerHeight(filterBarStyle)
 
-    // A fade to black behind the bar: clear at the top of the bar, fully black for the last quarter
+    // A fade to black behind the bar: clear at the top of the bar, fully black for the last fifth
     // (the area under the bar down to the screen edge). On a light theme it fades into the page
     // color instead, since black would look harsh there.
     val scrim =
@@ -84,7 +84,7 @@ fun FilterBar(
                     drawRect(
                         Brush.verticalGradient(
                             0f to scrim.copy(alpha = 0f),
-                            0.75f to scrim,
+                            0.8f to scrim,
                             1f to scrim,
                         )
                     )

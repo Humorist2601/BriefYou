@@ -20,6 +20,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import me.ash.reader.ui.motion.LocalBackStack
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -62,8 +64,17 @@ val LocalPageKey = staticCompositionLocalOf<Any?> { null }
 fun ProvideFilterBar(spec: FilterBarSpec) {
     val host = LocalFilterBarHost.current ?: return
     val key = LocalPageKey.current ?: return
+    val backStack = LocalBackStack.current
+    val latest = rememberUpdatedState(spec)
     SideEffect { if (host.specs[key] != spec) host.specs[key] = spec }
-    DisposableEffect(host, key) { onDispose { host.specs.remove(key) } }
+    DisposableEffect(host, key) {
+        onDispose {
+            // The screen is still open but no longer shows its content (for example the article
+            // list while an article is open): the bar hides. A closed screen is forgotten.
+            if (key in backStack) host.specs[key] = latest.value.copy(enabled = false)
+            else host.specs.remove(key)
+        }
+    }
 }
 
 /** The height the bar takes at the bottom of a screen, for that screen's own layout. */
@@ -88,7 +99,8 @@ fun SharedFilterBar(
 ) {
     val spec = top?.let { host.specs[it] }
     // A screen tells the bar about itself right after it first appears; until then the bar keeps
-    // showing what it showed, so going from Feeds to the article list doesn't make it blink.
+    // showing what it showed, so going from Feeds to the article list doesn't make it blink. Once
+    // it has, its own wish counts: shown, or hidden (for example while an article is open).
     val last = remember { arrayOfNulls<FilterBarSpec>(1) }
     if (spec != null) last[0] = spec
     val shown = spec ?: last[0]

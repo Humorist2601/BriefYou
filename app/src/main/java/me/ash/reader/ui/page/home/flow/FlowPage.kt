@@ -1,6 +1,9 @@
 package me.ash.reader.ui.page.home.flow
 
 import me.ash.reader.ui.component.FilterBarSpace
+import me.ash.reader.ui.component.TonalCircleButton
+import me.ash.reader.ui.component.TopBarAction
+import me.ash.reader.ui.component.TopBarButtonGroup
 import me.ash.reader.ui.component.FilterBarSpec
 import me.ash.reader.ui.component.ProvideFilterBar
 import me.ash.reader.ui.page.home.reading.summary.SummaryRequest
@@ -183,32 +186,27 @@ fun FlowPage(
     var showGist by remember { mutableStateOf(false) }
     var showTriage by rememberSaveable { mutableStateOf(false) }
 
-    // The AI gist / Triage button: only in Unread, hidden while scrolling down and while searching.
-    // It follows your finger, not the list's position: dragging towards the end hides it, dragging
-    // back shows it. So nothing else that moves the list (like the next feed replacing this one)
-    // can make it pop in and out.
-    var fabByFinger by remember { mutableStateOf(true) }
+    // The AI gist / Triage button: only in Unread, and not while searching. Like the reading page's
+    // bar, only two things move it, so it can never pop in and out:
+    // - your finger: dragging towards the end of the list hides it, dragging back shows it;
+    // - a new list (another feed, group or filter) shows it, once.
+    // It doesn't look at the list's scroll position: while one feed slides into the next, the two
+    // lists briefly share it, which made the button show, hide and show again.
+    var fabHiddenByFinger by remember { mutableStateOf(false) }
     val fabScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (source == NestedScrollSource.UserInput) {
-                    if (available.y < -1f) fabByFinger = false
-                    else if (available.y > 1f) fabByFinger = true
+                    if (available.y < -1f) fabHiddenByFinger = true
+                    else if (available.y > 1f) fabHiddenByFinger = false
                 }
                 return Offset.Zero
             }
         }
     }
-    val atTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+    LaunchedEffect(filterUiState.copy(searchContent = null)) { fabHiddenByFinger = false }
     var currentPullToLoadState: PullToLoadState? by remember { mutableStateOf(null) }
-    // Pulling up at the end of the list shows the "next feed" hint where the button is, so the
-    // button steps aside while you pull (it matters for short lists, which are always at the top).
-    val pullingUp =
-        currentPullToLoadState?.status.let {
-            it == PullToLoadState.Status.PullingUp || it == PullToLoadState.Status.PulledUp
-        }
-    val showActionsFab =
-        filterUiState.filter.isUnread() && !onSearch && !pullingUp && (fabByFinger || atTop)
+    val showActionsFab = filterUiState.filter.isUnread() && !onSearch && !fabHiddenByFinger
 
     var currentLoadAction: LoadAction? by remember { mutableStateOf(null) }
 
@@ -424,73 +422,72 @@ fun FlowPage(
                         },
                         expandedHeight = 172.dp,
                         scrollBehavior = scrollBehavior,
+                        // Material 3 Expressive: tonal buttons, the actions connected into one
+                        // pill. An action that is on (marking as read, searching) is filled.
                         navigationIcon = {
-                            FeedbackIconButton(
-                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                                contentDescription = stringResource(R.string.back),
-                                tint = MaterialTheme.colorScheme.onSurface,
+                            TonalCircleButton(
+                                icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                                description = stringResource(R.string.back),
                             ) {
                                 onSearch = false
                                 onNavigateUp()
                             }
                         },
                         actions = {
-                            RYExtensibleVisibility(visible = !filterUiState.filter.isStarred()) {
-                                FeedbackIconButton(
-                                    imageVector = Icons.Rounded.DoneAll,
-                                    contentDescription = stringResource(R.string.mark_all_as_read),
-                                    tint =
-                                        if (markAsRead) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface
-                                        },
-                                ) {
-                                    if (markAsRead) {
-                                        markAsRead = false
-                                    } else {
-                                        scope
-                                            .launch {
-                                                if (listState.firstVisibleItemIndex != 0) {
-                                                    listState.animateScrollToItem(0)
+                            TopBarButtonGroup(
+                                buildList {
+                                    if (!filterUiState.filter.isStarred()) {
+                                        add(
+                                            TopBarAction(
+                                                icon = Icons.Rounded.DoneAll,
+                                                description = stringResource(R.string.mark_all_as_read),
+                                                selected = markAsRead,
+                                            ) {
+                                                if (markAsRead) {
+                                                    markAsRead = false
+                                                } else {
+                                                    scope
+                                                        .launch {
+                                                            if (listState.firstVisibleItemIndex != 0) {
+                                                                listState.animateScrollToItem(0)
+                                                            }
+                                                        }
+                                                        .invokeOnCompletion {
+                                                            markAsRead = true
+                                                            onSearch = false
+                                                        }
                                                 }
                                             }
-                                            .invokeOnCompletion {
-                                                markAsRead = true
-                                                onSearch = false
-                                            }
+                                        )
                                     }
-                                }
-                            }
-                            FeedbackIconButton(
-                                imageVector = Icons.Rounded.Search,
-                                contentDescription = stringResource(R.string.search),
-                                tint =
-                                    if (onSearch) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface
-                                    },
-                            ) {
-                                if (onSearch) {
-                                    onSearch = false
-                                } else {
-                                    scope
-                                        .launch {
-                                            if (listState.firstVisibleItemIndex != 0) {
-                                                listState.animateScrollToItem(0)
+                                    add(
+                                        TopBarAction(
+                                            icon = Icons.Rounded.Search,
+                                            description = stringResource(R.string.search),
+                                            selected = onSearch,
+                                        ) {
+                                            if (onSearch) {
+                                                onSearch = false
+                                            } else {
+                                                scope
+                                                    .launch {
+                                                        if (listState.firstVisibleItemIndex != 0) {
+                                                            listState.animateScrollToItem(0)
+                                                        }
+                                                    }
+                                                    .invokeOnCompletion {
+                                                        scope.launch {
+                                                            onSearch = true
+                                                            markAsRead = false
+                                                            delay(100)
+                                                            focusRequester.requestFocus()
+                                                        }
+                                                    }
                                             }
                                         }
-                                        .invokeOnCompletion {
-                                            scope.launch {
-                                                onSearch = true
-                                                markAsRead = false
-                                                delay(100)
-                                                focusRequester.requestFocus()
-                                            }
-                                        }
+                                    )
                                 }
-                            }
+                            )
                         },
                         colors =
                             TopAppBarDefaults.topAppBarColors(

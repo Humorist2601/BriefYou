@@ -106,27 +106,3 @@ private fun FabSegment(icon: ImageVector, label: String, onClick: () -> Unit) {
         Text(text = label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
     }
 }
-
-/**
- * True while the list is being scrolled up (towards the top), false while it is being scrolled
- * down. Used to hide the floating button when you scroll down and bring it back when you scroll up.
- */
-@Composable
-fun LazyListState.isScrollingUp(): Boolean {
-    var previousIndex by remember(this) { mutableIntStateOf(firstVisibleItemIndex) }
-    var previousOffset by remember(this) { mutableIntStateOf(firstVisibleItemScrollOffset) }
-    return remember(this) {
-            derivedStateOf {
-                if (previousIndex != firstVisibleItemIndex) {
-                        previousIndex > firstVisibleItemIndex
-                    } else {
-                        previousOffset >= firstVisibleItemScrollOffset
-                    }
-                    .also {
-                        previousIndex = firstVisibleItemIndex
-                        previousOffset = firstVisibleItemScrollOffset
-                    }
-            }
-        }
-        .value
-}

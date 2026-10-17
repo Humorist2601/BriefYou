@@ -1,5 +1,8 @@
 package me.ash.reader.ui.page.home.reading
 
+import me.ash.reader.ui.component.TonalCircleButton
+import me.ash.reader.ui.component.TopBarAction
+import me.ash.reader.ui.component.TopBarButtonGroup
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -115,41 +118,36 @@ fun TopBar(
                                 NavigationAction.HideList -> "Hide list"
                                 NavigationAction.ExpandList -> "Expand list"
                             }
-                        FeedbackIconButton(
-                            imageVector = imageVector,
-                            contentDescription = contentDescription,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        ) {
+                        // Material 3 Expressive: tonal buttons, like the list's top bar.
+                        TonalCircleButton(icon = imageVector, description = contentDescription) {
                             onNavButtonClick(navigationAction)
                         }
                     },
                     actions = {
-                        if (onSummarize != null) {
-                            FeedbackIconButton(
-                                modifier = Modifier.size(22.dp),
-                                imageVector = Icons.Outlined.AutoAwesome,
-                                contentDescription = stringResource(R.string.ai_summarize),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            ) {
-                                onSummarize()
+                        TopBarButtonGroup(
+                            buildList {
+                                if (onSummarize != null) {
+                                    add(
+                                        TopBarAction(
+                                            Icons.Outlined.AutoAwesome,
+                                            stringResource(R.string.ai_summarize),
+                                        ) {
+                                            onSummarize()
+                                        }
+                                    )
+                                }
+                                add(
+                                    TopBarAction(Icons.Outlined.Palette, stringResource(R.string.style)) {
+                                        onNavigateToStylePage()
+                                    }
+                                )
+                                add(
+                                    TopBarAction(Icons.Outlined.Share, stringResource(R.string.share)) {
+                                        sharedContent.share(context, title, link)
+                                    }
+                                )
                             }
-                        }
-                        FeedbackIconButton(
-                            modifier = Modifier.size(22.dp),
-                            imageVector = Icons.Outlined.Palette,
-                            contentDescription = stringResource(R.string.style),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        ) {
-                            onNavigateToStylePage()
-                        }
-                        FeedbackIconButton(
-                            modifier = Modifier.size(20.dp),
-                            imageVector = Icons.Outlined.Share,
-                            contentDescription = stringResource(R.string.share),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        ) {
-                            sharedContent.share(context, title, link)
-                        }
+                        )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 )

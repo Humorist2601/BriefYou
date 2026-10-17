@@ -39,6 +39,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.saveable.rememberSaveable
 import me.ash.reader.ui.component.FilterBarSpace
+import me.ash.reader.ui.component.TonalCircleButton
+import me.ash.reader.ui.component.TopBarAction
+import me.ash.reader.ui.component.TopBarButtonGroup
 import me.ash.reader.ui.component.FilterBarSpec
 import me.ash.reader.ui.component.ProvideFilterBar
 import me.ash.reader.ui.page.home.feeds.sort.FeedSortViewModel
@@ -270,43 +273,46 @@ fun FeedsPage(
                         interactionSource = remember { MutableInteractionSource() },
                     ),
                 title = {},
+                // Material 3 Expressive: tonal buttons, the actions connected into one pill.
                 navigationIcon = {
-                    FeedbackIconButton(
-                        modifier = Modifier.size(20.dp),
-                        imageVector = Icons.Outlined.Settings,
-                        contentDescription = stringResource(R.string.settings),
-                        tint = MaterialTheme.colorScheme.onSurface,
+                    TonalCircleButton(
+                        icon = Icons.Outlined.Settings,
+                        description = stringResource(R.string.settings),
                         showBadge = newVersion.whetherNeedUpdate(currentVersion, skipVersion),
                     ) {
                         navigateToSettings()
                     }
                 },
                 actions = {
-                    // Brief You: sort groups and feeds (by name, by count or by hand).
-                    FeedbackIconButton(
-                        imageVector = Icons.AutoMirrored.Outlined.Sort,
-                        contentDescription = stringResource(R.string.sort_title),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    ) {
-                        sortSheetVisible = true
-                    }
-                    // Brief You: quick access to mute keywords, duplicates and the filter log.
-                    FeedbackIconButton(
-                        imageVector = Icons.Outlined.FilterAlt,
-                        contentDescription = stringResource(R.string.filters_settings),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    ) {
-                        navigateToFilters()
-                    }
-                    if (subscribeViewModel.rssService.get().addSubscription) {
-                        FeedbackIconButton(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = stringResource(R.string.subscribe),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        ) {
-                            subscribeViewModel.showDrawer()
+                    TopBarButtonGroup(
+                        buildList {
+                            // Brief You: sort groups and feeds.
+                            add(
+                                TopBarAction(
+                                    Icons.AutoMirrored.Outlined.Sort,
+                                    stringResource(R.string.sort_title),
+                                ) {
+                                    sortSheetVisible = true
+                                }
+                            )
+                            // Brief You: mute keywords, duplicates and the filter log.
+                            add(
+                                TopBarAction(
+                                    Icons.Outlined.FilterAlt,
+                                    stringResource(R.string.filters_settings),
+                                ) {
+                                    navigateToFilters()
+                                }
+                            )
+                            if (subscribeViewModel.rssService.get().addSubscription) {
+                                add(
+                                    TopBarAction(Icons.Rounded.Add, stringResource(R.string.subscribe)) {
+                                        subscribeViewModel.showDrawer()
+                                    }
+                                )
+                            }
                         }
-                    }
+                    )
                 },
                 colors =
                     TopAppBarDefaults.topAppBarColors(

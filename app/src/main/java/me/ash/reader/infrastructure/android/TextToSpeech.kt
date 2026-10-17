@@ -55,9 +55,13 @@ class TextToSpeechManager @Inject constructor(
     sealed interface State {
         object Idle : State
         object Preparing : State
-        class Reading(val current: Int, val total: Int) : State {
+        /**
+         * Reading part [current] of [total]. [fraction] is how much of the text has been read,
+         * by characters, following the word being spoken.
+         */
+        class Reading(val current: Int, val total: Int, private val fraction: Float? = null) : State {
             val progress: Float
-                get() = current.toFloat() / total
+                get() = fraction ?: (current.toFloat() / total)
         }
 
         object Error : State
@@ -89,20 +93,51 @@ class TextToSpeechManager @Inject constructor(
                     .firstOrNull()?.locale
         }
 
-        val textSegments = text.split("\n").filterNot { it.isBlank() }
+        // Paragraphs, with very long ones cut into pieces the speech engine accepts.
+        val maxLength = TextToSpeech.getMaxSpeechInputLength().coerceAtLeast(500) - 100
+        val textSegments =
+            text.split("\n").filterNot { it.isBlank() }.flatMap { splitForSpeech(it, maxLength) }
         val total = textSegments.size
-        state = State.Reading(0, total)
+        if (total == 0) {
+            state = State.Idle
+            return
+        }
+        // Where each piece starts in the whole text, so the progress follows the text's length
+        // (a short heading moves it a little, a long paragraph a lot).
+        val starts = IntArray(total)
+        var length = 0
+        textSegments.forEachIndexed { i, segment ->
+            starts[i] = length
+            length += segment.length
+        }
+        val totalLength = length.coerceAtLeast(1)
+
+        fun reading(index: Int, charInSegment: Int) {
+            val i = index.coerceIn(0, total - 1)
+            val read = (starts[i] + charInSegment).coerceIn(0, totalLength)
+            state = State.Reading(i + 1, total, read.toFloat() / totalLength)
+        }
+
+        state = State.Reading(0, total, 0f)
 
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
-                state = State.Reading(utteranceId?.toIntOrNull() ?: 0, total)
+                val index = (utteranceId?.toIntOrNull() ?: 1) - 1
+                reading(index, 0)
+            }
+
+            // The word being spoken (Android 8+), so the progress moves along as it reads.
+            override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+                val index = (utteranceId?.toIntOrNull() ?: 1) - 1
+                reading(index, start)
             }
 
             override fun onDone(utteranceId: String?) {
-                val index = utteranceId?.toIntOrNull() ?: 0
-                val cur = state
-                if (cur is State.Reading && index >= cur.total) {
+                val index = (utteranceId?.toIntOrNull() ?: 1) - 1
+                if (index >= total - 1) {
                     state = State.Idle
+                } else {
+                    reading(index + 1, 0)
                 }
             }
 
@@ -114,6 +149,25 @@ class TextToSpeechManager @Inject constructor(
         textSegments.forEachIndexed { index, text ->
             tts.speak(text, TextToSpeech.QUEUE_ADD, null, (index + 1).toString())
         }
+    }
+
+    /** Cuts [text] into pieces of at most [max] characters, at sentence ends or spaces. */
+    private fun splitForSpeech(text: String, max: Int): List<String> {
+        if (text.length <= max) return listOf(text)
+        val pieces = mutableListOf<String>()
+        var rest = text
+        while (rest.length > max) {
+            val window = rest.substring(0, max)
+            val cut =
+                listOf(". ", "! ", "? ", "; ", ", ", " ")
+                    .map { window.lastIndexOf(it) }
+                    .firstOrNull { it > max / 2 }
+                    ?.plus(1) ?: max
+            pieces += rest.substring(0, cut)
+            rest = rest.substring(cut)
+        }
+        if (rest.isNotBlank()) pieces += rest
+        return pieces
     }
 
     fun stop() {
