@@ -8,6 +8,8 @@ import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.Message
+import com.google.ai.edge.litertlm.MessageCallback
 import com.google.ai.edge.litertlm.SamplerConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -15,7 +17,13 @@ import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -71,6 +79,7 @@ constructor(
     private val modelFile = File(context.filesDir, "models/summary-model.litertlm")
     private val prefs = context.getSharedPreferences("ai_settings", Context.MODE_PRIVATE)
     private val engineLock = Mutex()
+    private val generationLock = Mutex()
     private var engine: Engine? = null
     private var unloadJob: Job? = null
     private var importJob: Job? = null
@@ -190,27 +199,75 @@ constructor(
         }
     }
 
+    /**
+     * Runs one request. Requests run one at a time (the engine has one conversation at a time).
+     *
+     * Stopping it (cancelling the collector) is done carefully: the model keeps working on its own
+     * thread, so the conversation is first told to stop, and only deleted once the model says it
+     * has stopped. Deleting it while the model still works on it crashes the app.
+     */
     private fun generate(systemPrompt: String, userText: String): Flow<String> =
         flow {
-                val sb = StringBuilder()
-                val engine = acquireEngine()
-                try {
-                    engine
-                        .createConversation(
-                            ConversationConfig(
-                                systemInstruction = Contents.of(systemPrompt),
-                                samplerConfig =
-                                    SamplerConfig(topK = 40, topP = 0.95, temperature = 0.3),
+                generationLock.withLock {
+                    val sb = StringBuilder()
+                    val engine = acquireEngine()
+                    var stillRunning = false
+                    try {
+                        // Stopped while the model was loading: don't start.
+                        currentCoroutineContext().ensureActive()
+                        val conversation =
+                            engine.createConversation(
+                                ConversationConfig(
+                                    systemInstruction = Contents.of(systemPrompt),
+                                    samplerConfig =
+                                        SamplerConfig(topK = 40, topP = 0.95, temperature = 0.3),
+                                )
                             )
-                        )
-                        .use { conversation ->
-                            conversation.sendMessageAsync(userText).collect { chunk ->
-                                sb.append(chunk.toString())
+                        val chunks = Channel<String>(Channel.UNLIMITED)
+                        val finished = CompletableDeferred<Unit>()
+                        try {
+                            conversation.sendMessageAsync(
+                                Contents.of(userText),
+                                object : MessageCallback {
+                                    override fun onMessage(message: Message) {
+                                        chunks.trySend(message.toString())
+                                    }
+
+                                    override fun onDone() {
+                                        chunks.close()
+                                        finished.complete(Unit)
+                                    }
+
+                                    override fun onError(throwable: Throwable) {
+                                        chunks.close(throwable)
+                                        finished.complete(Unit)
+                                    }
+                                },
+                            )
+                            for (chunk in chunks) {
+                                sb.append(chunk)
                                 emit(sb.toString().trim())
                             }
+                        } finally {
+                            if (!finished.isCompleted) {
+                                runCatching { conversation.cancelProcess() }
+                                    .onFailure { Timber.w(it, "could not stop the model") }
+                                withContext(NonCancellable) {
+                                    withTimeoutOrNull(STOP_TIMEOUT_MS) { finished.await() }
+                                }
+                            }
+                            if (finished.isCompleted) {
+                                runCatching { conversation.close() }
+                            } else {
+                                // The model never said it stopped. Leaving the conversation (and
+                                // the engine) alone is better than crashing.
+                                Timber.w("model did not stop in time; keeping the engine loaded")
+                                stillRunning = true
+                            }
                         }
-                } finally {
-                    if (activeUses.decrementAndGet() == 0) scheduleUnload()
+                    } finally {
+                        if (!stillRunning && activeUses.decrementAndGet() == 0) scheduleUnload()
+                    }
                 }
             }
             .flowOn(Dispatchers.Default)
@@ -282,6 +339,7 @@ constructor(
         private const val MAX_INPUT_CHARS = 10_000
         private const val MAX_GIST_DESC_CHARS = 220
         private const val IDLE_UNLOAD_MS = 3 * 60 * 1000L
+        private const val STOP_TIMEOUT_MS = 15_000L
 
         const val DEFAULT_ARTICLE_PROMPT =
             "You summarize articles for a news reader app. Reply with 3 to 5 short bullet " +

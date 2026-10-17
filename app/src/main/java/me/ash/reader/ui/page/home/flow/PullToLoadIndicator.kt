@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.ash.reader.R
 import me.ash.reader.domain.data.FilterState
@@ -64,6 +65,8 @@ fun BoxScope.PullToLoadIndicator(
     modifier: Modifier = Modifier,
     state: PullToLoadState,
     loadAction: LoadAction? = null,
+    /** From the bottom of the screen (after [modifier]) to the bottom of the hint. */
+    bottomPadding: Dp = 80.dp,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     val status = state.status
@@ -98,7 +101,7 @@ fun BoxScope.PullToLoadIndicator(
         Box(
             modifier = modifier
                 .align(alignment)
-                .padding(vertical = 80.dp)
+                .padding(bottom = bottomPadding)
         ) {
             AnimatedVisibility(
                 visible = status == PulledUp,

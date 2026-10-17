@@ -71,12 +71,16 @@ import androidx.compose.ui.zIndex
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import kotlinx.coroutines.delay
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import me.ash.reader.R
 import me.ash.reader.domain.data.PagerData
 import me.ash.reader.domain.model.article.ArticleFlowItem
 import me.ash.reader.domain.model.article.ArticleWithFeed
+import me.ash.reader.infrastructure.preference.FlowFilterBarStylePreference
 import me.ash.reader.infrastructure.preference.LocalFlowArticleListDateStickyHeader
 import me.ash.reader.infrastructure.preference.LocalFlowArticleListFeedIcon
 import me.ash.reader.infrastructure.preference.LocalFlowArticleListTonalElevation
@@ -112,11 +116,19 @@ import me.ash.reader.ui.page.home.reading.pullToLoad
 import me.ash.reader.ui.page.home.reading.rememberPullToLoadState
 import me.ash.reader.ui.theme.GoogleSansWideFontFamily
 
+
+/**
+ * The gap between the bottom bar and what floats above it: the AI gist / Triage button and the
+ * pull-up hint (next feed, mark all as read).
+ */
+private val BottomGap = 12.dp
+
 @OptIn(
     ExperimentalMaterial3Api::class,
     ExperimentalSharedTransitionApi::class,
     ExperimentalMaterialApi::class,
 )
+
 @Composable
 fun FlowPage(
     sharedTransitionScope: SharedTransitionScope,
@@ -172,28 +184,31 @@ fun FlowPage(
     var showTriage by rememberSaveable { mutableStateOf(false) }
 
     // The AI gist / Triage button: only in Unread, hidden while scrolling down and while searching.
-    val scrollingUp = listState.isScrollingUp()
+    // It follows your finger, not the list's position: dragging towards the end hides it, dragging
+    // back shows it. So nothing else that moves the list (like the next feed replacing this one)
+    // can make it pop in and out.
+    var fabByFinger by remember { mutableStateOf(true) }
+    val fabScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source == NestedScrollSource.UserInput) {
+                    if (available.y < -1f) fabByFinger = false
+                    else if (available.y > 1f) fabByFinger = true
+                }
+                return Offset.Zero
+            }
+        }
+    }
     val atTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
     var currentPullToLoadState: PullToLoadState? by remember { mutableStateOf(null) }
-    // Pulling up at the end of the list shows the "next feed" hint just above the bottom bar, where
-    // the button is, so the button steps aside while you pull.
+    // Pulling up at the end of the list shows the "next feed" hint where the button is, so the
+    // button steps aside while you pull (it matters for short lists, which are always at the top).
     val pullingUp =
         currentPullToLoadState?.status.let {
             it == PullToLoadState.Status.PullingUp || it == PullToLoadState.Status.PulledUp
         }
-    // After a pull, the list jumps to the next feed (or settles back), which briefly looks like
-    // scrolling; the button waits until that is over, so it comes back once instead of twice.
-    var afterPull by remember { mutableStateOf(false) }
-    LaunchedEffect(pullingUp) {
-        if (pullingUp) {
-            afterPull = true
-        } else if (afterPull) {
-            delay(700)
-            afterPull = false
-        }
-    }
     val showActionsFab =
-        filterUiState.filter.isUnread() && !onSearch && !afterPull && (scrollingUp || atTop)
+        filterUiState.filter.isUnread() && !onSearch && !pullingUp && (fabByFinger || atTop)
 
     var currentLoadAction: LoadAction? by remember { mutableStateOf(null) }
 
@@ -683,7 +698,8 @@ fun FlowPage(
                     Box(modifier = Modifier.fillMaxSize()) {
                         LazyColumn(
                             modifier =
-                                Modifier.pullToLoad(
+                                Modifier.nestedScroll(fabScrollConnection)
+                                    .pullToLoad(
                                         state = pullToLoadState,
                                         enabled = true,
                                         contentOffsetY = { fraction ->
@@ -751,8 +767,9 @@ fun FlowPage(
             },
             floatingActionButton = {
                 FlowActionsFab(
-                    // Closer to the bottom bar than the standard gap.
-                    modifier = Modifier.offset(y = 12.dp),
+                    // [BottomGap] above the bottom bar instead of the standard 16 dp above its
+                    // 8 dp top padding.
+                    modifier = Modifier.offset(y = 16.dp + 8.dp - BottomGap),
                     visible = showActionsFab,
                     onGist = { showGist = true },
                     onTriage = {
@@ -798,10 +815,16 @@ fun FlowPage(
             PullToLoadIndicator(
                 state = it,
                 loadAction = currentLoadAction,
+                // At the same height as the AI gist / Triage button: [BottomGap] above the bar.
+                bottomPadding =
+                    (if (filterBarStyle.value == FlowFilterBarStylePreference.Icon.value) 76.dp
+                    else 88.dp) + BottomGap,
                 modifier =
-                    Modifier.padding(bottom = 36.dp)
+                    Modifier.windowInsetsPadding(
+                        WindowInsets.safeContent.only(WindowInsetsSides.Horizontal)
+                    )
                         .windowInsetsPadding(
-                            WindowInsets.safeContent.only(WindowInsetsSides.Horizontal)
+                            WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)
                         ),
             )
         }

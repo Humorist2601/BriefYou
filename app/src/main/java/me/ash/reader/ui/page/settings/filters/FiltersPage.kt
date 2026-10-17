@@ -303,20 +303,25 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
         },
     )
 
-    // Only composed while open, so it starts empty every time.
-    if (addDialogVisible) TextFieldDialog(
-        visible = true,
-        title = stringResource(R.string.filters_add_keyword),
-        icon = Icons.Outlined.FilterAlt,
-        value = "",
-        placeholder = stringResource(R.string.filters_add_hint),
-        confirmText = stringResource(R.string.filters_add),
-        onDismissRequest = { addDialogVisible = false },
-        onConfirm = { word ->
-            if (word.isNotBlank()) viewModel.filters.addKeyword(word)
-            addDialogVisible = false
-        },
-    )
+    // Only composed while open, so it starts empty every time. The dialog's Add button follows
+    // [draft], so what you type has to come back into it.
+    if (addDialogVisible) {
+        var draft by remember { mutableStateOf("") }
+        TextFieldDialog(
+            visible = true,
+            title = stringResource(R.string.filters_add_keyword),
+            icon = Icons.Outlined.FilterAlt,
+            value = draft,
+            placeholder = stringResource(R.string.filters_add_hint),
+            confirmText = stringResource(R.string.filters_add),
+            onValueChange = { draft = it },
+            onDismissRequest = { addDialogVisible = false },
+            onConfirm = { word ->
+                if (word.isNotBlank()) viewModel.filters.addKeyword(word.trim())
+                addDialogVisible = false
+            },
+        )
+    }
 }
 
 /** A big tonal tile with a number, like the tiles in the sort sheet. */
