@@ -96,13 +96,5 @@ images.forEach(function(img) {
         };
     }
 });
-
-// Brief You: tell the app what text is selected, for "Explain with AI".
-document.addEventListener("selectionchange", function() {
-    var text = window.getSelection ? window.getSelection().toString() : "";
-    if (window.JavaScriptInterface && window.JavaScriptInterface.onSelectionChanged) {
-        window.JavaScriptInterface.onSelectionChanged(text);
-    }
-});
 """
 }

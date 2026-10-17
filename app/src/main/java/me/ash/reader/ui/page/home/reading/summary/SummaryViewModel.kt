@@ -30,9 +30,6 @@ sealed interface SummaryRequest {
 
     /** Everything in the list the user is looking at (a group, a feed, or all articles). */
     data class Gist(val filterState: FilterState) : SummaryRequest
-
-    /** A passage the user selected in an article, to explain. */
-    data class Explain(val title: String?, val passage: String) : SummaryRequest
 }
 
 sealed interface SummaryUiState {
@@ -77,9 +74,6 @@ constructor(
     private var gistItems: List<GistItem> = emptyList()
     private var startedReading = false
 
-    /** Whether an on-device model is imported (the key points card only shows with one). */
-    fun hasModel(): Boolean = summarizer.hasModel()
-
     fun start(newRequest: SummaryRequest) {
         request = newRequest
         load()
@@ -108,13 +102,6 @@ constructor(
                 job =
                     viewModelScope.launch {
                         collect(summarizer.summarize(req.title, req.html), null)
-                    }
-            }
-            is SummaryRequest.Explain -> {
-                _state.value = SummaryUiState.Thinking()
-                job =
-                    viewModelScope.launch {
-                        collect(summarizer.explain(req.title, req.passage), null)
                     }
             }
             is SummaryRequest.Gist -> {

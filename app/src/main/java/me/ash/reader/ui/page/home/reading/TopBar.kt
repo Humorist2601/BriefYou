@@ -37,7 +37,6 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.MenuOpen
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -195,12 +194,7 @@ fun TopBar(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(6.dp),
                 )
             }
-            if (isOutlined && isScrolled) {
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    thickness = 0.5f.dp,
-                )
-            }
+            // No divider line under the bar here: the progress bar already marks its edge.
         }
     }
 }
