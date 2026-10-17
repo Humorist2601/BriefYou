@@ -186,6 +186,15 @@ constructor(
         return generate(articlePrompt.value, prompt)
     }
 
+    /** Streams a short explanation of a passage the user selected in an article. */
+    fun explain(title: String?, passage: String): Flow<String> {
+        val prompt = buildString {
+            if (!title.isNullOrBlank()) append("Article: ").append(title).append("\n\n")
+            append("Passage: ").append(passage.take(MAX_INPUT_CHARS))
+        }
+        return generate(EXPLAIN_PROMPT, prompt)
+    }
+
     /** Streams a gist of many articles (for example everything in a group). */
     fun gist(groupName: String?, items: List<GistItem>): Flow<String> =
         generate(gistPrompt.value, buildGistPrompt(groupName, items))
@@ -345,6 +354,12 @@ constructor(
         private const val MAX_GIST_DESC_CHARS = 220
         private const val IDLE_UNLOAD_MS = 3 * 60 * 1000L
         private const val STOP_TIMEOUT_MS = 15_000L
+
+        private const val EXPLAIN_PROMPT =
+            "You help someone reading an article. You get the article's title and a passage " +
+                "they selected. Explain the passage simply in 2 to 4 short bullet points " +
+                "starting with \"• \": what it means and any background needed to understand " +
+                "it. Write in the same language as the passage and do not add any preamble."
 
         const val DEFAULT_ARTICLE_PROMPT =
             "You summarize articles for a news reader app. Reply with 3 to 5 short bullet " +
