@@ -25,6 +25,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Lightbulb
@@ -226,15 +228,38 @@ fun SummarySheet(
                     is SummaryUiState.Streaming ->
                         SummaryCards(text = state.text, streaming = !state.done)
 
+                    // An error looks like the loading state: centred, a 56 dp mark, a line under it,
+                    // then Try again.
                     is SummaryUiState.Error -> {
-                        Text(
-                            state.message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(shapes = ButtonDefaults.shapes(), onClick = viewModel::retry) {
-                            Text(stringResource(R.string.ai_summary_retry))
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(
+                                modifier =
+                                    Modifier.size(56.dp)
+                                        .background(MaterialTheme.colorScheme.errorContainer, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Outlined.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(28.dp),
+                                )
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                state.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 24.dp),
+                            )
+                            Spacer(Modifier.height(20.dp))
+                            Button(shapes = ButtonDefaults.shapes(), onClick = viewModel::retry) {
+                                Text(stringResource(R.string.ai_summary_retry))
+                            }
                         }
                     }
                 }

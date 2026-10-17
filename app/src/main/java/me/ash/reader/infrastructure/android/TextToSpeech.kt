@@ -40,6 +40,12 @@ class TextToSpeechManager @Inject constructor(
 
     private val tts: TextToSpeech = initTts()
 
+    /** The reading that is running; callbacks from an older one are ignored. */
+    @Volatile private var currentRun: Any? = null
+
+    /** What is being read, in the pieces sent to the engine. */
+    private var pieces: List<String> = emptyList()
+
     private fun initTts(): TextToSpeech {
         return TextToSpeech(context, TextToSpeech.OnInitListener {
             when (it) {
@@ -55,19 +61,16 @@ class TextToSpeechManager @Inject constructor(
     sealed interface State {
         object Idle : State
         object Preparing : State
-        /**
-         * Reading part [current] of [total]. [fraction] is how much of the text has been read,
-         * by characters, following the word being spoken.
-         */
-        class Reading(val current: Int, val total: Int, private val fraction: Float? = null) : State {
+        /** Reading part [current] of [total]. */
+        class Reading(val current: Int, val total: Int) : State {
             val progress: Float
-                get() = fraction ?: (current.toFloat() / total)
+                get() = current.toFloat() / total
         }
 
         object Error : State
     }
 
-
+    /** Reads an article aloud, from the beginning. */
     fun readHtml(htmlContent: String) {
         coroutineScope.launch {
             val plainText = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString()
@@ -95,66 +98,46 @@ class TextToSpeechManager @Inject constructor(
 
         // Paragraphs, with very long ones cut into pieces the speech engine accepts.
         val maxLength = TextToSpeech.getMaxSpeechInputLength().coerceAtLeast(500) - 100
-        val textSegments =
-            text.split("\n").filterNot { it.isBlank() }.flatMap { splitForSpeech(it, maxLength) }
-        val total = textSegments.size
-        if (total == 0) {
+        pieces = text.split("\n").filterNot { it.isBlank() }.flatMap { splitForSpeech(it, maxLength) }
+        if (pieces.isEmpty()) {
             state = State.Idle
             return
         }
-        // Where each piece starts in the whole text, so the progress follows the text's length
-        // (a short heading moves it a little, a long paragraph a lot).
-        val starts = IntArray(total)
-        var length = 0
-        textSegments.forEachIndexed { i, segment ->
-            starts[i] = length
-            length += segment.length
-        }
-        val totalLength = length.coerceAtLeast(1)
-
-        fun reading(index: Int, charInSegment: Int) {
-            val i = index.coerceIn(0, total - 1)
-            val read = (starts[i] + charInSegment).coerceIn(0, totalLength)
-            state = State.Reading(i + 1, total, read.toFloat() / totalLength)
-        }
-
-        state = State.Reading(0, total, 0f)
+        val total = pieces.size
+        val run = Any().also { currentRun = it }
+        state = State.Reading(1, total)
 
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
+                if (currentRun !== run) return
                 val index = (utteranceId?.toIntOrNull() ?: 1) - 1
-                reading(index, 0)
-            }
-
-            // The word being spoken (Android 8+), so the progress moves along as it reads.
-            override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
-                val index = (utteranceId?.toIntOrNull() ?: 1) - 1
-                reading(index, start)
+                state = State.Reading(index + 1, total)
             }
 
             override fun onDone(utteranceId: String?) {
+                if (currentRun !== run) return
                 val index = (utteranceId?.toIntOrNull() ?: 1) - 1
                 if (index >= total - 1) {
+                    currentRun = null
                     state = State.Idle
-                } else {
-                    reading(index + 1, 0)
                 }
             }
 
             override fun onError(utteranceId: String?) {
+                if (currentRun !== run) return
                 state = State.Error
             }
         })
 
-        textSegments.forEachIndexed { index, text ->
-            tts.speak(text, TextToSpeech.QUEUE_ADD, null, (index + 1).toString())
+        for (index in 0 until total) {
+            tts.speak(pieces[index], TextToSpeech.QUEUE_ADD, null, (index + 1).toString())
         }
     }
 
     /** Cuts [text] into pieces of at most [max] characters, at sentence ends or spaces. */
     private fun splitForSpeech(text: String, max: Int): List<String> {
         if (text.length <= max) return listOf(text)
-        val pieces = mutableListOf<String>()
+        val result = mutableListOf<String>()
         var rest = text
         while (rest.length > max) {
             val window = rest.substring(0, max)
@@ -163,14 +146,15 @@ class TextToSpeechManager @Inject constructor(
                     .map { window.lastIndexOf(it) }
                     .firstOrNull { it > max / 2 }
                     ?.plus(1) ?: max
-            pieces += rest.substring(0, cut)
+            result += rest.substring(0, cut)
             rest = rest.substring(cut)
         }
-        if (rest.isNotBlank()) pieces += rest
-        return pieces
+        if (rest.isNotBlank()) result += rest
+        return result
     }
 
     fun stop() {
+        currentRun = null
         tts.stop()
         state = State.Idle
     }
@@ -208,3 +192,4 @@ data class LocaleWithConfidence(
     val locale: Locale,
     val confidence: Float,
 )
+

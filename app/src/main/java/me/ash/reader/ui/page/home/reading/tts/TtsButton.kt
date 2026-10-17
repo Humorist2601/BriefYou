@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProgressIndicatorDefaults
@@ -45,7 +46,7 @@ import me.ash.reader.ui.motion.sharedYAxisTransitionSlow
 fun TtsButton(
     modifier: Modifier = Modifier,
     onClick: (TextToSpeechManager.State) -> Unit,
-    state: TextToSpeechManager.State
+    state: TextToSpeechManager.State,
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -55,11 +56,16 @@ fun TtsButton(
         contentKey = { it is TextToSpeechManager.State.Reading },
         transitionSpec = {
             sharedYAxisTransitionSlow(
-                direction = if (targetState is TextToSpeechManager.State.Reading) Direction.Forward else Direction.Backward,
+                direction =
+                    if (targetState is TextToSpeechManager.State.Reading) Direction.Forward
+                    else Direction.Backward,
                 motionScheme = motionScheme
             )
         }) { state ->
         when (state) {
+            // Reading: Stop on the Expressive loading shape, slowly morphing behind it (it shows
+            // that it is reading, not how far: the speech engine can't say that reliably). Tap to
+            // stop; the next tap starts over.
             is TextToSpeechManager.State.Reading -> {
                 Box(
                     modifier = modifier
@@ -71,14 +77,14 @@ fun TtsButton(
                         }),
                     contentAlignment = Alignment.Center
                 ) {
-                    TtsProgressIndicator(
-                        { state.progress },
-                        modifier = Modifier
+                    LoadingIndicator(
+                        modifier = Modifier.size(40.dp),
+                        color = LocalContentColor.current.copy(alpha = 0.22f),
                     )
                     Icon(
                         Icons.Rounded.Stop,
-                        null,
-                        modifier = Modifier.size(14.dp),
+                        stringResource(R.string.ai_stop_reading),
+                        modifier = Modifier.size(22.dp),
                         tint = LocalContentColor.current
                     )
                 }

@@ -7,6 +7,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -64,6 +67,8 @@ fun BottomBar(
     onStarred: (isStarred: Boolean) -> Unit = {},
     onNextArticle: () -> Unit = {},
     onFullContent: (isFullContent: Boolean) -> Unit = {},
+    /** Long press on the full content button: open the article in the browser. */
+    onOpenInBrowser: () -> Unit = {},
     onBoldCharacters: () -> Unit = {},
     onReadAloud: () -> Unit = {},
     onSummarize: () -> Unit = {},
@@ -133,6 +138,10 @@ fun BottomBar(
                             if (isFullContent) Icons.AutoMirrored.Rounded.Article
                             else Icons.AutoMirrored.Outlined.Article,
                         description = stringResource(R.string.parse_full_content),
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onOpenInBrowser()
+                        },
                     ) {
                         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                         onFullContent(!isFullContent)
@@ -149,9 +158,22 @@ private fun PillButton(
     icon: ImageVector,
     description: String,
     enabled: Boolean = true,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
-    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp)) {
+    Box(
+        modifier =
+            Modifier.size(48.dp)
+                .clip(CircleShape)
+                .combinedClickable(
+                    enabled = enabled,
+                    role = Role.Button,
+                    onClickLabel = description,
+                    onLongClick = onLongClick,
+                    onClick = onClick,
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
         Icon(
             icon,
             contentDescription = description,

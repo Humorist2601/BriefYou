@@ -1,5 +1,8 @@
 package me.ash.reader.ui.page.home.reading
 
+import me.ash.reader.ui.ext.openURL
+import me.ash.reader.infrastructure.preference.LocalOpenLinkSpecificBrowser
+import me.ash.reader.infrastructure.preference.LocalOpenLink
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -72,6 +75,8 @@ fun ReadingPage(
     onNavigateToStylePage: () -> Unit,
 ) {
     val context = LocalContext.current
+    val openLink = LocalOpenLink.current
+    val openLinkSpecificBrowser = LocalOpenLinkSpecificBrowser.current
     val hapticFeedback = LocalHapticFeedback.current
     val isPullToSwitchArticleEnabled = LocalPullToSwitchArticle.current.value
     val readingUiState = viewModel.readingUiState.collectAsStateValue()
@@ -300,6 +305,13 @@ fun ReadingPage(
                             readerState.nextArticle?.let {
                                 val (id, index) = it
                                 onLoadArticle(id, index)
+                            }
+                        },
+                        // Long press on full content: the article on its website, in the browser
+                        // chosen in settings.
+                        onOpenInBrowser = {
+                            readerState.link?.takeIf { it.isNotBlank() }?.let {
+                                context.openURL(it, openLink, openLinkSpecificBrowser)
                             }
                         },
                         onFullContent = {

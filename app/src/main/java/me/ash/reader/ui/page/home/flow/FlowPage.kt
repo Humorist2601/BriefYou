@@ -389,6 +389,10 @@ fun FlowPage(
                             val textStyle = LocalTextStyle.current
                             val color = LocalContentColor.current
                             if (textStyle.fontSize.value > 18f) {
+                                // One word (like "Entertainment") never breaks in the middle: it
+                                // stays on one line and shrinks further. Several words may wrap
+                                // onto two lines, between words.
+                                val oneWord = !titleText.trim().contains(' ')
                                 BasicText(
                                     modifier =
                                         Modifier.padding(
@@ -396,7 +400,7 @@ fun FlowPage(
                                             end = 24.dp,
                                         ),
                                     text = titleText,
-                                    maxLines = 2,
+                                    maxLines = if (oneWord) 1 else 2,
                                     overflow = TextOverflow.Ellipsis,
                                     // Wide expressive heading for All, Unread, Starred and for
                                     // group and feed names. Long names shrink or wrap (2 lines).
@@ -408,7 +412,7 @@ fun FlowPage(
                                     color = { color },
                                     autoSize =
                                         TextAutoSize.StepBased(
-                                            minFontSize = 28.sp,
+                                            minFontSize = if (oneWord) 20.sp else 28.sp,
                                             maxFontSize = textStyle.fontSize,
                                         ),
                                 )

@@ -68,8 +68,8 @@ fun FilterBar(
 
     val containerHeight = filterBarContainerHeight(filterBarStyle)
 
-    // A fade to black behind the bar: clear at the top of the bar, fully black for the last tenth
-    // (the area under the bar down to the screen edge). On a light theme it fades into the page
+    // A fade to black behind the bar: clear at the top, fully black from the bottom of the bar down
+    // to the screen edge, so nothing shows below the bar. On a light theme it fades into the page
     // color instead, since black would look harsh there.
     val scrim =
         if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color.Black
@@ -81,10 +81,13 @@ fun FilterBar(
         modifier =
             modifier
                 .drawBehind {
+                    // Where the bar ends: everything from there down is solid.
+                    val barBottom = (FILTER_BAR_TOP_PADDING + containerHeight).toPx()
+                    val solidFrom = (barBottom / size.height).coerceIn(0.3f, 1f)
                     drawRect(
                         Brush.verticalGradient(
                             0f to scrim.copy(alpha = 0f),
-                            0.9f to scrim,
+                            solidFrom to scrim,
                             1f to scrim,
                         )
                     )
