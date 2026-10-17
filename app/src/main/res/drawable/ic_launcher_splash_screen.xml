@@ -7,7 +7,7 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <group android:pivotX="54" android:pivotY="51" android:scaleX="0.8" android:scaleY="0.8" android:translateY="3">
-        <group android:pivotX="54" android:pivotY="72" android:rotation="3">
+        <group android:pivotX="54" android:pivotY="72" android:rotation="0">
             <path android:pathData="M42,26H66A7,7 0 0 1 73,33V69A7,7 0 0 1 66,76H42A7,7 0 0 1 35,69V33A7,7 0 0 1 42,26Z" android:fillColor="@color/splash_card_front"/>
         </group>
     </group>

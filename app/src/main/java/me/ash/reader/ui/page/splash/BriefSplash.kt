@@ -45,9 +45,10 @@ import me.ash.reader.R
 /*
  * The animated splash, drawn over the app right after the system splash hands over.
  *
- * It starts on the exact frame the system splash shows (icon A's front card alone, in the splash
+ * It starts on the exact frame the system splash shows (icon A's front card alone and straight, in the splash
  * colours, see ic_launcher_splash_screen and colors_splash), so the system splash is simply
- * removed, and then right away, in about 1.2 s:
+ * removed, and then right away, in about 1.3 s:
+ * 0. the straight card tips a little to the right;
  * 1. the two back cards fan out from behind the front card on a bouncy spring;
  * 2. the three lines of the brief write in from the left;
  * 3. the AI sparkle pops in with a little twist and settles;
@@ -66,6 +67,7 @@ import me.ash.reader.R
  */
 private val SystemSplashIconSize = 288.dp
 
+private const val TiltLeadMs = 110L
 private const val LinesDelayMs = 150L
 private const val SparkleDelayMs = 430L
 private const val GrowDelayMs = 680L
@@ -97,6 +99,7 @@ fun BriefSplash(onFinished: () -> Unit, modifier: Modifier = Modifier) {
     val displayCorner = displayCornerRadius()
     val iconPx = with(LocalDensity.current) { SystemSplashIconSize.toPx() }
 
+    val tilt = remember { Animatable(0f) }
     val fan = remember { Animatable(0f) }
     val lines = remember { Animatable(0f) }
     val sparkle = remember { Animatable(0f) }
@@ -115,8 +118,11 @@ fun BriefSplash(onFinished: () -> Unit, modifier: Modifier = Modifier) {
             currentOnFinished()
             return@LaunchedEffect
         }
-        // No waiting: the two back cards start fanning out on the very first frame.
+        // No waiting: the straight card tips to the right on the first frame, and the two back
+        // cards fan out as it lands.
         coroutineScope {
+            launch { tilt.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = 700f)) }
+            delay(TiltLeadMs)
             launch { fan.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 260f)) }
             launch {
                 delay(LinesDelayMs)
@@ -154,6 +160,8 @@ fun BriefSplash(onFinished: () -> Unit, modifier: Modifier = Modifier) {
         val unit = iconPx / 108f
         val g = grow.value
         val f = fan.value
+        // The front card's tilt: 0 (straight, like the system splash) to FrontRotation.
+        val front0 = FrontRotation * tilt.value
         // How far the front card grows: until it covers the whole screen.
         val cardPx = unit * CardScale
         val endScale = max(size.width / (CardW * cardPx), size.height / (CardH * cardPx)) * 1.02f
@@ -175,13 +183,13 @@ fun BriefSplash(onFinished: () -> Unit, modifier: Modifier = Modifier) {
         }) {
             val backAlpha = (f * 3f).coerceIn(0f, 1f) * stackAlpha
             if (backAlpha > 0f) {
-                drawCard(rotation = FrontRotation + (-16f - FrontRotation) * f, color = back, alpha = backAlpha)
-                drawCard(rotation = FrontRotation + (-7f - FrontRotation) * f, color = middle, alpha = backAlpha)
+                drawCard(rotation = front0 + (-16f - front0) * f, color = back, alpha = backAlpha)
+                drawCard(rotation = front0 + (-7f - front0) * f, color = middle, alpha = backAlpha)
             }
 
             withTransform({
                 scale(k, k, pivot = CardCenter)
-                rotate(FrontRotation * (1f - g), pivot = CardPivot)
+                rotate(front0 * (1f - g), pivot = CardPivot)
             }) {
                 val rect = Size(CardW, CardH)
                 val topLeft = Offset(CardX, CardY)

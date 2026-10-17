@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Splash screen colours (the system splash and BriefSplash share them, so the hand-over is
-     invisible). Brand violet here; Material You (wallpaper) colours on Android 12+, see
-     values-v31 and values-night-v31. -->
+     invisible): the background one step off the app's own background, the cards in the accent
+     colour (front strongest), the lines and sparkle in the background colour so they look cut out.
+     Brand violet here; Material You (wallpaper) colours on Android 12+, see values-v31. -->
 <resources>
-    <color name="splash_background">#3B2C6E</color>
-    <color name="splash_card_back">#7A66C7</color>
-    <color name="splash_card_middle">#B9A8F2</color>
-    <color name="splash_card_front">#F6F1FF</color>
-    <color name="splash_line">#3B2C6E</color>
-    <color name="splash_sparkle">#FF9F5A</color>
+    <color name="splash_background">#F1EEF8</color>
+    <color name="splash_card_back">#CFC3F5</color>
+    <color name="splash_card_middle">#9C88E0</color>
+    <color name="splash_card_front">#5B45B0</color>
+    <color name="splash_line">#F1EEF8</color>
+    <color name="splash_sparkle">#F1EEF8</color>
 </resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash screen colours, dark theme (see values/colors_splash.xml). -->
+<resources>
+    <color name="splash_background">#25212F</color>
+    <color name="splash_card_back">#3E3169</color>
+    <color name="splash_card_middle">#6A57B8</color>
+    <color name="splash_card_front">#CDBEFF</color>
+    <color name="splash_line">#25212F</color>
+    <color name="splash_sparkle">#25212F</color>
+</resources>
