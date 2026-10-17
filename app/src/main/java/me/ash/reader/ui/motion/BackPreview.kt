@@ -16,7 +16,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -39,7 +38,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
@@ -367,14 +365,6 @@ val LocalBackStack = compositionLocalOf<List<Any>> { emptyList() }
  */
 val LocalBackPreviewPicture = staticCompositionLocalOf<GraphicsLayer?> { null }
 
-private fun GraphicsLayerScope.place(placement: Placement) {
-    scaleX = placement.scale
-    scaleY = placement.scale
-    translationX = placement.x
-    translationY = placement.y
-    alpha = placement.alpha
-}
-
 /** The display's own corner radius, like the system uses, or 28 dp where the phone doesn't say. */
 @Composable
 private fun displayCornerRadius(): Float {
@@ -498,14 +488,33 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
                         if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
                     }
                 }
+                // The card's fade (only the screen you leave fades, after it went back).
                 .graphicsLayer {
+                    alpha =
+                        if (role == Role.Leaving || growing) {
+                            placement(growing, size.width, size.height, margin, offset).alpha
+                        } else {
+                            1f
+                        }
+                }
+                // The card: shrunk, moved and rounded while drawing only. The layout doesn't move,
+                // so a shared element like the filter bar (drawn above both screens at the place
+                // the screens give it) stays where it is while the screens move under it.
+                .drawWithContent {
                     if (role == Role.Leaving || growing) {
-                        place(placement(growing, size.width, size.height, margin, offset))
-                        shape = RoundedCornerShape(corner)
-                        clip = true
+                        val p = placement(growing, size.width, size.height, margin, offset)
+                        withTransform({
+                            translate(p.x, p.y)
+                            scale(p.scale, p.scale, center)
+                        }) {
+                            val card =
+                                androidx.compose.ui.graphics.Path().apply {
+                                    addRoundRect(RoundRect(size.toRect(), CornerRadius(corner)))
+                                }
+                            clipPath(card) { this@drawWithContent.drawContent() }
+                        }
                     } else {
-                        place(Placement(1f, 0f, 0f))
-                        clip = false
+                        drawContent()
                     }
                 }
                 .drawWithContent {

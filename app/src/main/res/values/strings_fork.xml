@@ -76,7 +76,7 @@
     <!-- Filters -->
     <string name="filters_settings">Filters</string>
     <string name="filters_settings_desc">Mute keywords, hide duplicate stories</string>
-    <string name="filters_intro">Filters run after every sync, or when you tap Apply now. Matching unread articles from the last 3 days are marked as read, the same as swiping them.\n\nMuted keywords: an article is muted when its title or short description contains the keyword as a whole word. Capital letters don\'t matter, but other forms of the word do (muting \"game\" doesn\'t catch \"games\").\n\nDuplicates: when several feeds publish the same story, only the first copy stays unread. A later article counts as a copy when another feed published a very similar title (most of the same words) up to 48 hours before it. Copies of the same story arrive within hours, while look-alike headlines that repeat, like a weekly roundup, are days apart, so they are not mistaken for copies.\n\nUndo brings an article back, and the filters skip it from then on. Reset undone articles lets them catch those articles again.</string>
+    <string name="filters_intro">Filters run after every sync and mark matching unread articles from the last 3 days as read.\n\nMuted keywords match whole words in the title or description.\n\nDuplicates: only the first copy of a story stays unread. A copy is a very similar title from another feed within 48 hours.\n\nUndone articles are skipped until you reset them.</string>
     <string name="filters_reset_undone">Reset undone articles</string>
     <plurals name="filters_reset_undone_desc">
         <item quantity="one">%1$d article you brought back with Undo is skipped by the filters. Reset to let them catch it again.</item>
@@ -134,16 +134,18 @@
 
     <!-- Full backup and restore -->
     <string name="backup_everything">Back up everything</string>
-    <string name="backup_everything_desc">One file with your subscriptions, custom icons, filters and settings</string>
+    <string name="backup_everything_desc">One file with your subscriptions, starred articles, filters and settings</string>
     <string name="restore_from_backup">Restore from backup</string>
     <string name="restore_from_backup_desc">Add the subscriptions, filters and settings from a backup file</string>
-    <string name="restore_confirm_text">Subscriptions are added, and feeds you already have are kept. Muted keywords are merged with yours. Appearance, reading and sync settings are replaced by the ones in the backup.</string>
+    <string name="restore_confirm_text">Subscriptions and starred articles are added, and feeds you already have are kept. Muted keywords are merged with yours. Appearance, reading, sync and AI settings are replaced by the ones in the backup.</string>
     <string name="restore">Restore</string>
     <string name="backup_saved">Backup saved</string>
     <string name="backup_failed">Could not create the backup</string>
     <string name="backup_part_subscriptions">subscriptions</string>
     <string name="backup_part_filters">filters</string>
     <string name="backup_part_settings">settings</string>
+    <string name="backup_part_starred">starred articles</string>
+    <string name="backup_part_account">sync settings</string>
     <string name="restore_done">Restored: %1$s</string>
     <string name="restore_partly_failed">Could not restore: %1$s</string>
     <string name="restore_failed">Could not restore: %1$s</string>

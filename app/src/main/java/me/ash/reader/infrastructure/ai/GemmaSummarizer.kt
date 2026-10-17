@@ -110,6 +110,11 @@ constructor(
         _gistPrompt.value = v ?: DEFAULT_GIST_PROMPT
     }
 
+    /** The instructions the user wrote, for a backup; null where the default is used. */
+    fun customArticlePrompt(): String? = prefs.getString(KEY_ARTICLE_PROMPT, null)
+
+    fun customGistPrompt(): String? = prefs.getString(KEY_GIST_PROMPT, null)
+
     /**
      * Copies the picked model into private storage. Runs in the app scope, so leaving the screen
      * doesn't cancel it; progress is published on [modelState].

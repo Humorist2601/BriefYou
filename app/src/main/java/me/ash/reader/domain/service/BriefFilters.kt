@@ -213,6 +213,30 @@ constructor(
             forget((_log.value.map { it.articleId } + exempt).filterNot { it in live })
         }
 
+    /** The recently filtered list and the undone articles, for a backup. */
+    fun exportState(): Pair<List<FilterLogEntry>, List<String>> =
+        _log.value to prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty().toList()
+
+    /**
+     * Merges a backup's recently filtered list and undone articles into this phone's. Entries for
+     * articles that don't exist here are dropped the next time the list is tidied up ([prune]).
+     */
+    suspend fun importState(log: List<FilterLogEntry>, exempt: List<String>) =
+        withContext(Dispatchers.IO) {
+            lock.withLock {
+                if (exempt.isNotEmpty()) {
+                    saveExempt(prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty() + exempt)
+                }
+                if (log.isNotEmpty()) {
+                    val known = _log.value.map { it.articleId }.toHashSet()
+                    writeLog(
+                        (_log.value + log.filterNot { it.articleId in known })
+                            .sortedByDescending { it.at }
+                    )
+                }
+            }
+        }
+
     /** Lets the filters catch the articles brought back with Undo again (from the next run). */
     suspend fun resetExemptions() =
         withContext(Dispatchers.IO) { lock.withLock { saveExempt(emptySet()) } }

@@ -495,6 +495,10 @@ fun AccountDetailsPage(
                                                         R.string.backup_part_subscriptions
                                                     BackupService.Part.Filters ->
                                                         R.string.backup_part_filters
+                                                    BackupService.Part.Starred ->
+                                                        R.string.backup_part_starred
+                                                    BackupService.Part.Account ->
+                                                        R.string.backup_part_account
                                                     BackupService.Part.Settings ->
                                                         R.string.backup_part_settings
                                                 }
