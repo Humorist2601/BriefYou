@@ -111,8 +111,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import me.ash.reader.R
 import me.ash.reader.domain.model.article.ArticleWithFeed
-import me.ash.reader.infrastructure.ai.SavedKind
-import me.ash.reader.infrastructure.ai.SummaryStoreEntryPoint
 import me.ash.reader.ui.component.FeedIcon
 import me.ash.reader.ui.component.base.RYAsyncImage
 import me.ash.reader.ui.component.base.SIZE_1000
@@ -407,6 +405,8 @@ private fun TriageContent(
     val prefs = remember { context.getSharedPreferences("triage", android.content.Context.MODE_PRIVATE) }
     var autoSeconds by remember { mutableIntStateOf(prefs.getInt("auto_seconds", 5)) }
     val autoProgress = remember { mutableFloatStateOf(0f) }
+    // A finger on the card pauses auto-advance; the button at the top shows it.
+    var autoHeld by remember { mutableStateOf(false) }
     val articles = session.articles
     val history = session.history
     val index = session.index
@@ -498,6 +498,7 @@ private fun TriageContent(
             }
             AutoAdvanceButton(
                 running = session.autoRunning,
+                paused = autoHeld && current != null,
                 seconds = autoSeconds,
                 // No ring on the "All caught up" screen, where there is no card left to skip.
                 progress = { if (current != null) autoProgress.floatValue else 0f },
@@ -571,6 +572,7 @@ private fun TriageContent(
                 autoSeconds = if (session.autoRunning && !loadingNext) autoSeconds else 0,
                 onAutoProgress = { autoProgress.floatValue = it },
                 onDecide = { decide(it) },
+                onHeldChange = { autoHeld = it },
                 returnFrom = returning?.takeIf { it.article.article.id == current.article.id }?.action,
                 onReturned = { returning = null },
             )
@@ -586,6 +588,7 @@ private fun TriageStack(
     autoSeconds: Int,
     onAutoProgress: (Float) -> Unit,
     onDecide: (TriageAction) -> Unit,
+    onHeldChange: (Boolean) -> Unit = {},
     returnFrom: TriageAction? = null,
     onReturned: () -> Unit = {},
 ) {
@@ -612,6 +615,8 @@ private fun TriageStack(
     // Touching the card: being dragged, or held with a finger. Pauses auto-advance.
     var dragging by remember(current.article.id) { mutableStateOf(false) }
     var held by remember(current.article.id) { mutableStateOf(false) }
+    // How far the auto-advance countdown has run on this card (0 to 1); kept while it is paused.
+    val countdown = remember(current.article.id) { Animatable(0f) }
 
     // Undo: the card flies back in from where it went, springing into place, and the card behind
     // shrinks back as it lands. Nothing can be done with it until it is back.
@@ -693,17 +698,19 @@ private fun TriageStack(
             }
 
             // Auto-advance: when the time is up the card is skipped (left unread). Touching the card
-            // pauses the countdown; it starts again from the beginning when you let go, and on every
-            // new card.
+            // pauses the countdown where it is, and letting go carries on from there; every new
+            // card starts from the beginning.
             val touching = dragging || held
+            LaunchedEffect(touching, autoSeconds) { onHeldChange(touching && autoSeconds > 0) }
             LaunchedEffect(autoSeconds, current.article.id, touching, busy) {
-                onAutoProgress(0f)
-                if (autoSeconds > 0 && !touching && !busy) {
-                    animate(
-                        0f,
-                        1f,
-                        animationSpec = tween(autoSeconds * 1000, easing = LinearEasing),
-                    ) { value, _ ->
+                if (autoSeconds <= 0) {
+                    countdown.snapTo(0f)
+                    onAutoProgress(0f)
+                } else if (!touching && !busy) {
+                    onAutoProgress(countdown.value)
+                    val remaining =
+                        ((1f - countdown.value) * autoSeconds * 1000).toInt().coerceAtLeast(1)
+                    countdown.animateTo(1f, tween(remaining, easing = LinearEasing)) {
                         onAutoProgress(value)
                     }
                     trigger(TriageAction.Skip)
@@ -891,7 +898,6 @@ private fun TriageCard(
 ) {
     val feed = article.feed
     val item = article.article
-    val summary = rememberSavedSummary(item.id)
     val minutes = remember(item.id) { estimateReadingMinutes(item.rawDescription) }
 
     Surface(
@@ -950,23 +956,7 @@ private fun TriageCard(
                 )
 
                 Spacer(Modifier.height(12.dp))
-                if (summary != null) {
-                    Row(verticalAlignment = Alignment.Top) {
-                        Icon(
-                            Icons.Outlined.AutoAwesome,
-                            contentDescription = null,
-                            modifier = Modifier.padding(top = 2.dp).size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            modifier = Modifier.padding(start = 8.dp),
-                            text = summary,
-                            style = MaterialTheme.typography.bodyLarge,
-                            maxLines = 8,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                } else if (item.shortDescription.isNotBlank()) {
+                if (item.shortDescription.isNotBlank()) {
                     Text(
                         text = item.shortDescription,
                         style = MaterialTheme.typography.bodyLarge,
@@ -1113,24 +1103,6 @@ private fun TriageDone(
     }
 }
 
-/** The article's saved AI summary, if it has one; null otherwise. */
-@Composable
-private fun rememberSavedSummary(articleId: String): String? {
-    val context = LocalContext.current
-    val store = remember {
-        EntryPointAccessors.fromApplication(
-                context.applicationContext,
-                SummaryStoreEntryPoint::class.java,
-            )
-            .summaryStore()
-    }
-    val summary by
-        produceState<String?>(initialValue = null, articleId) {
-            value = store.get(articleId, SavedKind.Summary)
-        }
-    return summary
-}
-
 /**
  * Starts and stops auto-advance. While it runs, a ring around the button counts down to the next
  * skip. A long press opens the delay picker.
@@ -1139,6 +1111,7 @@ private fun rememberSavedSummary(articleId: String): String? {
 @Composable
 private fun AutoAdvanceButton(
     running: Boolean,
+    paused: Boolean = false,
     seconds: Int,
     progress: () -> Float,
     onToggle: () -> Unit,
@@ -1165,7 +1138,7 @@ private fun AutoAdvanceButton(
                 Modifier.size(40.dp)
                     .clip(CircleShape)
                     .background(
-                        if (running) MaterialTheme.colorScheme.primary
+                        if (running && !paused) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.secondaryContainer
                     )
                     .combinedClickable(
@@ -1177,14 +1150,20 @@ private fun AutoAdvanceButton(
                     ),
             contentAlignment = Alignment.Center,
         ) {
+            // While a finger holds the card, the button shows the pause sign on a quieter color,
+            // and the ring stops where it was.
             Icon(
                 if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 contentDescription =
                     stringResource(
-                        if (running) R.string.triage_auto_stop else R.string.triage_auto_start
+                        when {
+                            paused -> R.string.triage_auto_paused
+                            running -> R.string.triage_auto_stop
+                            else -> R.string.triage_auto_start
+                        }
                     ),
                 tint =
-                    if (running) MaterialTheme.colorScheme.onPrimary
+                    if (running && !paused) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
@@ -1193,6 +1172,9 @@ private fun AutoAdvanceButton(
                 progress = progress,
                 modifier = Modifier.size(48.dp),
                 strokeWidth = 3.dp,
+                color =
+                    if (paused) MaterialTheme.colorScheme.outline
+                    else MaterialTheme.colorScheme.primary,
                 trackColor = Color.Transparent,
             )
         }

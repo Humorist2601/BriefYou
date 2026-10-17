@@ -105,6 +105,10 @@ class AndroidApp : Application(), Configuration.Provider {
             workerInit()
             checkUpdate()
         }
+        // Brief You: AI summaries are no longer saved; remove any an older version saved.
+        applicationScope.launch(ioDispatcher) {
+            runCatching { java.io.File(filesDir, "ai_cache").deleteRecursively() }
+        }
         Coil.setImageLoader(imageLoader)
     }
 

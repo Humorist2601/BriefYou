@@ -7,7 +7,6 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
 import me.ash.reader.domain.model.account.Account
-import me.ash.reader.infrastructure.ai.SummaryStore
 import me.ash.reader.infrastructure.android.NotificationHelper
 import me.ash.reader.infrastructure.rss.ReaderCacheHelper
 
@@ -21,7 +20,6 @@ constructor(
     private val readerCacheHelper: ReaderCacheHelper,
     private val workManager: WorkManager,
     private val briefFilters: BriefFilters,
-    private val summaryStore: SummaryStore,
     private val feedIconOverrides: FeedIconOverrides,
     private val notificationHelper: NotificationHelper,
 ) : CoroutineWorker(context, workerParams) {
@@ -49,8 +47,6 @@ constructor(
             .also {
                 val removed = rssService.get().clearKeepArchivedArticles()
                 removed.forEach { readerCacheHelper.deleteCacheFor(articleId = it.id) }
-                // Brief You: saved summaries go away with their articles.
-                runCatching { summaryStore.delete(removed.map { it.id }) }
                 runCatching { briefFilters.forget(removed.map { it.id }) }
                 // Brief You: mute keywords and duplicate stories.
                 runCatching { briefFilters.apply(accountId) }

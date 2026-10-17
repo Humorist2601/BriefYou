@@ -24,6 +24,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -234,6 +237,12 @@ private fun isCancelled(gesture: NavigationEventTransitionState, stackSize: Int)
  */
 val LocalBackStackSize = compositionLocalOf<() -> Int> { { 0 } }
 
+/**
+ * Where the screen behind keeps a picture of itself during a back gesture (see BackPreviewPage).
+ * Provided by the app's navigation (AppEntry).
+ */
+val LocalBackPreviewPicture = staticCompositionLocalOf<GraphicsLayer?> { null }
+
 private fun GraphicsLayerScope.place(placement: Placement) {
     scaleX = placement.scale
     scaleY = placement.scale
@@ -289,6 +298,7 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
             transition.targetState == EnterExitState.Visible
 
     val stackSize = LocalBackStackSize.current
+    val picture = LocalBackPreviewPicture.current
     val density = LocalDensity.current
     val margin = with(density) { MARGIN.toPx() }
     val offset = with(density) { ENTERING_START_OFFSET.toPx() }
@@ -347,6 +357,20 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
     Box(
         modifier =
             Modifier.fillMaxSize()
+                // The screen behind keeps a picture of itself (everything below: backdrop, card,
+                // dim) while a back gesture runs. When the gesture is cancelled, the navigation host
+                // puts this screen on top of the card you are dragging back, which would cover it;
+                // it then stops drawing itself, and the card draws the picture behind itself
+                // instead, so what you see does not change (see below).
+                .drawWithContent {
+                    val s = BackPreviewState
+                    if (entering && s.active && picture != null) {
+                        picture.record { this@drawWithContent.drawContent() }
+                        if (!isCancelled(gesture, stackSize())) drawLayer(picture)
+                    } else {
+                        drawContent()
+                    }
+                }
                 // Behind everything (drawn before the screen is moved and shrunk, so it fills the
                 // whole display): the backdrop the two cards sit on, dimmed like the screen behind.
                 // As in the system, the dim covers everything under the card you are leaving, so
@@ -360,13 +384,12 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
                         val alpha = scrim * dimFade(1f - fraction.value)
                         if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
                     } else if (exiting && cancelled) {
-                        // Cancelled: the screen behind has stepped aside (see below), so the card
-                        // settles back over the dimmed backdrop, the dim lifting as it lands.
-                        drawRect(backdrop)
-                        val back =
-                            if (s.released) (fraction.value / s.releasedAt).coerceIn(0f, 1f) else 1f
-                        val alpha = scrim * back
-                        if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
+                        // Cancelled: the screen behind, as it looks right now, under the card.
+                        if (picture != null) {
+                            drawLayer(picture)
+                        } else {
+                            drawRect(backdrop)
+                        }
                     }
                 }
                 .graphicsLayer {
@@ -376,10 +399,6 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
                         place(placement(raw, entering, size.width, size.height, margin, offset))
                         shape = RoundedCornerShape(corner)
                         clip = true
-                        // When the gesture is cancelled, the navigation host puts the screen behind
-                        // on top of the card for the way back, which would cover it. It steps aside
-                        // instead, so the card can be seen settling back into place.
-                        if (entering && isCancelled(gesture, stackSize())) alpha = 0f
                     } else {
                         clip = false
                     }

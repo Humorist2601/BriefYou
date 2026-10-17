@@ -29,6 +29,8 @@ import me.ash.reader.ui.motion.materialSharedAxisXIn
 import me.ash.reader.ui.motion.materialSharedAxisXOut
 import me.ash.reader.ui.motion.BackPreviewPage
 import me.ash.reader.ui.motion.LocalBackStackSize
+import me.ash.reader.ui.motion.LocalBackPreviewPicture
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import me.ash.reader.ui.motion.backPreviewPopTransform
 import me.ash.reader.ui.page.adaptive.ArticleData
 import me.ash.reader.ui.page.adaptive.ArticleListReaderPage
@@ -88,7 +90,11 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
         )
 
     // How many screens are open, for the back animation (see BackPreview.kt).
-    CompositionLocalProvider(LocalBackStackSize provides { backStack.size }) {
+    val backPreviewPicture = rememberGraphicsLayer()
+    CompositionLocalProvider(
+        LocalBackStackSize provides { backStack.size },
+        LocalBackPreviewPicture provides backPreviewPicture,
+    ) {
     SharedTransitionLayout {
         NavDisplay(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),

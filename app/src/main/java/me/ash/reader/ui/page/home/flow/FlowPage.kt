@@ -181,8 +181,19 @@ fun FlowPage(
         currentPullToLoadState?.status.let {
             it == PullToLoadState.Status.PullingUp || it == PullToLoadState.Status.PulledUp
         }
+    // After a pull, the list jumps to the next feed (or settles back), which briefly looks like
+    // scrolling; the button waits until that is over, so it comes back once instead of twice.
+    var afterPull by remember { mutableStateOf(false) }
+    LaunchedEffect(pullingUp) {
+        if (pullingUp) {
+            afterPull = true
+        } else if (afterPull) {
+            delay(700)
+            afterPull = false
+        }
+    }
     val showActionsFab =
-        filterUiState.filter.isUnread() && !onSearch && !pullingUp && (scrollingUp || atTop)
+        filterUiState.filter.isUnread() && !onSearch && !afterPull && (scrollingUp || atTop)
 
     var currentLoadAction: LoadAction? by remember { mutableStateOf(null) }
 

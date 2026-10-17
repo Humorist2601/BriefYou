@@ -74,7 +74,7 @@ fun BottomBar(
     ) {
         AnimatedVisibility(
             visible = isShow,
-            modifier = Modifier.navigationBarsPadding().padding(bottom = 16.dp),
+            modifier = Modifier.navigationBarsPadding().padding(bottom = 4.dp),
             enter =
                 scaleIn(
                     transformOrigin = PillOrigin,

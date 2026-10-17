@@ -1,16 +1,19 @@
 package me.ash.reader.ui.page.home.reading.summary
 
-import me.ash.reader.infrastructure.preference.LocalReadingTextHorizontalPadding
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.material3.IconButton
-import androidx.compose.material.icons.rounded.Close
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -18,12 +21,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DoneAll
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material3.Button
@@ -31,6 +35,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
@@ -43,27 +48,35 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import me.ash.reader.R
 import me.ash.reader.infrastructure.ai.GemmaSummarizer
 import me.ash.reader.infrastructure.android.TextToSpeechManager
-import me.ash.reader.ui.component.ExpressiveBadge
+import me.ash.reader.infrastructure.preference.LocalReadingTextHorizontalPadding
 import me.ash.reader.ui.component.scrollbar.drawVerticalScrollIndicator
 import me.ash.reader.ui.ext.collectAsStateValue
 
 /**
  * Bottom sheet that streams an on-device summary of one article, or a gist of a whole list.
  *
- * The sheet opens at 70% of the screen height and stays that size: it does not grow as the text
- * streams in, and the text area inside it scrolls. Horizontal padding matches the reading page.
+ * It looks like the app's other sheets (the sort sheet): a drag handle, a large title with a line
+ * under it, then the content. The key points are a group of rounded tonal cards (Material 3
+ * Expressive's connected list) that slide in one by one as they are written, and "Why it matters"
+ * stands out in its own accent card. The actions sit at the bottom as a connected pair of buttons.
+ *
+ * The sheet opens at 70% of the screen height and keeps that size while the text is written; the
+ * content scrolls inside it. Drag it down, press Back or tap outside to close it.
  *
  * @param requestKey changes when the thing being summarized changes (article id, filter).
  */
@@ -91,136 +104,42 @@ fun SummarySheet(
             uri?.let(viewModel::importModel)
         }
 
-    // Brief You: no drag gestures on this sheet, and a fixed height. It opens at 70% of the screen
-    // and never grows or expands to full screen; the summary text scrolls inside it. It closes with
-    // the ✕ button, Back, or a tap outside.
     val sheetHeight = (LocalConfiguration.current.screenHeightDp * 0.7f).dp
-    // The summary text sits in a card, so the sheet's own padding is the reading padding minus the
-    // card's inner padding: the summary text then lines up with the article text instead of being
-    // indented twice.
-    val cardInnerPadding = 14.dp
-    val horizontalPadding =
-        (LocalReadingTextHorizontalPadding.current.dp - cardInnerPadding).coerceAtLeast(12.dp)
-    ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
-        sheetState = sheetState,
-        sheetGesturesEnabled = false,
-        // No drag handle: the sheet isn't draggable, it closes with ✕, Back or a tap outside.
-        dragHandle = null,
-    ) {
+    // The same side padding as the reading page, so the summary lines up with the article text.
+    val horizontalPadding = LocalReadingTextHorizontalPadding.current.dp.coerceAtLeast(16.dp)
+
+    ModalBottomSheet(onDismissRequest = onDismissRequest, sheetState = sheetState) {
         Column(
             modifier =
                 Modifier.fillMaxWidth()
                     .height(sheetHeight)
                     .padding(horizontal = horizontalPadding)
-                    .padding(top = 24.dp)
                     .navigationBarsPadding()
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ExpressiveBadge(Icons.Outlined.AutoAwesome)
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(heading, style = MaterialTheme.typography.titleLarge, maxLines = 2)
-                    val count =
-                        when (state) {
-                            is SummaryUiState.Streaming -> state.articleCount
-                            is SummaryUiState.Thinking -> state.articleCount
-                            else -> null
-                        }
-                    Text(
-                        when {
-                            count != null ->
-                                pluralStringResource(R.plurals.ai_gist_based_on, count, count)
-                            state is SummaryUiState.Streaming && state.fromCache ->
-                                stringResource(R.string.ai_saved_on_device)
-                            else -> stringResource(R.string.ai_summary_on_device)
-                        },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+            // Header: like the sort sheet, a large title, a line about where it comes from, and
+            // a divider.
+            Text(
+                text = heading,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+            )
+            val count =
+                when (state) {
+                    is SummaryUiState.Streaming -> state.articleCount
+                    is SummaryUiState.Thinking -> state.articleCount
+                    else -> null
                 }
-                IconButton(onClick = onDismissRequest) {
-                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close))
-                }
-            }
-            Spacer(Modifier.height(20.dp))
-
-            // Actions sit right under the header, so they stay in view at the half-way stop. They
-            // appear (disabled) as soon as text starts, so nothing shifts when generation ends.
-            val streaming = state as? SummaryUiState.Streaming
-            val done = streaming?.done == true
-            val actionCount =
-                streaming?.articleCount ?: (state as? SummaryUiState.Thinking)?.articleCount
-            if (streaming != null || state is SummaryUiState.Thinking) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    OutlinedButton(
-                        shapes = ButtonDefaults.shapes(),
-                        onClick = viewModel::regenerate,
-                        enabled = done,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(
-                            Icons.Outlined.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(ButtonDefaults.IconSize),
-                        )
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text(stringResource(R.string.ai_summary_regenerate))
-                    }
-                    val reading =
-                        ttsState !is TextToSpeechManager.State.Idle &&
-                            ttsState !is TextToSpeechManager.State.Error
-                    FilledTonalButton(
-                        shapes = ButtonDefaults.shapes(),
-                        onClick = { streaming?.let { viewModel.readAloud(it.text) } },
-                        enabled = done,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(
-                            if (reading) Icons.Outlined.StopCircle
-                            else Icons.AutoMirrored.Outlined.VolumeUp,
-                            contentDescription = null,
-                            modifier = Modifier.size(ButtonDefaults.IconSize),
-                        )
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text(
-                            stringResource(
-                                if (reading) R.string.ai_stop_reading else R.string.ai_read_aloud
-                            )
-                        )
-                    }
-                }
-                if (!isArticle && actionCount != null) {
-                    Spacer(Modifier.height(8.dp))
-                    val marked = gistMarkedRead
-                    Button(
-                        shapes = ButtonDefaults.shapes(),
-                        onClick = viewModel::markGistAsRead,
-                        enabled = done && marked == null,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            Icons.Outlined.DoneAll,
-                            contentDescription = null,
-                            modifier = Modifier.size(ButtonDefaults.IconSize),
-                        )
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text(
-                            if (marked == null)
-                                pluralStringResource(
-                                    R.plurals.ai_gist_mark_read,
-                                    actionCount,
-                                    actionCount,
-                                )
-                            else pluralStringResource(R.plurals.ai_gist_marked_read, marked, marked)
-                        )
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-            }
+            Text(
+                text =
+                    if (count != null) pluralStringResource(R.plurals.ai_gist_based_on, count, count)
+                    else stringResource(R.string.ai_summary_on_device),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(16.dp))
 
             val scrollState = rememberScrollState()
             Column(
@@ -278,10 +197,14 @@ fun SummarySheet(
                         }
                     }
 
+                    // Loading: the Expressive shape-morphing indicator, centred, with a line under it.
                     is SummaryUiState.Thinking -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            LoadingIndicator(modifier = Modifier.size(40.dp))
-                            Spacer(Modifier.width(12.dp))
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            LoadingIndicator(modifier = Modifier.size(56.dp))
+                            Spacer(Modifier.height(16.dp))
                             Text(
                                 stringResource(R.string.ai_summary_thinking),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -290,23 +213,8 @@ fun SummarySheet(
                         }
                     }
 
-                    is SummaryUiState.Streaming -> {
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            shape = RoundedCornerShape(28.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            SummaryText(
-                                text = state.text,
-                                streaming = !state.done,
-                                modifier =
-                                    Modifier.padding(
-                                        horizontal = cardInnerPadding,
-                                        vertical = 16.dp,
-                                    ),
-                            )
-                        }
-                    }
+                    is SummaryUiState.Streaming ->
+                        SummaryCards(text = state.text, streaming = !state.done)
 
                     is SummaryUiState.Error -> {
                         Text(
@@ -320,45 +228,234 @@ fun SummarySheet(
                         }
                     }
                 }
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(16.dp))
+            }
+
+            // Actions at the bottom, always in reach. They appear (disabled) as soon as the
+            // summary starts, so nothing shifts when it is finished.
+            val streaming = state as? SummaryUiState.Streaming
+            val done = streaming?.done == true
+            val actionCount =
+                streaming?.articleCount ?: (state as? SummaryUiState.Thinking)?.articleCount
+            if (streaming != null || state is SummaryUiState.Thinking) {
+                if (!isArticle && actionCount != null) {
+                    val marked = gistMarkedRead
+                    Button(
+                        shapes = ButtonDefaults.shapes(),
+                        onClick = viewModel::markGistAsRead,
+                        enabled = done && marked == null,
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.DoneAll,
+                            contentDescription = null,
+                            modifier = Modifier.size(ButtonDefaults.IconSize),
+                        )
+                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                        Text(
+                            if (marked == null)
+                                pluralStringResource(
+                                    R.plurals.ai_gist_mark_read,
+                                    actionCount,
+                                    actionCount,
+                                )
+                            else pluralStringResource(R.plurals.ai_gist_marked_read, marked, marked)
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+                // A connected pair: one pill split in two, round on the outside.
+                val reading =
+                    ttsState !is TextToSpeechManager.State.Idle &&
+                        ttsState !is TextToSpeechManager.State.Error
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    FilledTonalButton(
+                        onClick = viewModel::regenerate,
+                        enabled = done,
+                        shape = RoundedCornerShape(50, 8, 8, 50),
+                        modifier = Modifier.weight(1f).height(52.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(ButtonDefaults.IconSize),
+                        )
+                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                        Text(stringResource(R.string.ai_summary_regenerate))
+                    }
+                    FilledTonalButton(
+                        onClick = { streaming?.let { viewModel.readAloud(it.text) } },
+                        enabled = done,
+                        shape = RoundedCornerShape(8, 50, 50, 8),
+                        modifier = Modifier.weight(1f).height(52.dp),
+                    ) {
+                        Icon(
+                            if (reading) Icons.Outlined.StopCircle
+                            else Icons.AutoMirrored.Outlined.VolumeUp,
+                            contentDescription = null,
+                            modifier = Modifier.size(ButtonDefaults.IconSize),
+                        )
+                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                        Text(
+                            stringResource(
+                                if (reading) R.string.ai_stop_reading else R.string.ai_read_aloud
+                            )
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 private val BulletLine = Regex("""^([•\-–*]|\d{1,2}[.)])\s+(.*)$""")
+private val WhyItMatters = Regex("""^\**\s*why it matters\s*\**\s*:\s*\**\s*(.*)$""", RegexOption.IGNORE_CASE)
+
+/** One piece of a summary: a key point, the "why it matters" line, or a plain paragraph. */
+private sealed interface SummaryPart {
+    data class Point(val text: String) : SummaryPart
+
+    data class Why(val text: String) : SummaryPart
+
+    data class Paragraph(val text: String) : SummaryPart
+}
+
+private fun parseSummary(text: String): List<SummaryPart> =
+    text.lines()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .map { line ->
+            WhyItMatters.matchEntire(line)?.let { SummaryPart.Why(it.groupValues[1]) }
+                ?: BulletLine.matchEntire(line)?.let { SummaryPart.Point(it.groupValues[2]) }
+                ?: SummaryPart.Paragraph(line)
+        }
 
 /**
- * The summary text. Bullet lines are laid out as a bullet beside their text, so a bullet that wraps
- * onto a second line continues under its own first word (a hanging indent) and never underneath
- * the bullet itself.
+ * The summary as cards. Key points in a row form one group of tonal cards (big outer corners, small
+ * gaps between them); "Why it matters" is its own accent card with a light bulb. Each new piece
+ * slides in as it is written; a cursor marks the end while text is still coming.
  */
 @Composable
-private fun SummaryText(text: String, streaming: Boolean, modifier: Modifier = Modifier) {
-    val style = MaterialTheme.typography.bodyLarge
-    val lines = remember(text) { text.lines().map { it.trim() }.filter { it.isNotEmpty() } }
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        lines.forEachIndexed { index, line ->
-            // The blinking-cursor stand-in goes at the end of the last line while text streams in.
-            val cursor = if (streaming && index == lines.lastIndex) " ▍" else ""
-            val match = BulletLine.matchEntire(line)
-            if (match != null) {
-                val marker = match.groupValues[1]
-                val isNumber = marker.first().isDigit()
-                Row {
-                    Text(
-                        text = if (isNumber) marker else "•",
-                        style = style,
-                        modifier = Modifier.width(if (isNumber) 28.dp else 20.dp),
-                    )
-                    Text(
-                        text = match.groupValues[2] + cursor,
-                        style = style,
-                        modifier = Modifier.weight(1f),
-                    )
+private fun SummaryCards(text: String, streaming: Boolean) {
+    val parts = remember(text) { parseSummary(text) }
+    // Split into runs, so a run of points becomes one connected group.
+    val runs =
+        remember(parts) {
+            buildList<List<Pair<Int, SummaryPart>>> {
+                var current = mutableListOf<Pair<Int, SummaryPart>>()
+                parts.forEachIndexed { index, part ->
+                    val joinsRun =
+                        part is SummaryPart.Point && current.lastOrNull()?.second is SummaryPart.Point
+                    if (!joinsRun && current.isNotEmpty()) {
+                        add(current)
+                        current = mutableListOf()
+                    }
+                    current += index to part
                 }
-            } else {
-                Text(text = line + cursor, style = style)
+                if (current.isNotEmpty()) add(current)
+            }
+        }
+    val style = MaterialTheme.typography.bodyLarge
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        runs.forEach { run ->
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                run.forEachIndexed { position, (index, part) ->
+                    val cursor = if (streaming && index == parts.lastIndex) " ▍" else ""
+                    key(index) {
+                        SlideIn {
+                            when (part) {
+                                is SummaryPart.Point ->
+                                    PointCard(
+                                        text = part.text + cursor,
+                                        shape = groupShape(position, run.size),
+                                    )
+                                is SummaryPart.Why -> WhyCard(text = part.text + cursor)
+                                is SummaryPart.Paragraph ->
+                                    Text(
+                                        text = part.text + cursor,
+                                        style = style,
+                                        modifier = Modifier.padding(horizontal = 4.dp),
+                                    )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Fades and slides each card in once, when it first appears. */
+@Composable
+private fun SlideIn(content: @Composable () -> Unit) {
+    val visible = remember { MutableTransitionState(false).apply { targetState = true } }
+    AnimatedVisibility(
+        visibleState = visible,
+        enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+    ) {
+        content()
+    }
+}
+
+/** Big corners on the outside of a group, small ones between its cards. */
+private fun groupShape(position: Int, size: Int): RoundedCornerShape {
+    val outer = 24.dp
+    val inner = 6.dp
+    val top = if (position == 0) outer else inner
+    val bottom = if (position == size - 1) outer else inner
+    return RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
+}
+
+@Composable
+private fun PointCard(text: String, shape: RoundedCornerShape) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = shape,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            // A small accent dot, level with the first line of the text.
+            Box(modifier = Modifier.padding(top = 8.dp).size(8.dp).background(
+                MaterialTheme.colorScheme.primary,
+                CircleShape,
+            ))
+            Spacer(Modifier.width(14.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun WhyCard(text: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(modifier = Modifier.padding(16.dp)) {
+            Icon(
+                Icons.Outlined.Lightbulb,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.ai_why_it_matters),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(text = text, style = MaterialTheme.typography.bodyLarge)
             }
         }
     }

@@ -20,6 +20,7 @@
     <string name="ai_summarize">Summarize</string>
     <string name="ai_summary">Summary</string>
     <string name="ai_summary_on_device">Generated on this device with Gemma</string>
+    <string name="ai_why_it_matters">Why it matters</string>
     <string name="ai_summary_needs_model">To summarize articles privately on your phone, download a Gemma model in .litertlm format (Gemma 4 E2B is recommended; it is a few gigabytes), then choose the file here. It is copied into the app once and never leaves your device.</string>
     <string name="ai_summary_get_model">Get Gemma 4</string>
     <string name="ai_summary_choose_file">Choose model file</string>
@@ -63,7 +64,6 @@
     <string name="ai_settings_privacy">Everything runs on this device. Articles and instructions are never sent anywhere.</string>
 
     <!-- Sheet extras -->
-    <string name="ai_saved_on_device">Saved · generated on this device</string>
     <plurals name="ai_gist_mark_read">
         <item quantity="one">Mark this %1$d article as read</item>
         <item quantity="other">Mark these %1$d articles as read</item>
@@ -145,6 +145,7 @@
     <string name="triage_back_to_list">Back to list</string>
     <string name="triage_auto_start">Start auto-advance</string>
     <string name="triage_auto_stop">Stop auto-advance</string>
+    <string name="triage_auto_paused">Auto-advance paused while you hold the card</string>
     <string name="triage_auto_delay">Skip after</string>
     <string name="triage_auto_seconds">%d seconds</string>
     <string name="triage_next_group">Next: %1$s · %2$d unread</string>

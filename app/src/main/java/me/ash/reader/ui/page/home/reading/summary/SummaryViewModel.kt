@@ -21,8 +21,6 @@ import me.ash.reader.domain.service.RssService
 import me.ash.reader.infrastructure.ai.GemmaSummarizer
 import me.ash.reader.infrastructure.ai.GistItem
 import me.ash.reader.infrastructure.ai.ModelState
-import me.ash.reader.infrastructure.ai.SavedKind
-import me.ash.reader.infrastructure.ai.SummaryStore
 import me.ash.reader.infrastructure.android.TextToSpeechManager
 
 /** What the AI sheet is working on. */
@@ -47,7 +45,6 @@ sealed interface SummaryUiState {
         val text: String,
         val done: Boolean,
         val articleCount: Int? = null,
-        val fromCache: Boolean = false,
     ) : SummaryUiState
 
     data class Error(val message: String) : SummaryUiState
@@ -58,7 +55,6 @@ class SummaryViewModel
 @Inject
 constructor(
     private val summarizer: GemmaSummarizer,
-    private val store: SummaryStore,
     private val articleDao: ArticleDao,
     private val accountService: AccountService,
     private val rssService: RssService,
@@ -80,15 +76,15 @@ constructor(
 
     fun start(newRequest: SummaryRequest) {
         request = newRequest
-        load(useCache = true)
+        load()
     }
 
-    /** Regenerate, ignoring anything saved. */
-    fun regenerate() = load(useCache = false)
+    /** Write the summary again. Summaries are never saved, so this always starts fresh. */
+    fun regenerate() = load()
 
-    fun retry() = load(useCache = true)
+    fun retry() = load()
 
-    private fun load(useCache: Boolean) {
+    private fun load() {
         val req = request ?: return
         job?.cancel()
         _gistMarkedRead.value = null
@@ -105,15 +101,7 @@ constructor(
                 _state.value = SummaryUiState.Thinking()
                 job =
                     viewModelScope.launch {
-                        if (useCache) {
-                            store.get(req.articleId, SavedKind.Summary)?.let {
-                                _state.value =
-                                    SummaryUiState.Streaming(it, done = true, fromCache = true)
-                                return@launch
-                            }
-                        }
-                        val result = collect(summarizer.summarize(req.title, req.html), null)
-                        if (result != null) store.put(req.articleId, SavedKind.Summary, result)
+                        collect(summarizer.summarize(req.title, req.html), null)
                     }
             }
             is SummaryRequest.Gist -> {
