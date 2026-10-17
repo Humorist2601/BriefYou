@@ -23,6 +23,9 @@ import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
@@ -49,6 +52,10 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +65,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -70,8 +78,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.eventFlow
 import androidx.work.WorkInfo
 import kotlin.collections.set
+import kotlin.math.absoluteValue
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import me.ash.reader.R
+import me.ash.reader.domain.model.general.Filter
+import me.ash.reader.domain.model.group.GroupWithFeed
 import me.ash.reader.infrastructure.preference.LocalFeedsFilterBarPadding
 import me.ash.reader.infrastructure.preference.LocalFeedsFilterBarStyle
 import me.ash.reader.infrastructure.preference.LocalFeedsFilterBarTonalElevation
@@ -147,8 +159,57 @@ fun FeedsPage(
     val newVersion = LocalNewVersionNumber.current
     val skipVersion = LocalSkipVersionNumber.current
     val currentVersion = remember { context.getCurrentVersion() }
-    val listState =
-        if (groupWithFeedList.isNotEmpty()) feedsUiState.listState else rememberLazyListState()
+
+    // Brief You: Starred, Unread and All are pages you can swipe between (in the order of the bar
+    // at the bottom). Each page keeps its own scroll position.
+    val filters = Filter.values
+    val currentPage = filters.indexOf(filterState.filter).coerceAtLeast(0)
+    val pagerState = rememberPagerState(initialPage = currentPage) { filters.size }
+    val listStates = List(filters.size) { rememberLazyListState() }
+    val listState = listStates[pagerState.currentPage.coerceIn(0, filters.lastIndex)]
+
+    // The live data belongs to the current filter; the other pages show what they had the last
+    // time they were current, so swiping to them never shows another filter's counts.
+    val pageCache = remember { mutableStateMapOf<Int, FeedsPageData>() }
+    LaunchedEffect(currentPage, groupWithFeedList, importantSum) {
+        pageCache[currentPage] = FeedsPageData(groupWithFeedList, importantSum)
+    }
+    fun pageData(page: Int): FeedsPageData =
+        if (page == currentPage) FeedsPageData(groupWithFeedList, importantSum)
+        else pageCache[page] ?: FeedsPageData(groupWithFeedList, "")
+
+    // Tapping the bar (or a filter changed on another screen): slide to that page. While it
+    // slides past the pages in between, those must not become the filter.
+    val latestFilterState by rememberUpdatedState(filterState)
+    var slidingToPage by remember { mutableStateOf(false) }
+    val pageSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    LaunchedEffect(currentPage) {
+        if (pagerState.currentPage != currentPage || pagerState.currentPageOffsetFraction != 0f) {
+            slidingToPage = true
+            try {
+                pagerState.animateScrollToPage(currentPage, animationSpec = pageSpec)
+            } finally {
+                slidingToPage = false
+            }
+        }
+    }
+    // Swiping: the filter follows the page as soon as you pass the middle, so the new page has its
+    // own data by the time it settles. A tick marks the change, like a segmented control.
+    LaunchedEffect(pagerState) {
+        merge(
+                snapshotFlow { pagerState.currentPage },
+                snapshotFlow { pagerState.settledPage },
+            )
+            .collect { page ->
+                val current = latestFilterState
+                if (!slidingToPage && filters.getOrNull(page) != null &&
+                    filters[page] != current.filter
+                ) {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    feedsViewModel.changeFilter(current.copy(filter = filters[page]))
+                }
+            }
+    }
 
     val owner = LocalLifecycleOwner.current
 
@@ -282,120 +343,153 @@ fun FeedsPage(
                     )
                 },
             ) {
-                LazyColumn(modifier = Modifier.fillMaxSize().drawVerticalScrollIndicator(listState), state = listState) {
-                    item {
-                        DisplayText(text = feedsUiState.account?.name ?: "", desc = "") {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            accountTabVisible = true
-                        }
-                    }
-                    item {
-                        FeedsBanner(
-                            filter = filterState.filter,
-                            desc = importantSum.ifEmpty { stringResource(R.string.loading) },
-                        ) {
-                            feedsViewModel.changeFilter(filterState.copy(group = null, feed = null))
-                            navigationToFlow()
-                        }
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 26.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text =
-                                    stringResource(
-                                        if (reorderMode) R.string.sort_reordering else R.string.feeds
-                                    ),
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.labelLarge,
-                            )
-                            if (reorderMode) {
-                                FilledTonalButton(onClick = { reorderMode = false }) {
-                                    Text(stringResource(R.string.sort_done))
-                                }
-                            } else IconButton(
-                                onClick = {
-                                    if (hasGroupVisible) collapseAllGroups() else expandAllGroups()
-                                },
-                                modifier = Modifier
-                                    .padding(end = 8.dp)
-                                    .size(28.dp),
-                            ) {
-                                Icon(
-                                    imageVector =
-                                        if (hasGroupVisible) Icons.Rounded.UnfoldLess
-                                        else Icons.Rounded.UnfoldMore,
-                                    contentDescription = stringResource(R.string.unfold_less),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    // Reordering drags items around, so the pages stay put meanwhile.
+                    userScrollEnabled = !reorderMode,
+                    key = { filters[it].index },
+                ) { page ->
+                    val pageFilter = filters[page]
+                    val data = pageData(page)
+                    val pageListState = listStates[page]
+                    Box(
+                        modifier =
+                            Modifier.fillMaxSize().graphicsLayer {
+                                // The page you swipe away from shrinks and dims a little, the one
+                                // coming in grows into place.
+                                val offset =
+                                    ((pagerState.currentPage - page) +
+                                            pagerState.currentPageOffsetFraction)
+                                        .absoluteValue
+                                        .coerceIn(0f, 1f)
+                                val scale = 1f - 0.06f * offset
+                                scaleX = scale
+                                scaleY = scale
+                                alpha = 1f - 0.4f * offset
                             }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    if (reorderMode) {
-                        item {
-                            FeedReorderEditor(
-                                groups = allGroups,
-                                onMoveGroups = sortViewModel::moveGroups,
-                                onMoveFeeds = sortViewModel::moveFeeds,
-                            )
-                        }
-                    } else {
-                        itemsIndexed(groupWithFeedList) { _, (group, feeds) ->
-                            GroupWithFeedsContainer {
-                                GroupItem(
-                                    isExpanded = {
-                                        groupsVisible.getOrPut(group.id, groupListExpand::value)
-                                    },
-                                    group = group,
-                                    onExpanded = {
-                                        groupsVisible[group.id] =
-                                            groupsVisible
-                                                .getOrPut(group.id, groupListExpand::value)
-                                                .not()
-                                    },
-                                    onLongClick = { scope.launch { groupDrawerState.show() } },
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize().drawVerticalScrollIndicator(pageListState),
+                            state = pageListState,
+                        ) {
+                            item {
+                                DisplayText(text = feedsUiState.account?.name ?: "", desc = "") {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    accountTabVisible = true
+                                }
+                            }
+                            item {
+                                FeedsBanner(
+                                    filter = pageFilter,
+                                    desc = data.importantSum.ifEmpty { stringResource(R.string.loading) },
                                 ) {
                                     feedsViewModel.changeFilter(
-                                        filterState.copy(group = group, feed = null)
+                                        filterState.copy(filter = pageFilter, group = null, feed = null)
                                     )
                                     navigationToFlow()
                                 }
+                            }
 
-                                feeds.forEachIndexed { index, feed ->
-                                    FeedItem(
-                                        feed = feed,
-                                        isLastItem = { index == feeds.lastIndex },
-                                        isExpanded = {
-                                            groupsVisible.getOrPut(feed.groupId, groupListExpand::value)
-                                        },
+                            item {
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 26.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text =
+                                            stringResource(
+                                                if (reorderMode) R.string.sort_reordering else R.string.feeds
+                                            ),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        style = MaterialTheme.typography.labelLarge,
+                                    )
+                                    if (reorderMode) {
+                                        FilledTonalButton(onClick = { reorderMode = false }) {
+                                            Text(stringResource(R.string.sort_done))
+                                        }
+                                    } else IconButton(
                                         onClick = {
-                                            feedsViewModel.changeFilter(
-                                                filterState.copy(feed = feed, group = null)
-                                            )
-                                            navigationToFlow()
+                                            if (hasGroupVisible) collapseAllGroups() else expandAllGroups()
                                         },
-                                        onLongClick = { scope.launch { feedDrawerState.show() } },
+                                        modifier = Modifier
+                                            .padding(end = 8.dp)
+                                            .size(28.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector =
+                                                if (hasGroupVisible) Icons.Rounded.UnfoldLess
+                                                else Icons.Rounded.UnfoldMore,
+                                            contentDescription = stringResource(R.string.unfold_less),
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+
+                            if (reorderMode && page == currentPage) {
+                                item {
+                                    FeedReorderEditor(
+                                        groups = allGroups,
+                                        onMoveGroups = sortViewModel::moveGroups,
+                                        onMoveFeeds = sortViewModel::moveFeeds,
                                     )
                                 }
+                            } else {
+                                itemsIndexed(data.groupWithFeedList) { _, (group, feeds) ->
+                                    GroupWithFeedsContainer {
+                                        GroupItem(
+                                            isExpanded = {
+                                                groupsVisible.getOrPut(group.id, groupListExpand::value)
+                                            },
+                                            group = group,
+                                            onExpanded = {
+                                                groupsVisible[group.id] =
+                                                    groupsVisible
+                                                        .getOrPut(group.id, groupListExpand::value)
+                                                        .not()
+                                            },
+                                            onLongClick = { scope.launch { groupDrawerState.show() } },
+                                        ) {
+                                            feedsViewModel.changeFilter(
+                                                filterState.copy(filter = pageFilter, group = group, feed = null)
+                                            )
+                                            navigationToFlow()
+                                        }
+
+                                        feeds.forEachIndexed { index, feed ->
+                                            FeedItem(
+                                                feed = feed,
+                                                isLastItem = { index == feeds.lastIndex },
+                                                isExpanded = {
+                                                    groupsVisible.getOrPut(feed.groupId, groupListExpand::value)
+                                                },
+                                                onClick = {
+                                                    feedsViewModel.changeFilter(
+                                                        filterState.copy(filter = pageFilter, feed = feed, group = null)
+                                                    )
+                                                    navigationToFlow()
+                                                },
+                                                onLongClick = { scope.launch { feedDrawerState.show() } },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            item {
+                                Spacer(modifier = Modifier.height(128.dp))
+                                Spacer(
+                                    modifier =
+                                        Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars)
+                                )
                             }
                         }
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(128.dp))
-                        Spacer(
-                            modifier =
-                                Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars)
-                        )
                     }
                 }
             }
@@ -457,3 +551,6 @@ fun FeedsPage(
         onDismissRequest = { accountTabVisible = false },
     )
 }
+
+/** What one page of the Feeds screen shows: its groups and feeds, and the count line on top. */
+private data class FeedsPageData(val groupWithFeedList: List<GroupWithFeed>, val importantSum: String)
