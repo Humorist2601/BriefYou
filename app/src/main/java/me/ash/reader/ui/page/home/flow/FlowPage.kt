@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.home.flow
 
+import me.ash.reader.ui.motion.isBackPreviewActive
 import me.ash.reader.ui.page.home.reading.summary.SummaryRequest
 import me.ash.reader.ui.page.home.reading.summary.SummarySheet
 import androidx.activity.compose.BackHandler
@@ -746,12 +747,16 @@ fun FlowPage(
             bottomBar = {
                 FilterBar(
                     modifier =
-                        with(sharedTransitionScope) {
-                            Modifier.sharedElement(
-                                sharedContentState = rememberSharedContentState("filterBar"),
-                                animatedVisibilityScope = animatedVisibilityScope,
-                            )
-                        },
+                        // During the predictive back gesture the bar is part of each screen, so it
+                        // moves with the card instead of staying put above both screens.
+                        if (isBackPreviewActive) Modifier
+                        else
+                            with(sharedTransitionScope) {
+                                Modifier.sharedElement(
+                                    sharedContentState = rememberSharedContentState("filterBar"),
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                )
+                            },
                     filter = filterUiState.filter,
                     filterBarStyle = filterBarStyle.value,
                     filterBarFilled = true,

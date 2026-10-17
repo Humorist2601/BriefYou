@@ -2,6 +2,7 @@
 
 package me.ash.reader.ui.page.home.feeds
 
+import me.ash.reader.ui.motion.isBackPreviewActive
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -494,12 +495,16 @@ fun FeedsPage(
         bottomBar = {
             FilterBar(
                 modifier =
-                    with(sharedTransitionScope) {
-                        Modifier.sharedElement(
-                            sharedContentState = rememberSharedContentState("filterBar"),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                        )
-                    },
+                    // During the predictive back gesture the bar is part of each screen, so it
+                    // moves with the card instead of staying put above both screens.
+                    if (isBackPreviewActive) Modifier
+                    else
+                        with(sharedTransitionScope) {
+                            Modifier.sharedElement(
+                                sharedContentState = rememberSharedContentState("filterBar"),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                            )
+                        },
                 filter = filterState.filter,
                 filterBarStyle = filterBarStyle.value,
                 filterBarFilled = true,

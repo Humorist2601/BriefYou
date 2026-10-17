@@ -40,90 +40,58 @@ val SystemTypography =
 internal fun TextStyle.applyTextDirection(textDirection: TextDirection = TextDirection.Content) =
     this.copy(textDirection = textDirection)
 
-/** Google Sans Flex Rounded: the bundled variable font with its roundness axis at maximum. */
-private val Rounded = FontVariation.Setting("ROND", 100f)
+/** Google Sans Flex's roundness axis: 0 is square-cornered, 100 is fully rounded. */
+private fun roundness(value: Float) = FontVariation.Setting("ROND", value)
 
-private val GoogleSansRegular =
-    Font(
-        R.font.google_sans_flex,
-        weight = FontWeight.W400,
-        variationSettings = FontVariation.Settings(Rounded, FontVariation.weight(400)),
-    )
-
-private val GoogleSansMedium =
-    Font(
-        R.font.google_sans_flex,
-        weight = FontWeight.W500,
-        variationSettings = FontVariation.Settings(Rounded, FontVariation.weight(500)),
-    )
-
-private val GoogleSansSemiBold =
-    Font(
-        R.font.google_sans_flex,
-        weight = FontWeight.W600,
-        variationSettings = FontVariation.Settings(Rounded, FontVariation.weight(600)),
-    )
-
-private val GoogleSansBold =
-    Font(
-        R.font.google_sans_flex,
-        weight = FontWeight.W700,
-        variationSettings = FontVariation.Settings(Rounded, FontVariation.weight(700)),
-    )
-
-private val GoogleSansItalic =
-    Font(
-        R.font.google_sans_flex,
-        weight = FontWeight.W400,
-        style = FontStyle.Italic,
-        variationSettings =
-            FontVariation.Settings(Rounded, FontVariation.weight(400), FontVariation.italic(.5f)),
-    )
-private val GoogleSansMediumItalic =
-    Font(
-        R.font.google_sans_flex,
-        weight = FontWeight.W500,
-        style = FontStyle.Italic,
-        variationSettings =
-            FontVariation.Settings(Rounded, FontVariation.weight(500), FontVariation.italic(.5f)),
-    )
-private val GoogleSansSemiBoldItalic =
-    Font(
-        R.font.google_sans_flex,
-        weight = FontWeight.W600,
-        style = FontStyle.Italic,
-        variationSettings =
-            FontVariation.Settings(Rounded, FontVariation.weight(600), FontVariation.italic(.5f)),
-    )
-private val GoogleSansBoldItalic =
-    Font(
-        R.font.google_sans_flex,
-        weight = FontWeight.W700,
-        style = FontStyle.Italic,
-        variationSettings =
-            FontVariation.Settings(Rounded, FontVariation.weight(700), FontVariation.italic(.5f)),
-    )
-val GoogleSansFontFamily =
-    FontFamily(
+/** Google Sans Flex at the given [round]ness, with regular, medium, semibold and bold, upright and italic. */
+private fun googleSansFlex(round: Float): FontFamily {
+    fun font(weight: Int, italic: Boolean = false) =
         Font(
             R.font.google_sans_flex,
-            variationSettings = FontVariation.Settings(Rounded, FontVariation.weight(400)),
-        ),
-        GoogleSansRegular,
-        GoogleSansMedium,
-        GoogleSansSemiBold,
-        GoogleSansBold,
-        // Add the new italic fonts here
-        GoogleSansItalic,
-        GoogleSansMediumItalic,
-        GoogleSansSemiBoldItalic,
-        GoogleSansBoldItalic,
+            weight = FontWeight(weight),
+            style = if (italic) FontStyle.Italic else FontStyle.Normal,
+            variationSettings =
+                if (italic) {
+                    FontVariation.Settings(
+                        roundness(round),
+                        FontVariation.weight(weight),
+                        FontVariation.italic(.5f),
+                    )
+                } else {
+                    FontVariation.Settings(roundness(round), FontVariation.weight(weight))
+                },
+        )
+    return FontFamily(
+        font(400),
+        font(500),
+        font(600),
+        font(700),
+        font(400, italic = true),
+        font(500, italic = true),
+        font(600, italic = true),
+        font(700, italic = true),
     )
+}
+
+/** The app's font: Google Sans Flex Rounded, the bundled variable font fully rounded. */
+val GoogleSansFontFamily = googleSansFlex(round = 100f)
 
 /**
- * Google Sans Flex at the wide end of its width axis (100 is normal, 151 the maximum) with the
- * rounded corners: the wide, expressive look Material 3 Expressive uses for large headings. Meant
- * for a few short, big titles only, as wide letters take a lot of room.
+ * The display font's roundness (see [GoogleSansWideFontFamily]): half-rounded, a little crisper
+ * than the app's fully rounded font.
+ */
+private const val DISPLAY_ROUNDNESS = 50f
+
+/**
+ * Google Sans Flex for reading articles: like the display font (its half-rounded letters) but at
+ * the normal width and normal weights, which are easier to read in long text.
+ */
+val GoogleSansReadingFontFamily = googleSansFlex(round = DISPLAY_ROUNDNESS)
+
+/**
+ * The wide display font for a few short, big titles (Flow, Feeds and Settings headings, Triage),
+ * with the same settings as PixelPlayer's large headings: Google Sans Flex at the widest its width
+ * axis goes (151; 100 is normal), weight 636 and half-rounded. Text asking for SemiBold gets it.
  */
 val GoogleSansWideFontFamily =
     FontFamily(
@@ -131,8 +99,33 @@ val GoogleSansWideFontFamily =
             R.font.google_sans_flex,
             weight = FontWeight.W600,
             variationSettings =
-                FontVariation.Settings(Rounded, FontVariation.weight(600), FontVariation.width(135f)),
+                FontVariation.Settings(
+                    roundness(DISPLAY_ROUNDNESS),
+                    FontVariation.weight(636),
+                    FontVariation.width(151f),
+                ),
         )
+    )
+
+/**
+ * Material 3 Expressive gives titles and headings more weight while body text stays regular:
+ * display, headline and large titles go from 400 to 500, smaller titles and labels from 500 to 600.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal fun Typography.emphasizeHeadings(): Typography =
+    copy(
+        displayLarge = displayLarge.copy(fontWeight = FontWeight.W500),
+        displayMedium = displayMedium.copy(fontWeight = FontWeight.W500),
+        displaySmall = displaySmall.copy(fontWeight = FontWeight.W500),
+        headlineLarge = headlineLarge.copy(fontWeight = FontWeight.W500),
+        headlineMedium = headlineMedium.copy(fontWeight = FontWeight.W500),
+        headlineSmall = headlineSmall.copy(fontWeight = FontWeight.W500),
+        titleLarge = titleLarge.copy(fontWeight = FontWeight.W500),
+        titleMedium = titleMedium.copy(fontWeight = FontWeight.W600),
+        titleSmall = titleSmall.copy(fontWeight = FontWeight.W600),
+        labelLarge = labelLarge.copy(fontWeight = FontWeight.W600),
+        labelMedium = labelMedium.copy(fontWeight = FontWeight.W600),
+        labelSmall = labelSmall.copy(fontWeight = FontWeight.W600),
     )
 
 /**

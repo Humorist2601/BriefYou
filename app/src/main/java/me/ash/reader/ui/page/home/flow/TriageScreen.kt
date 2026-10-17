@@ -443,9 +443,14 @@ private fun TriageContent(
         session.index++
     }
 
+    // Undo: the card comes back from where it went (see TriageStack), so this remembers which card
+    // and which way it left.
+    var returning by remember { mutableStateOf<TriageStep?>(null) }
+
     fun undo() {
         val step = history.removeLastOrNull() ?: return
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+        returning = step
         when (step.action) {
             TriageAction.Read,
             TriageAction.Open -> onUnread(step.article)
@@ -566,6 +571,8 @@ private fun TriageContent(
                 autoSeconds = if (session.autoRunning && !loadingNext) autoSeconds else 0,
                 onAutoProgress = { autoProgress.floatValue = it },
                 onDecide = { decide(it) },
+                returnFrom = returning?.takeIf { it.article.article.id == current.article.id }?.action,
+                onReturned = { returning = null },
             )
         }
     }
@@ -579,16 +586,45 @@ private fun TriageStack(
     autoSeconds: Int,
     onAutoProgress: (Float) -> Unit,
     onDecide: (TriageAction) -> Unit,
+    returnFrom: TriageAction? = null,
+    onReturned: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+    val returnSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    // Where a card that was dealt with went: off the side, the top or the bottom of the screen.
+    // A card brought back with Undo starts there, so it never shows up in the middle first.
+    val screen = LocalConfiguration.current
+    val screenW = with(LocalDensity.current) { screen.screenWidthDp.dp.toPx() }
+    val screenH = with(LocalDensity.current) { screen.screenHeightDp.dp.toPx() }
+    fun exitPoint(action: TriageAction): Pair<Float, Float> =
+        when (action) {
+            TriageAction.Read -> screenW * 1.4f to 0f
+            TriageAction.Save -> -screenW * 1.4f to 0f
+            TriageAction.Open -> 0f to -screenH * 1.2f
+            TriageAction.Skip -> 0f to screenH * 1.2f
+        }
     // A fresh drag state for every card.
-    val dragX = remember(current.article.id) { Animatable(0f) }
-    val dragY = remember(current.article.id) { Animatable(0f) }
+    val start = returnFrom?.let { exitPoint(it) } ?: (0f to 0f)
+    val dragX = remember(current.article.id) { Animatable(start.first) }
+    val dragY = remember(current.article.id) { Animatable(start.second) }
     var busy by remember(current.article.id) { mutableStateOf(false) }
     // Touching the card: being dragged, or held with a finger. Pauses auto-advance.
     var dragging by remember(current.article.id) { mutableStateOf(false) }
     var held by remember(current.article.id) { mutableStateOf(false) }
+
+    // Undo: the card flies back in from where it went, springing into place, and the card behind
+    // shrinks back as it lands. Nothing can be done with it until it is back.
+    LaunchedEffect(current.article.id, returnFrom) {
+        if (returnFrom == null) return@LaunchedEffect
+        busy = true
+        coroutineScope {
+            launch { dragX.animateTo(0f, returnSpec) }
+            launch { dragY.animateTo(0f, returnSpec) }
+        }
+        busy = false
+        onReturned()
+    }
 
     Column(modifier = modifier) {
         BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 4.dp)) {

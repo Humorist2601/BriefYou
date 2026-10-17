@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
@@ -119,6 +120,13 @@ internal object BackPreviewState {
 }
 
 /**
+ * True while a predictive back gesture is showing. Screens use it to stop drawing shared elements
+ * (like the filter bar) above both screens, so everything on the screen moves with the card.
+ */
+val isBackPreviewActive: Boolean
+    get() = BackPreviewState.active
+
+/**
  * The navigation host's transition for a predictive back. Both screens are drawn by
  * [BackPreviewPage]; these halves only keep them on screen for the whole gesture.
  */
@@ -197,6 +205,14 @@ private fun placement(
     }
 }
 
+/** How much of the dim is left: all of it until you let go, then it fades away with the rest. */
+private fun dimFade(raw: Float): Float {
+    val s = BackPreviewState
+    return if (s.released && raw > s.releasedAt) {
+        1f - ((raw - s.releasedAt) / (1f - s.releasedAt)).coerceIn(0f, 1f)
+    } else 1f
+}
+
 private fun GraphicsLayerScope.place(placement: Placement) {
     scaleX = placement.scale
     scaleY = placement.scale
@@ -255,8 +271,8 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
     val margin = with(density) { MARGIN.toPx() }
     val offset = with(density) { ENTERING_START_OFFSET.toPx() }
     val corner = displayCornerRadius()
-    val scrim =
-        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) MAX_SCRIM_DARK else MAX_SCRIM_LIGHT
+    val backdrop = MaterialTheme.colorScheme.surface
+    val scrim = if (backdrop.luminance() < 0.5f) MAX_SCRIM_DARK else MAX_SCRIM_LIGHT
 
     // Only a predictive back gets this long, linear timeline (it follows the gesture); any other
     // navigation ends it at once, so the screen is not kept around longer than its transition.
@@ -308,6 +324,18 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
     Box(
         modifier =
             Modifier.fillMaxSize()
+                // Behind everything (drawn before the screen is moved and shrunk, so it fills the
+                // whole display): the backdrop the two cards sit on, dimmed like the screen behind.
+                // As in the system, the dim covers everything under the card you are leaving, so
+                // that card always stands out instead of blending into the space around the cards.
+                .drawBehind {
+                    val s = BackPreviewState
+                    if (entering && s.active) {
+                        drawRect(backdrop)
+                        val alpha = scrim * dimFade(1f - fraction.value)
+                        if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
+                    }
+                }
                 .graphicsLayer {
                     val s = BackPreviewState
                     if (s.active && (exiting || entering)) {
@@ -324,12 +352,7 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
                     // The screen behind is dimmed, and the dim fades away after you let go.
                     val s = BackPreviewState
                     if (entering && s.active) {
-                        val raw = 1f - fraction.value
-                        val fade =
-                            if (s.released && raw > s.releasedAt) {
-                                1f - ((raw - s.releasedAt) / (1f - s.releasedAt)).coerceIn(0f, 1f)
-                            } else 1f
-                        val alpha = scrim * fade
+                        val alpha = scrim * dimFade(1f - fraction.value)
                         if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
                     }
                 }

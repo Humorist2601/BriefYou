@@ -25,10 +25,6 @@ object WebViewLayout {
             with(this.settings) {
                 standardFontFamily =
                     when (readingFontsPreference) {
-                        ReadingFontsPreference.Cursive -> "cursive"
-                        ReadingFontsPreference.Monospace -> "monospace"
-                        ReadingFontsPreference.SansSerif -> "sans-serif"
-                        ReadingFontsPreference.Serif -> "serif"
                         ReadingFontsPreference.Literata -> "serif"
                         ReadingFontsPreference.GoogleSans -> {
                             "sans-serif"

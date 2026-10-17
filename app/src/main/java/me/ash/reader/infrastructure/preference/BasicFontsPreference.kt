@@ -1,5 +1,6 @@
 package me.ash.reader.infrastructure.preference
 
+import me.ash.reader.ui.theme.emphasizeHeadings
 import android.content.Context
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.compositionLocalOf
@@ -52,12 +53,13 @@ sealed class BasicFontsPreference(val value: Int) : Preference() {
                     ?: FontFamily.Default
         }
 
+    // Brief You: titles and headings a step heavier, as in Material 3 Expressive.
     fun asTypography(context: Context): Typography =
         when (this) {
             System -> SystemTypography
             GoogleSans -> SystemTypography.applyFontFamily(GoogleSansFontFamily)
             External -> ExternalFonts.loadBasicTypography(context)
-        }
+        }.emphasizeHeadings()
 
     companion object {
 
