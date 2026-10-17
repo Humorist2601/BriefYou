@@ -10,7 +10,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.LocalBackgroundTextMeasurementExecutor
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
@@ -34,7 +33,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.unit.dp
 import java.util.concurrent.Executors
 import kotlinx.coroutines.delay
@@ -119,14 +117,9 @@ fun ArticleListReaderPage(
     val animatedContentWidth by animateDpAsState(contentWidth)
     val animatedListAlpha by animateFloatAsState(listAlpha)
 
-    // Predictive back on an open article (phones): the back preview, like every other screen. The
-    // article keeps a picture of itself in this layer for the card (see ArticleBackPreview.kt).
-    val articleLayer = rememberGraphicsLayer()
-    val backPreview = remember { ArticleBackPreviewState() }
-
-    Box(modifier = modifier.fillMaxSize()) {
     NavigableListDetailPaneScaffold(
         navigator = navigator,
+        modifier = modifier,
         defaultBackBehavior = backBehavior,
         paneExpansionDragHandle = { Spacer(modifier = Modifier.width(2.dp)) },
         paneExpansionState = paneExpansionState,
@@ -184,11 +177,6 @@ fun ArticleListReaderPage(
                 }
 
                 CompositionLocalProvider(LocalTextContentWidth provides animatedContentWidth) {
-                    Box(
-                        modifier =
-                            Modifier.fillMaxSize()
-                                .recordForBackPreview(articleLayer, backPreview, enabled = !isTwoPane)
-                    ) {
                     ReadingPage(
                         viewModel = viewModel,
                         navigationAction = navigationAction,
@@ -225,19 +213,8 @@ fun ArticleListReaderPage(
                         },
                         onNavigateToStylePage = onNavigateToStylePage,
                     )
-                    }
                 }
             }
         },
     )
-
-    // After the layout, so it gets the back gesture before the layout's own handler.
-    ArticleBackPreviewHandler(
-        enabled = !isTwoPane,
-        state = backPreview,
-        navigator = navigator,
-        backBehavior = backBehavior,
-    )
-    ArticleBackPreviewCard(layer = articleLayer, state = backPreview)
-    }
 }
