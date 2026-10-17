@@ -52,6 +52,13 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -146,6 +153,9 @@ fun SummarySheet(
                 modifier =
                     Modifier.weight(1f)
                         .fillMaxWidth()
+                        // Scrolling the points never moves the sheet, even at the top or bottom of
+                        // the list: only the handle and title above the divider drag it.
+                        .nestedScroll(KeepScrollInside)
                         // The same scroll thumb as the reading page, also shown while text streams in.
                         .drawVerticalScrollIndicator(scrollState, showWhenContentChanges = true)
                         .verticalScroll(scrollState)
@@ -237,7 +247,16 @@ fun SummarySheet(
             val done = streaming?.done == true
             val actionCount =
                 streaming?.articleCount ?: (state as? SummaryUiState.Thinking)?.articleCount
-            if (streaming != null || state is SummaryUiState.Thinking) {
+            // The buttons don't drag the sheet either (only the handle and title above the divider).
+            if (streaming != null || state is SummaryUiState.Thinking) Column(
+                modifier =
+                    Modifier.pointerInput(Unit) {
+                        detectVerticalDragGestures { change, _ -> change.consume() }
+                    }
+            ) {
+                // A small gap between the points and the buttons, so the points don't run
+                // straight into them as they scroll.
+                Spacer(Modifier.height(12.dp))
                 if (!isArticle && actionCount != null) {
                     val marked = gistMarkedRead
                     Button(
@@ -310,6 +329,22 @@ fun SummarySheet(
         }
     }
 }
+
+/**
+ * Takes whatever scrolling the points have left over (at the top or bottom of the list, or when
+ * they all fit), so it never reaches the sheet and moves it.
+ */
+private val KeepScrollInside =
+    object : NestedScrollConnection {
+        override fun onPostScroll(
+            consumed: Offset,
+            available: Offset,
+            source: NestedScrollSource,
+        ): Offset = available
+
+        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
+            available
+    }
 
 private val BulletLine = Regex("""^([•\-–*]|\d{1,2}[.)])\s+(.*)$""")
 private val WhyItMatters = Regex("""^\**\s*why it matters\s*\**\s*:\s*\**\s*(.*)$""", RegexOption.IGNORE_CASE)

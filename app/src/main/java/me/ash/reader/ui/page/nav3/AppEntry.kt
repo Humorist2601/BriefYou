@@ -27,11 +27,13 @@ import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.delay
 import me.ash.reader.ui.motion.materialSharedAxisXIn
 import me.ash.reader.ui.motion.materialSharedAxisXOut
+import me.ash.reader.ui.motion.BackPreviewController
 import me.ash.reader.ui.motion.BackPreviewPage
-import me.ash.reader.ui.motion.LocalBackStackSize
+import me.ash.reader.ui.motion.LocalBackStack
 import me.ash.reader.ui.motion.LocalBackPreviewPicture
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import me.ash.reader.ui.motion.backPreviewPopTransform
+import me.ash.reader.ui.motion.rememberBackPreviewRunning
 import me.ash.reader.ui.page.adaptive.ArticleData
 import me.ash.reader.ui.page.adaptive.ArticleListReaderPage
 import me.ash.reader.ui.page.adaptive.ArticleListReaderViewModel
@@ -66,7 +68,7 @@ private const val INITIAL_OFFSET_FACTOR = 0.10f
 
 /** A screen of the app, wrapped so the predictive back gesture shows the back preview on it. */
 private fun page(key: NavKey, content: @Composable () -> Unit): NavEntry<NavKey> =
-    NavEntry(key) { BackPreviewPage(content) }
+    NavEntry(key) { BackPreviewPage(key, content) }
 
 @OptIn(
     ExperimentalSharedTransitionApi::class,
@@ -89,10 +91,13 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
             isDestinationHistoryAware = false,
         )
 
-    // How many screens are open, for the back animation (see BackPreview.kt).
+    // The back animation (see BackPreview.kt): it follows the gesture, and while it runs the host's
+    // own transitions draw nothing, whichever one the host picks.
     val backPreviewPicture = rememberGraphicsLayer()
+    val backPreviewRunning = rememberBackPreviewRunning()
+    BackPreviewController(backStack)
     CompositionLocalProvider(
-        LocalBackStackSize provides { backStack.size },
+        LocalBackStack provides backStack,
         LocalBackPreviewPicture provides backPreviewPicture,
     ) {
     SharedTransitionLayout {
@@ -105,18 +110,28 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
             transitionSpec = {
-                materialSharedAxisXIn(
-                    initialOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() }
-                ) togetherWith
-                    materialSharedAxisXOut(
-                        targetOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
-                    )
+                if (backPreviewRunning()) {
+                    backPreviewPopTransform()
+                } else {
+                    materialSharedAxisXIn(
+                        initialOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() }
+                    ) togetherWith
+                        materialSharedAxisXOut(
+                            targetOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
+                        )
+                }
             },
             popTransitionSpec = {
-                materialSharedAxisXIn(
-                    initialOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
-                ) togetherWith
-                    materialSharedAxisXOut(targetOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() })
+                if (backPreviewRunning()) {
+                    backPreviewPopTransform()
+                } else {
+                    materialSharedAxisXIn(
+                        initialOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
+                    ) togetherWith
+                        materialSharedAxisXOut(
+                            targetOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() }
+                        )
+                }
             },
             // Predictive back: the "back preview" (see BackPreview.kt). The screen shrinks into a card
             // over the dimmed screen behind it and leaves to the right when you let go.

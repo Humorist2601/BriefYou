@@ -95,6 +95,22 @@
     <string name="filters_log_undo">Undo</string>
     <string name="filters_log_muted">Muted “%1$s” · %2$s</string>
     <string name="filters_log_duplicate">%1$s · duplicate of %2$s: “%3$s”</string>
+    <plurals name="filters_stat_muted">
+        <item quantity="one">muted</item>
+        <item quantity="other">muted</item>
+    </plurals>
+    <plurals name="filters_stat_duplicates">
+        <item quantity="one">duplicate</item>
+        <item quantity="other">duplicates</item>
+    </plurals>
+    <string name="filters_today">Today</string>
+    <string name="filters_yesterday">Yesterday</string>
+    <string name="filters_reason_muted">Muted “%1$s”</string>
+    <string name="filters_reason_duplicate">Duplicate of %1$s</string>
+    <plurals name="filters_caught">
+        <item quantity="one">Caught %1$d</item>
+        <item quantity="other">Caught %1$d</item>
+    </plurals>
     <plurals name="filters_applied">
         <item quantity="one">%1$d article marked as read</item>
         <item quantity="other">%1$d articles marked as read</item>

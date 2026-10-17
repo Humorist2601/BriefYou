@@ -1,7 +1,27 @@
 package me.ash.reader.ui.page.settings.filters
 
 import android.content.Intent
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.rounded.Undo
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalContext
 import me.ash.reader.domain.service.FilterLogEntry
@@ -95,9 +115,11 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
     val context = LocalContext.current
 
     var addDialogVisible by rememberSaveable { mutableStateOf(false) }
+    val mutedCount = log.count { it.reason == FilterReason.MutedKeyword }
+    val duplicateCount = log.count { it.reason == FilterReason.Duplicate }
+    // The filtered articles, newest first, under Today / Yesterday / a date.
+    val days = remember(log) { log.sortedByDescending { it.at }.groupBy { dayOf(it.at) } }
 
-    // Laid out like the other settings pages: sections with a title, plain setting rows, and the
-    // explanation at the bottom behind an info icon (as on the account page).
     RYScaffold(
         containerColor =
             MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
@@ -113,7 +135,27 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
             LazyColumn {
                 item {
                     DisplayText(text = stringResource(R.string.filters_settings), desc = "")
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(8.dp))
+                    // At a glance: what the filters have caught recently.
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        StatTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Outlined.FilterAlt,
+                            count = mutedCount,
+                            label = pluralStringResource(R.plurals.filters_stat_muted, mutedCount),
+                        )
+                        StatTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Outlined.ContentCopy,
+                            count = duplicateCount,
+                            label =
+                                pluralStringResource(R.plurals.filters_stat_duplicates, duplicateCount),
+                        )
+                    }
+                    Spacer(Modifier.height(24.dp))
                 }
                 item {
                     Subtitle(
@@ -134,71 +176,125 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.filters_keywords),
                     )
-                    SettingItem(
-                        title = stringResource(R.string.filters_add_keyword),
-                        desc = if (keywords.isEmpty()) stringResource(R.string.filters_none) else null,
-                        onClick = { addDialogVisible = true },
+                    Spacer(Modifier.height(8.dp))
+                    // The muted keywords as chips in one rounded box, with an Add chip at the end.
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                     ) {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                items(keywords, key = { "keyword-$it" }) { word ->
-                    SettingItem(title = word, onClick = {}) {
-                        IconButton(onClick = { viewModel.filters.removeKeyword(word) }) {
-                            Icon(
-                                Icons.Rounded.Close,
-                                contentDescription = stringResource(R.string.filters_remove, word),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        FlowRow(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            keywords.forEach { word ->
+                                InputChip(
+                                    selected = false,
+                                    onClick = { viewModel.filters.removeKeyword(word) },
+                                    label = { Text(word) },
+                                    trailingIcon = {
+                                        Icon(
+                                            Icons.Rounded.Close,
+                                            contentDescription =
+                                                stringResource(R.string.filters_remove, word),
+                                            modifier = Modifier.size(InputChipDefaults.IconSize),
+                                        )
+                                    },
+                                )
+                            }
+                            AssistChip(
+                                onClick = { addDialogVisible = true },
+                                label = { Text(stringResource(R.string.filters_add)) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Rounded.Add,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(AssistChipDefaults.IconSize),
+                                    )
+                                },
                             )
                         }
                     }
-                }
-                item {
-                    SettingItem(
-                        title = stringResource(R.string.filters_apply_now),
-                        desc =
-                            applied?.let { pluralStringResource(R.plurals.filters_applied, it, it) }
-                                ?: stringResource(R.string.filters_apply_now_desc),
-                        onClick = viewModel::applyNow,
-                    ) {}
+                    if (keywords.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.filters_none),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    // Run the filters now, with what they caught next to the button.
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        FilledTonalButton(
+                            onClick = viewModel::applyNow,
+                            modifier = Modifier.weight(1f).height(48.dp),
+                        ) {
+                            Text(stringResource(R.string.filters_apply_now))
+                        }
+                        applied?.let {
+                            Text(
+                                text = pluralStringResource(R.plurals.filters_caught, it, it),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 16.dp),
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(24.dp))
                 }
                 item {
-                    Subtitle(
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        text = stringResource(R.string.filters_log),
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Subtitle(
+                            modifier = Modifier.weight(1f),
+                            text = stringResource(R.string.filters_log),
+                        )
+                        if (log.isNotEmpty()) {
+                            TextButton(onClick = viewModel::clearLog) {
+                                Text(stringResource(R.string.filters_log_clear))
+                            }
+                        }
+                    }
                     if (log.isEmpty()) {
-                        SettingItem(
-                            title = stringResource(R.string.filters_log_empty),
-                            enabled = false,
-                            onClick = {},
-                        ) {}
+                        Text(
+                            text = stringResource(R.string.filters_log_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        )
                     }
                 }
-                items(log, key = { it.articleId }) { entry ->
-                    FilterLogRow(
-                        entry = entry,
-                        onOpen = {
-                            context.startActivity(
-                                Intent(context, MainActivity::class.java)
-                                    .putExtra(ExtraName.ARTICLE_ID, entry.articleId)
-                            )
-                        },
-                        onUndo = { viewModel.undo(entry) },
-                    )
+                days.forEach { (day, entries) ->
+                    item(key = "day-$day") {
+                        Text(
+                            text = dayLabel(day),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 28.dp, top = 12.dp, bottom = 8.dp),
+                        )
+                    }
+                    itemsIndexed(entries, key = { _, it -> it.articleId }) { index, entry ->
+                        FilterLogCard(
+                            entry = entry,
+                            shape = groupShape(index, entries.size),
+                            onOpen = {
+                                context.startActivity(
+                                    Intent(context, MainActivity::class.java)
+                                        .putExtra(ExtraName.ARTICLE_ID, entry.articleId)
+                                )
+                            },
+                            onUndo = { viewModel.undo(entry) },
+                        )
+                    }
                 }
                 item {
-                    if (log.isNotEmpty()) {
-                        SettingItem(
-                            title = stringResource(R.string.filters_log_clear_all),
-                            onClick = viewModel::clearLog,
-                        ) {}
-                    }
+                    Spacer(Modifier.height(8.dp))
                     Tips(text = stringResource(R.string.filters_intro))
                     Spacer(Modifier.height(24.dp))
                     Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
@@ -223,25 +319,127 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
     )
 }
 
-/** One filtered article, shown like a setting row: its title, why it was filtered, and Undo. */
+/** A big tonal tile with a number, like the tiles in the sort sheet. */
 @Composable
-private fun FilterLogRow(entry: FilterLogEntry, onOpen: () -> Unit, onUndo: () -> Unit) {
-    SettingItem(
-        title = entry.title,
-        desc =
-            when (entry.reason) {
-                FilterReason.MutedKeyword ->
-                    stringResource(R.string.filters_log_muted, entry.detail, entry.feedName)
-                FilterReason.Duplicate ->
-                    stringResource(
-                        R.string.filters_log_duplicate,
-                        entry.feedName,
-                        entry.detailFeed ?: "",
-                        entry.detail,
-                    )
-            },
-        onClick = onOpen,
+private fun StatTile(modifier: Modifier, icon: ImageVector, count: Int, label: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        shape = RoundedCornerShape(24.dp),
+        modifier = modifier,
     ) {
-        TextButton(onClick = onUndo) { Text(stringResource(R.string.filters_log_undo)) }
+        Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(text = label, style = MaterialTheme.typography.labelLarge)
+        }
+    }
+}
+
+/** One filtered article: its title, the feed and why it was filtered, and Undo. */
+@Composable
+private fun FilterLogCard(
+    entry: FilterLogEntry,
+    shape: RoundedCornerShape,
+    onOpen: () -> Unit,
+    onUndo: () -> Unit,
+) {
+    Surface(
+        onClick = onOpen,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = shape,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 1.5.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 18.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Why it was filtered, as a small chip.
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = RoundedCornerShape(8.dp),
+                    ) {
+                        Text(
+                            text =
+                                when (entry.reason) {
+                                    FilterReason.MutedKeyword ->
+                                        stringResource(R.string.filters_reason_muted, entry.detail)
+                                    FilterReason.Duplicate ->
+                                        stringResource(
+                                            R.string.filters_reason_duplicate,
+                                            entry.detailFeed ?: entry.detail,
+                                        )
+                                },
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        )
+                    }
+                    Text(
+                        text = entry.feedName,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 8.dp).weight(1f, fill = false),
+                    )
+                }
+            }
+            IconButton(onClick = onUndo) {
+                Icon(
+                    Icons.AutoMirrored.Rounded.Undo,
+                    contentDescription = stringResource(R.string.filters_log_undo),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+    }
+}
+
+/** Big corners on the outside of a group, small ones between its cards. */
+private fun groupShape(position: Int, size: Int): RoundedCornerShape {
+    val outer = 24.dp
+    val inner = 6.dp
+    val top = if (position == 0) outer else inner
+    val bottom = if (position == size - 1) outer else inner
+    return RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
+}
+
+/** The day a time falls on, as days since the epoch in the phone's time zone. */
+private fun dayOf(millis: Long): Long =
+    java.time.Instant.ofEpochMilli(millis)
+        .atZone(java.time.ZoneId.systemDefault())
+        .toLocalDate()
+        .toEpochDay()
+
+@Composable
+private fun dayLabel(day: Long): String {
+    val today = java.time.LocalDate.now().toEpochDay()
+    return when (day) {
+        today -> stringResource(R.string.filters_today)
+        today - 1 -> stringResource(R.string.filters_yesterday)
+        else ->
+            java.time.LocalDate.ofEpochDay(day)
+                .format(
+                    java.time.format.DateTimeFormatter.ofLocalizedDate(
+                        java.time.format.FormatStyle.MEDIUM
+                    )
+                )
     }
 }

@@ -5,12 +5,11 @@ import android.os.Build
 import android.view.RoundedCorner
 import android.view.animation.PathInterpolator
 import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -22,23 +21,32 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.layer.GraphicsLayer
-import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -49,7 +57,7 @@ import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 
 /*
  * The predictive back gesture of every screen except Triage (which keeps its pull and toss), made
@@ -65,9 +73,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * - Both have the display's own rounded corners.
  * - The progress goes through the system's back gesture curve, so the motion shows early.
  *
- * When you let go (450 ms in stock Android, on the emphasized curve): the screen behind grows back
- * to full screen, the dim fades away, and the screen you leave goes back to full size while sliding
- * a further 96 dp to the right, fading out within the first fifth of the animation.
+ * When you let go (450 ms, on the emphasized curve): the screen behind grows back to full screen,
+ * the dim fades away, and the screen you leave goes back to full size while sliding a further
+ * 96 dp to the right, fading out within the first fifth of the animation.
+ *
+ * How it works: which screen is which comes from the back stack when the gesture starts (the top
+ * one is leaving, the one under it is behind), never from the navigation host's own transition,
+ * whose states and stacking order during a gesture do not say which screen is which. The progress
+ * comes from the gesture while you swipe, and from this file's own animation after you let go. The
+ * host's transition draws nothing; it only keeps both screens around.
+ *
+ * While you swipe, and while a cancelled gesture settles, the screen you are leaving draws
+ * everything: the backdrop, a picture of the screen behind (which then draws nothing itself), and
+ * itself on top. So it does not matter which of the two the host stacks on top.
  */
 
 /** The system's back gesture curve (Material: "don't use linear progress"). */
@@ -94,35 +112,57 @@ private const val MAX_SCRIM_DARK = 0.8f
 private const val MAX_SCRIM_LIGHT = 0.2f
 
 /**
- * How long a predictive back takes in the navigation host from the first touch to the end. After
- * you let go, the host plays what is left of it, so letting go a quarter of the way in leaves about
- * the 450 ms the system uses.
+ * How long the navigation host keeps both screens during a predictive back. The host's own
+ * transition draws nothing (see [backPreviewPopTransform]); it only keeps the screens around while
+ * this file animates them with its own clock.
  */
-const val BACK_PREVIEW_DURATION = 600
+const val BACK_PREVIEW_DURATION = 1000
 
-/**
- * One back gesture, shared by the screen you leave (which sees the gesture and writes this) and the
- * screen behind it (which reads it). Only one back gesture runs at a time.
- */
+/** After you let go and it goes back: 450 ms, as in the system. */
+private const val COMMIT_DURATION = 450
+
+/** After you let go and it does not go back. */
+private const val CANCEL_DURATION = 300
+
+/** The part of the commit animation in which the screen you leave fades out. */
+private const val LEAVING_FADE = 0.2f
+
+internal enum class BackPhase {
+    Idle,
+    /** Your finger is down. */
+    Dragging,
+    /** You let go and it went back. */
+    Committing,
+    /** You let go and it did not go back. */
+    Cancelling,
+}
+
+/** One back gesture. Only one runs at a time. Written by [BackPreviewController]. */
 internal object BackPreviewState {
-    var active by mutableStateOf(false)
-    var released by mutableStateOf(false)
+    var phase by mutableStateOf(BackPhase.Idle)
+    /** The screen you are leaving and the screen behind it (their navigation keys). */
+    var leavingKey by mutableStateOf<Any?>(null)
+    var behindKey by mutableStateOf<Any?>(null)
+    /** The raw gesture progress, 0 to 1. */
+    var progress by mutableFloatStateOf(0f)
     /** The raw gesture progress when you let go. */
-    var releasedAt by mutableFloatStateOf(1f)
+    var releasedAt by mutableFloatStateOf(0f)
+    /** How far the commit animation is, 0 to 1 (linear). */
+    var settle by mutableFloatStateOf(0f)
     /** True when the gesture came from the right edge. */
     var fromRight by mutableStateOf(false)
-    var startY by mutableFloatStateOf(0f)
+    var startY = 0f
     var rawDy by mutableFloatStateOf(0f)
-    /** How many screens were open when the gesture started (fewer afterwards means it went back). */
-    var stackAtStart by mutableStateOf(0)
 
-    fun reset() {
-        active = false
-        released = false
-        releasedAt = 1f
-        fromRight = false
-        rawDy = 0f
-    }
+    /**
+     * Screens the host still shows after a gesture although they should be gone (the one you left
+     * after going back, the one behind after a cancel). They are not drawn and can't be touched
+     * until the host lets them go.
+     */
+    val collapsedKeys = mutableStateListOf<Any>()
+
+    /** The screens the host is showing right now, and whether its transition is moving them. */
+    val composed = HashMap<Any, Boolean>()
 }
 
 /**
@@ -130,15 +170,112 @@ internal object BackPreviewState {
  * (like the filter bar) above both screens, so everything on the screen moves with the card.
  */
 val isBackPreviewActive: Boolean
-    get() = BackPreviewState.active
+    get() = BackPreviewState.phase != BackPhase.Idle
 
 /**
- * The navigation host's transition for a predictive back. Both screens are drawn by
- * [BackPreviewPage]; these halves only keep them on screen for the whole gesture.
+ * The navigation host's transition for a predictive back: it draws nothing and only keeps both
+ * screens on screen. Everything you see is drawn by [BackPreviewPage].
  */
 fun backPreviewPopTransform(): ContentTransform =
     fadeIn(animationSpec = tween(BACK_PREVIEW_DURATION), initialAlpha = 1f) togetherWith
         fadeOut(animationSpec = tween(BACK_PREVIEW_DURATION), targetAlpha = 1f)
+
+/**
+ * True while a back gesture runs or settles. The navigation host's transitions use it so that,
+ * whatever transition the host picks for the gesture, it is [backPreviewPopTransform].
+ */
+@Composable
+fun rememberBackPreviewRunning(): () -> Boolean {
+    val dispatcher = LocalNavigationEventDispatcherOwner.current?.navigationEventDispatcher
+    return remember(dispatcher) {
+        {
+            BackPreviewState.phase != BackPhase.Idle ||
+                dispatcher?.transitionState?.value is NavigationEventTransitionState.InProgress
+        }
+    }
+}
+
+/**
+ * Follows the back gesture for the navigation host showing [backStack]. Put it next to the host,
+ * once.
+ */
+@Composable
+fun BackPreviewController(backStack: List<Any>) {
+    val dispatcher =
+        LocalNavigationEventDispatcherOwner.current?.navigationEventDispatcher ?: return
+    LaunchedEffect(dispatcher, backStack) {
+        val s = BackPreviewState
+        dispatcher.transitionState.collectLatest { gesture ->
+            if (gesture is NavigationEventTransitionState.InProgress) {
+                val event = gesture.latestEvent
+                if (s.phase != BackPhase.Dragging) {
+                    if (backStack.size < 2) return@collectLatest
+                    val leaving = backStack.last()
+                    val behind = backStack[backStack.size - 2]
+                    // Only when the host follows this gesture: it then shows both screens and moves
+                    // them. Other gestures (Triage, the article pane, an open search) don't.
+                    if (s.composed[leaving] != true || !s.composed.containsKey(behind)) {
+                        return@collectLatest
+                    }
+                    s.collapsedKeys.remove(leaving)
+                    s.collapsedKeys.remove(behind)
+                    s.leavingKey = leaving
+                    s.behindKey = behind
+                    s.fromRight = event.swipeEdge == NavigationEvent.EDGE_RIGHT
+                    s.startY = event.touchY
+                    s.settle = 0f
+                    s.progress = event.progress
+                    s.rawDy = 0f
+                    s.phase = BackPhase.Dragging
+                }
+                s.progress = event.progress
+                s.rawDy = event.touchY - s.startY
+            } else if (s.phase == BackPhase.Dragging) {
+                s.releasedAt = s.progress
+                // Going back takes the screen off the back stack; give it a few frames.
+                var committed = false
+                for (i in 0 until 6) {
+                    withFrameNanos {}
+                    if (backStack.lastOrNull() != s.leavingKey) {
+                        committed = true
+                        break
+                    }
+                }
+                val leftOver = if (committed) s.leavingKey else s.behindKey
+                try {
+                    if (committed) {
+                        s.phase = BackPhase.Committing
+                        animate(
+                            0f,
+                            1f,
+                            animationSpec = tween(COMMIT_DURATION, easing = LinearEasing),
+                        ) { value, _ ->
+                            s.settle = value
+                        }
+                    } else {
+                        s.phase = BackPhase.Cancelling
+                        animate(
+                            s.progress,
+                            0f,
+                            animationSpec = tween(CANCEL_DURATION, easing = FastOutSlowInEasing),
+                        ) { value, _ ->
+                            s.progress = value
+                        }
+                    }
+                } finally {
+                    if (leftOver != null && s.composed.containsKey(leftOver)) {
+                        s.collapsedKeys.add(leftOver)
+                    }
+                    s.phase = BackPhase.Idle
+                    s.leavingKey = null
+                    s.behindKey = null
+                    s.progress = 0f
+                    s.settle = 0f
+                }
+            }
+        }
+    }
+}
 
 /** Where a screen is: its scale (about its centre), offsets, and opacity. */
 private class Placement(val scale: Float, val x: Float, val y: Float, val alpha: Float = 1f)
@@ -151,7 +288,7 @@ private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t
  */
 private fun preCommit(
     raw: Float,
-    entering: Boolean,
+    behind: Boolean,
     width: Float,
     height: Float,
     margin: Float,
@@ -165,7 +302,7 @@ private fun preCommit(
     val ratio = min(height / 2f, abs(rawDy)) / (height / 2f)
     val room = max(0f, (height - height * scale) / 2f - margin)
     val y = room * decelerate(ratio) * (if (rawDy < 0f) -1f else 1f)
-    return if (entering) {
+    return if (behind) {
         Placement(scale, -offset, y)
     } else {
         // From the left edge the card slides right, to 8 dp from the edge; from the right it stays.
@@ -174,72 +311,59 @@ private fun preCommit(
     }
 }
 
-/**
- * Where a screen is when the gesture is at [raw] progress (for the screen behind, the host's
- * progress runs from 1 down to 0, so its [raw] is 1 minus that).
- */
+/** Where a screen is right now. [behind] is the screen you go back to. */
 private fun placement(
-    raw: Float,
-    entering: Boolean,
+    behind: Boolean,
     width: Float,
     height: Float,
     margin: Float,
     offset: Float,
 ): Placement {
     val s = BackPreviewState
-    if (!s.released) return preCommit(raw, entering, width, height, margin, offset, s.rawDy)
-    if (raw <= s.releasedAt + 0.0005f) {
-        // Cancelled: everything runs back to where it started, the finger offset with it.
-        val follow = if (s.releasedAt > 0f) (raw / s.releasedAt).coerceIn(0f, 1f) else 0f
-        return preCommit(raw, entering, width, height, margin, offset, s.rawDy * follow)
-    }
-    // Let go and going back: from where things were to the end, on the emphasized curve.
-    val linear = ((raw - s.releasedAt) / (1f - s.releasedAt)).coerceIn(0f, 1f)
-    val t = EmphasizedEasing.transform(linear)
-    val from = preCommit(s.releasedAt, entering, width, height, margin, offset, s.rawDy)
-    return if (entering) {
-        Placement(lerp(from.scale, 1f, t), lerp(from.x, 0f, t), lerp(from.y, 0f, t))
-    } else {
-        // Back to full size, its left edge moving a further 96 dp right, fading out quickly.
-        val left = width * (1f - from.scale) / 2f + from.x
-        Placement(
-            scale = lerp(from.scale, 1f, t),
-            x = lerp(from.x, left + offset, t),
-            y = lerp(from.y, 0f, t),
-            alpha = max(1f - linear * 5f, 0f),
-        )
+    return when (s.phase) {
+        BackPhase.Idle -> Placement(1f, 0f, 0f)
+        BackPhase.Dragging -> preCommit(s.progress, behind, width, height, margin, offset, s.rawDy)
+        BackPhase.Cancelling -> {
+            // Everything runs back to where it started, the finger offset with it.
+            val follow = if (s.releasedAt > 0f) (s.progress / s.releasedAt).coerceIn(0f, 1f) else 0f
+            preCommit(s.progress, behind, width, height, margin, offset, s.rawDy * follow)
+        }
+        BackPhase.Committing -> {
+            // From where things were to the end, on the emphasized curve.
+            val linear = s.settle
+            val t = EmphasizedEasing.transform(linear)
+            val from = preCommit(s.releasedAt, behind, width, height, margin, offset, s.rawDy)
+            if (behind) {
+                Placement(lerp(from.scale, 1f, t), lerp(from.x, 0f, t), lerp(from.y, 0f, t))
+            } else {
+                // Back to full size, its left edge moving a further 96 dp right, fading out quickly.
+                val left = width * (1f - from.scale) / 2f + from.x
+                Placement(
+                    scale = lerp(from.scale, 1f, t),
+                    x = lerp(from.x, left + offset, t),
+                    y = lerp(from.y, 0f, t),
+                    alpha = max(1f - linear / LEAVING_FADE, 0f),
+                )
+            }
+        }
     }
 }
 
 /** How much of the dim is left: all of it until you let go, then it fades away with the rest. */
-private fun dimFade(raw: Float): Float {
+private fun dimFade(): Float {
     val s = BackPreviewState
-    return if (s.released && raw > s.releasedAt) {
-        val linear = ((raw - s.releasedAt) / (1f - s.releasedAt)).coerceIn(0f, 1f)
-        1f - EmphasizedEasing.transform(linear)
-    } else 1f
+    return if (s.phase == BackPhase.Committing) 1f - EmphasizedEasing.transform(s.settle) else 1f
 }
 
 /**
- * True once the gesture has ended without going back: it is no longer running, and as many screens
- * are open as when it started.
+ * The screens of the navigation host (its back stack), provided by the app's navigation
+ * (AppEntry).
  */
-private fun isCancelled(gesture: NavigationEventTransitionState, stackSize: Int): Boolean {
-    val s = BackPreviewState
-    return s.active &&
-        gesture !is NavigationEventTransitionState.InProgress &&
-        stackSize >= s.stackAtStart
-}
+val LocalBackStack = compositionLocalOf<List<Any>> { emptyList() }
 
 /**
- * How many screens are open in the navigation host, read when drawing. Provided by the app's
- * navigation (AppEntry); used to tell a finished back gesture from a cancelled one.
- */
-val LocalBackStackSize = compositionLocalOf<() -> Int> { { 0 } }
-
-/**
- * Where the screen behind keeps a picture of itself during a back gesture (see BackPreviewPage).
- * Provided by the app's navigation (AppEntry).
+ * Where the screen behind keeps a picture of itself during a back gesture, for the screen you are
+ * leaving to draw. Provided by the app's navigation (AppEntry).
  */
 val LocalBackPreviewPicture = staticCompositionLocalOf<GraphicsLayer?> { null }
 
@@ -269,35 +393,57 @@ private fun displayCornerRadius(): Float {
     }
 }
 
+private enum class Role {
+    None,
+    Leaving,
+    Behind,
+}
+
 /**
- * Wraps a screen of the navigation host so the predictive back gesture plays stock Android's back
- * animation on it.
- *
- * The host moves its transition along with the gesture, so each screen reads the progress from its
- * own transition. The finger position, the edge and the moment you let go come from the back
- * gesture itself. After you let go, the host plays the rest of the transition: forwards when going
- * back, backwards when cancelled.
+ * Wraps the screen with navigation key [key] so the predictive back gesture plays stock Android's
+ * back animation on it.
  */
 @Composable
-fun BackPreviewPage(content: @Composable () -> Unit) {
+fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
+    val s = BackPreviewState
     val transition = LocalNavAnimatedContentScope.current.transition
-    val dispatcher = LocalNavigationEventDispatcherOwner.current?.navigationEventDispatcher
-    val gestureFlow =
-        remember(dispatcher) {
-            dispatcher?.transitionState
-                ?: MutableStateFlow<NavigationEventTransitionState>(NavigationEventTransitionState.Idle)
+    val moving = transition.currentState != transition.targetState
+    SideEffect { s.composed[key] = moving }
+    DisposableEffect(key) {
+        onDispose {
+            s.composed.remove(key)
+            s.collapsedKeys.remove(key)
         }
-    val gesture by gestureFlow.collectAsState()
-    val inGesture = gesture is NavigationEventTransitionState.InProgress
+    }
 
-    val exiting =
-        transition.currentState == EnterExitState.Visible &&
-            transition.targetState == EnterExitState.PostExit
-    val entering =
-        transition.currentState == EnterExitState.PreEnter &&
-            transition.targetState == EnterExitState.Visible
+    val phase = s.phase
+    val role =
+        when {
+            phase == BackPhase.Idle -> Role.None
+            key == s.leavingKey -> Role.Leaving
+            key == s.behindKey -> Role.Behind
+            else -> Role.None
+        }
+    val fadedOut by remember {
+        derivedStateOf { s.phase == BackPhase.Committing && s.settle >= LEAVING_FADE }
+    }
+    val isTop = LocalBackStack.current.lastOrNull() == key
+    // Not drawn and can't be touched (but keeps its state).
+    val collapsed =
+        when (role) {
+            Role.Leaving -> fadedOut
+            Role.Behind -> phase == BackPhase.Cancelling
+            Role.None -> !isTop && key in s.collapsedKeys
+        }
+    // The screen behind, while you swipe: it keeps a picture of itself for the leaving screen to
+    // draw, and draws nothing itself.
+    val recording = role == Role.Behind && phase == BackPhase.Dragging
+    // The screen you leave, while you swipe or a cancel settles: draws the screen behind too.
+    val drawsBehind =
+        role == Role.Leaving && (phase == BackPhase.Dragging || phase == BackPhase.Cancelling)
+    // The screen behind, after it went back: draws itself, growing back to full screen.
+    val growing = role == Role.Behind && phase == BackPhase.Committing
 
-    val stackSize = LocalBackStackSize.current
     val picture = LocalBackPreviewPicture.current
     val density = LocalDensity.current
     val margin = with(density) { MARGIN.toPx() }
@@ -306,109 +452,67 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
     val backdrop = MaterialTheme.colorScheme.surface
     val scrim = if (backdrop.luminance() < 0.5f) MAX_SCRIM_DARK else MAX_SCRIM_LIGHT
 
-    // Only a predictive back gets this long, linear timeline (it follows the gesture); any other
-    // navigation ends it at once, so the screen is not kept around longer than its transition.
-    val fraction =
-        transition.animateFloat(
-            transitionSpec = {
-                if (inGesture || BackPreviewState.active) {
-                    tween(BACK_PREVIEW_DURATION, easing = LinearEasing)
-                } else {
-                    snap()
-                }
-            },
-            label = "backPreview",
-        ) {
-            if (it == EnterExitState.Visible) 0f else 1f
-        }
-
-    // The screen being left sees the gesture and records it for both screens.
-    var leading by remember { mutableStateOf(false) }
-    LaunchedEffect(exiting, gesture) {
-        val g = gesture
-        val s = BackPreviewState
-        if (exiting && g is NavigationEventTransitionState.InProgress) {
-            val event = g.latestEvent
-            if (!leading) {
-                leading = true
-                s.released = false
-                s.startY = event.touchY
-                s.fromRight = event.swipeEdge == NavigationEvent.EDGE_RIGHT
-                s.stackAtStart = stackSize()
-                s.active = true
-            }
-            s.rawDy = event.touchY - s.startY
-        } else if (exiting && leading && !s.released) {
-            s.released = true
-            s.releasedAt = fraction.value.coerceIn(0.001f, 0.999f)
-        } else if (!exiting && leading) {
-            leading = false
-            s.reset()
-        }
-    }
-    DisposableEffect(Unit) {
-        onDispose {
-            if (leading) BackPreviewState.reset()
-        }
-    }
-
     // The layout is the same whether or not a back gesture runs, so the screen keeps its state;
-    // everything below is read while drawing only, so following the finger does not recompose it.
+    // the positions are read while drawing only, so following the finger does not recompose it.
     Box(
         modifier =
             Modifier.fillMaxSize()
-                // The screen behind keeps a picture of itself (everything below: backdrop, card,
-                // dim) while a back gesture runs. When the gesture is cancelled, the navigation host
-                // puts this screen on top of the card you are dragging back, which would cover it;
-                // it then stops drawing itself, and the card draws the picture behind itself
-                // instead, so what you see does not change (see below).
-                .drawWithContent {
-                    val s = BackPreviewState
-                    if (entering && s.active && picture != null) {
-                        picture.record { this@drawWithContent.drawContent() }
-                        if (!isCancelled(gesture, stackSize())) drawLayer(picture)
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    if (collapsed) {
+                        layout(0, 0) {}
                     } else {
+                        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+                    }
+                }
+                .drawWithContent {
+                    if (recording && picture != null) {
+                        picture.record { this@drawWithContent.drawContent() }
+                    } else if (!recording) {
                         drawContent()
                     }
                 }
                 // Behind everything (drawn before the screen is moved and shrunk, so it fills the
                 // whole display): the backdrop the two cards sit on, dimmed like the screen behind.
-                // As in the system, the dim covers everything under the card you are leaving, so
-                // that card always stands out instead of blending into the space around the cards.
                 .drawBehind {
-                    val s = BackPreviewState
-                    if (!s.active) return@drawBehind
-                    val cancelled = isCancelled(gesture, stackSize())
-                    if (entering && !cancelled) {
+                    if (drawsBehind) {
                         drawRect(backdrop)
-                        val alpha = scrim * dimFade(1f - fraction.value)
-                        if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
-                    } else if (exiting && cancelled) {
-                        // Cancelled: the screen behind, as it looks right now, under the card.
-                        if (picture != null) {
-                            drawLayer(picture)
-                        } else {
-                            drawRect(backdrop)
+                        drawRect(Color.Black, alpha = scrim)
+                        val p = placement(true, size.width, size.height, margin, offset)
+                        withTransform({
+                            translate(p.x, p.y)
+                            scale(p.scale, p.scale, center)
+                        }) {
+                            val card =
+                                androidx.compose.ui.graphics.Path().apply {
+                                    addRoundRect(RoundRect(size.toRect(), CornerRadius(corner)))
+                                }
+                            clipPath(card) {
+                                if (picture != null) drawLayer(picture)
+                                drawRect(Color.Black, alpha = scrim)
+                            }
                         }
+                    } else if (growing) {
+                        drawRect(backdrop)
+                        val alpha = scrim * dimFade()
+                        if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
                     }
                 }
                 .graphicsLayer {
-                    val s = BackPreviewState
-                    if (s.active && (exiting || entering)) {
-                        val raw = if (entering) 1f - fraction.value else fraction.value
-                        place(placement(raw, entering, size.width, size.height, margin, offset))
+                    if (role == Role.Leaving || growing) {
+                        place(placement(growing, size.width, size.height, margin, offset))
                         shape = RoundedCornerShape(corner)
                         clip = true
                     } else {
+                        place(Placement(1f, 0f, 0f))
                         clip = false
                     }
                 }
                 .drawWithContent {
                     drawContent()
-                    // The screen behind is dimmed, and the dim fades away after you let go.
-                    val s = BackPreviewState
-                    if (entering && s.active) {
-                        val alpha = scrim * dimFade(1f - fraction.value)
+                    // The screen behind is dimmed, and the dim fades away after it went back.
+                    if (growing) {
+                        val alpha = scrim * dimFade()
                         if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
                     }
                 }
