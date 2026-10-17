@@ -15,6 +15,7 @@ object WebViewLayout {
         readingFontsPreference: ReadingFontsPreference,
         webViewClient: WebViewClient,
         onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
+        onSelectionChanged: ((String) -> Unit)? = null,
     ) =
         WebView(context).apply {
             this.webViewClient = webViewClient
@@ -22,6 +23,26 @@ object WebViewLayout {
             isHorizontalScrollBarEnabled = false
             isVerticalScrollBarEnabled = true
             setBackgroundColor(Color.TRANSPARENT)
+            // Brief You: long press on a link shows where it goes before you open it.
+            setOnLongClickListener {
+                val hit = hitTestResult
+                val url = hit.extra
+                if (
+                    (hit.type == WebView.HitTestResult.SRC_ANCHOR_TYPE ||
+                        hit.type == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE) && url != null
+                ) {
+                    val host = runCatching { android.net.Uri.parse(url).host }.getOrNull()
+                    android.widget.Toast.makeText(
+                            context,
+                            host?.removePrefix("www.") ?: url,
+                            android.widget.Toast.LENGTH_SHORT,
+                        )
+                        .show()
+                    true
+                } else {
+                    false
+                }
+            }
             with(this.settings) {
                 standardFontFamily =
                     when (readingFontsPreference) {
@@ -45,6 +66,12 @@ object WebViewLayout {
                             if (onImageClick != null && imgUrl != null) {
                                 onImageClick.invoke(imgUrl, alt ?: "")
                             }
+                        }
+
+                        @JavascriptInterface
+                        override fun onSelectionChanged(text: String?) {
+                            val selected = text.orEmpty().trim()
+                            post { onSelectionChanged?.invoke(selected) }
                         }
                     },
                     JavaScriptInterface.NAME,

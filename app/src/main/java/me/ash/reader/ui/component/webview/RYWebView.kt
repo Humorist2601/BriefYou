@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -42,7 +43,10 @@ fun RYWebView(
     baseUrl: String? = null,
     refererDomain: String? = null,
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
+    /** The text selected in the article, as it changes ("" when nothing is selected). */
+    onSelectionChanged: ((String) -> Unit)? = null,
 ) {
+    val latestOnSelectionChanged = androidx.compose.runtime.rememberUpdatedState(onSelectionChanged)
     val context = LocalContext.current
     val maxWidth = LocalConfiguration.current.screenWidthDp.dp.value
     val openLink = LocalOpenLink.current
@@ -51,6 +55,7 @@ fun RYWebView(
     val backgroundColor =
         MaterialTheme.colorScheme.surfaceColorAtElevation(tonalElevation.value.dp).toArgb()
     val selectionTextColor = Color.Black.toArgb()
+    val isDarkBackground = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val selectionBgColor = (MaterialTheme.colorScheme.tertiaryContainer alwaysLight true).toArgb()
     val textColor: Int = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     val textBold: Boolean = LocalReadingTextBold.current.value
@@ -86,6 +91,7 @@ fun RYWebView(
                             },
                         ),
                     onImageClick = onImageClick,
+                    onSelectionChanged = { latestOnSelectionChanged.value?.invoke(it) },
                 )
             )
         }
@@ -131,6 +137,7 @@ fun RYWebView(
                             tableMargin = textMargin,
                             selectionTextColor = selectionTextColor,
                             selectionBgColor = selectionBgColor,
+                            isDark = isDarkBackground,
                         ),
                         // The article's address (this used to read the web view's own, empty one,
                         // so relative images and links didn't work).

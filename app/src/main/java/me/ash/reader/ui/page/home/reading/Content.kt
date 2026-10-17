@@ -1,5 +1,19 @@
 package me.ash.reader.ui.page.home.reading
 
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.size.Scale
+import coil.size.Precision
+import me.ash.reader.ui.component.base.SIZE_1000
+import me.ash.reader.ui.component.base.RYAsyncImage
+import me.ash.reader.infrastructure.preference.LocalReadingImageRoundedCorners
+import me.ash.reader.infrastructure.rss.FeedContent
 import me.ash.reader.infrastructure.preference.LocalReadingTextHorizontalPadding
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
@@ -23,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.coerceAtLeast
 import java.util.Date
 import me.ash.reader.infrastructure.preference.LocalReadingRenderer
 import me.ash.reader.infrastructure.preference.LocalReadingSubheadUpperCase
@@ -51,6 +66,12 @@ fun Content(
     isLoading: Boolean,
     contentPadding: PaddingValues = PaddingValues(),
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
+    /** Shown between the title and the article (the AI key points card). */
+    beforeArticle: (@Composable () -> Unit)? = null,
+    /** Shown after the article (the next article card). */
+    afterArticle: (@Composable () -> Unit)? = null,
+    /** The text selected in the article, as it changes ("" when nothing is selected). */
+    onSelectionChanged: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val subheadUpperCase = LocalReadingSubheadUpperCase.current
@@ -63,6 +84,9 @@ fun Content(
 
     // Actual length of what is being shown (full content when it has been fetched).
     val minutesToRead = remember(content) { readingMinutes(content) }
+    // An article that starts with a picture shows it large above the title (the hero) instead.
+    val (hero, body) = remember(content) { FeedContent.extractHero(content) }
+    val imageCorners = LocalReadingImageRoundedCorners.current
 
     val headline =
         @Composable {
@@ -73,6 +97,30 @@ fun Content(
                     Modifier.then(maxWidthModifier)
                         .padding(horizontal = (textHorizontalPadding - 12).coerceAtLeast(0).dp)
             ) {
+                hero?.let { heroUrl ->
+                    // Slides a little slower than the text while scrolling (a gentle parallax).
+                    RYAsyncImage(
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                                .padding(top = 8.dp, bottom = 8.dp)
+                                .heightIn(max = 280.dp)
+                                .aspectRatio(16f / 10f)
+                                .graphicsLayer {
+                                    if (renderer == ReadingRendererPreference.WebView) {
+                                        translationY = scrollState.value * 0.25f
+                                    }
+                                }
+                                .clip(RoundedCornerShape(imageCorners.dp.coerceAtLeast(16.dp)))
+                                .clickable { onImageClick?.invoke(heroUrl, title) },
+                        data = heroUrl,
+                        scale = Scale.FILL,
+                        precision = Precision.INEXACT,
+                        size = SIZE_1000,
+                        contentScale = ContentScale.Crop,
+                        contentDescription = title,
+                    )
+                }
                 DisableSelection {
                     Metadata(
                         feedName = feedName,
@@ -108,14 +156,17 @@ fun Content(
                             Spacer(modifier = Modifier.height(64.dp))
                             // padding
                             headline()
+                            beforeArticle?.invoke()
 
                             RYWebView(
                                 modifier = Modifier.fillMaxSize(),
-                                content = content,
+                                content = body,
                                 baseUrl = link,
                                 refererDomain = link.extractDomain(),
                                 onImageClick = onImageClick,
+                                onSelectionChanged = onSelectionChanged,
                             )
+                            afterArticle?.invoke()
                             Spacer(modifier = Modifier.height(128.dp))
                             Spacer(
                                 modifier = Modifier.height(contentPadding.calculateBottomPadding())
@@ -138,16 +189,19 @@ fun Content(
                             // padding
                             Spacer(modifier = Modifier.height(contentPadding.calculateTopPadding()))
                             headline()
+                            beforeArticle?.invoke()
                         }
 
                         Reader(
                             context = context,
                             subheadUpperCase = subheadUpperCase.value,
                             link = link ?: "",
-                            content = content,
+                            content = body,
                             onImageClick = onImageClick,
                             onLinkClick = { uriHandler.openUri(it) },
                         )
+
+                        afterArticle?.let { item { it() } }
 
                         item {
                             Spacer(modifier = Modifier.height(128.dp))
