@@ -1,8 +1,13 @@
 package me.ash.reader.ui.motion
 
+import android.graphics.Path
+import android.os.Build
+import android.view.RoundedCorner
+import android.view.animation.PathInterpolator
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.snap
@@ -24,130 +29,208 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigationevent.NavigationEvent
 import androidx.navigationevent.NavigationEventTransitionState
 import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import kotlin.math.abs
-import kotlin.math.sign
+import kotlin.math.max
+import kotlin.math.min
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /*
- * "Back preview": the predictive back gesture of every screen except Triage (which keeps its own
- * pull and toss), following Android's predictive back design guidelines.
+ * The predictive back gesture of every screen except Triage (which keeps its pull and toss), made
+ * to match stock Android's own back animation between screens (the system's "cross-activity"
+ * animation in AOSP: DefaultCrossActivityBackAnimation and CrossActivityBackAnimation).
  *
- * - While you swipe, the screen shrinks to 90% into a card with rounded corners. It drifts a little
- *   towards your finger (a few dp, towards the edge you swipe from) and follows it up and down,
- *   never further than a small margin. The motion is front-loaded: most of it happens at the start
- *   of the swipe, so the screen responds straight away.
- * - The screen you go back to sits behind it, dimmed, and brightens as you pull.
- * - Let go and the card slides back to the right, the way it came in, and fades: back looks like
- *   undoing the navigation, never like throwing the screen towards your swipe. Cancel and it
- *   settles back.
+ * While you swipe:
+ * - The screen you are leaving shrinks to 90%. Swiping from the left edge, it also slides right
+ *   until its right edge is 8 dp from the screen's edge; from the right edge it stays centred.
+ * - It follows your finger up and down, slowing down, and never closer than 8 dp to the edge.
+ * - The screen you go back to sits 96 dp to the left and shrinks to 90% along with it, follows the
+ *   finger up and down too, and is dimmed (80% in dark mode, 20% in light mode).
+ * - Both have the display's own rounded corners.
+ * - The progress goes through the system's back gesture curve, so the motion shows early.
+ *
+ * When you let go (450 ms in stock Android, on the emphasized curve): the screen behind grows back
+ * to full screen, the dim fades away, and the screen you leave goes back to full size while sliding
+ * a further 96 dp to the right, fading out within the first fifth of the animation.
  */
 
-/** Android's recommended curve for the gesture's progress: quick to show, gentle to finish. */
-val BackPreviewProgressEasing = CubicBezierEasing(0f, 0f, 0f, 1f)
+/** The system's back gesture curve (Material: "don't use linear progress"). */
+private val BackGestureEasing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f)
 
-/** How long a predictive back takes in the navigation host, from the first touch to the end. */
-const val BACK_PREVIEW_DURATION = 500
-
-private val BACK_PREVIEW_CORNER = 28.dp
-private val BACK_PREVIEW_MARGIN = 8.dp
-
-/**
- * The card. [pull] is the eased gesture progress (0 to 1), [leave] how far the card has gone after
- * letting go (0 to 1), [direction] is +1 when the gesture started from the left edge, -1 from the
- * right and 0 with no edge, and [rawDy] how far the finger moved up or down since the start, in px.
- */
-fun GraphicsLayerScope.backPreview(pull: Float, leave: Float, direction: Float, rawDy: Float) {
-    val p = pull.coerceIn(0f, 1f)
-    val l = leave.coerceIn(0f, 1f)
-    val scale = 1f - 0.1f * p
-    scaleX = scale
-    scaleY = scale
-    // A few dp towards the finger: (width / 20) - 8 dp, as in the guidelines.
-    val xShift = (size.width / 20f - BACK_PREVIEW_MARGIN.toPx()).coerceAtLeast(0f)
-    // Leaving: back out to the right, the way the screen came in.
-    translationX = direction * xShift * p + l * size.width * 0.5f
-    // Up and down with the finger, slowing down towards a limit of (height / 20) - 8 dp.
-    val yLimit = (size.height / 20f - BACK_PREVIEW_MARGIN.toPx()).coerceAtLeast(0f)
-    val yAmount = (abs(rawDy) / (size.height * 0.5f)).coerceIn(0f, 1f)
-    translationY = sign(rawDy) * yLimit * BackPreviewProgressEasing.transform(yAmount) * (1f - l)
-    alpha = 1f - l
-}
-
-/** The card's corners: they round off quickly as the gesture starts. */
-fun Density.backPreviewCorner(pull: Float): Float =
-    BACK_PREVIEW_CORNER.toPx() * (pull.coerceIn(0f, 1f) * 3f).coerceIn(0f, 1f)
-
-/** How dark the screen behind the card is at the start; it brightens as you go back. */
-fun backPreviewScrim(dark: Boolean): Float = if (dark) 0.45f else 0.25f
-
-/**
- * A light shadow so the card lifts off the dimmed screen behind it: thin rounded outlines that fade
- * smoothly from the edge outwards.
- */
-fun DrawScope.drawBackPreviewShadow(pull: Float, corner: Float, dark: Boolean) {
-    val strength = (pull.coerceIn(0f, 1f) * 3f).coerceIn(0f, 1f)
-    if (strength <= 0.01f) return
-    val alpha = if (dark) 0.35f else 0.18f
-    val rings = 40
-    val spread = 24.dp.toPx() * strength
-    val drop = 6.dp.toPx() * strength
-    val step = spread / rings
-    for (i in rings downTo 0) {
-        val distance = step * i
-        val t = i / rings.toFloat()
-        val falloff = (1f - t) * (1f - t)
-        drawRoundRect(
-            color = Color.Black.copy(alpha = alpha * strength * falloff),
-            topLeft = Offset(-distance, drop - distance),
-            size = Size(size.width + 2 * distance, size.height + 2 * distance),
-            cornerRadius = CornerRadius(corner + distance),
-            style = Stroke(width = step * 1.6f),
+/** Android's emphasized curve, the exact path the system uses after you let go. */
+private val EmphasizedEasing: Easing =
+    PathInterpolator(
+            Path().apply {
+                moveTo(0f, 0f)
+                cubicTo(0.05f, 0f, 0.133333f, 0.06f, 0.166666f, 0.4f)
+                cubicTo(0.208333f, 0.82f, 0.25f, 1f, 1f, 1f)
+            }
         )
+        .let { interpolator -> Easing { interpolator.getInterpolation(it) } }
+
+/** The Y-shift curve (a plain decelerate interpolator in the system). */
+private fun decelerate(x: Float): Float = 1f - (1f - x) * (1f - x)
+
+private const val MAX_SCALE = 0.9f
+private val MARGIN = 8.dp
+private val ENTERING_START_OFFSET = 96.dp
+private const val MAX_SCRIM_DARK = 0.8f
+private const val MAX_SCRIM_LIGHT = 0.2f
+
+/**
+ * How long a predictive back takes in the navigation host from the first touch to the end. After
+ * you let go, the host plays what is left of it, so letting go halfway leaves about the 450 ms the
+ * system uses.
+ */
+const val BACK_PREVIEW_DURATION = 900
+
+/**
+ * One back gesture, shared by the screen you leave (which sees the gesture and writes this) and the
+ * screen behind it (which reads it). Only one back gesture runs at a time.
+ */
+internal object BackPreviewState {
+    var active by mutableStateOf(false)
+    var released by mutableStateOf(false)
+    /** The raw gesture progress when you let go. */
+    var releasedAt by mutableFloatStateOf(1f)
+    /** True when the gesture came from the right edge. */
+    var fromRight by mutableStateOf(false)
+    var startY by mutableFloatStateOf(0f)
+    var rawDy by mutableFloatStateOf(0f)
+
+    fun reset() {
+        active = false
+        released = false
+        releasedAt = 1f
+        fromRight = false
+        rawDy = 0f
     }
 }
 
 /**
- * Whether a predictive back is running in the navigation host right now. Set by the screen being
- * left (it is the one that sees the gesture), read by the screen behind it to dim itself.
- */
-internal object BackPreviewState {
-    var active by mutableStateOf(false)
-}
-
-/**
- * The navigation host's transition for a predictive back. The screen behind is already in place at
- * full size (only its dimming changes, see [BackPreviewPage]); the screen you leave is drawn by
- * [BackPreviewPage] too. Both halves here only keep the screens on screen for the whole gesture.
+ * The navigation host's transition for a predictive back. Both screens are drawn by
+ * [BackPreviewPage]; these halves only keep them on screen for the whole gesture.
  */
 fun backPreviewPopTransform(): ContentTransform =
     fadeIn(animationSpec = tween(BACK_PREVIEW_DURATION), initialAlpha = 1f) togetherWith
         fadeOut(animationSpec = tween(BACK_PREVIEW_DURATION), targetAlpha = 1f)
 
+/** Where a screen is: its scale (about its centre), offsets, and opacity. */
+private class Placement(val scale: Float, val x: Float, val y: Float, val alpha: Float = 1f)
+
+private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t
+
 /**
- * Wraps a screen of the navigation host so the predictive back gesture shows the back preview on
- * it.
+ * The screens' positions before you let go, for a back gesture at [raw] progress. [width] and
+ * [height] are the screen size, [margin] and [offset] are 8 dp and 96 dp in px.
+ */
+private fun preCommit(
+    raw: Float,
+    entering: Boolean,
+    width: Float,
+    height: Float,
+    margin: Float,
+    offset: Float,
+    rawDy: Float,
+): Placement {
+    val p = BackGestureEasing.transform(raw.coerceIn(0f, 1f))
+    val scale = lerp(1f, MAX_SCALE, p)
+    // Up and down with the finger: at most half the screen of finger travel, slowing down, and
+    // never closer than the margin to the edge.
+    val ratio = min(height / 2f, abs(rawDy)) / (height / 2f)
+    val room = max(0f, (height - height * scale) / 2f - margin)
+    val y = room * decelerate(ratio) * (if (rawDy < 0f) -1f else 1f)
+    return if (entering) {
+        Placement(scale, -offset, y)
+    } else {
+        // From the left edge the card slides right, to 8 dp from the edge; from the right it stays.
+        val shift = if (BackPreviewState.fromRight) 0f else (width * (1f - MAX_SCALE) / 2f - margin)
+        Placement(scale, shift * p, y)
+    }
+}
+
+/**
+ * Where a screen is when the gesture is at [raw] progress (for the screen behind, the host's
+ * progress runs from 1 down to 0, so its [raw] is 1 minus that).
+ */
+private fun placement(
+    raw: Float,
+    entering: Boolean,
+    width: Float,
+    height: Float,
+    margin: Float,
+    offset: Float,
+): Placement {
+    val s = BackPreviewState
+    if (!s.released) return preCommit(raw, entering, width, height, margin, offset, s.rawDy)
+    if (raw <= s.releasedAt + 0.0005f) {
+        // Cancelled: everything runs back to where it started, the finger offset with it.
+        val follow = if (s.releasedAt > 0f) (raw / s.releasedAt).coerceIn(0f, 1f) else 0f
+        return preCommit(raw, entering, width, height, margin, offset, s.rawDy * follow)
+    }
+    // Let go and going back: from where things were to the end, on the emphasized curve.
+    val linear = ((raw - s.releasedAt) / (1f - s.releasedAt)).coerceIn(0f, 1f)
+    val t = EmphasizedEasing.transform(linear)
+    val from = preCommit(s.releasedAt, entering, width, height, margin, offset, s.rawDy)
+    return if (entering) {
+        Placement(lerp(from.scale, 1f, t), lerp(from.x, 0f, t), lerp(from.y, 0f, t))
+    } else {
+        // Back to full size, its left edge moving a further 96 dp right, fading out quickly.
+        val left = width * (1f - from.scale) / 2f + from.x
+        Placement(
+            scale = lerp(from.scale, 1f, t),
+            x = lerp(from.x, left + offset, t),
+            y = lerp(from.y, 0f, t),
+            alpha = max(1f - linear * 5f, 0f),
+        )
+    }
+}
+
+private fun GraphicsLayerScope.place(placement: Placement) {
+    scaleX = placement.scale
+    scaleY = placement.scale
+    translationX = placement.x
+    translationY = placement.y
+    alpha = placement.alpha
+}
+
+/** The display's own corner radius, like the system uses, or 28 dp where the phone doesn't say. */
+@Composable
+private fun displayCornerRadius(): Float {
+    val view = LocalView.current
+    val fallback = with(LocalDensity.current) { 28.dp.toPx() }
+    return remember(view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            view.rootWindowInsets
+                ?.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT)
+                ?.radius
+                ?.toFloat()
+                ?.takeIf { it > 0f } ?: fallback
+        } else {
+            fallback
+        }
+    }
+}
+
+/**
+ * Wraps a screen of the navigation host so the predictive back gesture plays stock Android's back
+ * animation on it.
  *
- * The host moves its transition along with the gesture, so the screen reads the progress from its
- * own exit animation. The finger position, the edge and the moment you let go come from the back
+ * The host moves its transition along with the gesture, so each screen reads the progress from its
+ * own transition. The finger position, the edge and the moment you let go come from the back
  * gesture itself. After you let go, the host plays the rest of the transition: forwards when going
- * back, backwards when cancelled; the card leaves (or settles) over that remaining time.
+ * back, backwards when cancelled.
  */
 @Composable
 fun BackPreviewPage(content: @Composable () -> Unit) {
@@ -168,8 +251,12 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
         transition.currentState == EnterExitState.PreEnter &&
             transition.targetState == EnterExitState.Visible
 
-    val state = remember { PreviewState() }
-    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val density = LocalDensity.current
+    val margin = with(density) { MARGIN.toPx() }
+    val offset = with(density) { ENTERING_START_OFFSET.toPx() }
+    val corner = displayCornerRadius()
+    val scrim =
+        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) MAX_SCRIM_DARK else MAX_SCRIM_LIGHT
 
     // Only a predictive back gets this long, linear timeline (it follows the gesture); any other
     // navigation ends it at once, so the screen is not kept around longer than its transition.
@@ -187,112 +274,66 @@ fun BackPreviewPage(content: @Composable () -> Unit) {
             if (it == EnterExitState.Visible) 0f else 1f
         }
 
+    // The screen being left sees the gesture and records it for both screens.
+    var leading by remember { mutableStateOf(false) }
     LaunchedEffect(exiting, gesture) {
         val g = gesture
+        val s = BackPreviewState
         if (exiting && g is NavigationEventTransitionState.InProgress) {
             val event = g.latestEvent
-            if (!state.previewing) {
-                state.previewing = true
-                state.released = false
-                state.startY = event.touchY
-                state.direction =
-                    when (event.swipeEdge) {
-                        NavigationEvent.EDGE_LEFT -> 1f
-                        NavigationEvent.EDGE_RIGHT -> -1f
-                        else -> 0f
-                    }
-                BackPreviewState.active = true
+            if (!leading) {
+                leading = true
+                s.released = false
+                s.startY = event.touchY
+                s.fromRight = event.swipeEdge == NavigationEvent.EDGE_RIGHT
+                s.active = true
             }
-            state.rawDy = event.touchY - state.startY
-        } else if (exiting && state.previewing && !state.released) {
-            // Let go: from here the host finishes (or reverses) the transition by itself.
-            state.released = true
-            state.releasedAt = fraction.value.coerceIn(0.01f, 0.99f)
-        } else if (!exiting && state.previewing) {
-            state.reset()
-            BackPreviewState.active = false
+            s.rawDy = event.touchY - s.startY
+        } else if (exiting && leading && !s.released) {
+            s.released = true
+            s.releasedAt = fraction.value.coerceIn(0.001f, 0.999f)
+        } else if (!exiting && leading) {
+            leading = false
+            s.reset()
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            if (leading) BackPreviewState.reset()
         }
     }
 
-    // If the screen goes away mid-preview (the back went through), the screen behind stops dimming.
-    DisposableEffect(Unit) {
-        onDispose { if (state.previewing) BackPreviewState.active = false }
-    }
-
-    // The layout is the same whether or not a preview is showing, so the screen keeps its state;
+    // The layout is the same whether or not a back gesture runs, so the screen keeps its state;
     // everything below is read while drawing only, so following the finger does not recompose it.
     Box(
         modifier =
             Modifier.fillMaxSize()
                 .graphicsLayer {
-                    if (state.previewing) {
-                        val m = state.motion(fraction.value)
-                        backPreview(m.pull, m.leave, state.direction, state.rawDy * m.follow)
+                    val s = BackPreviewState
+                    if (s.active && (exiting || entering)) {
+                        val raw = if (entering) 1f - fraction.value else fraction.value
+                        place(placement(raw, entering, size.width, size.height, margin, offset))
+                        shape = RoundedCornerShape(corner)
+                        clip = true
+                    } else {
+                        clip = false
                     }
                 }
-                .drawBehind {
-                    if (state.previewing) {
-                        val m = state.motion(fraction.value)
-                        drawBackPreviewShadow(m.pull, backPreviewCorner(m.pull), dark)
+                .drawWithContent {
+                    drawContent()
+                    // The screen behind is dimmed, and the dim fades away after you let go.
+                    val s = BackPreviewState
+                    if (entering && s.active) {
+                        val raw = 1f - fraction.value
+                        val fade =
+                            if (s.released && raw > s.releasedAt) {
+                                1f - ((raw - s.releasedAt) / (1f - s.releasedAt)).coerceIn(0f, 1f)
+                            } else 1f
+                        val alpha = scrim * fade
+                        if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
                     }
                 }
     ) {
-        Box(
-            modifier =
-                Modifier.fillMaxSize()
-                    .graphicsLayer {
-                        if (state.previewing) {
-                            shape = RoundedCornerShape(backPreviewCorner(state.motion(fraction.value).pull))
-                            clip = true
-                        } else {
-                            clip = false
-                        }
-                    }
-                    .drawWithContent {
-                        drawContent()
-                        // The screen behind the card: dimmed, brightening as you go back.
-                        // (For the screen coming in, the progress runs from 1 down to 0.)
-                        if (entering && BackPreviewState.active) {
-                            val alpha = backPreviewScrim(dark) * fraction.value
-                            if (alpha > 0.001f) drawRect(Color.Black, alpha = alpha)
-                        }
-                    }
-        ) {
-            content()
-        }
-    }
-}
-
-/** Where the card is: eased pull, how far it has left, and how much it still follows the finger. */
-private class PreviewMotion(val pull: Float, val leave: Float, val follow: Float)
-
-/** One back preview: where it started, which edge it came from and when you let go. */
-private class PreviewState {
-    var previewing by mutableStateOf(false)
-    var released by mutableStateOf(false)
-    var releasedAt by mutableFloatStateOf(1f)
-    var direction by mutableFloatStateOf(0f)
-    var startY by mutableFloatStateOf(0f)
-    var rawDy by mutableFloatStateOf(0f)
-
-    fun motion(fraction: Float): PreviewMotion {
-        if (!released) return PreviewMotion(BackPreviewProgressEasing.transform(fraction), 0f, 1f)
-        val held = minOf(fraction, releasedAt)
-        val pull = BackPreviewProgressEasing.transform(held)
-        return if (fraction > releasedAt + 0.001f) {
-            val t = ((fraction - releasedAt) / (1f - releasedAt)).coerceIn(0f, 1f)
-            PreviewMotion(pull, EmphasizedAccelerate.transform(t), 1f)
-        } else {
-            // Cancelling: the card settles back to the middle as the progress runs down.
-            PreviewMotion(pull, 0f, held / releasedAt)
-        }
-    }
-
-    fun reset() {
-        previewing = false
-        released = false
-        releasedAt = 1f
-        direction = 0f
-        rawDy = 0f
+        content()
     }
 }

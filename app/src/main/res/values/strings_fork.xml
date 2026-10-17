@@ -159,9 +159,7 @@
     <string name="sort_count">Unread</string>
     <string name="sort_most_first">Most first</string>
     <string name="sort_fewest_first">Fewest first</string>
-    <string name="sort_your_order_note">Drag to change your order. It is saved with your feeds and used everywhere: Triage, backups and OPML exports.</string>
     <string name="sort_manual">Manual</string>
-    <string name="sort_most_unread_note">Follows the filter you are viewing: unread, starred or total articles.</string>
     <string name="sort_manual_groups_hint">Press and drag the handle to move a group.</string>
     <string name="sort_manual_feeds_hint">Tap a group, then press and drag a handle to move its feeds.</string>
     <string name="sort_drag_handle">Drag to reorder</string>

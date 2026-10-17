@@ -201,40 +201,27 @@ fun FeedSortSheet(
         ) {
             Text(
                 text = stringResource(R.string.sort_title),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(14.dp))
 
             SortSection(stringResource(R.string.sort_groups), settings.groupMode, onGroupMode)
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(18.dp))
             SortSection(stringResource(R.string.sort_feeds), settings.feedMode, onFeedMode)
-
-            Spacer(Modifier.height(16.dp))
-            val counting =
-                SortKind.of(settings.groupMode) == SortKind.Count ||
-                    SortKind.of(settings.feedMode) == SortKind.Count
-            Text(
-                text =
-                    stringResource(
-                        if (counting) R.string.sort_most_unread_note else R.string.sort_your_order_note
-                    ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
 
             Spacer(Modifier.height(20.dp))
             FilledTonalButton(
                 onClick = onReorder,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
             ) {
-                Icon(Icons.Rounded.DragHandle, contentDescription = null, modifier = Modifier.size(20.dp))
+                Icon(Icons.Rounded.DragHandle, contentDescription = null, modifier = Modifier.size(18.dp))
                 Text(
-                    modifier = Modifier.padding(start = 10.dp),
+                    modifier = Modifier.padding(start = 8.dp),
                     text = stringResource(R.string.sort_reorder),
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelLarge,
                 )
             }
             TextButton(
@@ -255,10 +242,10 @@ private fun SortSection(title: String, selected: SortMode, onSelect: (SortMode) 
     val kind = SortKind.of(selected)
     Text(
         text = title,
-        style = MaterialTheme.typography.titleMedium,
+        style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    Spacer(Modifier.height(14.dp))
+    Spacer(Modifier.height(10.dp))
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -300,7 +287,7 @@ private fun SortSection(title: String, selected: SortMode, onSelect: (SortMode) 
                     Triple(SortMode.NameDesc, Icons.Rounded.KeyboardArrowDown, R.string.sort_name_desc),
                 )
             }
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 18.dp)) {
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
             options.forEachIndexed { index, (mode, icon, label) ->
                 SegmentedButton(
                     selected = selected.normalized == mode,
@@ -311,10 +298,10 @@ private fun SortSection(title: String, selected: SortMode, onSelect: (SortMode) 
                         }
                     },
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                    modifier = Modifier.height(52.dp),
-                    icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                    modifier = Modifier.height(40.dp),
+                    icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp)) },
                 ) {
-                    Text(stringResource(label), style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(label), style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -326,7 +313,7 @@ private fun SortSection(title: String, selected: SortMode, onSelect: (SortMode) 
 private fun SortTile(kind: SortKind, selected: Boolean, onClick: () -> Unit) {
     val spatial = MaterialTheme.motionScheme.fastSpatialSpec<Dp>()
     val effects = MaterialTheme.motionScheme.fastEffectsSpec<Color>()
-    val corner by animateDpAsState(if (selected) 32.dp else 22.dp, spatial, label = "tileCorner")
+    val corner by animateDpAsState(if (selected) 22.dp else 16.dp, spatial, label = "tileCorner")
     val container by
         animateColorAsState(
             if (selected) MaterialTheme.colorScheme.primaryContainer
@@ -351,7 +338,7 @@ private fun SortTile(kind: SortKind, selected: Boolean, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier =
-                Modifier.size(88.dp)
+                Modifier.size(60.dp)
                     .clip(RoundedCornerShape(corner))
                     .background(container)
                     .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
@@ -361,13 +348,13 @@ private fun SortTile(kind: SortKind, selected: Boolean, onClick: () -> Unit) {
                 kind.icon,
                 contentDescription = null,
                 tint = content,
-                modifier = Modifier.size(36.dp),
+                modifier = Modifier.size(26.dp),
             )
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
         Text(
             text = stringResource(kind.label),
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.labelLarge,
             color = labelColor,
         )
     }
