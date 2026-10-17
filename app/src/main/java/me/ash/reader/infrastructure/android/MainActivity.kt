@@ -1,5 +1,11 @@
 package me.ash.reader.infrastructure.android
 
+import me.ash.reader.ui.ext.dataStore
+import me.ash.reader.infrastructure.preference.DarkThemePreference
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import androidx.lifecycle.lifecycleScope
+import android.app.UiModeManager
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +88,8 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && playSplash) {
             splashScreen.setOnExitAnimationListener { view -> view.remove() }
         }
+
+        syncSplashNightMode()
 
         // Set the language
         if (Build.VERSION.SDK_INT < 33) {
@@ -240,6 +248,35 @@ class MainActivity : AppCompatActivity() {
         WidgetUpdateWorker.enqueueOneTimeWork(workManager)
         notificationHelper.clearDigest()
         super.onResume()
+    }
+
+    /**
+     * The system splash is drawn before the app runs, from the phone's light or dark mode. Tell
+     * Android which one the app uses (its Dark theme setting), so the splash on the next launch
+     * matches the app: a light splash for a light app on a dark phone, and the other way round.
+     */
+    private fun syncSplashNightMode() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        val uiModeManager = getSystemService(UiModeManager::class.java) ?: return
+        lifecycleScope.launch {
+            dataStore.data
+                .map { DarkThemePreference.fromPreferences(it) }
+                .distinctUntilChanged()
+                .collect { preference ->
+                    val mode =
+                        when (preference) {
+                            DarkThemePreference.ON -> UiModeManager.MODE_NIGHT_YES
+                            DarkThemePreference.OFF -> UiModeManager.MODE_NIGHT_NO
+                            else -> UiModeManager.MODE_NIGHT_AUTO
+                        }
+                    // Only when it changed: setting it can restart the screen.
+                    val prefs = getSharedPreferences("splash_night_mode", MODE_PRIVATE)
+                    if (prefs.getInt("mode", -1) != mode) {
+                        prefs.edit().putInt("mode", mode).apply()
+                        uiModeManager.setApplicationNightMode(mode)
+                    }
+                }
+        }
     }
 }
 

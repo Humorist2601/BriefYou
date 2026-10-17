@@ -81,6 +81,7 @@ fun RYWebView(
                         WebViewClient(
                             context = context,
                             refererDomain = refererDomain,
+                            pageUrl = baseUrl,
                             onOpenLink = { url ->
                                 context.openURL(url, openLink, openLinkSpecificBrowser)
                             },
