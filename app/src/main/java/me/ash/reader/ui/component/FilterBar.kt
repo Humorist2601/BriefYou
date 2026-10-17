@@ -34,6 +34,13 @@ import me.ash.reader.infrastructure.preference.LocalThemeIndex
 import me.ash.reader.ui.ext.surfaceColorAtElevation
 import me.ash.reader.ui.theme.palette.onDark
 
+/**
+ * The gap under everything that floats at the bottom of the screen: the reading page's pill (above
+ * the system gesture bar), and the article list's AI gist / Triage button and pull-up hint (above
+ * the bottom bar).
+ */
+val FloatingBarGap = 12.dp
+
 @Composable
 fun FilterBar(
     modifier: Modifier = Modifier,

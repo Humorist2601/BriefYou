@@ -93,6 +93,10 @@ constructor(val filters: BriefFilters, private val accountService: AccountServic
         viewModelScope.launch { runCatching { filters.undo(entry) } }
     }
 
+    fun resetUndone() {
+        viewModelScope.launch { runCatching { filters.resetExemptions() } }
+    }
+
     fun clearLog() {
         viewModelScope.launch { filters.clearLog() }
     }
@@ -112,6 +116,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
     val dupes = viewModel.filters.hideDuplicates.collectAsStateValue()
     val applied = viewModel.applied.collectAsStateValue()
     val log = viewModel.filters.log.collectAsStateValue()
+    val undoneCount = viewModel.filters.exemptCount.collectAsStateValue()
     val context = LocalContext.current
 
     var addDialogVisible by rememberSaveable { mutableStateOf(false) }
@@ -244,7 +249,22 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                             )
                         }
                     }
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(if (undoneCount > 0) 12.dp else 24.dp))
+                    // Articles brought back with Undo are skipped from then on; this lets the
+                    // filters catch them again.
+                    if (undoneCount > 0) {
+                        SettingItem(
+                            title = stringResource(R.string.filters_reset_undone),
+                            desc =
+                                pluralStringResource(
+                                    R.plurals.filters_reset_undone_desc,
+                                    undoneCount,
+                                    undoneCount,
+                                ),
+                            onClick = viewModel::resetUndone,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                    }
                 }
                 item {
                     Row(

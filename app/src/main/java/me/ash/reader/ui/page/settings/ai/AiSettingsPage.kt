@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -107,7 +108,14 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                         text = stringResource(R.string.ai_settings_model),
                     )
                     // Where the model stands: missing, importing, imported (with its size), or failed.
-                    SettingItem(title = statusText, onClick = {}) {}
+                    // Once imported, in the secondary accent so it stands apart from the actions.
+                    SettingItem(
+                        title = statusText,
+                        titleColor =
+                            if (model is ModelState.Ready) MaterialTheme.colorScheme.secondary
+                            else Color.Unspecified,
+                        onClick = {},
+                    ) {}
                     if (model is ModelState.Importing) {
                         Spacer(modifier = Modifier.height(12.dp))
                         val p = model.progress

@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import me.ash.reader.R
+import me.ash.reader.ui.component.FloatingBarGap
 
 private val PillOrigin = TransformOrigin(.5f, 1f)
 
@@ -74,7 +75,7 @@ fun BottomBar(
     ) {
         AnimatedVisibility(
             visible = isShow,
-            modifier = Modifier.navigationBarsPadding().padding(bottom = 4.dp),
+            modifier = Modifier.navigationBarsPadding().padding(bottom = FloatingBarGap),
             enter =
                 scaleIn(
                     transformOrigin = PillOrigin,

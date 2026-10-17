@@ -97,6 +97,7 @@ import me.ash.reader.infrastructure.preference.LocalSortUnreadArticles
 import me.ash.reader.infrastructure.preference.PullToLoadNextFeedPreference
 import me.ash.reader.infrastructure.preference.SortUnreadArticlesPreference
 import me.ash.reader.ui.component.FilterBar
+import me.ash.reader.ui.component.FloatingBarGap
 import me.ash.reader.ui.component.base.FeedbackIconButton
 import me.ash.reader.ui.component.base.RYExtensibleVisibility
 import me.ash.reader.ui.component.base.RYScaffold
@@ -116,12 +117,6 @@ import me.ash.reader.ui.page.home.reading.pullToLoad
 import me.ash.reader.ui.page.home.reading.rememberPullToLoadState
 import me.ash.reader.ui.theme.GoogleSansWideFontFamily
 
-
-/**
- * The gap between the bottom bar and what floats above it: the AI gist / Triage button and the
- * pull-up hint (next feed, mark all as read).
- */
-private val BottomGap = 12.dp
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -767,9 +762,9 @@ fun FlowPage(
             },
             floatingActionButton = {
                 FlowActionsFab(
-                    // [BottomGap] above the bottom bar instead of the standard 16 dp above its
+                    // [FloatingBarGap] above the bottom bar instead of the standard 16 dp above its
                     // 8 dp top padding.
-                    modifier = Modifier.offset(y = 16.dp + 8.dp - BottomGap),
+                    modifier = Modifier.offset(y = 16.dp + 8.dp - FloatingBarGap),
                     visible = showActionsFab,
                     onGist = { showGist = true },
                     onTriage = {
@@ -815,10 +810,10 @@ fun FlowPage(
             PullToLoadIndicator(
                 state = it,
                 loadAction = currentLoadAction,
-                // At the same height as the AI gist / Triage button: [BottomGap] above the bar.
+                // At the same height as the AI gist / Triage button: [FloatingBarGap] above the bar.
                 bottomPadding =
                     (if (filterBarStyle.value == FlowFilterBarStylePreference.Icon.value) 76.dp
-                    else 88.dp) + BottomGap,
+                    else 88.dp) + FloatingBarGap,
                 modifier =
                     Modifier.windowInsetsPadding(
                         WindowInsets.safeContent.only(WindowInsetsSides.Horizontal)

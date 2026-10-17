@@ -51,13 +51,15 @@ data class FilterLogEntry(
  * Brief You's filters, applied after every sync:
  * - **Mute keywords**: unread articles whose title or description contains a muted word are
  *   marked as read.
- * - **Duplicate stories**: when several feeds publish the same story (very similar titles within a
- *   few days), only the first copy stays unread; later copies are marked as read.
+ * - **Duplicate stories**: when several feeds publish the same story (very similar titles, the
+ *   copy published within 48 hours after the first), only the first copy stays unread; later
+ *   copies are marked as read.
  *
  * Marking read goes through the same path as swiping an article, so it syncs to the account.
  * Every filtered article is recorded in [log] with its reason. [undo] brings one back as unread
- * and exempts it, so later syncs don't filter it again. Log entries and exemptions are removed
- * together with their articles ([forget], [prune]).
+ * and exempts it, so later syncs don't filter it again; [resetExemptions] lets the filters catch
+ * those articles again. Log entries and exemptions are removed together with their articles
+ * ([forget], [prune]).
  */
 @Singleton
 class BriefFilters
@@ -78,6 +80,11 @@ constructor(
 
     private val _hideDuplicates = MutableStateFlow(prefs.getBoolean(KEY_DUPES, false))
     val hideDuplicates: StateFlow<Boolean> = _hideDuplicates.asStateFlow()
+
+    private val _exemptCount =
+        MutableStateFlow(prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty().size)
+    /** How many articles were brought back with Undo, which the filters now skip. */
+    val exemptCount: StateFlow<Int> = _exemptCount.asStateFlow()
 
     private val _log = MutableStateFlow(readLog())
     /** Recently filtered articles, newest first. */
@@ -168,7 +175,7 @@ constructor(
             lock.withLock {
                 rssService.get().batchMarkAsRead(articleIds = setOf(entry.articleId), isUnread = true)
                 val exempt = prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty() + entry.articleId
-                prefs.edit { putStringSet(KEY_EXEMPT, exempt) }
+                saveExempt(exempt)
                 writeLog(_log.value.filterNot { it.articleId == entry.articleId })
             }
         }
@@ -185,7 +192,7 @@ constructor(
             lock.withLock {
                 val exempt = prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty()
                 if (exempt.any { it in gone }) {
-                    prefs.edit { putStringSet(KEY_EXEMPT, exempt.filterNot { it in gone }.toSet()) }
+                    saveExempt(exempt.filterNot { it in gone }.toSet())
                 }
                 if (_log.value.any { it.articleId in gone }) {
                     writeLog(_log.value.filterNot { it.articleId in gone })
@@ -206,12 +213,22 @@ constructor(
             forget((_log.value.map { it.articleId } + exempt).filterNot { it in live })
         }
 
+    /** Lets the filters catch the articles brought back with Undo again (from the next run). */
+    suspend fun resetExemptions() =
+        withContext(Dispatchers.IO) { lock.withLock { saveExempt(emptySet()) } }
+
+    private fun saveExempt(exempt: Set<String>) {
+        prefs.edit { putStringSet(KEY_EXEMPT, exempt) }
+        _exemptCount.value = exempt.size
+    }
+
     suspend fun clearLog() =
         withContext(Dispatchers.IO) { lock.withLock { writeLog(emptyList()) } }
 
     /**
-     * Articles are in date order. An unread article is a duplicate when an earlier article from a
-     * different feed has a very similar title. Returns (duplicate, the earlier original) pairs.
+     * Articles are in date order. An unread article is a duplicate when an article from a
+     * different feed with a very similar title was published up to 48 hours before it. Returns
+     * (duplicate, the earlier original) pairs.
      */
     private fun findDuplicates(
         recent: List<ArticleWithFeed>
@@ -221,9 +238,11 @@ constructor(
         for (a in recent) {
             val tokens = tokens(a.article.title)
             if (tokens.size < MIN_TOKENS) continue
+            val time = a.article.date.time
             val original =
                 seen.firstOrNull { (other, otherTokens) ->
                     other.article.feedId != a.article.feedId &&
+                        time - other.article.date.time <= DUPLICATE_WINDOW_MS &&
                         jaccard(tokens, otherTokens) >= SIMILARITY
                 }
             if (original != null) {
@@ -272,7 +291,10 @@ constructor(
         const val KEY_MUTED = "muted_keywords"
         const val KEY_DUPES = "hide_duplicates"
         const val KEY_EXEMPT = "exempt_ids"
+        /** How far back the filters look (each run checks the articles of the last 3 days). */
         const val WINDOW_MS = 3L * 24 * 60 * 60 * 1000
+        /** A copy of a story counts as a duplicate up to 48 hours after the first. */
+        const val DUPLICATE_WINDOW_MS = 48L * 60 * 60 * 1000
         const val MAX_ARTICLES = 1500
         const val MIN_TOKENS = 4
         const val SIMILARITY = 0.6

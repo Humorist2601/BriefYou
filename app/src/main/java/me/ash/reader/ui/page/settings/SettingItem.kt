@@ -47,6 +47,8 @@ fun SettingItem(
     icon: ImageVector? = null,
     iconPainter: Painter? = null,
     separatedActions: Boolean = false,
+    /** The title's color; the usual one when unspecified. */
+    titleColor: Color = Color.Unspecified,
     onClick: () -> Unit,
     action: (@Composable () -> Unit)? = null,
 ) {
@@ -87,6 +89,7 @@ fun SettingItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
+                    color = titleColor,
                     maxLines = if (desc == null) 2 else 1,
                     style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp)
                 )

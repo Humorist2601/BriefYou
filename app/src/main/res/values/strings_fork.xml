@@ -76,7 +76,12 @@
     <!-- Filters -->
     <string name="filters_settings">Filters</string>
     <string name="filters_settings_desc">Mute keywords, hide duplicate stories</string>
-    <string name="filters_intro">Filters run after every sync. Matching unread articles are marked as read, the same as swiping them.</string>
+    <string name="filters_intro">Filters run after every sync, or when you tap Apply now. Matching unread articles from the last 3 days are marked as read, the same as swiping them.\n\nMuted keywords: an article is muted when its title or short description contains the keyword as a whole word. Capital letters don\'t matter, but other forms of the word do (muting \"game\" doesn\'t catch \"games\").\n\nDuplicates: when several feeds publish the same story, only the first copy stays unread. A later article counts as a copy when another feed published a very similar title (most of the same words) up to 48 hours before it. Copies of the same story arrive within hours, while look-alike headlines that repeat, like a weekly roundup, are days apart, so they are not mistaken for copies.\n\nUndo brings an article back, and the filters skip it from then on. Reset undone articles lets them catch those articles again.</string>
+    <string name="filters_reset_undone">Reset undone articles</string>
+    <plurals name="filters_reset_undone_desc">
+        <item quantity="one">%1$d article you brought back with Undo is skipped by the filters. Reset to let them catch it again.</item>
+        <item quantity="other">%1$d articles you brought back with Undo are skipped by the filters. Reset to let them catch them again.</item>
+    </plurals>
     <string name="filters_dupes">Hide duplicate stories</string>
     <string name="filters_dupes_desc">When several feeds publish the same story, keep only the first one unread</string>
     <string name="filters_keywords">Muted keywords</string>

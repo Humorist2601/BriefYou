@@ -78,6 +78,8 @@ import me.ash.reader.ui.component.base.SIZE_1000
 import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.ui.component.swipe.SwipeAction
 import me.ash.reader.ui.component.swipe.SwipeableActionsBox
+import me.ash.reader.ui.component.swipe.rememberSwipeableActionsState
+import androidx.compose.animation.animateColorAsState
 import me.ash.reader.ui.ext.requiresBidi
 import me.ash.reader.ui.ext.surfaceColorAtElevation
 import me.ash.reader.ui.page.settings.color.flow.generateArticleWithFeedPreview
@@ -411,6 +413,19 @@ private fun SwipeActionBox(
     content: @Composable () -> Unit,
 ) {
     val containerColor = MaterialTheme.colorScheme.tertiaryContainer
+    // The icon sits on the page color until the swipe passes the threshold, then on the accent
+    // container: it uses the accent there, and the container's own "on" color (which Material You
+    // keeps readable on it, whatever the theme) after.
+    val swipeState = rememberSwipeableActionsState()
+    val iconTint by
+        animateColorAsState(
+            if (swipeState.hasCrossedSwipeThreshold() || swipeState.isResettingOnRelease) {
+                MaterialTheme.colorScheme.onTertiaryContainer
+            } else {
+                MaterialTheme.colorScheme.tertiary
+            },
+            label = "swipeIconTint",
+        )
 
     val swipeToStartAction = LocalArticleListSwipeStartAction.current
     val swipeToEndAction = LocalArticleListSwipeEndAction.current
@@ -447,7 +462,7 @@ private fun SwipeActionBox(
                             Icon(
                                 imageVector = it,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary,
+                                tint = iconTint,
                                 modifier = Modifier.padding(horizontal = 24.dp),
                             )
                         }
@@ -471,7 +486,7 @@ private fun SwipeActionBox(
                             Icon(
                                 imageVector = it,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary,
+                                tint = iconTint,
                                 modifier = Modifier.padding(horizontal = 24.dp),
                             )
                         }
@@ -484,6 +499,7 @@ private fun SwipeActionBox(
 
     SwipeableActionsBox(
         modifier = modifier,
+        state = swipeState,
         startActions = listOfNotNull(startAction),
         endActions = listOfNotNull(endAction),
         backgroundUntilSwipeThreshold = MaterialTheme.colorScheme.surface,
