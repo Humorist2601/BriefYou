@@ -1,5 +1,6 @@
 package me.ash.reader.brief.reading
 
+import me.ash.reader.brief.stats.ReadingStats
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -125,7 +126,38 @@ fun rememberBriefReadingState(
         }
     }
     LaunchedEffect(articleId) { state.progress = 0f }
+    TrackReadingStats(articleId, readerState.feedName)
     return state
+}
+
+/**
+ * Reading stats: the article counts as read once it's opened, and the time it's on screen (with
+ * the app in front) is added up, written every few seconds and when the article closes.
+ */
+@Composable
+private fun TrackReadingStats(articleId: String?, feedName: String) {
+    if (articleId == null) return
+    val context = LocalContext.current
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(articleId) {
+        ReadingStats.articleOpened(context, articleId, feedName)
+        var pending = 0L
+        try {
+            while (true) {
+                kotlinx.coroutines.delay(1_000)
+                if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+                    pending++
+                }
+                if (pending >= ReadingStats.FLUSH_SECONDS) {
+                    ReadingStats.addReadingTime(context, pending)
+                    pending = 0
+                }
+            }
+        } finally {
+            // The article closed (or another one opened): keep the last few seconds too.
+            ReadingStats.addReadingTime(context, pending)
+        }
+    }
 }
 
 /** "4 min left" (or "Almost done") once the article is scrolled, for the top bar. */

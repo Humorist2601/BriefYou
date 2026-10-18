@@ -155,6 +155,7 @@ fun SettingsPage(
                         onClick = navigateToFilters
                     )
                 }
+                item { me.ash.reader.brief.stats.ReadingStatsSettingsItem() } // Brief You
                 item {
                     SelectableSettingGroupItem(
                         title = stringResource(R.string.troubleshooting),

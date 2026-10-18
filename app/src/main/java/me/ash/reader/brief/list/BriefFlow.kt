@@ -1,5 +1,7 @@
 package me.ash.reader.brief.list
 
+import me.ash.reader.brief.app.BriefShortcuts
+import me.ash.reader.brief.stats.ReadingStats
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -141,7 +143,26 @@ fun BriefFlowOverlays(
 
     // Inbox zero, in the exact middle of the screen, over everything (Triage has its own, at the
     // end of the cards).
+    // App shortcuts: Triage or the gist, once the Unread list of everything is showing.
+    val pendingShortcut = BriefShortcuts.pending
+    LaunchedEffect(pendingShortcut, filterUiState) {
+        val ready =
+            filterUiState.filter.isUnread() && filterUiState.feed == null && filterUiState.group == null
+        if (pendingShortcut == null || !ready) return@LaunchedEffect
+        BriefShortcuts.pending = null
+        when (pendingShortcut) {
+            BriefShortcuts.Action.Triage -> {
+                briefViewModel.triageSession = null
+                briefViewModel.triageResume = false
+                state.showTriage = true
+            }
+            BriefShortcuts.Action.Gist -> state.showGist = true
+            else -> {}
+        }
+    }
+
     if (state.celebrate) {
+        LaunchedEffect(Unit) { ReadingStats.inboxZero(context) } // Reading stats
         ScreenOverlay {
             InboxZeroCelebration(visible = true, onFinished = { state.celebrate = false })
         }

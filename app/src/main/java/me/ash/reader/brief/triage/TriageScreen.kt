@@ -2,6 +2,7 @@
 
 package me.ash.reader.brief.triage
 
+import me.ash.reader.brief.stats.ReadingStats
 import me.ash.reader.brief.list.CelebrationBurst
 import me.ash.reader.brief.reading.estimateReadingMinutes
 
@@ -431,6 +432,7 @@ private fun TriageContent(
 
     fun decide(action: TriageAction) {
         val article = current ?: return
+        if (action != TriageAction.Skip) ReadingStats.triaged(context, 1) // Reading stats
         when (action) {
             TriageAction.Read -> onRead(article)
             TriageAction.Save -> {
@@ -457,6 +459,7 @@ private fun TriageContent(
 
     fun undo() {
         val step = history.removeLastOrNull() ?: return
+        if (step.action != TriageAction.Skip) ReadingStats.triaged(context, -1) // Reading stats
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
         returning = step
         when (step.action) {
@@ -475,6 +478,7 @@ private fun TriageContent(
     LaunchedEffect(current == null) {
         if (current == null && history.isNotEmpty()) {
             haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+            ReadingStats.inboxZero(context) // Reading stats
         }
     }
 

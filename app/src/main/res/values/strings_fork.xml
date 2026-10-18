@@ -202,4 +202,29 @@
     <!-- First-start terms for Brief You (Read You's own text names Read You and its repo). -->
     <string name="brief_tos_tips">Please read and agree to Brief You\'s terms of service and privacy policy to continue.</string>
     <string name="brief_tos_content"><h5> Privacy policy </h5> <br /> <p> <b>Brief You</b> does not collect any user data. Your feeds, articles and settings, and any account passwords, stay in the app\'s storage on your device. AI summaries run on your device with a model you add yourself; nothing is sent anywhere for them. </p> <br /> <p> <b>Brief You</b> uses these permissions: </p> <br /> <p> - Network access (to fetch the feeds and pages you choose) </p> <p> - Network status (to know whether you are online, or on Wi-Fi) </p> <p> - Background work and notifications (to sync on a schedule, and for read aloud) </p> <br /> <br /> <h5> Third-party services </h5> <br /> <p> This policy does not cover services you use with <b>Brief You</b>, such as an RSS server. See their own privacy policies. </p> <br /> <br /> <h5> Disclaimers </h5> <br /> <p> <b>Brief You</b> is only a tool for reading content you choose. You are responsible for using it within the laws of your country or region. </p> <br /> <br /> <h5> Open source license </h5> <br /> <p> <b>Brief You</b> is a fork of Read You[1], and like it is open source under the GNU GPL 3.0 license[2]: you may use, study and change the source code for free, but changed or derived versions may not be distributed as closed-source software. </p> <br /> <br /> <h5> Appendix </h5> <br /> <p> - [1] https://github.com/Humorist2601/BriefYou (based on https://github.com/ReadYouApp/ReadYou) </p> <p> - [2] https://www.gnu.org/licenses/gpl-3.0.html </p></string>
+    <!-- Reading stats -->
+    <string name="stats_title">Reading stats</string>
+    <string name="stats_settings_desc">Time spent reading, streak, top feeds</string>
+    <string name="stats_minutes_week">min this week</string>
+    <string name="stats_articles_week">articles this week</string>
+    <string name="stats_streak">day streak</string>
+    <string name="stats_this_week">This week (minutes)</string>
+    <string name="stats_top_feeds">Feeds you read most</string>
+    <string name="stats_nothing_yet">Nothing yet. Open a few articles and they\'ll show up here.</string>
+    <string name="stats_all_time">All time</string>
+    <string name="stats_total_minutes">%1$d minutes reading</string>
+    <string name="stats_total_articles">%1$d articles opened</string>
+    <string name="stats_inbox_zero">Inbox zero %1$d times</string>
+    <string name="stats_triaged">%1$d cards cleared in Triage</string>
+    <string name="stats_reset">Reset stats</string>
+    <string name="stats_reset_desc">Start counting again from today</string>
+    <string name="stats_reset_confirm">Your reading stats will start again from zero. This can\'t be undone.</string>
+    <string name="stats_reset_action">Reset</string>
+    <string name="stats_footer">Reading stats stay on this phone, and are included in "Back up everything". An article counts as read when you open it; time counts while it\'s on screen.</string>
+    <!-- App shortcuts (long-press the app icon) -->
+    <string name="shortcut_triage">Triage</string>
+    <string name="shortcut_gist">AI gist</string>
+    <string name="shortcut_unread">Unread</string>
+    <string name="shortcut_sync">Sync now</string>
+    <string name="shortcut_syncing">Syncing feeds…</string>
 </resources>

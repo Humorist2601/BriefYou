@@ -61,6 +61,7 @@ fun BriefNavigationHost(backStack: NavBackStack<NavKey>, content: @Composable ()
     val backPreviewPicture = rememberGraphicsLayer()
     val filterBarHost = remember { FilterBarHost() }
     BackPreviewController(backStack)
+    BriefShortcuts.Handler(backStack)
     CompositionLocalProvider(
         LocalBackStack provides backStack,
         LocalBackPreviewPicture provides backPreviewPicture,

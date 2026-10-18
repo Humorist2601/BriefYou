@@ -51,6 +51,7 @@ object BriefActivity {
             activity.splashScreen.setOnExitAnimationListener { view -> view.remove() }
         }
         syncSplashNightMode(activity)
+        BriefShortcuts.publish(activity)
         return playSplash
     }
 

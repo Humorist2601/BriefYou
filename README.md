@@ -146,6 +146,8 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Google Sans Flex** | Rounded throughout, with wide headings. Reading fonts: Google Sans Flex, Literata, system, or your own. |
 | **Material You, the current way** | Uses the system's own wallpaper colours; preset colours use Google's latest colour spec. |
 | **Feed colours and icons** | Feed names take a colour from their icon; set an emoji or your own image as a feed's icon. |
+| **App shortcuts** | Long-press the icon for Triage, AI gist, Unread or Sync now. |
+| **Reading stats** | Time spent reading (a bar per day), articles read, your streak and top feeds, in *Settings → Reading stats*. |
 | **Swipe between Starred, Unread and All** | Each with its own list and scroll position. |
 | **Predictive back** | Matches Android's own back animation, in screens and dialogs. |
 | **New icon and animated splash** | A fanned stack of cards that grows into the app. |

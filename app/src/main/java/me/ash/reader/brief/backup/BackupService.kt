@@ -1,5 +1,6 @@
 package me.ash.reader.brief.backup
 
+import me.ash.reader.brief.stats.ReadingStats
 import me.ash.reader.domain.service.AccountService
 import me.ash.reader.brief.filters.BriefFilters
 import me.ash.reader.brief.feeds.FeedOrdering
@@ -103,6 +104,7 @@ data class ExtrasBackup(
  * - `starred.json`: starred articles in full (title, link, text, date, feed).
  * - `account.json`: the account's sync settings (interval, on start, Wi-Fi, charging, how long
  *   to keep read articles, block list).
+ * - `stats.json`: reading stats (time read, articles opened, top feeds, inbox zero, Triage).
  * - `extras.json`: your AI instructions, the Triage auto-advance delay and read aloud's speed.
  * - `order.json`: how groups and feeds are sorted (by name, by count or by hand), if you set one.
  *   The OPML above is written in that same order, too.
@@ -212,6 +214,7 @@ constructor(
                     )
                 }
                 zip.put(EXTRAS, json.encodeToString(extras))
+                zip.put(STATS, ReadingStats.export(context))
                 // The order of groups and feeds (only when it isn't the default one).
                 feedOrdering.export(accountId)?.let { zip.put(ORDER, json.encodeToString(it)) }
                 zip.put(PREFERENCES, portablePreferences())
@@ -278,6 +281,8 @@ constructor(
                                 entries[EXTRAS]?.let {
                                     restoreExtras(json.decodeFromString<ExtrasBackup>(String(it)))
                                 }
+                                // Reading stats (added later; older backups don't have them).
+                                entries[STATS]?.let { ReadingStats.restore(context, String(it)) }
                             }
                         }
                     }
@@ -410,7 +415,7 @@ constructor(
     /** Reads the few files we know about into memory; anything else in the ZIP is ignored. */
     private fun readZip(bytes: ByteArray): Map<String, ByteArray> {
         val known =
-            setOf(MANIFEST, SUBSCRIPTIONS, FILTERS, PREFERENCES, ORDER, STARRED, ACCOUNT, EXTRAS)
+            setOf(MANIFEST, SUBSCRIPTIONS, FILTERS, PREFERENCES, ORDER, STARRED, ACCOUNT, EXTRAS, STATS)
         val result = mutableMapOf<String, ByteArray>()
         var total = 0L
         ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
@@ -446,6 +451,7 @@ constructor(
         const val STARRED = "starred.json"
         const val ACCOUNT = "account.json"
         const val EXTRAS = "extras.json"
+        const val STATS = "stats.json"
         private const val TRIAGE_SECONDS = "auto_seconds"
         private const val READ_ALOUD_SPEED = "speed"
         private const val MAX_STARRED = 100_000

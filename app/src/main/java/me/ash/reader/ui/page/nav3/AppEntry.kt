@@ -282,6 +282,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     Route.Languages -> NavEntry(key) { LanguagesPage(onBack = onBack) }
                     Route.AiModel -> NavEntry(key) { AiSettingsPage(onBack = onBack) } // Brief You
                     Route.Filters -> NavEntry(key) { FiltersPage(onBack = onBack) } // Brief You
+                    Route.ReadingStats -> NavEntry(key) { me.ash.reader.brief.stats.ReadingStatsPage(onBack = onBack) } // Brief You
                     Route.Troubleshooting -> NavEntry(key) { TroubleshootingPage(onBack = onBack) }
                     Route.TipsAndSupport ->
                         NavEntry(key) {
