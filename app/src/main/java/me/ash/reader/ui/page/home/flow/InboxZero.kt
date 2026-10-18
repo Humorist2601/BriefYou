@@ -25,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -89,16 +91,34 @@ fun InboxZeroCelebration(visible: Boolean, onFinished: () -> Unit, modifier: Mod
             Box(
                 modifier =
                     Modifier.size(72.dp)
-                        // A soft shadow under the tick, so it stands out from the articles
-                        // underneath; it grows and turns with it.
                         .graphicsLayer {
                             scaleX = badge.value
                             scaleY = badge.value
                             rotationZ = (1f - badge.value) * -45f
-                            shadowElevation = 10.dp.toPx()
-                            shape = cookie
-                            clip = true
                         }
+                        // A soft shadow under the tick, so it stands out from the articles
+                        // underneath; it grows with it. Painted as a blurred round glow: a real
+                        // elevation shadow on the cookie's wavy (concave) outline is so slow to
+                        // work out on every frame that it froze the app.
+                        .drawBehind {
+                            val r = size.minDimension * 0.62f
+                            drawCircle(
+                                brush =
+                                    Brush.radialGradient(
+                                        colors =
+                                            listOf(
+                                                Color.Black.copy(alpha = 0.28f),
+                                                Color.Black.copy(alpha = 0.12f),
+                                                Color.Transparent,
+                                            ),
+                                        center = center + Offset(0f, 4.dp.toPx()),
+                                        radius = r,
+                                    ),
+                                radius = r,
+                                center = center + Offset(0f, 4.dp.toPx()),
+                            )
+                        }
+                        .clip(cookie)
                         .background(MaterialTheme.colorScheme.tertiaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
