@@ -38,6 +38,7 @@
     <string name="reading_up_next">Up next</string>
     <string name="ai_ask_hint">Ask about this article</string>
     <string name="ai_ask_send">Ask</string>
+    <string name="ai_ask_hint_gist">Ask about these articles</string>
     <string name="reading_back_to_reading">Back to reading</string>
     <string name="read_aloud_play">Play</string>
     <string name="read_aloud_pause">Pause</string>
@@ -45,7 +46,7 @@
     <string name="read_aloud_speed">Speed %1$s</string>
     <string name="reading_marked_read">Marked as read</string>
     <string name="reading_marked_unread">Marked as unread</string>
-    <string name="reading_all_caught_up">You\'re all caught up</string>
+    <string name="reading_all_caught_up">All caught up</string>
     <string name="text_settings">Text</string>
     <string name="text_settings_size">Text size</string>
     <string name="text_settings_line_height">Line spacing</string>

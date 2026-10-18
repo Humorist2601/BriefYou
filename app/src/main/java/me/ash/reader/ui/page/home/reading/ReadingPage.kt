@@ -1,7 +1,6 @@
 package me.ash.reader.ui.page.home.reading
 
 import androidx.compose.ui.graphics.toArgb
-import me.ash.reader.ui.component.webview.ArticlePageText
 import me.ash.reader.ui.theme.palette.animateColorScheme
 import me.ash.reader.ui.theme.palette.LocalWebViewColorScheme
 import androidx.compose.runtime.DisposableEffect
@@ -173,46 +172,12 @@ private fun ReadingPageContent(
         }
     // Follow along: the sentence being read aloud, when it's this article that is being read.
     val tts = viewModel.textToSpeechManager
-    val ttsPart = tts.part.collectAsState()
-    val ttsStateNow = tts.stateFlow.collectAsState()
     val currentArticleId = readerState.articleId
-    val readAloudPart =
-        remember(currentArticleId) {
-            derivedStateOf {
-                val state = ttsStateNow.value
-                if (
-                    currentArticleId != null &&
-                        tts.fromPage &&
-                        tts.sourceKey == currentArticleId &&
-                        (state is TextToSpeechManager.State.Reading ||
-                            state is TextToSpeechManager.State.Paused)
-                ) ttsPart.value
-                else null
-            }
-        }
-    // Read aloud takes the article's sentences from its page (so the page can follow along);
-    // with the native view, or if the page can't give them, it reads the article's text.
-    val pageText = remember(currentArticleId) { ArticlePageText() }
     // The media notification takes the page's colour (from the article's picture when it has one).
     val pageAccent = (LocalWebViewColorScheme.current ?: MaterialTheme.colorScheme).primary.toArgb()
     val startReadAloud: () -> Unit = {
-        val html = readerState.content.text
-        val id = readerState.articleId
-        val title = readerState.title
-        coroutineScope.launch {
-            val sentences = pageText.sentences()
-            if (sentences != null) tts.readSentences(sentences, title, id, pageAccent)
-            else if (html != null) tts.readHtml(html, title, id, pageAccent)
-        }
-    }
-    // Showing other content (full content on or off) while it's read from the page: stop, as the
-    // sentence numbers no longer match the page.
-    var shownText by remember(currentArticleId) { mutableStateOf(readerState.content.text) }
-    LaunchedEffect(readerState.content.text) {
-        val before = shownText
-        shownText = readerState.content.text
-        if (before != null && before != shownText && tts.fromPage && tts.sourceKey == currentArticleId) {
-            tts.stop()
+        readerState.content.text?.let { html ->
+            tts.readHtml(html, readerState.title, readerState.articleId, pageAccent)
         }
     }
     // Closing the article (going back, or opening another one) stops it being read aloud. Not when
@@ -437,8 +402,6 @@ private fun ReadingPageContent(
                                                 currentImageData = ImageData(imgUrl, altText)
                                                 showFullScreenImageViewer = true
                                             },
-                                            readAloudPart = readAloudPart,
-                                            pageText = pageText,
                                             afterArticle = {
                                                 // This article's own next one (not the
                                                 // page's, which changes while it slides away).
@@ -515,8 +478,15 @@ private fun ReadingPageContent(
                         onSummarize = { showSummary = true },
                         onReadAloud = startReadAloud,
                         ttsButton = {
+                          // Only this article's reading: a summary being read aloud shows as
+                          // not reading here, and tapping starts the article instead.
+                          val ttsAny = viewModel.textToSpeechManager.stateFlow.collectAsStateValue()
                           val ttsState =
-                              viewModel.textToSpeechManager.stateFlow.collectAsStateValue()
+                              if (
+                                  ttsAny is TextToSpeechManager.State.Error ||
+                                      viewModel.textToSpeechManager.sourceKey == readerState.articleId
+                              ) ttsAny
+                              else TextToSpeechManager.State.Idle
                             TtsButton(
                                 onClick = {
                                     when (it) {

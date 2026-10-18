@@ -1,6 +1,5 @@
 package me.ash.reader.ui.page.home.flow
 
-import me.ash.reader.ui.page.adaptive.trackArticleCard
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -44,7 +43,6 @@ fun LazyListScope.ArticleList(
                 is ArticleFlowItem.Article -> {
                     val article = item.articleWithFeed.article
                     SwipeableArticleItem(
-                        modifier = Modifier.trackArticleCard(article.id),
                         articleWithFeed = item.articleWithFeed,
                         isUnread = diffMap[article.id]?.isUnread ?: article.isUnread,
                         articleListTonalElevation = articleListTonalElevation,
@@ -79,7 +77,6 @@ fun LazyListScope.ArticleList(
                     item(key = key(item), contentType = contentType(item)) {
                         val article = item.articleWithFeed.article
                         SwipeableArticleItem(
-                            modifier = Modifier.trackArticleCard(article.id),
                             articleWithFeed = item.articleWithFeed,
                             isUnread = diffMap[article.id]?.isUnread ?: article.isUnread,
                             articleListTonalElevation = articleListTonalElevation,

@@ -208,6 +208,25 @@ constructor(
         return generate(ASK_PROMPT, prompt)
     }
 
+    /** Streams an answer to a question about a list's articles (the gist sheet). */
+    fun askGist(
+        groupName: String?,
+        items: List<GistItem>,
+        history: List<Pair<String, String>>,
+        question: String,
+    ): Flow<String> {
+        val prompt = buildString {
+            append("Articles:\n").append(buildGistPrompt(groupName, items).take(MAX_INPUT_CHARS - 2_000))
+            append("\n\n")
+            for ((q, a) in history.takeLast(3)) {
+                append("Question: ").append(q.take(300)).append('\n')
+                append("Answer: ").append(a.take(600)).append("\n\n")
+            }
+            append("Question: ").append(question.take(500))
+        }
+        return generate(ASK_GIST_PROMPT, prompt)
+    }
+
     /** Streams a gist of many articles (for example everything in a group). */
     fun gist(groupName: String?, items: List<GistItem>): Flow<String> =
         generate(gistPrompt.value, buildGistPrompt(groupName, items))
@@ -369,10 +388,17 @@ constructor(
         private const val STOP_TIMEOUT_MS = 15_000L
 
         private const val ASK_PROMPT =
-            "You answer a reader's questions about one news article. Use only the article you " +
-                "are given. Answer in 1 to 4 short sentences, in the same language as the " +
-                "question. If the article doesn't say, reply that the article doesn't say, and " +
-                "don't guess."
+            "You answer a reader's questions about a news article. Use the article first. You " +
+                "may also use general knowledge to explain terms, give background or answer " +
+                "related questions; when part of your answer is not from the article, say so " +
+                "briefly. Answer in 1 to 4 short sentences, in the same language as the question."
+
+        private const val ASK_GIST_PROMPT =
+            "You answer a reader's questions about a list of news articles (titles and short " +
+                "descriptions). Use the list first, and mention which articles you mean. You may " +
+                "also use general knowledge for background; when part of your answer is not from " +
+                "the list, say so briefly. Answer in 1 to 4 short sentences, in the same language " +
+                "as the question."
 
         const val DEFAULT_ARTICLE_PROMPT =
             "You summarize articles for a news reader app. Reply with 3 to 5 short bullet " +

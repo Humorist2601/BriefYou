@@ -1,38 +1,5 @@
 package me.ash.reader.ui.page.home.reading
 
-import me.ash.reader.ui.component.webview.ArticlePageText
-import me.ash.reader.ui.component.FloatingBarGap
-import me.ash.reader.R
-import kotlinx.coroutines.launch
-import androidx.compose.ui.res.stringResource
-import androidx.compose.material.icons.rounded.RecordVoiceOver
-import androidx.compose.material.icons.Icons
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.layout.positionInParent
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.State
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -99,10 +66,6 @@ fun Content(
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
     /** Shown after the article (the next article card). */
     afterArticle: (@Composable () -> Unit)? = null,
-    /** Follow along: the number of the sentence being read aloud (null when not reading). */
-    readAloudPart: State<Int?>? = null,
-    /** Gives read aloud the article's sentences from the page. */
-    pageText: ArticlePageText? = null,
 ) {
     val context = LocalContext.current
     val subheadUpperCase = LocalReadingSubheadUpperCase.current
@@ -165,45 +128,12 @@ fun Content(
 
         when (renderer) {
             ReadingRendererPreference.WebView -> {
-                // Follow along: the page keeps the sentence being read in view (about a third
-                // down the screen). Scrolling yourself stops that until "Back to reading".
-                val scope = rememberCoroutineScope()
-                var webViewTop by remember { mutableFloatStateOf(0f) }
-                var viewportHeight by remember { mutableIntStateOf(0) }
-                var following by remember { mutableStateOf(true) }
-                var autoScrolling by remember { mutableStateOf(false) }
-                var sentenceTop by remember { mutableFloatStateOf(-1f) }
-                val readingAloud = readAloudPart?.value != null
-                fun showSentence(top: Float) {
-                    val target =
-                        (webViewTop + top - viewportHeight * 0.3f)
-                            .toInt()
-                            .coerceIn(0, scrollState.maxValue)
-                    scope.launch {
-                        autoScrolling = true
-                        try {
-                            scrollState.animateScrollTo(target)
-                        } finally {
-                            autoScrolling = false
-                        }
-                    }
-                }
-                LaunchedEffect(scrollState) {
-                    snapshotFlow { scrollState.isScrollInProgress }
-                        .collect { moving ->
-                            if (moving && !autoScrolling && readAloudPart?.value != null) {
-                                following = false
-                            }
-                        }
-                }
-                LaunchedEffect(readingAloud) { if (!readingAloud) following = true }
-                Box(
+                Column(
                     modifier =
                         modifier
                             .padding(top = contentPadding.calculateTopPadding())
                             .fillMaxSize()
                 ) {
-                Column(modifier = Modifier.fillMaxSize().onSizeChanged { viewportHeight = it.height }) {
                     Column(
                         modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -215,20 +145,11 @@ fun Content(
                             headline()
 
                             RYWebView(
-                                modifier =
-                                    Modifier.fillMaxSize().onGloballyPositioned {
-                                        webViewTop = it.positionInParent().y
-                                    },
+                                modifier = Modifier.fillMaxSize(),
                                 content = body,
                                 baseUrl = link,
                                 refererDomain = link.extractDomain(),
                                 onImageClick = onImageClick,
-                                readAloudPart = readAloudPart,
-                                pageText = pageText,
-                                onReadAloudPosition = { top ->
-                                    sentenceTop = top
-                                    if (following) showSentence(top)
-                                },
                             )
                             afterArticle?.invoke()
                             Spacer(modifier = Modifier.height(128.dp))
@@ -237,44 +158,6 @@ fun Content(
                             )
                         }
                     }
-                }
-                AnimatedVisibility(
-                    visible = readingAloud && !following,
-                    enter = fadeIn() + scaleIn(initialScale = 0.8f),
-                    exit = fadeOut() + scaleOut(targetScale = 0.8f),
-                    // Above the reading bar, with the same gap as the reading bar has below it.
-                    modifier =
-                        Modifier.align(Alignment.BottomCenter)
-                            .navigationBarsPadding()
-                            .padding(bottom = FloatingBarGap + ReadingBarHeight + FloatingBarGap),
-                ) {
-                    Surface(
-                        onClick = {
-                            following = true
-                            if (sentenceTop >= 0f) showSentence(sentenceTop)
-                        },
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        shadowElevation = 4.dp,
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Rounded.RecordVoiceOver,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                stringResource(R.string.reading_back_to_reading),
-                                style = MaterialTheme.typography.labelLarge,
-                            )
-                        }
-                    }
-                }
                 }
             }
 

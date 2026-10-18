@@ -329,7 +329,6 @@ fun SwipeableArticleItem(
     onMarkAboveAsRead: ((ArticleWithFeed) -> Unit)? = null,
     onMarkBelowAsRead: ((ArticleWithFeed) -> Unit)? = null,
     onShare: ((ArticleWithFeed) -> Unit)? = null,
-    modifier: Modifier = Modifier,
 ) {
 
     var isMenuExpanded by remember { mutableStateOf(false) }
@@ -351,8 +350,7 @@ fun SwipeableArticleItem(
     ) {
         Box(
             modifier =
-                modifier
-                    .fillMaxSize()
+                Modifier.fillMaxSize()
                     .pointerInput(isMenuExpanded) {
                         awaitEachGesture {
                             while (true) {

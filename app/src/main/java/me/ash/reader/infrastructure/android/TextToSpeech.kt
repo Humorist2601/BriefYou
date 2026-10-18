@@ -73,11 +73,11 @@ class TextToSpeechManager @Inject constructor(
      */
     @Volatile var color: Int? = null
 
-    /** The parts are the page's sentences (see [readSentences]), so the page can follow along. */
+    /** Whether the parts came from the page (not used now that follow along is gone). */
     @Volatile var fromPage: Boolean = false
         private set
 
-    /** The part being read (an index into the sentences given to [readSentences]). */
+    /** The part (paragraph) being read. */
     private val _part = MutableStateFlow<Int?>(null)
     val part = _part.asStateFlow()
 
@@ -141,21 +141,7 @@ class TextToSpeechManager @Inject constructor(
                 else -> 0L
             }
 
-    /**
-     * Reads an article's sentences, as taken from its page (in order), so the page can follow
-     * along. [key] names the article.
-     */
-    fun readSentences(
-        sentences: List<String>,
-        title: String? = null,
-        key: String? = null,
-        color: Int? = null,
-    ) {
-        this.color = color
-        coroutineScope.launch { read(sentences, title, key, fromPage = true) }
-    }
-
-    /** Reads an article aloud from its HTML (when its page can't give its sentences). */
+    /** Reads an article aloud from its HTML. [key] names it (the article's id). */
     fun readHtml(
         htmlContent: String,
         title: String? = null,
@@ -170,9 +156,9 @@ class TextToSpeechManager @Inject constructor(
     }
 
     /** Reads plain text aloud; each line is a part. */
-    fun readPlainText(text: String, title: String? = null, color: Int? = null) {
+    fun readPlainText(text: String, title: String? = null, color: Int? = null, key: String? = null) {
         this.color = color
-        coroutineScope.launch { read(text.split("\n"), title, null, fromPage = false) }
+        coroutineScope.launch { read(text.split("\n"), title, key, fromPage = false) }
     }
 
     /** Sets the reading speed; while reading it carries on from the same word at the new speed. */

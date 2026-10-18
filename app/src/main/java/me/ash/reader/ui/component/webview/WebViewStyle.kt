@@ -41,8 +41,6 @@ object WebViewStyle {
         selectionBgColor: Int,
         /** Dark theme: pictures are dimmed a little so they don't glare. */
         isDark: Boolean = false,
-        /** Behind the sentence being read aloud (follow along). */
-        readAloudColor: Int = selectionBgColor,
     ): String = """
 ${applyFontFace(fontPath)}
 :root {
@@ -102,11 +100,6 @@ article {
 body {
     margin: 0;
     padding 0;
-}
-
-/* Brief You: the sentence being read aloud (follow along). */
-::highlight(brief-read-aloud) {
-    background-color: ${argbToCssColor(readAloudColor)};
 }
 
 ::selection {

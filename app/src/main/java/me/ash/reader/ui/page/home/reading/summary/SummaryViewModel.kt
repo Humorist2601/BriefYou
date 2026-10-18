@@ -88,10 +88,17 @@ constructor(
     private var askJob: Job? = null
 
     fun start(newRequest: SummaryRequest) {
-        val sameArticle =
-            (request as? SummaryRequest.Article)?.articleId ==
-                (newRequest as? SummaryRequest.Article)?.articleId
-        if (!sameArticle) {
+        // A different article or list starts a new conversation.
+        val old = request
+        val same =
+            when {
+                old is SummaryRequest.Article && newRequest is SummaryRequest.Article ->
+                    old.articleId == newRequest.articleId
+                old is SummaryRequest.Gist && newRequest is SummaryRequest.Gist ->
+                    old.filterState == newRequest.filterState
+                else -> false
+            }
+        if (!same) {
             askJob?.cancel()
             _asks.value = emptyList()
         }
@@ -99,9 +106,9 @@ constructor(
         load()
     }
 
-    /** Asks a question about the article; the answer streams into [asks]. */
+    /** Asks a question about the article (or the gist's list); the answer streams into [asks]. */
     fun ask(question: String) {
-        val req = request as? SummaryRequest.Article ?: return
+        val req = request ?: return
         val q = question.trim()
         if (q.isEmpty() || askJob?.isActive == true) return
         val history = _asks.value.filter { it.done && it.error == null }.map { it.question to it.answer }
@@ -113,8 +120,16 @@ constructor(
         }
         askJob =
             viewModelScope.launch {
-                summarizer
-                    .ask(req.title, req.html, history, q)
+                when (req) {
+                        is SummaryRequest.Article -> summarizer.ask(req.title, req.html, history, q)
+                        is SummaryRequest.Gist ->
+                            summarizer.askGist(
+                                req.filterState.group?.name ?: req.filterState.feed?.name,
+                                gistItems,
+                                history,
+                                q,
+                            )
+                    }
                     .catch { e -> updateLast { it.copy(done = true, error = e.message ?: "Error") } }
                     .collect { text -> updateLast { it.copy(answer = text) } }
                 updateLast { it.copy(done = true) }
@@ -236,26 +251,42 @@ constructor(
             }
     }
 
-    /** Long press on read aloud: stop. */
+    /**
+     * The name of this summary's reading aloud, so its button only controls (and shows) this
+     * reading, not an article being read from its page, and the other way round.
+     */
+    val readKey: String
+        get() =
+            "summary:" +
+                when (val req = request) {
+                    is SummaryRequest.Article -> req.articleId
+                    is SummaryRequest.Gist -> "gist"
+                    null -> ""
+                }
+
+    /** Long press on read aloud: stop (this summary's reading only). */
     fun stopReading() {
-        textToSpeechManager.stop()
+        if (textToSpeechManager.sourceKey == readKey) textToSpeechManager.stop()
         startedReading = false
     }
 
     /** Reads the result aloud, or pauses or plays what is being read. */
     fun readAloud(text: String, title: String? = null, color: Int? = null) {
         val tts = textToSpeechManager
-        // While something is being read aloud, the button pauses or plays it.
-        when (tts.state) {
-            is TextToSpeechManager.State.Reading -> tts.pause()
-            is TextToSpeechManager.State.Paused -> tts.resume()
-            TextToSpeechManager.State.Preparing -> {}
+        // While this summary is being read aloud, the button pauses or plays it; otherwise it
+        // starts reading the summary (stopping anything else being read).
+        val mine = tts.sourceKey == readKey
+        when {
+            mine && tts.state is TextToSpeechManager.State.Reading -> tts.pause()
+            mine && tts.state is TextToSpeechManager.State.Paused -> tts.resume()
+            mine && tts.state == TextToSpeechManager.State.Preparing -> {}
             else -> {
                 // Drop the bullet glyphs so they aren't read out.
                 tts.readPlainText(
                     text.lines().joinToString("\n") { it.trimStart('•', '*', '-', ' ') },
                     title = title,
                     color = color,
+                    key = readKey,
                 )
                 startedReading = true
             }
@@ -272,7 +303,7 @@ constructor(
         }
         importWatch?.cancel()
         // Closing the sheet stops the summary being read aloud (not an article read from its page).
-        if (startedReading && textToSpeechManager.sourceKey == null) textToSpeechManager.stop()
+        if (textToSpeechManager.sourceKey == readKey) textToSpeechManager.stop()
         startedReading = false
     }
 

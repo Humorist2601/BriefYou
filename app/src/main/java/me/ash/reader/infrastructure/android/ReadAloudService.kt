@@ -199,8 +199,9 @@ class ReadAloudService : Service() {
     private var artworkBitmap: android.graphics.Bitmap? = null
 
     /**
-     * The "album art": a square in that colour with the Brief You card stack in the middle, so the
-     * whole player takes the colour. Made again only when the colour changes.
+     * The "album art": a square in that colour with the Brief You card stack in the middle, in a
+     * shade of the same colour, so the whole player takes the colour. Made again only when the
+     * colour changes.
      */
     private val artwork: android.graphics.Bitmap?
         get() {
@@ -217,7 +218,16 @@ class ReadAloudService : Service() {
                             )
                         val canvas = android.graphics.Canvas(bitmap)
                         canvas.drawColor(color)
-                        ContextCompat.getDrawable(this, R.drawable.ic_launcher_foreground)?.let {
+                        // The card stack in a shade of the same colour (like a themed icon): light
+                        // on a dark colour, dark on a light one; the lines and sparkle show the
+                        // colour through.
+                        val shade =
+                            if (androidx.core.graphics.ColorUtils.calculateLuminance(color) < 0.5)
+                                androidx.core.graphics.ColorUtils.blendARGB(color, android.graphics.Color.WHITE, 0.85f)
+                            else
+                                androidx.core.graphics.ColorUtils.blendARGB(color, android.graphics.Color.BLACK, 0.7f)
+                        ContextCompat.getDrawable(this, R.drawable.ic_launcher_monochrome)?.mutate()?.let {
+                            it.setTint(shade)
                             it.setBounds(0, 0, size, size)
                             it.draw(canvas)
                         }

@@ -320,7 +320,10 @@ fun FlowPage(
     LaunchedEffect(unreadTotal) {
         val before = lastUnread
         lastUnread = unreadTotal
-        if (onUnreadPage && before != null && before > 0 && unreadTotal == 0) celebrate = true
+        // Not while Triage is open: its own "All caught up" shows the tick there.
+        if (onUnreadPage && !showTriage && before != null && before > 0 && unreadTotal == 0) {
+            celebrate = true
+        }
     }
     // In the exact middle of the screen, over everything.
     if (celebrate) {

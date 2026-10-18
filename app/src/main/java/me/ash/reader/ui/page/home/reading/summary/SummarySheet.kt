@@ -1,5 +1,16 @@
 package me.ash.reader.ui.page.home.reading.summary
 
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material.icons.outlined.QuestionAnswer
+import androidx.compose.material3.ripple
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeOut
@@ -130,12 +141,20 @@ fun SummarySheet(
     val context = LocalContext.current
     val state = viewModel.state.collectAsStateValue()
     val gistMarkedRead = viewModel.gistMarkedRead.collectAsStateValue()
-    val ttsState = viewModel.textToSpeechManager.stateFlow.collectAsStateValue()
+    // Only this summary's reading: an article being read from its page shows as not reading here.
+    val ttsAny = viewModel.textToSpeechManager.stateFlow.collectAsStateValue()
+    val ttsState =
+        if (
+            ttsAny is TextToSpeechManager.State.Error ||
+                viewModel.textToSpeechManager.sourceKey == viewModel.readKey
+        ) ttsAny
+        else TextToSpeechManager.State.Idle
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val isArticle = request is SummaryRequest.Article
     val asks = viewModel.asks.collectAsStateValue()
     var question by rememberSaveable(requestKey) { mutableStateOf("") }
     var showSpeedSheet by remember { mutableStateOf(false) }
+    var askOpen by rememberSaveable(requestKey) { mutableStateOf(false) }
     // The media notification takes the colour of the page the sheet is on (the article's, from its
     // picture, on the reading page; the accent colour elsewhere).
     val pageAccent = MaterialTheme.colorScheme.primary.toArgb()
@@ -277,7 +296,7 @@ fun SummarySheet(
                     is SummaryUiState.Streaming -> {
                         SummaryCards(text = state.text, streaming = !state.done)
                         // Ask this article: the questions and answers, under the summary.
-                        if (isArticle && asks.isNotEmpty()) {
+                        if (asks.isNotEmpty()) {
                             Spacer(Modifier.height(16.dp))
                             AskConversation(asks)
                         }
@@ -337,10 +356,9 @@ fun SummarySheet(
                 // A small gap between the points and the buttons, so the points don't run
                 // straight into them as they scroll.
                 Spacer(Modifier.height(12.dp))
-                // Ask this article: once the summary is written, the box slides up from behind the
-                // buttons and settles above them.
+                // Ask: the middle button slides the box up from behind the buttons.
                 AnimatedVisibility(
-                    visible = isArticle && done,
+                    visible = askOpen && done,
                     enter =
                         expandVertically(expandFrom = Alignment.Bottom) +
                             slideInVertically(initialOffsetY = { it }) +
@@ -354,11 +372,19 @@ fun SummarySheet(
                             question = ""
                         }
                     }
+                    val focus = remember { FocusRequester() }
+                    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
                     OutlinedTextField(
                         value = question,
                         onValueChange = { question = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text(stringResource(R.string.ai_ask_hint)) },
+                        modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                        placeholder = {
+                            Text(
+                                stringResource(
+                                    if (isArticle) R.string.ai_ask_hint else R.string.ai_ask_hint_gist
+                                )
+                            )
+                        },
                         singleLine = true,
                         shape = RoundedCornerShape(28.dp),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -400,101 +426,114 @@ fun SummarySheet(
                     }
                     Spacer(Modifier.height(8.dp))
                 }
-                // A connected pair: one pill split in two, round on the outside.
+                // Three connected buttons, round on the outside: Regenerate, Ask, Read aloud. Like
+                // the main page's top-right group, the one you press widens and the others make
+                // room.
                 val reading =
                     ttsState !is TextToSpeechManager.State.Idle &&
                         ttsState !is TextToSpeechManager.State.Error
+                val paused = ttsState is TextToSpeechManager.State.Paused
+                val haptic = LocalHapticFeedback.current
+                val interactions = remember { List(3) { MutableInteractionSource() } }
+                val pressedIndex = interactions.map { it.collectIsPressedAsState().value }.indexOf(true)
+                val spatial = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    FilledTonalButton(
-                        onClick = viewModel::regenerate,
-                        enabled = done,
+                    @Composable
+                    fun weightOf(index: Int): Float =
+                        animateFloatAsState(
+                            when {
+                                pressedIndex < 0 -> 1f
+                                index == pressedIndex -> 1f + PressedGrow
+                                else -> 1f - PressedGrow / 2f
+                            },
+                            spatial,
+                            label = "segment",
+                        ).value
+                    SheetSegment(
+                        modifier = Modifier.weight(weightOf(0)),
                         shape = RoundedCornerShape(50, 8, 8, 50),
-                        modifier = Modifier.weight(1f).height(52.dp),
+                        enabled = done,
+                        interaction = interactions[0],
+                        onClick = viewModel::regenerate,
                     ) {
                         Icon(
                             Icons.Outlined.Refresh,
                             contentDescription = null,
                             modifier = Modifier.size(ButtonDefaults.IconSize),
                         )
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text(stringResource(R.string.ai_summary_regenerate))
+                        Spacer(Modifier.width(6.dp))
+                        SegmentLabel(stringResource(R.string.ai_summary_regenerate))
+                    }
+                    SheetSegment(
+                        modifier = Modifier.weight(weightOf(1)),
+                        shape = RoundedCornerShape(8, 8, 8, 8),
+                        enabled = done,
+                        selected = askOpen,
+                        interaction = interactions[1],
+                        onClick = { askOpen = !askOpen },
+                    ) {
+                        Icon(
+                            Icons.Outlined.QuestionAnswer,
+                            contentDescription = null,
+                            modifier = Modifier.size(ButtonDefaults.IconSize),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        SegmentLabel(stringResource(R.string.ai_ask_send))
                     }
                     // Read aloud: tap to start, then tap to pause or play. Long press: the speech
                     // settings before it starts, the speed while reading, stop while paused.
                     // While reading, a wavy ring shows how far it has got (like the reading bar).
-                    val paused = ttsState is TextToSpeechManager.State.Paused
-                    val buttonShape = RoundedCornerShape(8, 50, 50, 8)
-                    val haptic = LocalHapticFeedback.current
-                    Surface(
-                        shape = buttonShape,
-                        color =
-                            if (done) MaterialTheme.colorScheme.secondaryContainer
-                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                        contentColor =
-                            if (done) MaterialTheme.colorScheme.onSecondaryContainer
-                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                        modifier =
-                            Modifier.weight(1f)
-                                .height(52.dp)
-                                .clip(buttonShape)
-                                .combinedClickable(
-                                    enabled = done,
-                                    role = Role.Button,
-                                    onClick = {
-                                        streaming?.let { viewModel.readAloud(it.text, heading, pageAccent) }
-                                    },
-                                    onLongClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        when {
-                                            !reading -> context.openTtsSettings()
-                                            paused -> viewModel.stopReading()
-                                            else -> showSpeedSheet = true
-                                        }
-                                    },
-                                ),
+                    SheetSegment(
+                        modifier = Modifier.weight(weightOf(2)),
+                        shape = RoundedCornerShape(8, 50, 50, 8),
+                        enabled = done,
+                        interaction = interactions[2],
+                        onClick = {
+                            streaming?.let { viewModel.readAloud(it.text, heading, pageAccent) }
+                        },
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            when {
+                                !reading -> context.openTtsSettings()
+                                paused -> viewModel.stopReading()
+                                else -> showSpeedSheet = true
+                            }
+                        },
                     ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            if (reading) {
-                                Box(
+                        if (reading) {
+                            Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                                ReadAloudRing(
+                                    progress = ttsState.readProgress(),
+                                    playing = !paused,
                                     modifier = Modifier.size(28.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    ReadAloudRing(
-                                        progress = ttsState.readProgress(),
-                                        playing = !paused,
-                                        modifier = Modifier.size(28.dp),
-                                    )
-                                    Icon(
-                                        if (paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                }
-                            } else {
+                                )
                                 Icon(
-                                    Icons.AutoMirrored.Outlined.VolumeUp,
+                                    if (paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
                                     contentDescription = null,
-                                    modifier = Modifier.size(ButtonDefaults.IconSize),
+                                    modifier = Modifier.size(16.dp),
                                 )
                             }
-                            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                            Text(
-                                stringResource(
-                                    when {
-                                        !reading -> R.string.ai_read_aloud
-                                        paused -> R.string.read_aloud_play
-                                        else -> R.string.read_aloud_pause
-                                    }
-                                ),
-                                style = MaterialTheme.typography.labelLarge,
+                        } else {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.VolumeUp,
+                                contentDescription = null,
+                                modifier = Modifier.size(ButtonDefaults.IconSize),
                             )
                         }
+                        Spacer(Modifier.width(6.dp))
+                        SegmentLabel(
+                            stringResource(
+                                when {
+                                    !reading -> R.string.ai_read_aloud
+                                    paused -> R.string.read_aloud_play
+                                    else -> R.string.read_aloud_pause
+                                }
+                            )
+                        )
+                    }
                     }
                 }
             }
@@ -714,5 +753,69 @@ private fun AskConversation(asks: List<AskTurn>) {
             }
         }
     }
+}
+
+/** How much wider the pressed button gets (the other two share the room it takes). */
+private const val PressedGrow = 0.22f
+
+/** One of the sheet's three connected buttons (tonal; [selected] shows it's on, like Ask open). */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SheetSegment(
+    modifier: Modifier,
+    shape: Shape,
+    enabled: Boolean,
+    interaction: MutableInteractionSource,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    selected: Boolean = false,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val container =
+        when {
+            !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+            selected -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.secondaryContainer
+        }
+    val contentColor =
+        when {
+            !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            selected -> MaterialTheme.colorScheme.onPrimary
+            else -> MaterialTheme.colorScheme.onSecondaryContainer
+        }
+    Surface(
+        shape = shape,
+        color = container,
+        contentColor = contentColor,
+        modifier =
+            modifier
+                .height(52.dp)
+                .clip(shape)
+                .combinedClickable(
+                    interactionSource = interaction,
+                    indication = ripple(),
+                    enabled = enabled,
+                    role = Role.Button,
+                    onClick = onClick,
+                    onLongClick = onLongClick,
+                ),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            content = content,
+        )
+    }
+}
+
+@Composable
+private fun SegmentLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 

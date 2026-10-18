@@ -50,15 +50,6 @@ fun RYWebView(
     baseUrl: String? = null,
     refererDomain: String? = null,
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
-    /**
-     * Follow along: the number of the sentence being read aloud (from [pageText]'s list; null
-     * when not reading), highlighted on the page. A State, so a new sentence doesn't reload.
-     */
-    readAloudPart: State<Int?>? = null,
-    /** Gives the reading page the article's sentences, for read aloud. */
-    pageText: ArticlePageText? = null,
-    /** Where the highlighted sentence's top is in the web view, in pixels. */
-    onReadAloudPosition: ((topPx: Float) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val maxWidth = LocalConfiguration.current.screenWidthDp.dp.value
@@ -73,11 +64,6 @@ fun RYWebView(
     // rest of the app (the handles take the accent colour from the theme, see themes.xml).
     val selectionTextColor = colorScheme.onSurface.toArgb()
     val isDarkBackground = colorScheme.surface.luminance() < 0.5f
-    val readAloudColor =
-        colorScheme.primary
-            .copy(alpha = 0.22f)
-            .compositeOver(Color(backgroundColor))
-            .toArgb()
     val selectionBgColor =
         colorScheme.primary
             .copy(alpha = 0.35f)
@@ -131,25 +117,6 @@ fun RYWebView(
             "/android_res/font/literata.ttf"
         } else null
 
-    // Read aloud takes the sentences from this page; follow along highlights each new one and
-    // reports where it is (the page is loaded once; only this runs as reading moves on).
-    SideEffect { pageText?.webView = webView }
-    val latestOnPosition by rememberUpdatedState(onReadAloudPosition)
-    val density = LocalDensity.current.density
-    if (readAloudPart != null) {
-        LaunchedEffect(webView, readAloudPart) {
-            snapshotFlow { readAloudPart.value }
-                .collect { part ->
-                    webView.evaluateJavascript(
-                        "(typeof briefShow === 'function') ? briefShow(${part ?: -1}) : -1"
-                    ) { result ->
-                        val top = result?.toFloatOrNull() ?: -1f
-                        if (part != null && top >= 0f) latestOnPosition?.invoke(top * density)
-                    }
-                }
-        }
-    }
-
     AndroidView(
         modifier = modifier,
         factory = { webView },
@@ -183,7 +150,6 @@ fun RYWebView(
                             selectionTextColor = selectionTextColor,
                             selectionBgColor = selectionBgColor,
                             isDark = isDarkBackground,
-                            readAloudColor = readAloudColor,
                         ),
                         // The article's address (this used to read the web view's own, empty one,
                         // so relative images and links didn't work).
