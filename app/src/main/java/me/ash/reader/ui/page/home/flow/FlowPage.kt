@@ -311,20 +311,9 @@ fun FlowPage(
 
     var pagingItems: LazyPagingItems<ArticleFlowItem>? by remember { mutableStateOf(null) }
 
-    // Inbox zero: celebrate once, on the Unread page, the moment the last unread article is
-    // marked read (by reading, swiping or Mark all as read); read articles may still be shown.
-    val unreadTotal = viewModel.unreadTotal.collectAsStateValue()
+    // Inbox zero: celebrate when you swipe up to mark all as read on the Unread list (Triage has
+    // its own, at the end of the cards).
     var celebrate by remember { mutableStateOf(false) }
-    var lastUnread by remember { mutableStateOf<Int?>(null) }
-    val onUnreadPage = filterUiState.filter.isUnread() && filterUiState.searchContent.isNullOrEmpty()
-    LaunchedEffect(unreadTotal) {
-        val before = lastUnread
-        lastUnread = unreadTotal
-        // Not while Triage is open: its own "All caught up" shows the tick there.
-        if (onUnreadPage && !showTriage && before != null && before > 0 && unreadTotal == 0) {
-            celebrate = true
-        }
-    }
     // In the exact middle of the screen, over everything.
     if (celebrate) {
         ScreenOverlay {
@@ -690,6 +679,7 @@ fun FlowPage(
                             LoadAction.MarkAllAsRead -> {
                                 {
                                     viewModel.markAllAsRead()
+                                    if (!showTriage) celebrate = true
                                     currentPullToLoadState?.animateDistanceTo(
                                         targetValue = 0f,
                                         animationSpec = settleSpec,

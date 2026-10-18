@@ -1,5 +1,7 @@
 package me.ash.reader.ui.page.home.flow
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -78,8 +80,24 @@ fun InboxZeroCelebration(visible: Boolean, onFinished: () -> Unit, modifier: Mod
         modifier = modifier.size(280.dp).graphicsLayer { alpha = fade.value },
         contentAlignment = Alignment.Center,
     ) {
-        CelebrationBurst(progress = { burst.value })
+        // A soft raised card behind the tick and the words, so they stand out from the articles
+        // underneath.
+        Surface(
+            shape = RoundedCornerShape(32.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shadowElevation = 8.dp,
+            tonalElevation = 2.dp,
+            modifier =
+                Modifier.size(width = 220.dp, height = 168.dp).graphicsLayer {
+                    val s = 0.9f + 0.1f * badge.value.coerceIn(0f, 1f)
+                    scaleX = s
+                    scaleY = s
+                },
+        ) {}
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+          // The burst comes out of the tick itself.
+          Box(contentAlignment = Alignment.Center) {
+            CelebrationBurst(progress = { burst.value })
             Box(
                 modifier =
                     Modifier.size(72.dp)
@@ -99,6 +117,7 @@ fun InboxZeroCelebration(visible: Boolean, onFinished: () -> Unit, modifier: Mod
                     modifier = Modifier.size(36.dp),
                 )
             }
+          }
             Spacer(Modifier.height(14.dp))
             Text(
                 text = stringResource(R.string.reading_all_caught_up),
