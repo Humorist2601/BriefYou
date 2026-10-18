@@ -20,13 +20,13 @@ class Version(numbers: List<String>) {
         major = numbers.getOrNull(0)?.toIntOrNull() ?: 0
         minor = numbers.getOrNull(1)?.toIntOrNull() ?: 0
         point = numbers.getOrNull(2)?.toIntOrNull() ?: 0
-        build = numbers.getOrNull(3)?.toIntOrNull() ?: 0
+        build = numbers.getOrNull(3)?.toIntOrNull() ?: 0 // Brief You
     }
 
     constructor() : this(listOf())
     constructor(string: String?) : this(string?.split(".") ?: listOf())
 
-    override fun toString() = "$major.$minor.$point" + if (build > 0) ".$build" else ""
+    override fun toString() = "$major.$minor.$point" + if (build > 0) ".$build" else "" // Brief You
 
     /**
      * Use [major], [minor], [point] for comparison.
@@ -42,7 +42,7 @@ class Version(numbers: List<String>) {
         minor < other.minor -> -1
         point > other.point -> 1
         point < other.point -> -1
-        build > other.build -> 1
+        build > other.build -> 1 // Brief You
         build < other.build -> -1
         else -> 0
     }

@@ -7,7 +7,6 @@ import android.webkit.SslErrorHandler
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
-import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import me.ash.reader.ui.ext.isUrl
@@ -20,8 +19,6 @@ const val INJECTION_TOKEN = "/android_asset_font/"
 class WebViewClient(
     private val context: Context,
     private val refererDomain: String?,
-    /** The article's own address, sent as the referrer when fetching its pictures. */
-    private val pageUrl: String? = null,
     private val onOpenLink: (url: String) -> Unit,
 ) : WebViewClient() {
 
@@ -44,11 +41,6 @@ class WebViewClient(
             } catch (e: Exception) {
                 Log.e("RLog", "WebView shouldInterceptRequest: $e")
             }
-        } else if (url != null && request != null && url.isUrl() && request.method == "GET" && isImage(request)) {
-            // Pictures are fetched here like a browser would (no app header, the article as the
-            // referrer, then without one), since some image hosts and proxies (Kagi News, for
-            // one) refuse the web view's own request. If both fail, the web view tries itself.
-            fetchImage(url)?.let { return it }
         } else if (url != null && url.isUrl()) {
             try {
                 var connection = URI.create(url).toURL().openConnection() as HttpURLConnection
@@ -64,53 +56,6 @@ class WebViewClient(
             }
         }
         return super.shouldInterceptRequest(view, request)
-    }
-
-    private fun isImage(request: WebResourceRequest): Boolean {
-        val accept = request.requestHeaders["Accept"] ?: request.requestHeaders["accept"]
-        if (accept != null && accept.startsWith("image/")) return true
-        val path = request.url.path?.lowercase() ?: return false
-        return IMAGE_EXTENSIONS.any { path.endsWith(it) }
-    }
-
-    private fun fetchImage(url: String): WebResourceResponse? {
-        val userAgent =
-            runCatching { WebSettings.getDefaultUserAgent(context).replace("; wv)", ")") }
-                .getOrNull()
-        for (referer in listOf(pageUrl, null).distinct()) {
-            try {
-                val connection = URI.create(url).toURL().openConnection() as HttpURLConnection
-                connection.connectTimeout = 15_000
-                connection.readTimeout = 20_000
-                connection.instanceFollowRedirects = true
-                userAgent?.let { connection.setRequestProperty("User-Agent", it) }
-                connection.setRequestProperty(
-                    "Accept",
-                    "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-                )
-                referer?.let { connection.setRequestProperty("Referer", it) }
-                val code = connection.responseCode
-                if (code in 200..299) {
-                    val type =
-                        connection.contentType?.substringBefore(';')?.trim()?.ifBlank { null }
-                            ?: "image/*"
-                    return WebResourceResponse(
-                        type,
-                        null,
-                        code,
-                        connection.responseMessage?.ifBlank { null } ?: "OK",
-                        // No cross-origin header: the article's scripts mustn't be able to read
-                        // what's fetched here (pictures can still be shown without it).
-                        emptyMap(),
-                        connection.inputStream,
-                    )
-                }
-                connection.disconnect()
-            } catch (e: Exception) {
-                Log.e("RLog", "fetchImage $url: $e")
-            }
-        }
-        return null
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {
@@ -153,7 +98,3 @@ class WebViewClient(
             """
     }
 }
-
-private val IMAGE_EXTENSIONS =
-    listOf(".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif", ".svg", ".bmp", ".heic")
-

@@ -10,7 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.AutoAwesome // Brief You
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Language
@@ -53,7 +53,7 @@ fun SettingsPage(
     navigateToColorAndStyle: () -> Unit,
     navigateToInteraction: () -> Unit,
     navigateToLanguages: () -> Unit,
-    navigateToAiModel: () -> Unit,
+    navigateToAiModel: () -> Unit, // Brief You
     navigateToFilters: () -> Unit,
     navigateToTroubleshooting: () -> Unit,
     navigateToTipsAndSupport: () -> Unit,
@@ -139,7 +139,7 @@ fun SettingsPage(
                         onClick = navigateToLanguages
                     )
                 }
-                item {
+                item { // Brief You
                     SelectableSettingGroupItem(
                         title = stringResource(R.string.ai_settings),
                         desc = stringResource(R.string.ai_settings_desc),

@@ -24,6 +24,20 @@ jobs:
                   distribution: temurin
                   java-version: 17
 
+            - name: Fork check (warnings only)
+              # Every change to a Read You file should be small and marked "Brief You", so Read You
+              # updates merge easily (see .github/fork/). Warns, never fails the build.
+              continue-on-error: true
+              run: |
+                  git fetch -q --no-tags https://github.com/Ashinch/ReadYou.git main || exit 0
+                  base=$(git merge-base HEAD FETCH_HEAD)
+                  if ! python3 .github/fork/fork_check.py check "$base" > fork.txt; then
+                      grep '^- ' fork.txt | head -30 | while read -r line; do
+                          echo "::warning title=Unmarked change to a Read You file::${line#- }"
+                      done
+                  fi
+                  cat fork.txt >> "$GITHUB_STEP_SUMMARY"
+
             - name: Set build number
               # Every CI build gets a higher number, so each release installs as an update.
               run: echo "CI_BUILD_NUMBER=$(( ${{ github.run_number }} - BUILD_NUMBER_OFFSET ))" >> "$GITHUB_ENV"
@@ -54,6 +68,36 @@ jobs:
               run: |
                   set -o pipefail
                   ./gradlew assembleGithubRelease --stacktrace 2>&1 | tee build.log
+            - name: Summarise warnings
+              # Kotlin warnings, Brief You's (brief/ and its copies) and Read You's, as a few
+              # annotations (readable from the GitHub API) and a table in the summary.
+              if: always()
+              continue-on-error: true
+              run: |
+                  grep -E '^w: ' build.log | sed -E "s#file://$GITHUB_WORKSPACE/##; s#^w: ##" | sort -u > warnings.txt || true
+                  total=$(wc -l < warnings.txt)
+                  brief=$(grep -cE '^app/src/main/java/me/ash/reader/brief/' warnings.txt || true)
+                  {
+                      echo "### Kotlin warnings: $total"
+                      echo
+                      echo "- Brief You's own code: $brief"
+                      echo "- Read You's code: $((total - brief))"
+                  } >> "$GITHUB_STEP_SUMMARY"
+                  # The ones worth fixing, as annotations (readable from the GitHub API): Brief You's
+                  # own, and deprecated Android or library calls. Read You's half-done settings
+                  # migration (DataStoreKey), casts and annotation notices are only counted.
+                  grep -E '^app/src/main/java/me/ash/reader/brief/|is deprecated' warnings.txt \
+                      | grep -v 'type-safe PreferencesKey' > fix.txt || true
+                  echo "- To fix (Brief You's and deprecated library calls): $(wc -l < fix.txt)" >> "$GITHUB_STEP_SUMMARY"
+                  split -l 12 -d fix.txt part_ || true
+                  n=0
+                  for f in part_*; do
+                      [ -f "$f" ] || continue
+                      n=$((n + 1)); [ $n -gt 9 ] && break
+                      msg=$(sed -e 's/%/%25/g' "$f" | awk '{printf "%s%%0A", $0}')
+                      echo "::warning title=Kotlin warnings ($n)::${msg}"
+                  done
+
             - name: Report build errors
               if: failure()
               run: |
@@ -69,7 +113,8 @@ jobs:
                   path: app/build/outputs/apk/github/release/*.apk
 
             - name: Publish release
-              if: github.ref_type == 'branch'
+              # Only main is released; other branches are just built, to check they compile.
+              if: github.ref_name == 'main'
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
@@ -94,15 +139,8 @@ jobs:
                       echo "### Changes"
                       git log -1 --format='%s%n%n%b' | grep -vE '^(Co-Authored-By|Claude-Session):'
                   } > notes.md
-                  # Builds of other branches (experiments) are pre-releases, so they never
-                  # replace main's build as the latest release.
-                  if [ "${{ github.ref_name }}" = "main" ]; then
-                      release_kind="--latest"
-                  else
-                      release_kind="--prerelease"
-                  fi
                   gh release create "$tag" "$apk" \
                       --title "Brief You ${tag}" \
                       --notes-file notes.md \
                       --target "$GITHUB_SHA" \
-                      $release_kind
+                      --latest

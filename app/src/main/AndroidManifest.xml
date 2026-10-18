@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Brief You: read aloud in the background -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission
@@ -32,6 +33,7 @@
         </intent>
     </queries>
 
+    <!-- Brief You: backup rules (dataExtractionRules, fullBackupContent) and predictive back -->
     <application
         android:name=".infrastructure.android.AndroidApp"
         android:allowBackup="true"
@@ -45,7 +47,7 @@
         android:theme="@style/Theme.Reader"
         android:usesCleartextTraffic="true">
 
-        <!-- Lets LiteRT-LM use the GPU for on-device summaries (optional on devices without it). -->
+        <!-- Brief You: lets LiteRT-LM use the GPU for on-device summaries (optional on devices without it). -->
         <uses-native-library
             android:name="libvndksupport.so"
             android:required="false" />
@@ -124,9 +126,9 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Read aloud: keeps reading outside the article, with a notification and Stop. -->
+        <!-- Brief You: read aloud keeps reading outside the article, with a notification and Stop. -->
         <service
-            android:name=".infrastructure.android.ReadAloudService"
+            android:name=".brief.readaloud.ReadAloudService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 

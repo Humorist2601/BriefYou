@@ -8,7 +8,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import me.ash.reader.domain.model.feed.Feed
 import me.ash.reader.domain.model.group.Group
 import me.ash.reader.domain.model.group.GroupWithFeed
-import me.ash.reader.domain.service.FeedIconOverrides
+import me.ash.reader.brief.feeds.FeedIconOverrides // Brief You
 import me.ash.reader.infrastructure.di.IODispatcher
 import me.ash.reader.ui.component.EMOJI_PREFIX
 import me.ash.reader.ui.ext.extractDomain
@@ -60,7 +60,7 @@ class OPMLDataSource @Inject constructor(
                             isNotification = outline.extractPresetNotification(),
                             isFullContent = outline.extractPresetFullContent(),
                             isBrowser = outline.extractPresetBrowser(),
-                            icon = outline.extractCustomIcon(),
+                            icon = outline.extractCustomIcon(), // Brief You
                         )
                     )
                 }
@@ -88,7 +88,7 @@ class OPMLDataSource @Inject constructor(
                                 isNotification = subOutline.extractPresetNotification(),
                                 isFullContent = subOutline.extractPresetFullContent(),
                                 isBrowser = subOutline.extractPresetBrowser(),
-                                icon = subOutline.extractCustomIcon(),
+                                icon = subOutline.extractCustomIcon(), // Brief You
                             )
                         )
                     }

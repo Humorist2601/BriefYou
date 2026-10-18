@@ -30,7 +30,7 @@ fun StickyHeader(
     ) {
         Text(
             modifier = Modifier
-                .padding(start = 24.dp)
+                .padding(start = 24.dp) // Brief You
                 .padding(top = 8.dp, bottom = 4.dp),
             text = dateString,
             color = MaterialTheme.colorScheme.primary,

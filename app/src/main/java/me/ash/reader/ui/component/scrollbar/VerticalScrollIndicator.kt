@@ -1,7 +1,7 @@
 package me.ash.reader.ui.component.scrollbar
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.tween // Brief You
 import androidx.compose.foundation.ScrollIndicatorState
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.Orientation
@@ -28,7 +28,7 @@ private val ThumbColor
     @Composable get() = MaterialTheme.colorScheme.outline.copy(alpha = .5f)
 
 @Composable
-fun Modifier.drawVerticalScrollIndicator(
+fun Modifier.drawVerticalScrollIndicator( // Brief You
     scrollState: ScrollState,
     showWhenContentChanges: Boolean = false,
 ): Modifier {
@@ -55,7 +55,7 @@ data class VerticalScrollIndicatorFactory(
     val thumbThickness: Dp = 4.dp,
     val padding: Dp = 0.dp,
     val thumbColor: Color = Color.Gray,
-    /** Also show the thumb while the content grows (text that is still streaming in). */
+    /** Also show the thumb while the content grows (text that is still streaming in). */ // Brief You
     val showWhenContentChanges: Boolean = false,
 ) : ScrollIndicatorFactory {
     // The node is the core of the ScrollIndicator, handling the drawing logic.
@@ -69,7 +69,7 @@ data class VerticalScrollIndicatorFactory(
 
             override fun onAttach() {
                 coroutineScope.launch {
-                    snapshotFlow {
+                    snapshotFlow { // Brief You
                             state.scrollOffset to (if (showWhenContentChanges) state.contentSize else 0)
                         }
                         .collectLatest {
@@ -130,5 +130,5 @@ data class VerticalScrollIndicatorFactory(
     }
 }
 
-private const val HIDE_DELAY_MS = 800L
+private const val HIDE_DELAY_MS = 800L // Brief You
 private const val FADE_MS = 250

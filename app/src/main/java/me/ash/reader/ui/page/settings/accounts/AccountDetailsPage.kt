@@ -35,11 +35,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import me.ash.reader.domain.service.BackupService
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -103,51 +98,6 @@ fun AccountDetailsPage(
     var syncIntervalDialogVisible by remember { mutableStateOf(false) }
     var keepArchivedDialogVisible by remember { mutableStateOf(false) }
     var exportOPMLModeDialogVisible by remember { mutableStateOf(false) }
-    var pendingRestore by remember { mutableStateOf<ByteArray?>(null) }
-    val scope = rememberCoroutineScope()
-
-    val backupLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(MimeType.ANY)) {
-            result ->
-            result?.let { uri ->
-                viewModel.createBackup(selectedAccount!!.id!!) { bytes ->
-                    scope.launch {
-                        val ok =
-                            bytes.isNotEmpty() &&
-                                withContext(Dispatchers.IO) {
-                                    runCatching {
-                                            context.contentResolver.openOutputStream(uri)?.use {
-                                                it.write(bytes)
-                                            } != null
-                                        }
-                                        .getOrDefault(false)
-                                }
-                        context.showToast(
-                            context.getString(
-                                if (ok) R.string.backup_saved else R.string.backup_failed
-                            )
-                        )
-                    }
-                }
-            }
-        }
-
-    val restoreLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            uri?.let {
-                scope.launch {
-                    pendingRestore =
-                        withContext(Dispatchers.IO) {
-                            runCatching {
-                                    context.contentResolver.openInputStream(it)?.use { s ->
-                                        BackupService.readBackupFile(s)
-                                    }
-                                }
-                                .getOrNull()
-                        }
-                }
-            }
-        }
 
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(MimeType.ANY)) {
@@ -301,21 +251,7 @@ fun AccountDetailsPage(
                         title = stringResource(R.string.export_as_opml),
                         onClick = { exportOPMLModeDialogVisible = true },
                     ) {}
-                    SettingItem(
-                        title = stringResource(R.string.backup_everything),
-                        desc = stringResource(R.string.backup_everything_desc),
-                        onClick = {
-                            backupLauncher.launch(
-                                "BriefYou-backup-" +
-                                    "${Date().toString(DateFormat.YYYY_MM_DD_DASH_HH_MM_SS_DASH)}.zip"
-                            )
-                        },
-                    ) {}
-                    SettingItem(
-                        title = stringResource(R.string.restore_from_backup),
-                        desc = stringResource(R.string.restore_from_backup_desc),
-                        onClick = { restoreLauncher.launch(arrayOf(MimeType.ANY)) },
-                    ) {}
+                    selectedAccount?.id?.let { me.ash.reader.brief.backup.BackupSettingItems(it) } // Brief You
                     SettingItem(
                         title = stringResource(R.string.clear_all_articles),
                         onClick = { viewModel.showClearDialog() },
@@ -468,88 +404,6 @@ fun AccountDetailsPage(
     )
 
     RYDialog(
-        visible = pendingRestore != null,
-        title = {
-            Text(
-                text = stringResource(R.string.restore_from_backup),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.titleLarge,
-            )
-        },
-        text = { Text(text = stringResource(R.string.restore_confirm_text)) },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val bytes = pendingRestore
-                    pendingRestore = null
-                    if (bytes != null) {
-                        viewModel.restoreBackup(bytes) { result ->
-                            result
-                                .onSuccess { r ->
-                                    fun names(parts: List<BackupService.Part>) =
-                                        parts.joinToString(", ") {
-                                            context.getString(
-                                                when (it) {
-                                                    BackupService.Part.Subscriptions ->
-                                                        R.string.backup_part_subscriptions
-                                                    BackupService.Part.Filters ->
-                                                        R.string.backup_part_filters
-                                                    BackupService.Part.Starred ->
-                                                        R.string.backup_part_starred
-                                                    BackupService.Part.Account ->
-                                                        R.string.backup_part_account
-                                                    BackupService.Part.Settings ->
-                                                        R.string.backup_part_settings
-                                                }
-                                            )
-                                        }
-                                    val message =
-                                        buildList {
-                                                if (r.restored.isNotEmpty()) {
-                                                    add(
-                                                        context.getString(
-                                                            R.string.restore_done,
-                                                            names(r.restored),
-                                                        )
-                                                    )
-                                                }
-                                                if (r.failed.isNotEmpty()) {
-                                                    add(
-                                                        context.getString(
-                                                            R.string.restore_partly_failed,
-                                                            names(r.failed),
-                                                        )
-                                                    )
-                                                }
-                                            }
-                                            .joinToString("\n")
-                                    context.showToastLong(message)
-                                }
-                                .onFailure {
-                                    context.showToastLong(
-                                        context.getString(
-                                            R.string.restore_failed,
-                                            it.message ?: "",
-                                        )
-                                    )
-                                }
-                        }
-                    }
-                }
-            ) {
-                Text(stringResource(R.string.restore))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = { pendingRestore = null }) {
-                Text(stringResource(R.string.cancel))
-            }
-        },
-        onDismissRequest = { pendingRestore = null },
-    )
-
-    RYDialog(
         visible = exportOPMLModeDialogVisible,
         title = {
             Text(
@@ -562,7 +416,7 @@ fun AccountDetailsPage(
         text = {
             LazyColumn {
                 item {
-                    Text(text = stringResource(R.string.additional_info_desc_brief))
+                    Text(text = stringResource(R.string.additional_info_desc_brief)) // Brief You: icons too
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 items(

@@ -8,7 +8,7 @@
 
 package me.ash.reader.ui.page.settings
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Box // Brief You
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -36,7 +36,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class) // Brief You
 private val settingShapes =
     listOf(
         MaterialShapes.Cookie4Sided,
@@ -81,7 +81,7 @@ fun SelectableSettingGroupItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             icon?.let {
-                // Material 3 Expressive: each group icon sits on its own shape and tonal color.
+                // Material 3 Expressive: each group icon sits on its own shape and tonal color. // Brief You
                 val index = (title.hashCode() and Int.MAX_VALUE)
                 val shape = settingShapes[index % settingShapes.size].toShape()
                 val (container, content) =

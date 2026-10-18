@@ -1,6 +1,6 @@
 package me.ash.reader.ui.widget
 
-import me.ash.reader.infrastructure.rss.FeedContent
+import me.ash.reader.brief.reading.FeedContent // Brief You
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.core.graphics.drawable.toBitmapOrNull
@@ -114,7 +114,7 @@ constructor(
             items.map { (article, feed) ->
                 Article(
                     title = article.title,
-                    imgUrl = FeedContent.listImage(article.img, article.link),
+                    imgUrl = FeedContent.listImage(article.img, article.link), // Brief You
                     feedName = feed.name,
                     id = article.id,
                 )

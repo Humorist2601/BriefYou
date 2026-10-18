@@ -1,8 +1,7 @@
 package me.ash.reader.ui.page.adaptive
 
-import me.ash.reader.infrastructure.rss.FeedContent
+import me.ash.reader.brief.reading.FeedContent // Brief You
 import android.net.Uri
-import androidx.paging.PagingSource
 import androidx.compose.ui.util.fastFirstOrNull
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,7 +25,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import me.ash.reader.domain.data.ArticlePagingListUseCase
 import me.ash.reader.domain.data.DiffMapHolder
 import me.ash.reader.domain.data.FilterState
@@ -43,15 +41,12 @@ import me.ash.reader.domain.service.LocalRssService
 import me.ash.reader.domain.service.RssService
 import me.ash.reader.domain.service.SyncWorker
 import me.ash.reader.infrastructure.android.AndroidImageDownloader
-import me.ash.reader.infrastructure.android.AndroidStringsHelper
-import me.ash.reader.infrastructure.android.TextToSpeechManager
+import me.ash.reader.brief.readaloud.TextToSpeechManager // Brief You
 import me.ash.reader.infrastructure.di.ApplicationScope
 import me.ash.reader.infrastructure.di.IODispatcher
 import me.ash.reader.infrastructure.preference.PullToLoadNextFeedPreference
 import me.ash.reader.infrastructure.preference.SettingsProvider
 import me.ash.reader.infrastructure.rss.ReaderCacheHelper
-import me.ash.reader.ui.page.home.flow.TriageNext
-import me.ash.reader.ui.page.home.flow.TriageSession
 import timber.log.Timber
 
 private const val TAG = "FlowViewModel"
@@ -68,7 +63,6 @@ constructor(
     private val filterStateUseCase: FilterStateUseCase,
     private val groupWithFeedsListUseCase: GroupWithFeedsListUseCase,
     private val settingsProvider: SettingsProvider,
-    private val androidStringsHelper: AndroidStringsHelper,
     private val readerCacheHelper: ReaderCacheHelper,
     val textToSpeechManager: TextToSpeechManager,
     private val imageDownloader: AndroidImageDownloader,
@@ -131,80 +125,6 @@ constructor(
                 FlowUiState(nextFilterState = nextFilterState, pagerData = pagerData)
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
-    /** The current triage run, kept here so it survives reading an article opened from triage. */
-    var triageSession: TriageSession? = null
-
-    /** Set when triage opened an article: triage reappears once the article is closed. */
-    var triageResume: Boolean = false
-
-    /**
-     * What triage can continue with, in the Feeds page order, that still has unread articles and was
-     * not triaged yet in this session.
-     * - Started from a feed: the next feed, one group after the other.
-     * - Started from a group: the next group.
-     * Both look after the current one first, then wrap round to the ones before it. Null when
-     * triage was opened on everything (nothing is left to move on to).
-     */
-    fun nextTriage(groupId: String?, feedId: String?, visited: Set<String>): TriageNext? {
-        if (groupId == null && feedId == null) return null
-        // The counts are unread counts only while the Unread filter is on.
-        if (!filterStateUseCase.filterStateFlow.value.filter.isUnread()) return null
-        val groups = groupWithFeedsListUseCase.groupWithFeedListFlow.value
-
-        if (feedId != null) {
-            val feeds = groups.flatMap { it.feeds }
-            val start = feeds.indexOfFirst { it.id == feedId }
-            val ordered = if (start < 0) feeds else feeds.drop(start + 1) + feeds.take(start)
-            return ordered
-                .firstOrNull { it.id !in visited && it.important > 0 }
-                ?.let { TriageNext(it.id, it.name, it.important, isFeed = true) }
-        }
-
-        val start = groups.indexOfFirst { it.group.id == groupId }
-        val ordered = if (start < 0) groups else groups.drop(start + 1) + groups.take(start)
-        for (item in ordered) {
-            if (item.group.id in visited) continue
-            val unread = item.feeds.sumOf { it.important }
-            if (unread > 0) return TriageNext(item.group.id, item.group.name, unread)
-        }
-        return null
-    }
-
-    /** The unread articles of a group or feed, newest first like the list, for triage to continue. */
-    suspend fun loadTriage(next: TriageNext): List<ArticleWithFeed> =
-        withContext(ioDispatcher) {
-            val source =
-                rssService
-                    .get()
-                    .pullArticles(
-                        groupId = if (next.isFeed) null else next.id,
-                        feedId = if (next.isFeed) next.id else null,
-                        isStarred = false,
-                        isUnread = true,
-                        sortAscending = settingsProvider.settings.flowSortUnreadArticles.value,
-                    )
-            val result =
-                source.load(
-                    PagingSource.LoadParams.Refresh(
-                        key = null,
-                        loadSize = 200,
-                        placeholdersEnabled = false,
-                    )
-                )
-            (result as? PagingSource.LoadResult.Page)
-                ?.data
-                .orEmpty()
-                .filter { diffMapHolder.checkIfUnread(it) }
-                .distinctBy { it.article.id }
-                .onEach {
-                    it.article.dateString =
-                        androidStringsHelper.formatAsString(
-                            date = it.article.date,
-                            onlyHourMinute = true,
-                        )
-                }
-        }
 
     private val syncWorkerStatusFlow =
         workManager
@@ -397,10 +317,6 @@ constructor(
         }
     }
 
-    /** An article's title, feed and picture, for the next article card at the end of an article. */
-    suspend fun previewArticle(id: String): ArticleWithFeed? =
-        runCatching { rssService.get().findArticleById(id) }.getOrNull()
-
     fun clearReadingData() {
         _readingUiState.update { ReadingUiState() }
         _readerState.update { ReaderState() }
@@ -411,19 +327,12 @@ constructor(
             if (articleWithFeed.feed.isFullContent) {
                 val fullContent =
                     readerCacheHelper.readFullContent(articleWithFeed.article.id).getOrNull()
-                if (fullContent != null)
-                    ReaderState.FullContent(FeedContent.forReader(fullContent, articleWithFeed.article.link))
+                if (fullContent != null) ReaderState.FullContent(FeedContent.forReader(fullContent, articleWithFeed.article.link)) // Brief You: tidied
                 else {
                     renderFullContent()
                     ReaderState.Loading
                 }
-            } else
-                ReaderState.Description(
-                    FeedContent.forReader(
-                        articleWithFeed.article.rawDescription,
-                        articleWithFeed.article.link,
-                    )
-                )
+            } else ReaderState.Description(FeedContent.forReader(articleWithFeed.article.rawDescription, articleWithFeed.article.link)) // Brief You
 
         return copy(content = contentState)
     }
@@ -431,14 +340,7 @@ constructor(
     fun renderDescriptionContent() {
         _readerState.update {
             it.copy(
-                content =
-                    ReaderState.Description(
-                        content =
-                            FeedContent.forReader(
-                                currentArticle?.rawDescription ?: "",
-                                currentArticle?.link,
-                            )
-                    )
+                content = ReaderState.Description(content = FeedContent.forReader(currentArticle?.rawDescription ?: "", currentArticle?.link)) // Brief You
             )
         }
     }
@@ -450,12 +352,7 @@ constructor(
                     .readOrFetchFullContent(currentArticle!!)
                     .onSuccess { content ->
                         _readerState.update {
-                            it.copy(
-                                content =
-                                    ReaderState.FullContent(
-                                        content = FeedContent.forReader(content, currentArticle?.link)
-                                    )
-                            )
+                            it.copy(content = ReaderState.FullContent(content = FeedContent.forReader(content, currentArticle?.link))) // Brief You
                         }
                     }
                     .onFailure { th ->

@@ -1,16 +1,16 @@
 package me.ash.reader.ui.page.home.flow
 
-import me.ash.reader.ui.component.base.ScreenOverlay
-import androidx.compose.ui.Alignment
-import androidx.paging.LoadState
-import me.ash.reader.ui.component.FilterBarSpace
-import me.ash.reader.ui.component.TonalCircleButton
-import me.ash.reader.ui.component.TopBarAction
-import me.ash.reader.ui.component.TopBarButtonGroup
-import me.ash.reader.ui.component.FilterBarSpec
-import me.ash.reader.ui.component.ProvideFilterBar
-import me.ash.reader.ui.page.home.reading.summary.SummaryRequest
-import me.ash.reader.ui.page.home.reading.summary.SummarySheet
+// Brief You
+import me.ash.reader.brief.list.BriefFlowFab
+import me.ash.reader.brief.list.BriefFlowOverlays
+import me.ash.reader.brief.list.briefPullToLoadInsets
+import me.ash.reader.brief.list.briefPullToLoadPadding
+import me.ash.reader.brief.list.rememberBriefFlowState
+import me.ash.reader.brief.ui.GoogleSansWideFontFamily
+import me.ash.reader.brief.ui.SharedFilterBarSlot
+import me.ash.reader.brief.ui.TonalCircleButton
+import me.ash.reader.brief.ui.TopBarAction
+import me.ash.reader.brief.ui.TopBarButtonGroup
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -33,7 +33,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
@@ -80,16 +79,12 @@ import androidx.compose.ui.zIndex
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import kotlinx.coroutines.delay
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import me.ash.reader.R
 import me.ash.reader.domain.data.PagerData
 import me.ash.reader.domain.model.article.ArticleFlowItem
 import me.ash.reader.domain.model.article.ArticleWithFeed
-import me.ash.reader.infrastructure.preference.FlowFilterBarStylePreference
 import me.ash.reader.infrastructure.preference.LocalFlowArticleListDateStickyHeader
 import me.ash.reader.infrastructure.preference.LocalFlowArticleListFeedIcon
 import me.ash.reader.infrastructure.preference.LocalFlowArticleListTonalElevation
@@ -106,7 +101,6 @@ import me.ash.reader.infrastructure.preference.LocalSortUnreadArticles
 import me.ash.reader.infrastructure.preference.PullToLoadNextFeedPreference
 import me.ash.reader.infrastructure.preference.SortUnreadArticlesPreference
 import me.ash.reader.ui.component.FilterBar
-import me.ash.reader.ui.component.FloatingBarGap
 import me.ash.reader.ui.component.base.FeedbackIconButton
 import me.ash.reader.ui.component.base.RYExtensibleVisibility
 import me.ash.reader.ui.component.base.RYScaffold
@@ -124,21 +118,18 @@ import me.ash.reader.ui.page.home.reading.PullToLoadDefaults.ContentOffsetMultip
 import me.ash.reader.ui.page.home.reading.PullToLoadState
 import me.ash.reader.ui.page.home.reading.pullToLoad
 import me.ash.reader.ui.page.home.reading.rememberPullToLoadState
-import me.ash.reader.ui.theme.GoogleSansWideFontFamily
-
 
 @OptIn(
     ExperimentalMaterial3Api::class,
     ExperimentalSharedTransitionApi::class,
     ExperimentalMaterialApi::class,
 )
-
 @Composable
 fun FlowPage(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     isTwoPane: Boolean,
-    /** False while the list is hidden (an article is open), so the filter bar slides away. */
+    /** False while the list is hidden (an article is open), so the filter bar slides away. */ // Brief You
     showFilterBar: Boolean = true,
     viewModel: ArticleListReaderViewModel,
     onNavigateUp: () -> Unit,
@@ -186,31 +177,8 @@ fun FlowPage(
     val focusRequester = remember { FocusRequester() }
     var markAsRead by remember { mutableStateOf(false) }
     var onSearch by rememberSaveable { mutableStateOf(false) }
-    var showGist by remember { mutableStateOf(false) }
-    var showTriage by rememberSaveable { mutableStateOf(false) }
-
-    // The AI gist / Triage button: only in Unread, and not while searching. Like the reading page's
-    // bar, only two things move it, so it can never pop in and out:
-    // - your finger: dragging towards the end of the list hides it, dragging back shows it;
-    // - a new list (another feed, group or filter) shows it, once.
-    // It doesn't look at the list's scroll position: while one feed slides into the next, the two
-    // lists briefly share it, which made the button show, hide and show again.
-    var fabHiddenByFinger by remember { mutableStateOf(false) }
-    val fabScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (source == NestedScrollSource.UserInput) {
-                    if (available.y < -1f) fabHiddenByFinger = true
-                    else if (available.y > 1f) fabHiddenByFinger = false
-                }
-                return Offset.Zero
-            }
-        }
-    }
-    LaunchedEffect(filterUiState.copy(searchContent = null)) { fabHiddenByFinger = false }
+    val brief = rememberBriefFlowState(filterUiState) // Brief You
     var currentPullToLoadState: PullToLoadState? by remember { mutableStateOf(null) }
-    val showActionsFab = filterUiState.filter.isUnread() && !onSearch && !fabHiddenByFinger
-
     var currentLoadAction: LoadAction? by remember { mutableStateOf(null) }
 
     val settleSpec = remember { spring<Float>(dampingRatio = Spring.DampingRatioLowBouncy) }
@@ -311,16 +279,6 @@ fun FlowPage(
 
     var pagingItems: LazyPagingItems<ArticleFlowItem>? by remember { mutableStateOf(null) }
 
-    // Inbox zero: celebrate when you swipe up to mark all as read on the Unread list (Triage has
-    // its own, at the end of the cards).
-    var celebrate by remember { mutableStateOf(false) }
-    // In the exact middle of the screen, over everything.
-    if (celebrate) {
-        ScreenOverlay {
-            InboxZeroCelebration(visible = true, onFinished = { celebrate = false })
-        }
-    }
-
     if (isTwoPane) {
         LaunchedEffect(readerState) {
             if (readerState.articleId != null) {
@@ -361,14 +319,6 @@ fun FlowPage(
 
     val isSyncing = viewModel.isSyncingFlow.collectAsStateValue()
 
-    // Triage comes back when you close an article that was opened from one of its cards.
-    LaunchedEffect(readerState.articleId) {
-        if (viewModel.triageResume && readerState.articleId == null) {
-            viewModel.triageResume = false
-            showTriage = true
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
         RYScaffold(
             containerTonalElevation = articleListTonalElevation.value.dp,
@@ -402,7 +352,7 @@ fun FlowPage(
                             val textStyle = LocalTextStyle.current
                             val color = LocalContentColor.current
                             if (textStyle.fontSize.value > 18f) {
-                                // One word (like "Entertainment") never breaks in the middle: it
+                                // One word (like "Entertainment") never breaks in the middle: it // Brief You
                                 // stays on one line and shrinks further. Several words may wrap
                                 // onto two lines, between words.
                                 val oneWord = !titleText.trim().contains(' ')
@@ -439,7 +389,7 @@ fun FlowPage(
                         },
                         expandedHeight = 172.dp,
                         scrollBehavior = scrollBehavior,
-                        // Material 3 Expressive: tonal buttons, the actions connected into one
+                        // Material 3 Expressive: tonal buttons, the actions connected into one // Brief You
                         // pill. An action that is on (marking as read, searching) is filled.
                         navigationIcon = {
                             TonalCircleButton(
@@ -451,7 +401,7 @@ fun FlowPage(
                             }
                         },
                         actions = {
-                            TopBarButtonGroup(
+                            TopBarButtonGroup( // Brief You
                                 buildList {
                                     if (!filterUiState.filter.isStarred()) {
                                         add(
@@ -594,7 +544,6 @@ fun FlowPage(
                     val filterState = flowUiState.pagerData.filterState
                     val pagingItems = pager.collectAsLazyPagingItems().also { pagingItems = it }
 
-
                     if (markAsReadOnScroll && filterState.filter.isUnread()) {
                         LaunchedEffect(listState.isScrollInProgress) {
                             if (!listState.isScrollInProgress) {
@@ -679,7 +628,7 @@ fun FlowPage(
                             LoadAction.MarkAllAsRead -> {
                                 {
                                     viewModel.markAllAsRead()
-                                    if (!showTriage) celebrate = true
+                                    brief.onMarkedAllRead() // Brief You: inbox zero
                                     currentPullToLoadState?.animateDistanceTo(
                                         targetValue = 0f,
                                         animationSpec = settleSpec,
@@ -714,7 +663,7 @@ fun FlowPage(
                     Box(modifier = Modifier.fillMaxSize()) {
                         LazyColumn(
                             modifier =
-                                Modifier.nestedScroll(fabScrollConnection)
+                                Modifier.nestedScroll(brief.listScroll) // Brief You
                                     .pullToLoad(
                                         state = pullToLoadState,
                                         enabled = true,
@@ -781,35 +730,26 @@ fun FlowPage(
                     }
                 }
             },
-            floatingActionButton = {
-                FlowActionsFab(
-                    // [FloatingBarGap] above the bottom bar instead of the standard 16 dp above its
-                    // 8 dp top padding.
-                    modifier = Modifier.offset(y = 16.dp + 8.dp - FloatingBarGap),
-                    visible = showActionsFab,
-                    onGist = { showGist = true },
-                    onTriage = {
-                        // A new run each time the button is pressed.
-                        viewModel.triageSession = null
-                        viewModel.triageResume = false
-                        showTriage = true
-                    },
-                )
-            },
+            floatingActionButton = { BriefFlowFab(brief, viewModel, filterUiState, onSearch) }, // Brief You
             floatingActionButtonPosition = FabPosition.Center,
-            // The filter bar is drawn once for the whole app, above every screen (SharedFilterBar),
-            // so it stays exactly in place while moving to and from Feeds. This keeps its space.
-            bottomBar = { FilterBarSpace(filterBarStyle.value) },
-        )
-        ProvideFilterBar(
-            FilterBarSpec(
-                filter = filterUiState.filter,
-                style = filterBarStyle.value,
-                padding = filterBarPadding.dp,
-                tonalElevation = filterBarTonalElevation.value.dp,
-                // Triage is drawn over the whole screen, so the bar steps aside for it.
-                enabled = showFilterBar && !showTriage,
-                onClick = {
+            bottomBar = {
+                // Brief You: one bar for the whole app (it stays in place between screens); hidden
+                // under Triage.
+                SharedFilterBarSlot(
+                    enabled = showFilterBar && !brief.showTriage,
+                    modifier =
+                        with(sharedTransitionScope) {
+                            Modifier.sharedElement(
+                                sharedContentState = rememberSharedContentState("filterBar"),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                            )
+                        },
+                    filter = filterUiState.filter,
+                    filterBarStyle = filterBarStyle.value,
+                    filterBarFilled = true,
+                    filterBarPadding = filterBarPadding.dp,
+                    filterBarTonalElevation = filterBarTonalElevation.value.dp,
+                ) {
                     if (filterUiState.filter != it) {
                         viewModel.changeFilter(filterUiState.copy(filter = it))
                     } else {
@@ -819,103 +759,33 @@ fun FlowPage(
                             }
                         }
                     }
-                },
-            )
+                }
+            },
         )
         currentPullToLoadState?.let {
             PullToSyncIndicator(pullToLoadState = it, isSyncing = isSyncing)
             PullToLoadIndicator(
                 state = it,
                 loadAction = currentLoadAction,
-                // At the same height as the AI gist / Triage button: [FloatingBarGap] above the bar.
-                bottomPadding =
-                    (if (filterBarStyle.value == FlowFilterBarStylePreference.Icon.value) 76.dp
-                    else 88.dp) + FloatingBarGap,
+                bottomPadding = briefPullToLoadPadding(filterBarStyle.value), // Brief You
                 modifier =
-                    Modifier.windowInsetsPadding(
-                        WindowInsets.safeContent.only(WindowInsetsSides.Horizontal)
-                    )
+                    Modifier.windowInsetsPadding(briefPullToLoadInsets) // Brief You
                         .windowInsetsPadding(
-                            WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)
+                            WindowInsets.safeContent.only(WindowInsetsSides.Horizontal)
                         ),
             )
         }
 
-        // Triage is a full-screen overlay (not a dialog), so the predictive back gesture can animate it.
-        if (showTriage) {
-            // The unread articles at the moment triage was opened. The session itself is kept in
-            // the view model, so it survives reading an article and coming back.
-            val session = remember {
-                viewModel.triageSession
-                    ?: TriageSession(
-                            articles =
-                                pagingItems
-                                    ?.itemSnapshotList
-                                    ?.filterIsInstance<ArticleFlowItem.Article>()
-                                    ?.map { it.articleWithFeed }
-                                    ?.filter { viewModel.diffMapHolder.checkIfUnread(it) }
-                                    ?.distinctBy { it.article.id } ?: emptyList(),
-                            // A feed wins over its group: after a feed comes the next feed.
-                            groupId = if (filterUiState.feed == null) filterUiState.group?.id else null,
-                            feedId = filterUiState.feed?.id,
-                            title = filterUiState.feed?.name ?: filterUiState.group?.name,
-                        )
-                        .also { viewModel.triageSession = it }
-            }
-            TriageScreen(
-                session = session,
-                onRead = { viewModel.diffMapHolder.updateDiff(it, isUnread = false) },
-                onUnread = { viewModel.diffMapHolder.updateDiff(it, isUnread = true) },
-                onStar = { article, starred ->
-                    viewModel.updateStarredStatus(
-                        articleId = article.article.id,
-                        isStarred = starred,
-                    )
-                },
-                onOpen = { articleWithFeed ->
-                    if (articleWithFeed.feed.isBrowser) {
-                        // Triage stays open underneath; you return to it from the browser.
-                        viewModel.diffMapHolder.updateDiff(articleWithFeed, isUnread = false)
-                        context.openURL(
-                            articleWithFeed.article.link,
-                            openLink,
-                            openLinkSpecificBrowser,
-                        )
-                    } else {
-                        // Hide triage while the article is open; it returns when you go back.
-                        viewModel.triageResume = !isTwoPane
-                        showTriage = false
-                        val index =
-                            pagingItems
-                                ?.itemSnapshotList
-                                ?.indexOfFirst {
-                                    it is ArticleFlowItem.Article &&
-                                        it.articleWithFeed.article.id == articleWithFeed.article.id
-                                }
-                                ?.coerceAtLeast(0) ?: 0
-                        navigateToArticle(articleWithFeed.article.id, index)
-                    }
-                },
-                onClose = {
-                    showTriage = false
-                    viewModel.triageSession = null
-                    viewModel.triageResume = false
-                },
-                findNext = { groupId, feedId, visited ->
-                    viewModel.nextTriage(groupId, feedId, visited)
-                },
-                loadNext = { next -> viewModel.loadTriage(next) },
-            )
-        }
-    }
-
-    if (showGist) {
-        val gistFilter = filterUiState.copy(searchContent = null)
-        SummarySheet(
-            requestKey = gistFilter,
-            request = SummaryRequest.Gist(gistFilter),
-            heading = stringResource(R.string.ai_gist_of, titleText),
-            onDismissRequest = { showGist = false },
+        // Brief You: inbox zero, Triage and the AI gist sheet.
+        BriefFlowOverlays(
+            state = brief,
+            viewModel = viewModel,
+            filterUiState = filterUiState,
+            titleText = titleText,
+            isTwoPane = isTwoPane,
+            openArticleId = readerState.articleId,
+            pagingItems = pagingItems,
+            navigateToArticle = navigateToArticle,
         )
     }
 }

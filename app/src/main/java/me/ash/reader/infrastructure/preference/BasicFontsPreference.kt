@@ -1,6 +1,6 @@
 package me.ash.reader.infrastructure.preference
 
-import me.ash.reader.ui.theme.emphasizeHeadings
+import me.ash.reader.brief.ui.emphasizeHeadings // Brief You
 import android.content.Context
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.compositionLocalOf
@@ -15,10 +15,9 @@ import me.ash.reader.ui.ext.ExternalFonts
 import me.ash.reader.ui.ext.dataStore
 import me.ash.reader.ui.ext.put
 import me.ash.reader.ui.ext.restart
-import me.ash.reader.ui.theme.GoogleSansFontFamily
-import me.ash.reader.ui.theme.SystemTypography
-import me.ash.reader.ui.theme.applyFontFamily
-
+import me.ash.reader.brief.ui.GoogleSansFontFamily // Brief You
+import me.ash.reader.brief.ui.SystemTypography // Brief You
+import me.ash.reader.brief.ui.applyFontFamily // Brief You
 val LocalBasicFonts = compositionLocalOf<BasicFontsPreference> { BasicFontsPreference.default }
 
 sealed class BasicFontsPreference(val value: Int) : Preference() {
@@ -59,7 +58,7 @@ sealed class BasicFontsPreference(val value: Int) : Preference() {
             System -> SystemTypography
             GoogleSans -> SystemTypography.applyFontFamily(GoogleSansFontFamily)
             External -> ExternalFonts.loadBasicTypography(context)
-        }.emphasizeHeadings()
+        }.emphasizeHeadings() // Brief You
 
     companion object {
 

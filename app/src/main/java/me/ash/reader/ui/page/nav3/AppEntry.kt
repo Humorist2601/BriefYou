@@ -12,21 +12,19 @@ import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.Box
-import me.ash.reader.ui.component.SharedFilterBar
-import me.ash.reader.ui.component.LocalPageKey
-import me.ash.reader.ui.component.LocalFilterBarHost
-import me.ash.reader.ui.component.FilterBarHost
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
-import androidx.navigation3.runtime.NavEntry
+import me.ash.reader.brief.app.NavEntry // Brief You: every screen gets the back preview
+// Brief You
+import me.ash.reader.brief.ai.AiSettingsPage
+import me.ash.reader.brief.app.BriefNavigationHost
+import me.ash.reader.brief.app.backPreviewTransition
+import me.ash.reader.brief.filters.FiltersPage
+import me.ash.reader.brief.ui.rememberBackPreviewRunning
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
@@ -34,13 +32,6 @@ import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.delay
 import me.ash.reader.ui.motion.materialSharedAxisXIn
 import me.ash.reader.ui.motion.materialSharedAxisXOut
-import me.ash.reader.ui.motion.BackPreviewController
-import me.ash.reader.ui.motion.BackPreviewPage
-import me.ash.reader.ui.motion.LocalBackStack
-import me.ash.reader.ui.motion.LocalBackPreviewPicture
-import androidx.compose.ui.graphics.rememberGraphicsLayer
-import me.ash.reader.ui.motion.backPreviewPopTransform
-import me.ash.reader.ui.motion.rememberBackPreviewRunning
 import me.ash.reader.ui.page.adaptive.ArticleData
 import me.ash.reader.ui.page.adaptive.ArticleListReaderPage
 import me.ash.reader.ui.page.adaptive.ArticleListReaderViewModel
@@ -66,20 +57,10 @@ import me.ash.reader.ui.page.settings.interaction.InteractionPage
 import me.ash.reader.ui.page.settings.languages.LanguagesPage
 import me.ash.reader.ui.page.settings.tips.LicenseListPage
 import me.ash.reader.ui.page.settings.tips.TipsAndSupportPage
-import me.ash.reader.ui.page.settings.ai.AiSettingsPage
-import me.ash.reader.ui.page.settings.filters.FiltersPage
 import me.ash.reader.ui.page.settings.troubleshooting.TroubleshootingPage
 import me.ash.reader.ui.page.startup.StartupPage
 
 private const val INITIAL_OFFSET_FACTOR = 0.10f
-
-/** A screen of the app, wrapped so the predictive back gesture shows the back preview on it. */
-private fun page(key: NavKey, content: @Composable () -> Unit): NavEntry<NavKey> =
-    NavEntry(key) {
-        BackPreviewPage(key) {
-            CompositionLocalProvider(LocalPageKey provides key, content = content)
-        }
-    }
 
 @OptIn(
     ExperimentalSharedTransitionApi::class,
@@ -102,19 +83,8 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
             isDestinationHistoryAware = false,
         )
 
-    // The back animation (see BackPreview.kt): it follows the gesture, and while it runs the host's
-    // own transitions draw nothing, whichever one the host picks.
-    val backPreviewPicture = rememberGraphicsLayer()
-    // The filter bar of Feeds and the article list, drawn once above every screen.
-    val filterBarHost = remember { FilterBarHost() }
-    val backPreviewRunning = rememberBackPreviewRunning()
-    BackPreviewController(backStack)
-    CompositionLocalProvider(
-        LocalBackStack provides backStack,
-        LocalBackPreviewPicture provides backPreviewPicture,
-        LocalFilterBarHost provides filterBarHost,
-    ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    val backPreviewRunning = rememberBackPreviewRunning() // Brief You
+    BriefNavigationHost(backStack) { // Brief You: back preview, shared filter bar
     SharedTransitionLayout {
         NavDisplay(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
@@ -125,37 +95,34 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
             transitionSpec = {
-                if (backPreviewRunning()) {
-                    backPreviewPopTransform()
-                } else {
-                    materialSharedAxisXIn(
-                        initialOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() }
-                    ) togetherWith
-                        materialSharedAxisXOut(
-                            targetOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
-                        )
-                }
+                backPreviewTransition(backPreviewRunning) ?: // Brief You
+                materialSharedAxisXIn(
+                    initialOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() }
+                ) togetherWith
+                    materialSharedAxisXOut(
+                        targetOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
+                    )
             },
             popTransitionSpec = {
-                if (backPreviewRunning()) {
-                    backPreviewPopTransform()
-                } else {
-                    materialSharedAxisXIn(
-                        initialOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
-                    ) togetherWith
-                        materialSharedAxisXOut(
-                            targetOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() }
-                        )
-                }
+                backPreviewTransition(backPreviewRunning) ?: // Brief You
+                materialSharedAxisXIn(
+                    initialOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
+                ) togetherWith
+                    materialSharedAxisXOut(targetOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() })
             },
-            // Predictive back: the "back preview" (see BackPreview.kt). The screen shrinks into a card
-            // over the dimmed screen behind it and leaves to the right when you let go.
-            predictivePopTransitionSpec = { backPreviewPopTransform() },
+            predictivePopTransitionSpec = {
+                // Brief You: the back preview, Android's own back animation between screens.
+                backPreviewTransition { true } ?:
+                materialSharedAxisXIn(
+                    initialOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
+                ) togetherWith
+                    materialSharedAxisXOut(targetOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() })
+            },
             onBack = { backStack.removeLastOrNull() },
             entryProvider = { key ->
                 when (key) {
                     Route.Feeds -> {
-                        page(key) {
+                        NavEntry(key) {
                             FeedsPage(
                                 subscribeViewModel = subscribeViewModel,
                                 sharedTransitionScope = this@SharedTransitionLayout,
@@ -166,12 +133,12 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                                 navigateToAccountDetail = {
                                     backStack.add(Route.AccountDetails(it))
                                 },
-                                navigateToFilters = { backStack.add(Route.Filters) },
+                                navigateToFilters = { backStack.add(Route.Filters) }, // Brief You
                             )
                         }
                     }
                     is Route.Reading -> {
-                        page(key) {
+                        NavEntry(key) {
                             val key = rememberSaveable(saver = Route.Reading.Saver) { key }
 
                             LaunchedEffect(key) {
@@ -194,12 +161,12 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                                 viewModel = viewModel,
                                 onBack = onBack,
                                 onNavigateToStylePage = { backStack.add(Route.ReadingPageStyle) },
-                                onNavigateToAiSettings = { backStack.add(Route.AiModel) },
+                                onNavigateToAiSettings = { backStack.add(Route.AiModel) }, // Brief You
                             )
                         }
                     }
                     //                    is Route.Reading -> {
-                    //                        page(key) {
+                    //                        NavEntry(key) {
                     //                            val articleId = key.articleId
                     //
                     //                            val readingViewModel: ReadingViewModel =
@@ -219,20 +186,20 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     //                        }
                     //                    }
                     Route.Startup -> {
-                        page(key) {
+                        NavEntry(key) {
                             StartupPage(onNavigateToFeeds = { backStack.add(Route.Feeds) })
                         }
                     }
                     Route.Settings ->
-                        page(key) {
+                        NavEntry(key) {
                             SettingsPage(
                                 onBack = onBack,
                                 navigateToAccounts = { backStack.add(Route.Accounts) },
                                 navigateToColorAndStyle = { backStack.add(Route.ColorAndStyle) },
                                 navigateToInteraction = { backStack.add(Route.Interaction) },
                                 navigateToLanguages = { backStack.add(Route.Languages) },
-                                navigateToAiModel = { backStack.add(Route.AiModel) },
-                                navigateToFilters = { backStack.add(Route.Filters) },
+                                navigateToAiModel = { backStack.add(Route.AiModel) }, // Brief You
+                                navigateToFilters = { backStack.add(Route.Filters) }, // Brief You
                                 navigateToTroubleshooting = {
                                     backStack.add(Route.Troubleshooting)
                                 },
@@ -240,7 +207,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             )
                         }
                     Route.Accounts ->
-                        page(key) {
+                        NavEntry(key) {
                             AccountsPage(
                                 onBack = onBack,
                                 navigateToAddAccount = { backStack.add(Route.AddAccounts) },
@@ -250,7 +217,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             )
                         }
                     is Route.AccountDetails ->
-                        page(key) {
+                        NavEntry(key) {
                             AccountDetailsPage(
                                 viewModel =
                                     hiltViewModel<AccountViewModel>().also {
@@ -261,7 +228,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             )
                         }
                     Route.AddAccounts ->
-                        page(key) {
+                        NavEntry(key) {
                             AddAccountsPage(
                                 onBack = onBack,
                                 navigateToAccountDetails = {
@@ -270,7 +237,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             )
                         }
                     Route.ColorAndStyle ->
-                        page(key) {
+                        NavEntry(key) {
                             ColorAndStylePage(
                                 onBack = onBack,
                                 navigateToDarkTheme = { backStack.add(Route.DarkTheme) },
@@ -281,11 +248,11 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                                 },
                             )
                         }
-                    Route.DarkTheme -> page(key) { DarkThemePage(onBack = onBack) }
-                    Route.FeedsPageStyle -> page(key) { FeedsPageStylePage(onBack = onBack) }
-                    Route.FlowPageStyle -> page(key) { FlowPageStylePage(onBack = onBack) }
+                    Route.DarkTheme -> NavEntry(key) { DarkThemePage(onBack = onBack) }
+                    Route.FeedsPageStyle -> NavEntry(key) { FeedsPageStylePage(onBack = onBack) }
+                    Route.FlowPageStyle -> NavEntry(key) { FlowPageStylePage(onBack = onBack) }
                     Route.ReadingPageStyle ->
-                        page(key) {
+                        NavEntry(key) {
                             ReadingStylePage(
                                 onBack = onBack,
                                 navigateToReadingBoldCharacters = {
@@ -306,36 +273,28 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             )
                         }
                     Route.ReadingBoldCharacters ->
-                        page(key) { BoldCharactersPage(onBack = onBack) }
-                    Route.ReadingPageTitle -> page(key) { ReadingTitlePage(onBack = onBack) }
-                    Route.ReadingPageText -> page(key) { ReadingTextPage(onBack = onBack) }
-                    Route.ReadingPageImage -> page(key) { ReadingImagePage(onBack = onBack) }
-                    Route.ReadingPageVideo -> page(key) { ReadingVideoPage(onBack = onBack) }
-                    Route.Interaction -> page(key) { InteractionPage(onBack = onBack) }
-                    Route.Languages -> page(key) { LanguagesPage(onBack = onBack) }
-                    Route.AiModel -> page(key) { AiSettingsPage(onBack = onBack) }
-                    Route.Filters -> page(key) { FiltersPage(onBack = onBack) }
-                    Route.Troubleshooting -> page(key) { TroubleshootingPage(onBack = onBack) }
+                        NavEntry(key) { BoldCharactersPage(onBack = onBack) }
+                    Route.ReadingPageTitle -> NavEntry(key) { ReadingTitlePage(onBack = onBack) }
+                    Route.ReadingPageText -> NavEntry(key) { ReadingTextPage(onBack = onBack) }
+                    Route.ReadingPageImage -> NavEntry(key) { ReadingImagePage(onBack = onBack) }
+                    Route.ReadingPageVideo -> NavEntry(key) { ReadingVideoPage(onBack = onBack) }
+                    Route.Interaction -> NavEntry(key) { InteractionPage(onBack = onBack) }
+                    Route.Languages -> NavEntry(key) { LanguagesPage(onBack = onBack) }
+                    Route.AiModel -> NavEntry(key) { AiSettingsPage(onBack = onBack) } // Brief You
+                    Route.Filters -> NavEntry(key) { FiltersPage(onBack = onBack) } // Brief You
+                    Route.Troubleshooting -> NavEntry(key) { TroubleshootingPage(onBack = onBack) }
                     Route.TipsAndSupport ->
-                        page(key) {
+                        NavEntry(key) {
                             TipsAndSupportPage(
                                 onBack = onBack,
                                 navigateToLicenseList = { backStack.add(Route.LicenseList) },
                             )
                         }
-                    Route.LicenseList -> page(key) { LicenseListPage(onBack = onBack) }
-                    else -> page(key) { throw Exception("Unknown destination") }
+                    Route.LicenseList -> NavEntry(key) { LicenseListPage(onBack = onBack) }
+                    else -> NavEntry(key) { throw Exception("Unknown destination") }
                 }
             },
         )
     }
-        // Above every screen, so screen animations (including the back gesture) never move it.
-        SharedFilterBar(
-            host = filterBarHost,
-            top = backStack.lastOrNull(),
-            hasBar = { it == Route.Feeds || it is Route.Reading },
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
-    }
-    }
+    } // Brief You
 }

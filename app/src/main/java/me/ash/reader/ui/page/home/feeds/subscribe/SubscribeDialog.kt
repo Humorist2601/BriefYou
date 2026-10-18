@@ -1,6 +1,6 @@
 package me.ash.reader.ui.page.home.feeds.subscribe
 
-import me.ash.reader.ui.component.base.InWindowAlertDialog
+import me.ash.reader.brief.ui.InWindowAlertDialog // Brief You
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -68,7 +68,7 @@ fun SubscribeDialog(
             }
         }
 
-        InWindowAlertDialog(
+        InWindowAlertDialog( // Brief You
             modifier = Modifier.padding(horizontal = 44.dp),
             properties = DialogProperties(
                 usePlatformDefaultWidth = false,

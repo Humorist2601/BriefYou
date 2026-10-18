@@ -43,6 +43,7 @@ abstract class AndroidDatabase : RoomDatabase() {
     abstract fun feedDao(): FeedDao
     abstract fun articleDao(): ArticleDao
     abstract fun groupDao(): GroupDao
+    abstract fun briefArticleDao(): me.ash.reader.brief.data.BriefArticleDao // Brief You: queries only
 
     companion object {
 

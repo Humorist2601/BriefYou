@@ -39,7 +39,7 @@ object WebViewStyle {
         tableMargin: Int,
         selectionTextColor: Int,
         selectionBgColor: Int,
-        /** Dark theme: pictures are dimmed a little so they don't glare. */
+        /** Dark theme: pictures are dimmed a little so they don't glare. */ // Brief You
         isDark: Boolean = false,
     ): String = """
 ${applyFontFace(fontPath)}

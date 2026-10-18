@@ -12,7 +12,7 @@ import me.ash.reader.domain.data.DiffMapHolder
 import me.ash.reader.domain.data.FilterStateUseCase
 import me.ash.reader.domain.data.GroupWithFeedsListUseCase
 import me.ash.reader.domain.service.AccountService
-import me.ash.reader.domain.service.FeedOrdering
+import me.ash.reader.brief.feeds.FeedOrdering // Brief You
 import me.ash.reader.domain.service.RssService
 import me.ash.reader.infrastructure.android.AndroidStringsHelper
 import me.ash.reader.infrastructure.preference.SettingsProvider
@@ -53,7 +53,7 @@ object UseCaseModule {
         filterStateUseCase: FilterStateUseCase,
         diffMapHolder: DiffMapHolder,
         accountService: AccountService,
-        feedOrdering: FeedOrdering,
+        feedOrdering: FeedOrdering, // Brief You
     ): GroupWithFeedsListUseCase {
         return GroupWithFeedsListUseCase(
             applicationScope,
@@ -63,7 +63,7 @@ object UseCaseModule {
             filterStateUseCase,
             diffMapHolder,
             accountService,
-            feedOrdering,
+            feedOrdering, // Brief You
         )
     }
 }

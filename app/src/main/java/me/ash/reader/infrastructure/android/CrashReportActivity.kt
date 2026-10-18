@@ -30,14 +30,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard // Brief You: the newer clipboard API
+import androidx.compose.ui.platform.toClipEntry // Brief You
+import androidx.compose.runtime.rememberCoroutineScope // Brief You
+import kotlinx.coroutines.launch // Brief You
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.UrlAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextDecoration
@@ -69,7 +70,8 @@ class CrashReportActivity : AppCompatActivity() {
         setContent {
             settingsProvider.ProvidesSettings {
                 AppTheme(useDarkTheme = LocalDarkTheme.current.isDarkTheme()) {
-                    val clipboardManager = LocalClipboardManager.current
+                    val clipboard = LocalClipboard.current // Brief You
+                    val scope = rememberCoroutineScope() // Brief You
                     val appVersion = getCurrentVersion().toString()
                     val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
                     val androidVersion =
@@ -83,7 +85,13 @@ class CrashReportActivity : AppCompatActivity() {
                     val stacktraceBlock = "Stack trace: \n\n```$errorMessage```"
 
                     CrashReportPage(text = prefix + stackTrace) {
-                        clipboardManager.setText(AnnotatedString(prefix + stacktraceBlock))
+                        // Brief You: the newer clipboard API (the old one is deprecated).
+                        scope.launch {
+                            clipboard.setClipEntry(
+                                android.content.ClipData.newPlainText("Crash report", prefix + stacktraceBlock)
+                                    .toClipEntry()
+                            )
+                        }
                     }
                 }
             }

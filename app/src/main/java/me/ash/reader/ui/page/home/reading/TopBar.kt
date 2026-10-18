@@ -1,15 +1,5 @@
 package me.ash.reader.ui.page.home.reading
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.material3.LinearWavyProgressIndicator
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material3.Text
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.fadeIn
-import me.ash.reader.ui.component.TonalCircleButton
-import me.ash.reader.ui.component.TopBarAction
-import me.ash.reader.ui.component.TopBarButtonGroup
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -30,13 +20,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuOpen
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.MenuOpen
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -61,22 +51,17 @@ import me.ash.reader.ui.page.adaptive.NavigationAction
 
 private val sizeSpec = spring<IntSize>(stiffness = 700f)
 
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(
     isShow: Boolean,
     isScrolled: Boolean = false,
     title: String? = "",
-    /** How far the article has been scrolled, 0 to 1 (a thin wavy bar under the top bar). */
-    progress: () -> Float = { 0f },
-    /** "3 min left", under the small title once you scrolled past the header. */
-    timeLeft: String? = null,
     link: String? = "",
     navigationAction: NavigationAction,
     onClick: (() -> Unit)? = null,
     onNavButtonClick: (NavigationAction) -> Unit = {},
     onNavigateToStylePage: () -> Unit,
-    onSummarize: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val sharedContent = LocalSharedContent.current
@@ -105,31 +90,7 @@ fun TopBar(
                 exit = shrinkVertically(shrinkTowards = Alignment.Bottom, animationSpec = sizeSpec),
             ) {
                 TopAppBar(
-                    // Past the header: the article's title, small, with the time left under it.
-                    title = {
-                        androidx.compose.animation.AnimatedVisibility(
-                            visible = isScrolled && !title.isNullOrBlank(),
-                            enter = fadeIn(),
-                            exit = fadeOut(),
-                        ) {
-                            Column {
-                                Text(
-                                    text = title.orEmpty(),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                timeLeft?.let {
-                                    Text(
-                                        text = it,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                    )
-                                }
-                            }
-                        }
-                    },
+                    title = {},
                     modifier =
                         if (onClick == null) Modifier
                         else
@@ -152,49 +113,41 @@ fun TopBar(
                                 NavigationAction.HideList -> "Hide list"
                                 NavigationAction.ExpandList -> "Expand list"
                             }
-                        // Material 3 Expressive: tonal buttons, like the list's top bar.
-                        TonalCircleButton(icon = imageVector, description = contentDescription) {
+                        FeedbackIconButton(
+                            imageVector = imageVector,
+                            contentDescription = contentDescription,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        ) {
                             onNavButtonClick(navigationAction)
                         }
                     },
                     actions = {
-                        TopBarButtonGroup(
-                            buildList {
-                                if (onSummarize != null) {
-                                    add(
-                                        TopBarAction(
-                                            Icons.Outlined.AutoAwesome,
-                                            stringResource(R.string.ai_summarize),
-                                        ) {
-                                            onSummarize()
-                                        }
-                                    )
-                                }
-                                add(
-                                    TopBarAction(Icons.Outlined.Palette, stringResource(R.string.style)) {
-                                        onNavigateToStylePage()
-                                    }
-                                )
-                                add(
-                                    TopBarAction(Icons.Outlined.Share, stringResource(R.string.share)) {
-                                        sharedContent.share(context, title, link)
-                                    }
-                                )
-                            }
-                        )
+                        FeedbackIconButton(
+                            modifier = Modifier.size(22.dp),
+                            imageVector = Icons.Outlined.Palette,
+                            contentDescription = stringResource(R.string.style),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        ) {
+                            onNavigateToStylePage()
+                        }
+                        FeedbackIconButton(
+                            modifier = Modifier.size(20.dp),
+                            imageVector = Icons.Outlined.Share,
+                            contentDescription = stringResource(R.string.share),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        ) {
+                            sharedContent.share(context, title, link)
+                        }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 )
             }
-            // Reading progress: exact, from how far the article is scrolled.
-            val started by remember { derivedStateOf { progress() > 0.01f } }
-            if (started) {
-                LinearWavyProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(6.dp),
+            if (isOutlined && isScrolled) {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    thickness = 0.5f.dp,
                 )
             }
-            // No divider line under the bar here: the progress bar already marks its edge.
         }
     }
 }

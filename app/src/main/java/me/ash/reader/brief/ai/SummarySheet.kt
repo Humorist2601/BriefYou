@@ -1,0 +1,820 @@
+package me.ash.reader.brief.ai
+
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material.icons.outlined.QuestionAnswer
+import androidx.compose.material3.ripple
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import me.ash.reader.brief.readaloud.ReadAloudSpeedSheet // Brief You
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.clickable
+import me.ash.reader.brief.readaloud.openTtsSettings // Brief You
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.combinedClickable
+import me.ash.reader.brief.readaloud.readProgress // Brief You
+import me.ash.reader.brief.readaloud.ReadAloudRing // Brief You
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.outlined.DoneAll
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import me.ash.reader.R
+import me.ash.reader.brief.ai.GemmaSummarizer
+import me.ash.reader.brief.readaloud.TextToSpeechManager // Brief You
+import me.ash.reader.infrastructure.preference.LocalReadingTextHorizontalPadding
+import me.ash.reader.ui.component.scrollbar.drawVerticalScrollIndicator
+import me.ash.reader.ui.ext.collectAsStateValue
+
+/**
+ * Bottom sheet that streams an on-device summary of one article, or a gist of a whole list.
+ *
+ * It looks like the app's other sheets (the sort sheet): a drag handle, a large title with a line
+ * under it, then the content. The key points are a group of rounded tonal cards (Material 3
+ * Expressive's connected list) that slide in one by one as they are written, and "Why it matters"
+ * stands out in its own accent card. The actions sit at the bottom as a connected pair of buttons.
+ *
+ * The sheet opens at 70% of the screen height and keeps that size while the text is written; the
+ * content scrolls inside it. Drag it down, press Back or tap outside to close it.
+ *
+ * @param requestKey changes when the thing being summarized changes (article id, filter).
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun SummarySheet(
+    requestKey: Any,
+    request: SummaryRequest,
+    heading: String,
+    onDismissRequest: () -> Unit,
+    viewModel: SummaryViewModel = hiltViewModel(key = "ai-summary"),
+) {
+    val context = LocalContext.current
+    val state = viewModel.state.collectAsStateValue()
+    val gistMarkedRead = viewModel.gistMarkedRead.collectAsStateValue()
+    // Only this summary's reading: an article being read from its page shows as not reading here.
+    val ttsAny = viewModel.textToSpeechManager.stateFlow.collectAsStateValue()
+    val ttsState =
+        if (
+            ttsAny is TextToSpeechManager.State.Error ||
+                viewModel.textToSpeechManager.sourceKey == viewModel.readKey
+        ) ttsAny
+        else TextToSpeechManager.State.Idle
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val isArticle = request is SummaryRequest.Article
+    val asks = viewModel.asks.collectAsStateValue()
+    var question by rememberSaveable(requestKey) { mutableStateOf("") }
+    var showSpeedSheet by remember { mutableStateOf(false) }
+    var askOpen by rememberSaveable(requestKey) { mutableStateOf(false) }
+    // The media notification takes the colour of the page the sheet is on (the article's, from its
+    // picture, on the reading page; the accent colour elsewhere).
+    val pageAccent = MaterialTheme.colorScheme.primary.toArgb()
+    if (showSpeedSheet) {
+        val speed = viewModel.textToSpeechManager.speed.collectAsStateValue()
+        ReadAloudSpeedSheet(
+            speed = speed,
+            onSpeed = { viewModel.textToSpeechManager.setSpeed(it) },
+            onDismiss = { showSpeedSheet = false },
+        )
+    }
+
+    LaunchedEffect(requestKey) { viewModel.start(request) }
+    DisposableEffect(Unit) { onDispose { viewModel.stop() } }
+
+    val picker =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let(viewModel::importModel)
+        }
+
+    val sheetHeight = (LocalConfiguration.current.screenHeightDp * 0.7f).dp
+    // The same side padding as the reading page, so the summary lines up with the article text.
+    val horizontalPadding = LocalReadingTextHorizontalPadding.current.dp.coerceAtLeast(16.dp)
+
+    ModalBottomSheet(onDismissRequest = onDismissRequest, sheetState = sheetState) {
+        Column(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .height(sheetHeight)
+                    .padding(horizontal = horizontalPadding)
+                    .navigationBarsPadding()
+                    // Room for the keyboard while asking a question.
+                    .imePadding()
+        ) {
+            // Header: like the sort sheet, a large title, a line about where it comes from, and
+            // a divider.
+            Text(
+                text = heading,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+            )
+            val count =
+                when (state) {
+                    is SummaryUiState.Streaming -> state.articleCount
+                    is SummaryUiState.Thinking -> state.articleCount
+                    else -> null
+                }
+            Text(
+                text =
+                    if (count != null) pluralStringResource(R.plurals.ai_gist_based_on, count, count)
+                    else stringResource(R.string.ai_summary_on_device),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(16.dp))
+
+            val scrollState = rememberScrollState()
+            // Keep the newest question and answer in view while it's written.
+            LaunchedEffect(asks.size, asks.lastOrNull()?.answer?.length) {
+                if (asks.isNotEmpty()) scrollState.animateScrollTo(scrollState.maxValue)
+            }
+            Column(
+                modifier =
+                    Modifier.weight(1f)
+                        .fillMaxWidth()
+                        // Scrolling the points never moves the sheet, even at the top or bottom of
+                        // the list: only the handle and title above the divider drag it.
+                        .nestedScroll(KeepScrollInside)
+                        // The same scroll thumb as the reading page, also shown while text streams in.
+                        .drawVerticalScrollIndicator(scrollState, showWhenContentChanges = true)
+                        .verticalScroll(scrollState)
+            ) {
+                when (state) {
+                    SummaryUiState.NeedsModel -> {
+                        Text(
+                            stringResource(R.string.ai_summary_needs_model),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(Modifier.height(20.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(
+                                shapes = ButtonDefaults.shapes(),
+                                onClick = {
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            GemmaSummarizer.MODEL_PAGE.toUri(),
+                                        )
+                                    )
+                                },
+                            ) {
+                                Text(stringResource(R.string.ai_summary_get_model))
+                            }
+                            Button(
+                                shapes = ButtonDefaults.shapes(),
+                                onClick = { picker.launch(arrayOf("*/*")) },
+                            ) {
+                                Text(stringResource(R.string.ai_summary_choose_file))
+                            }
+                        }
+                    }
+
+                    is SummaryUiState.Importing -> {
+                        Text(
+                            stringResource(R.string.ai_summary_importing),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        val progress = state.progress
+                        if (progress != null) {
+                            LinearWavyProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+
+                    // Loading: the Expressive shape-morphing indicator, centred, with a line under it.
+                    is SummaryUiState.Thinking -> {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            LoadingIndicator(modifier = Modifier.size(56.dp))
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                stringResource(R.string.ai_summary_thinking),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
+                    is SummaryUiState.Streaming -> {
+                        SummaryCards(text = state.text, streaming = !state.done)
+                        // Ask this article: the questions and answers, under the summary.
+                        if (asks.isNotEmpty()) {
+                            Spacer(Modifier.height(16.dp))
+                            AskConversation(asks)
+                        }
+                    }
+
+                    // An error looks like the loading state: centred, a 56 dp mark, a line under it,
+                    // then Try again.
+                    is SummaryUiState.Error -> {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(
+                                modifier =
+                                    Modifier.size(56.dp)
+                                        .background(MaterialTheme.colorScheme.errorContainer, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Outlined.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(28.dp),
+                                )
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                state.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 24.dp),
+                            )
+                            Spacer(Modifier.height(20.dp))
+                            Button(shapes = ButtonDefaults.shapes(), onClick = viewModel::retry) {
+                                Text(stringResource(R.string.ai_summary_retry))
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
+            // Actions at the bottom, always in reach. They appear (disabled) as soon as the
+            // summary starts, so nothing shifts when it is finished.
+            val streaming = state as? SummaryUiState.Streaming
+            val done = streaming?.done == true
+            val actionCount =
+                streaming?.articleCount ?: (state as? SummaryUiState.Thinking)?.articleCount
+            // The buttons don't drag the sheet either (only the handle and title above the divider).
+            if (streaming != null || state is SummaryUiState.Thinking) Column(
+                modifier =
+                    Modifier.pointerInput(Unit) {
+                        detectVerticalDragGestures { change, _ -> change.consume() }
+                    }
+            ) {
+                // A small gap between the points and the buttons, so the points don't run
+                // straight into them as they scroll.
+                Spacer(Modifier.height(12.dp))
+                // Ask: the middle button slides the box up from behind the buttons.
+                AnimatedVisibility(
+                    visible = askOpen && done,
+                    enter =
+                        expandVertically(expandFrom = Alignment.Bottom) +
+                            slideInVertically(initialOffsetY = { it }) +
+                            fadeIn(),
+                    exit = shrinkVertically(shrinkTowards = Alignment.Bottom) + fadeOut(),
+                ) { Column {
+                    val asking = asks.lastOrNull()?.done == false
+                    val send = {
+                        if (question.isNotBlank() && !asking) {
+                            viewModel.ask(question)
+                            question = ""
+                        }
+                    }
+                    val focus = remember { FocusRequester() }
+                    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+                    OutlinedTextField(
+                        value = question,
+                        onValueChange = { question = it },
+                        modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                        placeholder = {
+                            Text(
+                                stringResource(
+                                    if (isArticle) R.string.ai_ask_hint else R.string.ai_ask_hint_gist
+                                )
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(28.dp),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = { send() }),
+                        trailingIcon = {
+                            IconButton(onClick = send, enabled = question.isNotBlank() && !asking) {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.Send,
+                                    contentDescription = stringResource(R.string.ai_ask_send),
+                                )
+                            }
+                        },
+                    )
+                    Spacer(Modifier.height(10.dp))
+                } }
+                if (!isArticle && actionCount != null) {
+                    val marked = gistMarkedRead
+                    Button(
+                        shapes = ButtonDefaults.shapes(),
+                        onClick = viewModel::markGistAsRead,
+                        enabled = done && marked == null,
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.DoneAll,
+                            contentDescription = null,
+                            modifier = Modifier.size(ButtonDefaults.IconSize),
+                        )
+                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                        Text(
+                            if (marked == null)
+                                pluralStringResource(
+                                    R.plurals.ai_gist_mark_read,
+                                    actionCount,
+                                    actionCount,
+                                )
+                            else pluralStringResource(R.plurals.ai_gist_marked_read, marked, marked)
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+                // Three connected buttons, round on the outside: Regenerate, Ask, Read aloud. Like
+                // the main page's top-right group, the one you press widens and the others make
+                // room.
+                val reading =
+                    ttsState !is TextToSpeechManager.State.Idle &&
+                        ttsState !is TextToSpeechManager.State.Error
+                val paused = ttsState is TextToSpeechManager.State.Paused
+                val haptic = LocalHapticFeedback.current
+                val interactions = remember { List(3) { MutableInteractionSource() } }
+                val pressedIndex = interactions.map { it.collectIsPressedAsState().value }.indexOf(true)
+                val spatial = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    @Composable
+                    fun weightOf(index: Int): Float =
+                        animateFloatAsState(
+                            when {
+                                pressedIndex < 0 -> 1f
+                                index == pressedIndex -> 1f + PressedGrow
+                                else -> 1f - PressedGrow / 2f
+                            },
+                            spatial,
+                            label = "segment",
+                        ).value
+                    SheetSegment(
+                        modifier = Modifier.weight(weightOf(0)),
+                        shape = RoundedCornerShape(50, 8, 8, 50),
+                        enabled = done,
+                        interaction = interactions[0],
+                        onClick = viewModel::regenerate,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(ButtonDefaults.IconSize),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        SegmentLabel(stringResource(R.string.ai_summary_regenerate))
+                    }
+                    SheetSegment(
+                        modifier = Modifier.weight(weightOf(1)),
+                        shape = RoundedCornerShape(8, 8, 8, 8),
+                        enabled = done,
+                        selected = askOpen,
+                        interaction = interactions[1],
+                        onClick = { askOpen = !askOpen },
+                    ) {
+                        Icon(
+                            Icons.Outlined.QuestionAnswer,
+                            contentDescription = null,
+                            modifier = Modifier.size(ButtonDefaults.IconSize),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        SegmentLabel(stringResource(R.string.ai_ask_send))
+                    }
+                    // Read aloud: tap to start, then tap to pause or play. Long press: the speech
+                    // settings before it starts, the speed while reading, stop while paused.
+                    // While reading, a wavy ring shows how far it has got (like the reading bar).
+                    SheetSegment(
+                        modifier = Modifier.weight(weightOf(2)),
+                        shape = RoundedCornerShape(8, 50, 50, 8),
+                        enabled = done,
+                        interaction = interactions[2],
+                        onClick = {
+                            streaming?.let { viewModel.readAloud(it.text, heading, pageAccent) }
+                        },
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            when {
+                                !reading -> context.openTtsSettings()
+                                paused -> viewModel.stopReading()
+                                else -> showSpeedSheet = true
+                            }
+                        },
+                    ) {
+                        if (reading) {
+                            Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                                ReadAloudRing(
+                                    progress = ttsState.readProgress(),
+                                    playing = !paused,
+                                    modifier = Modifier.size(28.dp),
+                                )
+                                Icon(
+                                    if (paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        } else {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.VolumeUp,
+                                contentDescription = null,
+                                modifier = Modifier.size(ButtonDefaults.IconSize),
+                            )
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        SegmentLabel(
+                            stringResource(
+                                when {
+                                    !reading -> R.string.ai_read_aloud
+                                    paused -> R.string.read_aloud_play
+                                    else -> R.string.read_aloud_pause
+                                }
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Takes whatever scrolling the points have left over (at the top or bottom of the list, or when
+ * they all fit), so it never reaches the sheet and moves it.
+ */
+private val KeepScrollInside =
+    object : NestedScrollConnection {
+        override fun onPostScroll(
+            consumed: Offset,
+            available: Offset,
+            source: NestedScrollSource,
+        ): Offset = available
+
+        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
+            available
+    }
+
+private val BulletLine = Regex("""^([•\-–*]|\d{1,2}[.)])\s+(.*)$""")
+private val WhyItMatters = Regex("""^\**\s*why it matters\s*\**\s*:\s*\**\s*(.*)$""", RegexOption.IGNORE_CASE)
+
+/** One piece of a summary: a key point, the "why it matters" line, or a plain paragraph. */
+private sealed interface SummaryPart {
+    data class Point(val text: String) : SummaryPart
+
+    data class Why(val text: String) : SummaryPart
+
+    data class Paragraph(val text: String) : SummaryPart
+}
+
+private fun parseSummary(text: String): List<SummaryPart> =
+    text.lines()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .map { line ->
+            WhyItMatters.matchEntire(line)?.let { SummaryPart.Why(it.groupValues[1]) }
+                ?: BulletLine.matchEntire(line)?.let { SummaryPart.Point(it.groupValues[2]) }
+                ?: SummaryPart.Paragraph(line)
+        }
+
+/**
+ * The summary as cards. Key points in a row form one group of tonal cards (big outer corners, small
+ * gaps between them); "Why it matters" is its own accent card with a light bulb. Each new piece
+ * slides in as it is written; a cursor marks the end while text is still coming.
+ */
+@Composable
+private fun SummaryCards(text: String, streaming: Boolean) {
+    val parts = remember(text) { parseSummary(text) }
+    // Split into runs, so a run of points becomes one connected group.
+    val runs =
+        remember(parts) {
+            buildList<List<Pair<Int, SummaryPart>>> {
+                var current = mutableListOf<Pair<Int, SummaryPart>>()
+                parts.forEachIndexed { index, part ->
+                    val joinsRun =
+                        part is SummaryPart.Point && current.lastOrNull()?.second is SummaryPart.Point
+                    if (!joinsRun && current.isNotEmpty()) {
+                        add(current)
+                        current = mutableListOf()
+                    }
+                    current += index to part
+                }
+                if (current.isNotEmpty()) add(current)
+            }
+        }
+    val style = MaterialTheme.typography.bodyLarge
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        runs.forEach { run ->
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                run.forEachIndexed { position, (index, part) ->
+                    val cursor = if (streaming && index == parts.lastIndex) " ▍" else ""
+                    key(index) {
+                        SlideIn {
+                            when (part) {
+                                is SummaryPart.Point ->
+                                    PointCard(
+                                        text = part.text + cursor,
+                                        shape = groupShape(position, run.size),
+                                    )
+                                is SummaryPart.Why -> WhyCard(text = part.text + cursor)
+                                is SummaryPart.Paragraph ->
+                                    Text(
+                                        text = part.text + cursor,
+                                        style = style,
+                                        modifier = Modifier.padding(horizontal = 4.dp),
+                                    )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Fades and slides each card in once, when it first appears. */
+@Composable
+private fun SlideIn(content: @Composable () -> Unit) {
+    val visible = remember { MutableTransitionState(false).apply { targetState = true } }
+    AnimatedVisibility(
+        visibleState = visible,
+        enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+    ) {
+        content()
+    }
+}
+
+/** Big corners on the outside of a group, small ones between its cards. */
+private fun groupShape(position: Int, size: Int): RoundedCornerShape {
+    val outer = 24.dp
+    val inner = 6.dp
+    val top = if (position == 0) outer else inner
+    val bottom = if (position == size - 1) outer else inner
+    return RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
+}
+
+@Composable
+private fun PointCard(text: String, shape: RoundedCornerShape) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = shape,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            // A small accent dot, level with the first line of the text.
+            Box(modifier = Modifier.padding(top = 8.dp).size(8.dp).background(
+                MaterialTheme.colorScheme.primary,
+                CircleShape,
+            ))
+            Spacer(Modifier.width(14.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun WhyCard(text: String) {
+    Surface(
+        // The same colour as the top boxes on the AI model and Filters settings pages.
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(modifier = Modifier.padding(16.dp)) {
+            Icon(
+                Icons.Outlined.Lightbulb,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.ai_why_it_matters),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(text = text, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+    }
+}
+
+/** Ask this article: each question on the right, its answer on the left as it is written. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun AskConversation(asks: List<AskTurn>) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        asks.forEach { turn ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp),
+                    modifier = Modifier.widthIn(max = 300.dp),
+                ) {
+                    Text(
+                        turn.question,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
+                }
+            }
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp),
+                modifier = Modifier.widthIn(max = 340.dp),
+            ) {
+                Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                    when {
+                        turn.error != null ->
+                            Text(
+                                turn.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        turn.answer.isEmpty() && !turn.done ->
+                            LoadingIndicator(modifier = Modifier.size(28.dp))
+                        else ->
+                            Text(
+                                turn.answer + if (turn.done) "" else " \u258D",
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** How much wider the pressed button gets (the other two share the room it takes). */
+private const val PressedGrow = 0.22f
+
+/** One of the sheet's three connected buttons (tonal; [selected] shows it's on, like Ask open). */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SheetSegment(
+    modifier: Modifier,
+    shape: Shape,
+    enabled: Boolean,
+    interaction: MutableInteractionSource,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    selected: Boolean = false,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val container =
+        when {
+            !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+            selected -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.secondaryContainer
+        }
+    val contentColor =
+        when {
+            !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            selected -> MaterialTheme.colorScheme.onPrimary
+            else -> MaterialTheme.colorScheme.onSecondaryContainer
+        }
+    Surface(
+        shape = shape,
+        color = container,
+        contentColor = contentColor,
+        modifier =
+            modifier
+                .height(52.dp)
+                .clip(shape)
+                .combinedClickable(
+                    interactionSource = interaction,
+                    indication = ripple(),
+                    enabled = enabled,
+                    role = Role.Button,
+                    onClick = onClick,
+                    onLongClick = onLongClick,
+                ),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            content = content,
+        )
+    }
+}
+
+@Composable
+private fun SegmentLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+

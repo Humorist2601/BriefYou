@@ -110,20 +110,14 @@ android {
         all { signingConfig = signingConfigs.getByName("release") }
     }
     applicationVariants.all {
-        val variantVersion = versionName
+        val variantVersion = versionName // Brief You
         outputs.all {
             (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
                 "BriefYou-${variantVersion}-${gitCommitHash}.apk"
         }
     }
-    kotlinOptions {
-        freeCompilerArgs =
-            freeCompilerArgs +
-                "-opt-in=kotlin.RequiresOptIn" +
-                // LiteRT-LM is built with a newer Kotlin than this project.
-                "-Xskip-metadata-version-check"
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
+    // Brief You: Kotlin's options are set in kotlin { compilerOptions } below (kotlinOptions is
+    // deprecated).
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -140,9 +134,19 @@ android {
 
 aboutLibraries { excludeFields = arrayOf("generated") }
 
+// Brief You: the compilerOptions DSL, in place of the deprecated kotlinOptions.
+kotlin {
+    compilerOptions {
+        optIn.add("kotlin.RequiresOptIn")
+        // LiteRT-LM is built with a newer Kotlin than this project.
+        freeCompilerArgs.add("-Xskip-metadata-version-check")
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+    }
+}
+
 dependencies {
     // AboutLibraries
-    // Read aloud: the system media notification and controls.
+    // Read aloud: the system media notification and controls. // Brief You
     implementation(libs.androidx.media)
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
@@ -157,7 +161,7 @@ dependencies {
     implementation(libs.compose.ui.util)
     implementation(libs.compose.material)
     implementation(libs.compose.material.icons.extended)
-    implementation(libs.material.kolor)
+    implementation(libs.material.kolor) // Brief You
     implementation(libs.compose.ui.tooling)
     implementation(libs.compose.ui.tooling.preview)
     androidTestImplementation(libs.compose.ui.test.junit4)
@@ -225,7 +229,7 @@ dependencies {
 
     implementation(libs.timber)
 
-    // On-device AI summaries (LiteRT-LM + Gemma)
+    // On-device AI summaries (LiteRT-LM + Gemma) // Brief You
     implementation(libs.litertlm.android)
 
     // Testing

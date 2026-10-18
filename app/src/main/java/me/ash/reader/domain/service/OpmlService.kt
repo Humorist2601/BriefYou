@@ -1,5 +1,8 @@
 package me.ash.reader.domain.service
 
+import me.ash.reader.brief.feeds.FeedIconOverrides // Brief You
+import me.ash.reader.brief.feeds.FeedOrdering
+
 import android.content.Context
 import be.ceau.opml.OpmlWriter
 import be.ceau.opml.entity.Body
@@ -31,7 +34,7 @@ class OpmlService @Inject constructor(
     private val accountService: AccountService,
     private val rssService: RssService,
     private val OPMLDataSource: OPMLDataSource,
-    private val iconOverrides: FeedIconOverrides,
+    private val iconOverrides: FeedIconOverrides, // Brief You
     private val feedOrdering: FeedOrdering,
     @IODispatcher
     private val ioDispatcher: CoroutineDispatcher,
@@ -48,7 +51,7 @@ class OpmlService @Inject constructor(
             val defaultGroup = groupDao.queryById(getDefaultGroupId(context.currentAccountId))!!
             val groupWithFeedList =
                 OPMLDataSource.parseFileInputStream(inputStream, defaultGroup, context.currentAccountId)
-            // Groups you already have are reused (matched by name) instead of being created again,
+            // Groups you already have are reused (matched by name) instead of being created again, // Brief You
             // so restoring a backup puts feeds back into your existing groups.
             val knownGroups =
                 groupDao
@@ -97,7 +100,7 @@ class OpmlService @Inject constructor(
                     null, null, null, null,
                     null, null, null, null,
                 ),
-                // In the user's order (see FeedOrdering), so the file keeps it too.
+                // In the user's order (see FeedOrdering), so the file keeps it too. // Brief You
                 Body(feedOrdering.sort(groupDao.queryAllGroupWithFeed(accountId), accountId).map {
                     Outline(
                         mutableMapOf(
@@ -120,7 +123,7 @@ class OpmlService @Inject constructor(
                                         put("isNotification", feed.isNotification.toString())
                                         put("isFullContent", feed.isFullContent.toString())
                                         put("isBrowser", feed.isBrowser.toString())
-                                        iconOverrides.exportValue(feed.id)?.let {
+                                        iconOverrides.exportValue(feed.id)?.let { // Brief You
                                             put("customIcon", it)
                                         }
                                     }

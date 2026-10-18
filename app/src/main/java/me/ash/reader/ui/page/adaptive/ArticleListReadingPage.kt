@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.adaptive
 
+import me.ash.reader.brief.reading.BriefReadingPage // Brief You
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -58,7 +59,7 @@ fun ArticleListReaderPage(
     viewModel: ArticleListReaderViewModel,
     onBack: () -> Unit,
     onNavigateToStylePage: () -> Unit,
-    onNavigateToAiSettings: () -> Unit = {},
+    onNavigateToAiSettings: () -> Unit = {}, // Brief You
 ) {
 
     val scope = rememberCoroutineScope()
@@ -146,7 +147,7 @@ fun ArticleListReaderPage(
                             viewModel = viewModel,
                             onNavigateUp = onBack,
                             isTwoPane = isTwoPane,
-                            showFilterBar =
+                            showFilterBar = // Brief You
                                 navigator.scaffoldValue[ListDetailPaneScaffoldRole.List] ==
                                     PaneAdaptedValue.Expanded,
                             navigateToArticle = { id, index ->
@@ -181,7 +182,7 @@ fun ArticleListReaderPage(
                 }
 
                 CompositionLocalProvider(LocalTextContentWidth provides animatedContentWidth) {
-                    ReadingPage(
+                    BriefReadingPage( // Brief You: in the picture's colours
                         viewModel = viewModel,
                         navigationAction = navigationAction,
                         onLoadArticle = { id, index ->
@@ -216,7 +217,7 @@ fun ArticleListReaderPage(
                             }
                         },
                         onNavigateToStylePage = onNavigateToStylePage,
-                        onNavigateToAiSettings = onNavigateToAiSettings,
+                        onNavigateToAiSettings = onNavigateToAiSettings, // Brief You
                     )
                 }
             }

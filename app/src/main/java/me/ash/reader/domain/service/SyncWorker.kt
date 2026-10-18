@@ -7,7 +7,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
 import me.ash.reader.domain.model.account.Account
-import me.ash.reader.infrastructure.android.NotificationHelper
+import me.ash.reader.brief.app.BriefSync // Brief You
 import me.ash.reader.infrastructure.rss.ReaderCacheHelper
 
 @HiltWorker
@@ -19,9 +19,7 @@ constructor(
     private val rssService: RssService,
     private val readerCacheHelper: ReaderCacheHelper,
     private val workManager: WorkManager,
-    private val briefFilters: BriefFilters,
-    private val feedIconOverrides: FeedIconOverrides,
-    private val notificationHelper: NotificationHelper,
+    private val brief: BriefSync, // Brief You
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -31,27 +29,14 @@ constructor(
         val feedId = data.getString("feedId")
         val groupId = data.getString("groupId")
 
-        // Brief You: the new-articles notification is posted once, when everything below is done.
-        notificationHelper.syncStarted()
-        return try {
-            syncAndTidyUp(accountId, feedId, groupId)
-        } finally {
-            notificationHelper.syncFinished()
-        }
-    }
-
-    private suspend fun syncAndTidyUp(accountId: Int, feedId: String?, groupId: String?): Result {
-        return rssService
+        return brief.duringSync { // Brief You: one new-articles notification, once it's all done
+        rssService
             .get()
             .sync(accountId = accountId, feedId = feedId, groupId = groupId)
             .also {
-                val removed = rssService.get().clearKeepArchivedArticles()
-                removed.forEach { readerCacheHelper.deleteCacheFor(articleId = it.id) }
-                runCatching { briefFilters.forget(removed.map { it.id }) }
-                // Brief You: mute keywords and duplicate stories.
-                runCatching { briefFilters.apply(accountId) }
-                // Brief You: custom feed icons survive syncs that rewrite icons.
-                runCatching { feedIconOverrides.reapply() }
+                rssService.get().clearKeepArchivedArticles().also { brief.afterSync(accountId, it) }.forEach { // Brief You: filters, icons
+                    readerCacheHelper.deleteCacheFor(articleId = it.id)
+                }
                 workManager
                     .beginUniqueWork(
                         uniqueWorkName = POST_SYNC_WORK_NAME,
@@ -69,6 +54,7 @@ constructor(
                     .then(OneTimeWorkRequestBuilder<WidgetUpdateWorker>().build())
                     .enqueue()
             }
+        } // Brief You
     }
 
     companion object {

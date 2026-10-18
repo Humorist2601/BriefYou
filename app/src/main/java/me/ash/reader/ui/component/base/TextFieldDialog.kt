@@ -1,5 +1,7 @@
 package me.ash.reader.ui.component.base
 
+import me.ash.reader.brief.ui.InWindowAlertDialog // Brief You
+
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -176,7 +178,7 @@ fun TextFieldDialog(
 ) {
     val focusManager = LocalFocusManager.current
 
-    InWindowAlertDialog(
+    InWindowAlertDialog( // Brief You
         modifier = modifier,
         properties = properties,
         onDismissRequest = onDismissRequest,

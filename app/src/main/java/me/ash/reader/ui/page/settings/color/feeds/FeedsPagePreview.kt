@@ -30,7 +30,7 @@ import me.ash.reader.domain.model.general.Filter
 import me.ash.reader.domain.model.group.Group
 import me.ash.reader.infrastructure.preference.FeedsGroupListExpandPreference
 import me.ash.reader.infrastructure.preference.FeedsTopBarTonalElevationPreference
-import me.ash.reader.ui.component.FilterBar
+import me.ash.reader.brief.ui.BriefFilterBar // Brief You
 import me.ash.reader.ui.component.base.FeedbackIconButton
 import me.ash.reader.ui.ext.surfaceColorAtElevation
 import me.ash.reader.ui.page.home.feeds.FeedItem
@@ -94,7 +94,7 @@ fun FeedsPagePreview(
             )
         }
         Spacer(modifier = Modifier.height(12.dp))
-        FilterBar(
+        BriefFilterBar( // Brief You: the preview shows Brief You's bar
             filter = filter,
             filterBarStyle = filterBarStyle,
             filterBarFilled = filterBarFilled,

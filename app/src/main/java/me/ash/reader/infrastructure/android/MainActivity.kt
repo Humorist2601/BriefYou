@@ -1,19 +1,8 @@
 package me.ash.reader.infrastructure.android
 
-import me.ash.reader.ui.component.base.DialogHost
-import me.ash.reader.ui.ext.dataStore
-import me.ash.reader.infrastructure.preference.DarkThemePreference
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
-import androidx.lifecycle.lifecycleScope
-import android.app.UiModeManager
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.Box
-import me.ash.reader.ui.page.splash.BriefSplash
+// Brief You
+import me.ash.reader.brief.app.BriefActivity
+import me.ash.reader.brief.app.BriefRoot
 import android.Manifest
 import android.content.Intent
 import android.database.CursorWindow
@@ -74,23 +63,13 @@ class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var filterUseCase: FilterStateUseCase
 
-    @Inject lateinit var notificationHelper: NotificationHelper
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i("RLog", "onCreate: ${ProfileInstallerInitializer().create(this)}")
 
         enableEdgeToEdge()
 
-        // The animated splash plays on fresh launches only (not when the activity is recreated).
-        // Its first frame is the system splash's (the straight card), so the system splash is
-        // removed at once and BriefSplash tips the card and carries on.
-        val playSplash = savedInstanceState == null
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && playSplash) {
-            splashScreen.setOnExitAnimationListener { view -> view.remove() }
-        }
-
-        syncSplashNightMode()
+        val playSplash = BriefActivity.onCreate(this, savedInstanceState) // Brief You
 
         // Set the language
         if (Build.VERSION.SDK_INT < 33) {
@@ -165,16 +144,7 @@ class MainActivity : AppCompatActivity() {
                             val backStack = rememberNavBackStack(*startDestination.toTypedArray())
 
                             NewIntentHandlerEffect(backStack, subscribeViewModel)
-                            var showSplash by remember { mutableStateOf(playSplash) }
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                // Dialogs are drawn in the app's window (see InWindowDialog).
-                                DialogHost { AppEntry(backStack) }
-                                if (showSplash) {
-                                    BriefSplash(
-                                        onFinished = { showSplash = false },
-                                    )
-                                }
-                            }
+                            BriefRoot(playSplash) { AppEntry(backStack) } // Brief You
                         }
                     }
                 }
@@ -248,37 +218,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         WidgetUpdateWorker.enqueueOneTimeWork(workManager)
-        notificationHelper.clearDigest()
+        BriefActivity.onResume(this) // Brief You
         super.onResume()
-    }
-
-    /**
-     * The system splash is drawn before the app runs, from the phone's light or dark mode. Tell
-     * Android which one the app uses (its Dark theme setting), so the splash on the next launch
-     * matches the app: a light splash for a light app on a dark phone, and the other way round.
-     */
-    private fun syncSplashNightMode() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        val uiModeManager = getSystemService(UiModeManager::class.java) ?: return
-        lifecycleScope.launch {
-            dataStore.data
-                .map { DarkThemePreference.fromPreferences(it) }
-                .distinctUntilChanged()
-                .collect { preference ->
-                    val mode =
-                        when (preference) {
-                            DarkThemePreference.ON -> UiModeManager.MODE_NIGHT_YES
-                            DarkThemePreference.OFF -> UiModeManager.MODE_NIGHT_NO
-                            else -> UiModeManager.MODE_NIGHT_AUTO
-                        }
-                    // Only when it changed: setting it can restart the screen.
-                    val prefs = getSharedPreferences("splash_night_mode", MODE_PRIVATE)
-                    if (prefs.getInt("mode", -1) != mode) {
-                        prefs.edit().putInt("mode", mode).apply()
-                        uiModeManager.setApplicationNightMode(mode)
-                    }
-                }
-        }
     }
 }
 
@@ -330,5 +271,3 @@ private fun Intent.getLaunchAction(): LaunchAction? {
         }
     }
 }
-
-/** How long the system splash takes to fade out over the identical first frame of BriefSplash. */

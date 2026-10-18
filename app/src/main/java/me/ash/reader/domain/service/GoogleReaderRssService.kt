@@ -37,7 +37,7 @@ import me.ash.reader.domain.model.group.Group
 import me.ash.reader.domain.repository.ArticleDao
 import me.ash.reader.domain.repository.FeedDao
 import me.ash.reader.domain.repository.GroupDao
-import me.ash.reader.infrastructure.android.NotificationHelper
+import me.ash.reader.brief.notifications.NotificationHelper // Brief You
 import me.ash.reader.infrastructure.di.DefaultDispatcher
 import me.ash.reader.infrastructure.di.IODispatcher
 import me.ash.reader.infrastructure.di.MainDispatcher

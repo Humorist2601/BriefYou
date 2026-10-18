@@ -14,8 +14,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.ash.reader.ui.interaction.alphaIndicationClickable
-import me.ash.reader.ui.theme.GoogleSansWideFontFamily
-
+import me.ash.reader.brief.ui.GoogleSansWideFontFamily // Brief You
 @Composable
 fun DisplayText(
     modifier: Modifier = Modifier,
@@ -30,7 +29,7 @@ fun DisplayText(
                 .alphaIndicationClickable(enabled = onTextClick != null) { onTextClick?.invoke() }
                 .padding(start = 24.dp, top = 48.dp, end = 24.dp, bottom = 24.dp)
     ) {
-        // Wide, expressive heading. Wide letters take room, so long text (an account name, a
+        // Wide, expressive heading. Wide letters take room, so long text (an account name, a // Brief You
         // translation) shrinks a little instead of being cut off.
         val style =
             MaterialTheme.typography.displaySmall.copy(

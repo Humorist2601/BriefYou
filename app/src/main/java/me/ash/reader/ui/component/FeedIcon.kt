@@ -33,7 +33,7 @@ fun FeedIcon(
     size: Dp = 20.dp,
     placeholderIcon: ImageVector? = null,
 ) {
-    if (iconUrl != null && iconUrl.startsWith(EMOJI_PREFIX)) {
+    if (iconUrl != null && iconUrl.startsWith(EMOJI_PREFIX)) { // Brief You
         Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
             Text(
                 text = iconUrl.removePrefix(EMOJI_PREFIX),

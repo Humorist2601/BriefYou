@@ -1,5 +1,7 @@
 package me.ash.reader.ui.theme
 
+import me.ash.reader.brief.ui.applyTextDirection // Brief You
+
 import android.os.Build
 import android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -17,9 +19,9 @@ import me.ash.reader.ui.theme.palette.LocalTonalPalettes
 import me.ash.reader.ui.theme.palette.TonalPalettes
 import me.ash.reader.ui.theme.palette.core.ProvideZcamViewingConditions
 import me.ash.reader.ui.theme.palette.dynamic.extractTonalPalettesFromUserWallpaper
-import me.ash.reader.ui.theme.palette.ThemeColorSource
-import me.ash.reader.ui.theme.palette.materialYouColorScheme
-import me.ash.reader.ui.theme.palette.themeColorSources
+import me.ash.reader.brief.ui.ThemeColorSource // Brief You
+import me.ash.reader.brief.ui.materialYouColorScheme
+import me.ash.reader.brief.ui.themeColorSources
 import me.ash.reader.ui.theme.palette.dynamic.PresetColor
 import me.ash.reader.infrastructure.preference.LocalAmoledDarkTheme
 

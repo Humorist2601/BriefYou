@@ -1,8 +1,14 @@
 package me.ash.reader.ui.page.home.flow
 
-import me.ash.reader.infrastructure.rss.FeedContent
-import androidx.compose.material.icons.outlined.AutoAwesome
-import me.ash.reader.ui.component.rememberFeedAccent
+// Brief You
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.ui.graphics.Color
+import me.ash.reader.brief.feeds.rememberFeedAccent
+import me.ash.reader.brief.reading.FeedContent
+import me.ash.reader.brief.reading.estimateReadingMinutes
+import me.ash.reader.ui.component.swipe.SwipeableActionsState
+import me.ash.reader.ui.component.swipe.rememberSwipeableActionsState
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -43,7 +49,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -80,14 +85,11 @@ import me.ash.reader.ui.component.base.SIZE_1000
 import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.ui.component.swipe.SwipeAction
 import me.ash.reader.ui.component.swipe.SwipeableActionsBox
-import me.ash.reader.ui.component.swipe.rememberSwipeableActionsState
-import me.ash.reader.ui.component.swipe.SwipeableActionsState
-import androidx.compose.animation.animateColorAsState
 import me.ash.reader.ui.ext.requiresBidi
 import me.ash.reader.ui.ext.surfaceColorAtElevation
 import me.ash.reader.ui.page.settings.color.flow.generateArticleWithFeedPreview
 import me.ash.reader.ui.theme.Shape20
-import me.ash.reader.ui.theme.applyTextDirection
+import me.ash.reader.brief.ui.applyTextDirection // Brief You
 import me.ash.reader.ui.theme.palette.onDark
 
 private const val TAG = "ArticleItem"
@@ -110,10 +112,10 @@ fun ArticleItem(
         title = article.title,
         shortDescription = article.shortDescription,
         timeString = article.dateString,
-        imgData = FeedContent.listImage(article.img, article.link),
+        imgData = FeedContent.listImage(article.img, article.link), // Brief You: better pictures
         isStarred = article.isStarred,
         isUnread = isUnread,
-        readingMinutes = remember(article.id) { estimateReadingMinutes(article.rawDescription) },
+        readingMinutes = remember(article.id) { estimateReadingMinutes(article.rawDescription) }, // Brief You
         onClick = { onClick(articleWithFeed) },
         onLongClick = onLongClick,
     )
@@ -131,7 +133,7 @@ fun ArticleItem(
     imgData: Any? = null,
     isStarred: Boolean = false,
     isUnread: Boolean = false,
-    readingMinutes: Int? = null,
+    readingMinutes: Int? = null, // Brief You
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
@@ -141,6 +143,7 @@ fun ArticleItem(
     val articleListDesc = LocalFlowArticleListDesc.current
     val articleListDate = LocalFlowArticleListTime.current
     val articleListReadIndicator = LocalFlowArticleListReadIndicator.current
+    // Brief You: reading time next to the time ("4 min · 2h").
     val readingLabel = readingMinutes?.let { stringResource(R.string.reading_time_min, it) }
     val timeLabel = listOfNotNull(readingLabel, timeString?.takeIf { it.isNotBlank() })
         .joinToString(" · ")
@@ -198,7 +201,7 @@ fun ArticleItem(
                         // Time
                         Text(
                             modifier = Modifier,
-                            text = timeLabel,
+                            text = timeLabel, // Brief You
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelMedium,
                         )
@@ -206,7 +209,7 @@ fun ArticleItem(
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (articleListFeedIcon.value) {
+                    if (articleListFeedIcon.value) { // Brief You: the icon inline
                         FeedIcon(feedName = feedName, iconUrl = feedIconUrl, size = 16.dp)
                         Spacer(modifier = Modifier.width(6.dp))
                     }
@@ -215,7 +218,7 @@ fun ArticleItem(
                         // Time
                         Text(
                             modifier = Modifier.weight(1f),
-                            text = timeLabel,
+                            text = timeLabel, // Brief You
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelMedium,
                         )
@@ -233,6 +236,7 @@ fun ArticleItem(
 
         // Bottom
         Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            // (Brief You: the feed icon moved up, next to the feed name.)
             // Article
             Column(modifier = Modifier.weight(1f)) {
 
@@ -416,7 +420,7 @@ private fun SwipeActionBox(
     content: @Composable () -> Unit,
 ) {
     val containerColor = MaterialTheme.colorScheme.tertiaryContainer
-    // The icon sits on the page color until the swipe passes the threshold, then on the accent
+    // Brief You: the icon sits on the page color until the swipe passes the threshold, then on the accent
     // container: it uses the accent there, and the container's own "on" color (which Material You
     // keeps readable on it, whatever the theme) after.
     // The color is worked out inside each icon, so only the icon redraws while it changes: if the
@@ -458,7 +462,7 @@ private fun SwipeActionBox(
                             Icon(
                                 imageVector = it,
                                 contentDescription = null,
-                                tint = swipeIconTint(swipeState),
+                                tint = swipeIconTint(swipeState), // Brief You
                                 modifier = Modifier.padding(horizontal = 24.dp),
                             )
                         }
@@ -482,7 +486,7 @@ private fun SwipeActionBox(
                             Icon(
                                 imageVector = it,
                                 contentDescription = null,
-                                tint = swipeIconTint(swipeState),
+                                tint = swipeIconTint(swipeState), // Brief You
                                 modifier = Modifier.padding(horizontal = 24.dp),
                             )
                         }
@@ -495,7 +499,7 @@ private fun SwipeActionBox(
 
     SwipeableActionsBox(
         modifier = modifier,
-        state = swipeState,
+        state = swipeState, // Brief You
         startActions = listOfNotNull(startAction),
         endActions = listOfNotNull(endAction),
         backgroundUntilSwipeThreshold = MaterialTheme.colorScheme.surface,
@@ -702,7 +706,7 @@ fun MenuContentPreview() {
     }
 }
 
-/** The swipe icon's color: the accent on the page color, then the container's "on" color. */
+/** Brief You: the swipe icon's color: the accent on the page color, then the container's "on" color. */
 @Composable
 private fun swipeIconTint(state: SwipeableActionsState): Color {
     val tint by

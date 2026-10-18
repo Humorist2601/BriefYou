@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class) // Brief You
 
 package me.ash.reader.ui.page.settings.accounts.addition
 
@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.LoadingIndicator // Brief You
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -80,7 +80,7 @@ fun AddFreshRSSAccountDialog(
         },
         icon = {
             if (accountUiState.isLoading) {
-                LoadingIndicator(
+                LoadingIndicator( // Brief You
                     modifier = Modifier
                         .size(24.dp),
                     color = MaterialTheme.colorScheme.onSurface,

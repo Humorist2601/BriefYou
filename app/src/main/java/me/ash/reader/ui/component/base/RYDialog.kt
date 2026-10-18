@@ -1,5 +1,6 @@
 package me.ash.reader.ui.component.base
 
+import me.ash.reader.brief.ui.InWindowAlertDialog // Brief You
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.DialogProperties
@@ -17,7 +18,7 @@ fun RYDialog(
     dismissButton: @Composable (() -> Unit)? = null,
 ) {
     if (visible) {
-        // Drawn in the app's window, so text cursor handles sit under the cursor.
+        // Brief You: drawn in the app's window, so text cursor handles sit under the cursor.
         InWindowAlertDialog(
             properties = properties,
             modifier = modifier,

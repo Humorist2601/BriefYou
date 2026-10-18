@@ -54,7 +54,7 @@ import java.io.InputStream
 import me.ash.reader.R
 import me.ash.reader.infrastructure.preference.LocalReadingImageMaximize
 import me.ash.reader.ui.ext.requiresBidi
-import me.ash.reader.ui.theme.applyTextDirection
+import me.ash.reader.brief.ui.applyTextDirection // Brief You
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Node

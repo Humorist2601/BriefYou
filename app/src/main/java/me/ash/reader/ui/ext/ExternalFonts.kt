@@ -5,7 +5,7 @@ import android.graphics.Typeface
 import android.net.Uri
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.font.FontFamily
-import me.ash.reader.ui.theme.SystemTypography
+import me.ash.reader.brief.ui.SystemTypography // Brief You
 import java.io.File
 
 class ExternalFonts(

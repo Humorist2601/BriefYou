@@ -1,19 +1,5 @@
 package me.ash.reader.ui.page.home.reading
 
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import coil.size.Scale
-import coil.size.Precision
-import me.ash.reader.ui.component.base.SIZE_1000
-import me.ash.reader.ui.component.base.RYAsyncImage
-import me.ash.reader.infrastructure.preference.LocalReadingImageRoundedCorners
-import me.ash.reader.infrastructure.rss.FeedContent
-import me.ash.reader.infrastructure.preference.LocalReadingTextHorizontalPadding
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -36,18 +22,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.coerceAtLeast
 import java.util.Date
 import me.ash.reader.infrastructure.preference.LocalReadingRenderer
 import me.ash.reader.infrastructure.preference.LocalReadingSubheadUpperCase
 import me.ash.reader.infrastructure.preference.ReadingRendererPreference
 import me.ash.reader.ui.component.reader.LocalTextContentWidth
 import me.ash.reader.ui.component.reader.Reader
-import me.ash.reader.ui.component.webview.RYWebView
+// Brief You: its own web view, and the article's picture, length and alignment.
+import me.ash.reader.brief.reading.BriefArticleHero
+import me.ash.reader.brief.reading.briefHeadlinePadding
+import me.ash.reader.brief.reading.rememberBriefArticle
+import me.ash.reader.brief.webview.RYWebView
 import me.ash.reader.ui.ext.extractDomain
 import me.ash.reader.ui.ext.roundClick
-import androidx.compose.runtime.remember
-import me.ash.reader.ui.page.home.flow.readingMinutes
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -64,58 +51,28 @@ fun Content(
     isLoading: Boolean,
     contentPadding: PaddingValues = PaddingValues(),
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
-    /** Shown after the article (the next article card). */
-    afterArticle: (@Composable () -> Unit)? = null,
+    afterArticle: (@Composable () -> Unit)? = null, // Brief You: the next article card
 ) {
     val context = LocalContext.current
     val subheadUpperCase = LocalReadingSubheadUpperCase.current
     val renderer = LocalReadingRenderer.current
-    val textHorizontalPadding = LocalReadingTextHorizontalPadding.current
 
     val textContentWidth = LocalTextContentWidth.current
     val maxWidthModifier = Modifier.widthIn(max = textContentWidth)
     val uriHandler = LocalUriHandler.current
-
-    // Actual length of what is being shown (full content when it has been fetched).
-    val minutesToRead = remember(content) { readingMinutes(content) }
-    // An article that starts with a picture shows it large above the title (the hero) instead.
-    val (hero, body) = remember(content) { FeedContent.extractHero(content) }
-    val imageCorners = LocalReadingImageRoundedCorners.current
+    val brief = rememberBriefArticle(content) // Brief You: picture on top, actual length
 
     val headline =
         @Composable {
-            // Lined up with the article text: the reading text padding setting, less the 12 dp
-            // the title block has inside it.
-            Column(
-                modifier =
-                    Modifier.then(maxWidthModifier)
-                        .padding(horizontal = (textHorizontalPadding - 12).coerceAtLeast(0).dp)
-            ) {
-                hero?.let { heroUrl ->
-                    RYAsyncImage(
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                .padding(horizontal = 12.dp)
-                                .padding(top = 8.dp, bottom = 8.dp)
-                                .heightIn(max = 280.dp)
-                                .aspectRatio(16f / 10f)
-                                .clip(RoundedCornerShape(imageCorners.dp.coerceAtLeast(16.dp)))
-                                .clickable { onImageClick?.invoke(heroUrl, title) },
-                        data = heroUrl,
-                        scale = Scale.FILL,
-                        precision = Precision.INEXACT,
-                        size = SIZE_1000,
-                        contentScale = ContentScale.Crop,
-                        contentDescription = title,
-                    )
-                }
+            Column(modifier = Modifier.then(maxWidthModifier).briefHeadlinePadding()) { // Brief You
+                brief.hero?.let { BriefArticleHero(it, title, onImageClick) } // Brief You
                 DisableSelection {
                     Metadata(
                         feedName = feedName,
                         title = title,
                         author = author,
                         publishedDate = publishedDate,
-                        readingMinutes = minutesToRead,
+                        readingMinutes = brief.minutes, // Brief You
                         modifier = Modifier.roundClick { link?.let { uriHandler.openUri(it) } },
                     )
                 }
@@ -132,7 +89,7 @@ fun Content(
                     modifier =
                         modifier
                             .padding(top = contentPadding.calculateTopPadding())
-                            .fillMaxSize()
+                            .fillMaxSize() // Brief You: no scroll bar (progress is in the top bar)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
@@ -146,12 +103,12 @@ fun Content(
 
                             RYWebView(
                                 modifier = Modifier.fillMaxSize(),
-                                content = body,
-                                baseUrl = link,
+                                content = brief.body, // Brief You
+                                baseUrl = link, // Brief You
                                 refererDomain = link.extractDomain(),
                                 onImageClick = onImageClick,
                             )
-                            afterArticle?.invoke()
+                            afterArticle?.invoke() // Brief You
                             Spacer(modifier = Modifier.height(128.dp))
                             Spacer(
                                 modifier = Modifier.height(contentPadding.calculateBottomPadding())
@@ -164,7 +121,7 @@ fun Content(
             ReadingRendererPreference.NativeComponent -> {
                 SelectionContainer {
                     LazyColumn(
-                        modifier = modifier.fillMaxSize(),
+                        modifier = modifier.fillMaxSize(), // Brief You: no scroll bar
                         state = listState,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -180,12 +137,12 @@ fun Content(
                             context = context,
                             subheadUpperCase = subheadUpperCase.value,
                             link = link ?: "",
-                            content = body,
+                            content = brief.body, // Brief You
                             onImageClick = onImageClick,
                             onLinkClick = { uriHandler.openUri(it) },
                         )
 
-                        afterArticle?.let { item { it() } }
+                        afterArticle?.let { item { it() } } // Brief You
 
                         item {
                             Spacer(modifier = Modifier.height(128.dp))

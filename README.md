@@ -189,6 +189,15 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 2. Back in the app, tap **Import model file** and pick it. It's copied into the app; you can delete the download afterwards.
 3. Tap ✨ on any article. The first answer takes a few seconds while the model loads.
 
+## How Brief You is organised
+
+Brief You is kept apart from Read You so Read You's updates merge easily:
+
+- **Brief You's own code** lives in `app/src/main/java/me/ash/reader/brief/` (and its own resources, such as `strings_fork.xml`). Read You never touches these files, so they never conflict.
+- **Read You's files** are changed only with small hooks, each marked `Brief You`, so a conflict always shows whose line is whose.
+- **Rewritten Read You files** (the reading toolbar, top bar, filter bar, web view, read aloud…) have Brief You's own copy instead; Read You's original stays untouched. They're listed in `.github/fork/copies.txt`, and each *Read You update* pull request lists the ones Read You changed, to copy over by hand.
+- `.github/fork/fork_check.py` checks this: every build warns about unmarked changes to Read You's files, and each update pull request includes a merge-risk report.
+
 ## Building
 
 Open the project in [Android Studio](https://developer.android.com/studio) and run it, or build from the command line with `./gradlew assembleGithubRelease`.

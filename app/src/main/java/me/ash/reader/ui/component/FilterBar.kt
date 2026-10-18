@@ -4,26 +4,20 @@ import android.os.Build
 import android.view.SoundEffectConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -33,20 +27,6 @@ import me.ash.reader.infrastructure.preference.FlowFilterBarStylePreference
 import me.ash.reader.infrastructure.preference.LocalThemeIndex
 import me.ash.reader.ui.ext.surfaceColorAtElevation
 import me.ash.reader.ui.theme.palette.onDark
-
-/** Brief You: a tall bar, like a music player's. Taller than the stock navigation bar. */
-fun filterBarContainerHeight(filterBarStyle: Int): Dp =
-    when (filterBarStyle) {
-        FlowFilterBarStylePreference.Icon.value -> 76.dp
-        else -> 88.dp
-    }
-
-/**
- * The gap under everything that floats at the bottom of the screen: the reading page's pill (above
- * the system gesture bar), and the article list's AI gist / Triage button and pull-up hint (above
- * the bottom bar).
- */
-val FloatingBarGap = 12.dp
 
 @Composable
 fun FilterBar(
@@ -66,45 +46,20 @@ fun FilterBar(
         MaterialTheme.colorScheme.primaryContainer
     } onDark MaterialTheme.colorScheme.secondaryContainer
 
-    val containerHeight = filterBarContainerHeight(filterBarStyle)
+    val containerHeight = when (filterBarStyle) {
+        FlowFilterBarStylePreference.Icon.value -> 64.dp
+        else -> 80.dp
+    }
 
-    // A fade to black behind the bar: clear at the top, fully black from the bottom of the bar down
-    // to the screen edge, so nothing shows below the bar. On a light theme it fades into the page
-    // color instead, since black would look harsh there.
-    val scrim =
-        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color.Black
-        else MaterialTheme.colorScheme.background
-
-    // Brief You: a floating bar with rounded corners (not a full-width strip, and not a pill). It
-    // sits right on top of the system gesture area, with side margins and a little room above.
-    Box(
-        modifier =
-            modifier
-                .drawBehind {
-                    // Where the bar ends: everything from there down is solid.
-                    val barBottom = (FILTER_BAR_TOP_PADDING + containerHeight).toPx()
-                    val solidFrom = (barBottom / size.height).coerceIn(0.3f, 1f)
-                    drawRect(
-                        Brush.verticalGradient(
-                            0f to scrim.copy(alpha = 0f),
-                            solidFrom to scrim,
-                            1f to scrim,
-                        )
-                    )
-                }
-                .windowInsetsPadding(NavigationBarDefaults.windowInsets)
-                .padding(start = 20.dp, end = 20.dp, top = FILTER_BAR_TOP_PADDING)
-    ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceColorAtElevation(filterBarTonalElevation),
-        shape = RoundedCornerShape(32.dp),
-        shadowElevation = 6.dp,
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier
     ) {
         Row(
             modifier =
             Modifier
                 .fillMaxWidth()
+                .windowInsetsPadding(NavigationBarDefaults.windowInsets)
                 .defaultMinSize(minHeight = containerHeight)
                 .selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -160,6 +115,5 @@ fun FilterBar(
             }
             Spacer(modifier = Modifier.width(filterBarPadding))
         }
-    }
     }
 }

@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 import me.ash.reader.domain.model.feed.Feed
 import me.ash.reader.domain.model.group.Group
 import me.ash.reader.domain.repository.FeedDao
-import me.ash.reader.domain.service.FeedIconOverrides
+import me.ash.reader.brief.feeds.FeedIconOverrides // Brief You
 import me.ash.reader.domain.service.RssService
 import me.ash.reader.infrastructure.di.ApplicationScope
 import me.ash.reader.infrastructure.di.IODispatcher
@@ -35,7 +35,7 @@ constructor(
     @ApplicationScope private val applicationScope: CoroutineScope,
     private val rssHelper: RssHelper,
     private val feedDao: FeedDao,
-    private val iconOverrides: FeedIconOverrides,
+    private val iconOverrides: FeedIconOverrides, // Brief You
 ) : ViewModel() {
 
     private val _feedOptionUiState = MutableStateFlow(FeedOptionUiState())

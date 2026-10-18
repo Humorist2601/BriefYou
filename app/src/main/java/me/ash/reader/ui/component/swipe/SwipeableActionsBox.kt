@@ -104,7 +104,7 @@ fun SwipeableActionsBox(
 
   val hapticFeedback = LocalHapticFeedback.current
   if (state.hasCrossedSwipeThreshold() && state.swipedAction == null) {
-    // Keyed on the side, not the action object: the actions are rebuilt whenever the caller
+    // Keyed on the side, not the action object: the actions are rebuilt whenever the caller // Brief You
     // recomposes, which would otherwise buzz again on every frame.
     LaunchedEffect(state.visibleAction?.isOnRightSide) {
       hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)

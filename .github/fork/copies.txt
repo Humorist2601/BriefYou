@@ -1,0 +1,15 @@
+# Read You files that Brief You replaced with its own copy (Read You path -> Brief You copy).
+# Read You's original stays in the repo untouched (and unused), so merges never conflict there,
+# but Read You's fixes to these files don't reach Brief You on their own: the merge-risk report
+# in each "Read You update" pull request lists the ones Read You changed, to copy over by hand.
+app/src/main/java/me/ash/reader/infrastructure/android/TextToSpeech.kt -> app/src/main/java/me/ash/reader/brief/readaloud/ReadAloud.kt
+app/src/main/java/me/ash/reader/ui/page/home/reading/tts/TtsButton.kt -> app/src/main/java/me/ash/reader/brief/readaloud/ReadAloudButton.kt
+app/src/main/java/me/ash/reader/ui/page/home/reading/BottomBar.kt -> app/src/main/java/me/ash/reader/brief/reading/ReadingBar.kt
+app/src/main/java/me/ash/reader/ui/page/home/reading/ReaderImagePage.kt -> app/src/main/java/me/ash/reader/brief/reading/ReaderImagePage.kt
+app/src/main/java/me/ash/reader/infrastructure/android/NotificationHelper.kt -> app/src/main/java/me/ash/reader/brief/notifications/NotificationHelper.kt
+app/src/main/java/me/ash/reader/ui/component/webview/RYWebView.kt -> app/src/main/java/me/ash/reader/brief/webview/RYWebView.kt
+app/src/main/java/me/ash/reader/ui/component/webview/WebViewClient.kt -> app/src/main/java/me/ash/reader/brief/webview/WebViewClient.kt
+app/src/main/java/me/ash/reader/ui/component/webview/WebViewLayout.kt -> app/src/main/java/me/ash/reader/brief/webview/WebViewLayout.kt
+app/src/main/java/me/ash/reader/ui/theme/Type.kt -> app/src/main/java/me/ash/reader/brief/ui/Type.kt
+app/src/main/java/me/ash/reader/ui/page/home/reading/TopBar.kt -> app/src/main/java/me/ash/reader/brief/reading/ReadingTopBar.kt
+app/src/main/java/me/ash/reader/ui/component/FilterBar.kt -> app/src/main/java/me/ash/reader/brief/ui/BriefFilterBar.kt

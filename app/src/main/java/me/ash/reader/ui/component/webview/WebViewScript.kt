@@ -88,7 +88,7 @@ images.forEach(function(img) {
         }
     };
 
-    // Keep a picture's own fallback (a sharper version that can't load falls back to the
+    // Brief You: keep a picture's own fallback (a sharper version that can't load falls back to the
     // normal one, see FeedContent).
     if (!img.onerror) {
         img.onerror = function() {

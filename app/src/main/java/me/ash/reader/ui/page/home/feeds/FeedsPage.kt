@@ -1,8 +1,17 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
-
 package me.ash.reader.ui.page.home.feeds
 
+// Brief You
 import android.os.Build
+import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.outlined.FilterAlt
+import me.ash.reader.brief.feeds.BriefFeedSortSheet
+import me.ash.reader.brief.feeds.BriefFeedsPages
+import me.ash.reader.brief.feeds.rememberBriefFeedsPager
+import me.ash.reader.brief.ui.SharedFilterBarSlot
+import me.ash.reader.brief.ui.TonalCircleButton
+import me.ash.reader.brief.ui.TopBarAction
+import me.ash.reader.brief.ui.TopBarButtonGroup
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -23,13 +32,8 @@ import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Sort
-import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.UnfoldLess
@@ -37,30 +41,15 @@ import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.runtime.saveable.rememberSaveable
-import me.ash.reader.ui.component.FilterBarSpace
-import me.ash.reader.ui.component.TonalCircleButton
-import me.ash.reader.ui.component.TopBarAction
-import me.ash.reader.ui.component.TopBarButtonGroup
-import me.ash.reader.ui.component.FilterBarSpec
-import me.ash.reader.ui.component.ProvideFilterBar
-import me.ash.reader.ui.page.home.feeds.sort.FeedSortViewModel
-import me.ash.reader.ui.page.home.feeds.sort.FeedSortSheet
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,7 +59,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -83,12 +71,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.eventFlow
 import androidx.work.WorkInfo
 import kotlin.collections.set
-import kotlin.math.absoluteValue
-import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import me.ash.reader.R
-import me.ash.reader.domain.model.general.Filter
-import me.ash.reader.domain.model.group.GroupWithFeed
 import me.ash.reader.infrastructure.preference.LocalFeedsFilterBarPadding
 import me.ash.reader.infrastructure.preference.LocalFeedsFilterBarStyle
 import me.ash.reader.infrastructure.preference.LocalFeedsFilterBarTonalElevation
@@ -124,18 +108,14 @@ fun FeedsPage(
     accountViewModel: AccountViewModel = hiltViewModel(),
     feedsViewModel: FeedsViewModel = hiltViewModel(),
     subscribeViewModel: SubscribeViewModel = hiltViewModel(),
-    sortViewModel: FeedSortViewModel = hiltViewModel(),
     navigateToSettings: () -> Unit,
     navigationToFlow: () -> Unit,
     navigateToAccountList: () -> Unit,
     navigateToAccountDetail: (Int) -> Unit,
-    navigateToFilters: () -> Unit = {},
+    navigateToFilters: () -> Unit = {}, // Brief You
 ) {
     var accountTabVisible by remember { mutableStateOf(false) }
-
-    // Sorting: the sheet with the sort for groups and for feeds.
-    var sortSheetVisible by remember { mutableStateOf(false) }
-    val sortSettings = sortViewModel.settings.collectAsStateValue()
+    var sortSheetVisible by remember { mutableStateOf(false) } // Brief You
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -162,50 +142,9 @@ fun FeedsPage(
     val newVersion = LocalNewVersionNumber.current
     val skipVersion = LocalSkipVersionNumber.current
     val currentVersion = remember { context.getCurrentVersion() }
-
-    // Brief You: Starred, Unread and All are pages you can swipe between (in the order of the bar
-    // at the bottom). Each page keeps its own scroll position.
-    val filters = Filter.values
-    val currentPage = filters.indexOf(filterState.filter).coerceAtLeast(0)
-    val pagerState = rememberPagerState(initialPage = currentPage) { filters.size }
-    val listStates = List(filters.size) { rememberLazyListState() }
-    val listState = listStates[pagerState.currentPage.coerceIn(0, filters.lastIndex)]
-
-    // Tapping the bar (or a filter changed on another screen): slide to that page. While it
-    // slides past the pages in between, those must not become the filter.
-    val latestFilterState by rememberUpdatedState(filterState)
-    var slidingToPage by remember { mutableStateOf(false) }
-    val pageSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
-    LaunchedEffect(currentPage) {
-        // A swipe changes the filter itself, half way; the pager is then already on that page and
-        // finishes the swipe on its own. Animating here too would fight your finger (and the fling)
-        // and make swiping feel laggy, so only a filter the pager isn't on yet slides it.
-        if (pagerState.currentPage != currentPage) {
-            slidingToPage = true
-            try {
-                pagerState.animateScrollToPage(currentPage, animationSpec = pageSpec)
-            } finally {
-                slidingToPage = false
-            }
-        }
-    }
-    // Swiping: the filter follows the page as soon as you pass the middle, so the new page has its
-    // own data by the time it settles. A tick marks the change, like a segmented control.
-    LaunchedEffect(pagerState) {
-        merge(
-                snapshotFlow { pagerState.currentPage },
-                snapshotFlow { pagerState.settledPage },
-            )
-            .collect { page ->
-                val current = latestFilterState
-                if (!slidingToPage && filters.getOrNull(page) != null &&
-                    filters[page] != current.filter
-                ) {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                    feedsViewModel.changeFilter(current.copy(filter = filters[page]))
-                }
-            }
-    }
+    // Brief You: Starred, Unread and All are pages you swipe between, each with its own list.
+    val feedsPager = rememberBriefFeedsPager(filterState, feedsViewModel)
+    val listState = feedsPager.listState
 
     val owner = LocalLifecycleOwner.current
 
@@ -252,11 +191,9 @@ fun FeedsPage(
         rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden, skipHalfExpanded = true)
     val feedDrawerState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden, skipHalfExpanded = true)
 
-    // On Android 12+ the system already sends a root activity to the background on Back, and
-    // leaving Back unhandled here lets the predictive "back to home" animation play.
-    BackHandler(Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-        context.findActivity()?.moveTaskToBack(false)
-    }
+    // Brief You: on Android 12+ the system already sends a root activity to the background on
+    // Back, and leaving Back unhandled lets the predictive "back to home" animation play.
+    BackHandler(Build.VERSION.SDK_INT < Build.VERSION_CODES.S) { context.findActivity()?.moveTaskToBack(false) }
 
     RYScaffold(
         topBarTonalElevation = topBarTonalElevation.value.dp,
@@ -276,7 +213,8 @@ fun FeedsPage(
                         interactionSource = remember { MutableInteractionSource() },
                     ),
                 title = {},
-                // Material 3 Expressive: tonal buttons, the actions connected into one pill.
+                // Brief You: Material 3 Expressive tonal buttons, the actions connected into one
+                // pill, with Sort and Filters added.
                 navigationIcon = {
                     TonalCircleButton(
                         icon = Icons.Outlined.Settings,
@@ -287,32 +225,12 @@ fun FeedsPage(
                     }
                 },
                 actions = {
-                    TopBarButtonGroup(
+                    TopBarButtonGroup( // Brief You
                         buildList {
-                            // Brief You: sort groups and feeds.
-                            add(
-                                TopBarAction(
-                                    Icons.AutoMirrored.Outlined.Sort,
-                                    stringResource(R.string.sort_title),
-                                ) {
-                                    sortSheetVisible = true
-                                }
-                            )
-                            // Brief You: mute keywords, duplicates and the filter log.
-                            add(
-                                TopBarAction(
-                                    Icons.Outlined.FilterAlt,
-                                    stringResource(R.string.filters_settings),
-                                ) {
-                                    navigateToFilters()
-                                }
-                            )
+                            add(TopBarAction(Icons.AutoMirrored.Outlined.Sort, stringResource(R.string.sort_title)) { sortSheetVisible = true })
+                            add(TopBarAction(Icons.Outlined.FilterAlt, stringResource(R.string.filters_settings)) { navigateToFilters() })
                             if (subscribeViewModel.rssService.get().addSubscription) {
-                                add(
-                                    TopBarAction(Icons.Rounded.Add, stringResource(R.string.subscribe)) {
-                                        subscribeViewModel.showDrawer()
-                                    }
-                                )
+                                add(TopBarAction(Icons.Rounded.Add, stringResource(R.string.subscribe)) { subscribeViewModel.showDrawer() })
                             }
                         }
                     )
@@ -327,185 +245,135 @@ fun FeedsPage(
             )
         },
         content = {
-            PullToRefreshBox(
-                state = syncingState,
-                isRefreshing = isSyncing,
-                onRefresh = doSync,
-                // Material 3 Expressive shape-morphing refresh indicator.
-                indicator = {
-                    PullToRefreshDefaults.LoadingIndicator(
-                        state = syncingState,
-                        isRefreshing = isSyncing,
-                        modifier = Modifier.align(Alignment.TopCenter),
-                    )
-                },
-            ) {
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize(),
-                    key = { filters[it].index },
-                    // All three pages stay ready, so the one you swipe to is already filled in.
-                    beyondViewportPageCount = filters.size - 1,
-                ) { page ->
-                    val pageFilter = filters[page]
-                    // Each page has its own list and count line, so a page never shows
-                    // another filter's groups, even for a moment while swiping.
-                    val pageGroups by
-                        feedsViewModel.groupWithFeedsListFlow(pageFilter).collectAsState()
-                    val pageSum by feedsViewModel.importantSumFlow(pageFilter).collectAsState()
-                    val data = FeedsPageData(pageGroups, pageSum)
-                    val pageListState = listStates[page]
-                    Box(
-                        modifier =
-                            Modifier.fillMaxSize().graphicsLayer {
-                                // The page you swipe away from shrinks and dims a little, the one
-                                // coming in grows into place.
-                                val offset =
-                                    ((pagerState.currentPage - page) +
-                                            pagerState.currentPageOffsetFraction)
-                                        .absoluteValue
-                                        .coerceIn(0f, 1f)
-                                val scale = 1f - 0.06f * offset
-                                scaleX = scale
-                                scaleY = scale
-                                alpha = 1f - 0.4f * offset
-                            }
-                    ) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize().drawVerticalScrollIndicator(pageListState),
-                            state = pageListState,
+            // Brief You: swipeable Starred / Unread / All pages; each runs Read You's list below
+            // with its own filter state, groups, count line and list state.
+            BriefFeedsPages(feedsPager, feedsViewModel, filterState, state = syncingState, isRefreshing = isSyncing, onRefresh = doSync) { filterState, groupWithFeedList, importantSum, listState ->
+                LazyColumn(modifier = Modifier.fillMaxSize().drawVerticalScrollIndicator(listState), state = listState) {
+                    item {
+                        DisplayText(text = feedsUiState.account?.name ?: "", desc = "") {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            accountTabVisible = true
+                        }
+                    }
+                    item {
+                        FeedsBanner(
+                            filter = filterState.filter,
+                            desc = importantSum.ifEmpty { stringResource(R.string.loading) },
                         ) {
-                            item {
-                                DisplayText(text = feedsUiState.account?.name ?: "", desc = "") {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                    accountTabVisible = true
-                                }
+                            feedsViewModel.changeFilter(filterState.copy(group = null, feed = null))
+                            navigationToFlow()
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 26.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.feeds),
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                            IconButton(
+                                onClick = {
+                                    if (hasGroupVisible) collapseAllGroups() else expandAllGroups()
+                                },
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .size(28.dp),
+                            ) {
+                                Icon(
+                                    imageVector =
+                                        if (hasGroupVisible) Icons.Rounded.UnfoldLess
+                                        else Icons.Rounded.UnfoldMore,
+                                    contentDescription = stringResource(R.string.unfold_less),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
                             }
-                            item {
-                                FeedsBanner(
-                                    filter = pageFilter,
-                                    desc = data.importantSum.ifEmpty { stringResource(R.string.loading) },
-                                ) {
-                                    feedsViewModel.changeFilter(
-                                        filterState.copy(filter = pageFilter, group = null, feed = null)
-                                    )
-                                    navigationToFlow()
-                                }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    itemsIndexed(groupWithFeedList) { _, (group, feeds) ->
+                        GroupWithFeedsContainer {
+                            GroupItem(
+                                isExpanded = {
+                                    groupsVisible.getOrPut(group.id, groupListExpand::value)
+                                },
+                                group = group,
+                                onExpanded = {
+                                    groupsVisible[group.id] =
+                                        groupsVisible
+                                            .getOrPut(group.id, groupListExpand::value)
+                                            .not()
+                                },
+                                onLongClick = { scope.launch { groupDrawerState.show() } },
+                            ) {
+                                feedsViewModel.changeFilter(
+                                    filterState.copy(group = group, feed = null)
+                                )
+                                navigationToFlow()
                             }
 
-                            item {
-                                Spacer(modifier = Modifier.height(24.dp))
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 26.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.feeds),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        style = MaterialTheme.typography.labelLarge,
-                                    )
-                                    IconButton(
-                                        onClick = {
-                                            if (hasGroupVisible) collapseAllGroups() else expandAllGroups()
-                                        },
-                                        modifier = Modifier
-                                            .padding(end = 8.dp)
-                                            .size(28.dp),
-                                    ) {
-                                        Icon(
-                                            imageVector =
-                                                if (hasGroupVisible) Icons.Rounded.UnfoldLess
-                                                else Icons.Rounded.UnfoldMore,
-                                            contentDescription = stringResource(R.string.unfold_less),
-                                            tint = MaterialTheme.colorScheme.primary,
+                            feeds.forEachIndexed { index, feed ->
+                                FeedItem(
+                                    feed = feed,
+                                    isLastItem = { index == feeds.lastIndex },
+                                    isExpanded = {
+                                        groupsVisible.getOrPut(feed.groupId, groupListExpand::value)
+                                    },
+                                    onClick = {
+                                        feedsViewModel.changeFilter(
+                                            filterState.copy(feed = feed, group = null)
                                         )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-
-                                itemsIndexed(data.groupWithFeedList) { _, (group, feeds) ->
-                                    GroupWithFeedsContainer {
-                                        GroupItem(
-                                            isExpanded = {
-                                                groupsVisible.getOrPut(group.id, groupListExpand::value)
-                                            },
-                                            group = group,
-                                            onExpanded = {
-                                                groupsVisible[group.id] =
-                                                    groupsVisible
-                                                        .getOrPut(group.id, groupListExpand::value)
-                                                        .not()
-                                            },
-                                            onLongClick = { scope.launch { groupDrawerState.show() } },
-                                        ) {
-                                            feedsViewModel.changeFilter(
-                                                filterState.copy(filter = pageFilter, group = group, feed = null)
-                                            )
-                                            navigationToFlow()
-                                        }
-
-                                        feeds.forEachIndexed { index, feed ->
-                                            FeedItem(
-                                                feed = feed,
-                                                isLastItem = { index == feeds.lastIndex },
-                                                isExpanded = {
-                                                    groupsVisible.getOrPut(feed.groupId, groupListExpand::value)
-                                                },
-                                                onClick = {
-                                                    feedsViewModel.changeFilter(
-                                                        filterState.copy(filter = pageFilter, feed = feed, group = null)
-                                                    )
-                                                    navigationToFlow()
-                                                },
-                                                onLongClick = { scope.launch { feedDrawerState.show() } },
-                                            )
-                                        }
-                                    }
-                                }
-
-                            item {
-                                Spacer(modifier = Modifier.height(128.dp))
-                                Spacer(
-                                    modifier =
-                                        Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars)
+                                        navigationToFlow()
+                                    },
+                                    onLongClick = { scope.launch { feedDrawerState.show() } },
                                 )
                             }
                         }
                     }
+
+                    item {
+                        Spacer(modifier = Modifier.height(128.dp))
+                        Spacer(
+                            modifier =
+                                Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars)
+                        )
+                    }
                 }
             }
         },
-        // The filter bar is drawn once for the whole app, above every screen (SharedFilterBar),
-        // so it stays exactly in place while moving to and from the article list. This keeps its
-        // space.
-        bottomBar = { FilterBarSpace(filterBarStyle.value) },
-    )
-
-    ProvideFilterBar(
-        FilterBarSpec(
-            filter = filterState.filter,
-            style = filterBarStyle.value,
-            padding = filterBarPadding.dp,
-            tonalElevation = filterBarTonalElevation.value.dp,
-            // The option drawers are drawn inside the screen, so the bar steps aside for them.
-            enabled = !groupDrawerState.isVisible && !feedDrawerState.isVisible,
-            onClick = { feedsViewModel.changeFilter(filterState.copy(filter = it)) },
-        )
+        bottomBar = {
+            // Brief You: one bar for the whole app; it steps aside for the option drawers.
+            SharedFilterBarSlot(
+                enabled = !groupDrawerState.isVisible && !feedDrawerState.isVisible,
+                modifier =
+                    with(sharedTransitionScope) {
+                        Modifier.sharedElement(
+                            sharedContentState = rememberSharedContentState("filterBar"),
+                            animatedVisibilityScope = animatedVisibilityScope,
+                        )
+                    },
+                filter = filterState.filter,
+                filterBarStyle = filterBarStyle.value,
+                filterBarFilled = true,
+                filterBarPadding = filterBarPadding.dp,
+                filterBarTonalElevation = filterBarTonalElevation.value.dp,
+            ) {
+                feedsViewModel.changeFilter(filterState.copy(filter = it))
+            }
+        },
     )
 
     SubscribeDialog(subscribeViewModel = subscribeViewModel)
 
-    FeedSortSheet(
-        visible = sortSheetVisible,
-        settings = sortSettings,
-        onDismiss = { sortSheetVisible = false },
-        onGroupMode = sortViewModel::setGroupMode,
-        onFeedMode = sortViewModel::setFeedMode,
-    )
+    BriefFeedSortSheet(sortSheetVisible) { sortSheetVisible = false } // Brief You
 
     GroupOptionDrawer(drawerState = groupDrawerState)
     FeedOptionDrawer(drawerState = feedDrawerState)
@@ -528,6 +396,3 @@ fun FeedsPage(
         onDismissRequest = { accountTabVisible = false },
     )
 }
-
-/** What one page of the Feeds screen shows: its groups and feeds, and the count line on top. */
-private data class FeedsPageData(val groupWithFeedList: List<GroupWithFeed>, val importantSum: String)

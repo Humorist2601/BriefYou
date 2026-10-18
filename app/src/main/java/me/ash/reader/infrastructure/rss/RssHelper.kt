@@ -1,5 +1,7 @@
 package me.ash.reader.infrastructure.rss
 
+import me.ash.reader.brief.reading.FeedContent // Brief You
+
 import android.content.Context
 import android.util.Log
 import com.rometools.modules.mediarss.MediaEntryModule
@@ -228,7 +230,7 @@ constructor(
             rawDescription = content ?: desc ?: "",
             shortDescription = Readability.parseToText(desc ?: content, syndEntry.link).take(280),
             //            fullContent = content,
-            img =
+            img = // Brief You
                 FeedContent.listImage(
                     findThumbnail(syndEntry) ?: findThumbnail(content ?: desc),
                     syndEntry.link,
