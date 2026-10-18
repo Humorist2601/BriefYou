@@ -69,7 +69,7 @@ fun Modifier.articlePage(
             enter = fadeIn(tween(FADE_MS, delayMillis = FADE_DELAY_MS)),
             exit = fadeOut(tween(FADE_MS)),
             boundsTransform = ArticleBounds,
-            resizeMode = SharedTransitionScope.ResizeMode.ScaleToBounds(ContentScale.Crop, Alignment.TopCenter),
+            resizeMode = ScaleToBounds(ContentScale.Crop, Alignment.TopCenter),
             clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(CardCorner)),
         )
     }
