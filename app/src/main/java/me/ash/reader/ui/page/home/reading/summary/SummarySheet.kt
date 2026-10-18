@@ -1,5 +1,9 @@
 package me.ash.reader.ui.page.home.reading.summary
 
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import me.ash.reader.ui.page.home.reading.tts.ReadAloudSpeedSheet
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -130,6 +134,15 @@ fun SummarySheet(
     val isArticle = request is SummaryRequest.Article
     val asks = viewModel.asks.collectAsStateValue()
     var question by rememberSaveable(requestKey) { mutableStateOf("") }
+    var showSpeedSheet by remember { mutableStateOf(false) }
+    if (showSpeedSheet) {
+        val speed = viewModel.textToSpeechManager.speed.collectAsStateValue()
+        ReadAloudSpeedSheet(
+            speed = speed,
+            onSpeed = { viewModel.textToSpeechManager.setSpeed(it) },
+            onDismiss = { showSpeedSheet = false },
+        )
+    }
 
     LaunchedEffect(requestKey) { viewModel.start(request) }
     DisposableEffect(Unit) { onDispose { viewModel.stop() } }
@@ -320,8 +333,16 @@ fun SummarySheet(
                 // A small gap between the points and the buttons, so the points don't run
                 // straight into them as they scroll.
                 Spacer(Modifier.height(12.dp))
-                // Ask this article (once the summary is written).
-                if (isArticle && done) {
+                // Ask this article: once the summary is written, the box slides up from behind the
+                // buttons and settles above them.
+                AnimatedVisibility(
+                    visible = isArticle && done,
+                    enter =
+                        expandVertically(expandFrom = Alignment.Bottom) +
+                            slideInVertically(initialOffsetY = { it }) +
+                            fadeIn(),
+                    exit = shrinkVertically(shrinkTowards = Alignment.Bottom) + fadeOut(),
+                ) { Column {
                     val asking = asks.lastOrNull()?.done == false
                     val send = {
                         if (question.isNotBlank() && !asking) {
@@ -348,7 +369,7 @@ fun SummarySheet(
                         },
                     )
                     Spacer(Modifier.height(10.dp))
-                }
+                } }
                 if (!isArticle && actionCount != null) {
                     val marked = gistMarkedRead
                     Button(
@@ -397,13 +418,11 @@ fun SummarySheet(
                         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                         Text(stringResource(R.string.ai_summary_regenerate))
                     }
-                    // Read aloud: tap to start, then tap to pause or play, long press to stop
-                    // (reading or paused). Before it starts, long press opens the speech settings.
+                    // Read aloud: tap to start, then tap to pause or play. Long press: the speech
+                    // settings before it starts, the speed while reading, stop while paused.
                     // While reading, a wavy ring shows how far it has got (like the reading bar).
                     val paused = ttsState is TextToSpeechManager.State.Paused
-                    // With the speed pill on the right while reading, this one is the middle piece.
-                    val buttonShape =
-                        if (reading) RoundedCornerShape(8, 8, 8, 8) else RoundedCornerShape(8, 50, 50, 8)
+                    val buttonShape = RoundedCornerShape(8, 50, 50, 8)
                     val haptic = LocalHapticFeedback.current
                     Surface(
                         shape = buttonShape,
@@ -425,8 +444,11 @@ fun SummarySheet(
                                     },
                                     onLongClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        if (reading) viewModel.stopReading()
-                                        else context.openTtsSettings()
+                                        when {
+                                            !reading -> context.openTtsSettings()
+                                            paused -> viewModel.stopReading()
+                                            else -> showSpeedSheet = true
+                                        }
                                     },
                                 ),
                     ) {
@@ -468,33 +490,6 @@ fun SummarySheet(
                                 ),
                                 style = MaterialTheme.typography.labelLarge,
                             )
-                        }
-                    }
-                    // The speed (0.8× to 2×), the last piece of the pill, while reading or paused.
-                    if (reading) {
-                        val speed = viewModel.textToSpeechManager.speed.collectAsStateValue()
-                        val speedShape = RoundedCornerShape(8, 50, 50, 8)
-                        Surface(
-                            shape = speedShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier =
-                                Modifier.height(52.dp)
-                                    .clip(speedShape)
-                                    .clickable(role = Role.Button) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        viewModel.textToSpeechManager.cycleSpeed()
-                                    },
-                        ) {
-                            Box(
-                                modifier = Modifier.padding(horizontal = 18.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    TextToSpeechManager.speedLabel(speed),
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            }
                         }
                     }
                 }

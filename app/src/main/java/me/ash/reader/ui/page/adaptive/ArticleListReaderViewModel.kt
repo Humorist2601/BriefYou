@@ -397,6 +397,19 @@ constructor(
         }
     }
 
+    /**
+     * How many articles are unread in the account (with changes not saved yet), for inbox zero.
+     * Null until known.
+     */
+    val unreadTotal: StateFlow<Int?> =
+        rssService
+            .get()
+            .pullImportant(isStarred = false, isUnread = true)
+            .combine(diffMapHolder.diffMapSnapshotFlow) { counts, diffs ->
+                counts.values.sum() + diffs.values.sumOf { if (it.isUnread) 1.toInt() else -1 }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     /** An article's title, feed and picture, for the next article card at the end of an article. */
     suspend fun previewArticle(id: String): ArticleWithFeed? =
         runCatching { rssService.get().findArticleById(id) }.getOrNull()

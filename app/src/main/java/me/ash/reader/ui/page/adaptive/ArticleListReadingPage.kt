@@ -149,11 +149,14 @@ fun ArticleListReaderPage(
                 exitTransition =
                     if (isTwoPane) motionDataProvider.calculateExitTransition(paneRole)
                     // Kept (fully shown) until the article has finished opening over it.
-                    else fadeOut(tween(durationMillis = 1, delayMillis = LIST_KEEP_MS)),
+                    else fadeOut(tween(durationMillis = 1, delayMillis = ARTICLE_OPEN_MS + 10)),
             ) {
                 CompositionLocalProvider(
                     LocalBackgroundTextMeasurementExecutor provides
-                        Executors.newSingleThreadExecutor()
+                        Executors.newSingleThreadExecutor(),
+                    // The cards grow into the article on a phone (see ArticleReveal).
+                    LocalArticleSharedScope provides if (isTwoPane) null else sharedTransitionScope,
+                    LocalArticleListPaneScope provides this,
                 ) {
                     Box(modifier = Modifier.alpha(animatedListAlpha)) {
                         FlowPage(
@@ -190,10 +193,16 @@ fun ArticleListReaderPage(
                     else ExitTransition.None,
             ) {
                 val contentKey = navigator.currentDestination?.contentKey
-                // The article opens out of its card (and the back gesture shrinks it back in).
+                // The article grows out of its card (and the back gesture shrinks it back in).
                 val revealId = contentKey?.articleId ?: lastReveal[0]
                 if (contentKey != null) lastReveal[0] = contentKey.articleId
-                val reveal = articleReveal(enabled = !isTwoPane, articleId = revealId)
+                val reveal =
+                    Modifier.articlePage(
+                        articleId = revealId,
+                        shared = sharedTransitionScope,
+                        pane = this,
+                        enabled = !isTwoPane,
+                    )
                 LaunchedEffect(contentKey) {
                     if (contentKey == null) {
                         delay(100L)
@@ -252,6 +261,4 @@ fun ArticleListReaderPage(
     )
 }
 
-/** How long the list stays under an opening article (the article's open animation, 450 ms). */
-private const val LIST_KEEP_MS = 460
 

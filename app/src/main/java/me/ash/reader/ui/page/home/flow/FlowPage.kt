@@ -310,6 +310,18 @@ fun FlowPage(
 
     var pagingItems: LazyPagingItems<ArticleFlowItem>? by remember { mutableStateOf(null) }
 
+    // Inbox zero: celebrate once, on the Unread page, the moment the last unread article is
+    // marked read (by reading, swiping or Mark all as read); read articles may still be shown.
+    val unreadTotal = viewModel.unreadTotal.collectAsStateValue()
+    var celebrate by remember { mutableStateOf(false) }
+    var lastUnread by remember { mutableStateOf<Int?>(null) }
+    val onUnreadPage = filterUiState.filter.isUnread() && filterUiState.searchContent.isNullOrEmpty()
+    LaunchedEffect(unreadTotal) {
+        val before = lastUnread
+        lastUnread = unreadTotal
+        if (onUnreadPage && before != null && before > 0 && unreadTotal == 0) celebrate = true
+    }
+
     if (isTwoPane) {
         LaunchedEffect(readerState) {
             if (readerState.articleId != null) {
@@ -583,27 +595,6 @@ fun FlowPage(
                     val filterState = flowUiState.pagerData.filterState
                     val pagingItems = pager.collectAsLazyPagingItems().also { pagingItems = it }
 
-                    // Inbox zero: celebrate once when the Unread list goes from some articles to
-                    // none (not when it opens empty, and not while searching).
-                    var celebrate by remember(pager) { mutableStateOf(false) }
-                    if (filterState.filter.isUnread() && filterState.searchContent.isNullOrEmpty()) {
-                        LaunchedEffect(pagingItems) {
-                            var hadArticles = false
-                            snapshotFlow {
-                                    (pagingItems.loadState.refresh is LoadState.NotLoading) to
-                                        pagingItems.itemCount
-                                }
-                                .collect { (idle, count) ->
-                                    if (!idle) return@collect
-                                    if (count > 0) {
-                                        hadArticles = true
-                                    } else if (hadArticles) {
-                                        hadArticles = false
-                                        celebrate = true
-                                    }
-                                }
-                        }
-                    }
 
                     if (markAsReadOnScroll && filterState.filter.isUnread()) {
                         LaunchedEffect(listState.isScrollInProgress) {

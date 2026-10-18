@@ -270,8 +270,8 @@ constructor(
             _asks.value = _asks.value.dropLast(1) + last.copy(done = true)
         }
         importWatch?.cancel()
-        // Reading aloud carries on after the sheet closes (stop it from the media notification),
-        // like reading an article aloud.
+        // Closing the sheet stops the summary being read aloud (not an article read from its page).
+        if (startedReading && textToSpeechManager.sourceKey == null) textToSpeechManager.stop()
         startedReading = false
     }
 

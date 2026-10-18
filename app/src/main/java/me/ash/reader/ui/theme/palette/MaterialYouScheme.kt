@@ -1,5 +1,8 @@
 package me.ash.reader.ui.theme.palette
 
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
 import android.app.WallpaperManager
 import android.os.Build
 import androidx.compose.material3.ColorScheme
@@ -126,3 +129,54 @@ private fun ColorScheme.amoled(): ColorScheme =
         surfaceContainerHigh = Color(0xFF141414),
         surfaceContainerHighest = Color(0xFF1A1A1A),
     )
+
+/**
+ * The web view's colours on the reading page: the picture's scheme straight away (not the fading
+ * one), so the article is drawn once in its final colours instead of again on every frame.
+ */
+val LocalWebViewColorScheme = staticCompositionLocalOf<ColorScheme?> { null }
+
+/** [target], with every colour fading to its new value over [durationMillis]. */
+@Composable
+fun animateColorScheme(target: ColorScheme, durationMillis: Int = 400): ColorScheme {
+    val spec = tween<Color>(durationMillis)
+    return target.copy(
+        primary = animateColorAsState(target.primary, spec, label = "primary").value,
+        onPrimary = animateColorAsState(target.onPrimary, spec, label = "onPrimary").value,
+        primaryContainer = animateColorAsState(target.primaryContainer, spec, label = "primaryContainer").value,
+        onPrimaryContainer = animateColorAsState(target.onPrimaryContainer, spec, label = "onPrimaryContainer").value,
+        inversePrimary = animateColorAsState(target.inversePrimary, spec, label = "inversePrimary").value,
+        secondary = animateColorAsState(target.secondary, spec, label = "secondary").value,
+        onSecondary = animateColorAsState(target.onSecondary, spec, label = "onSecondary").value,
+        secondaryContainer = animateColorAsState(target.secondaryContainer, spec, label = "secondaryContainer").value,
+        onSecondaryContainer = animateColorAsState(target.onSecondaryContainer, spec, label = "onSecondaryContainer").value,
+        tertiary = animateColorAsState(target.tertiary, spec, label = "tertiary").value,
+        onTertiary = animateColorAsState(target.onTertiary, spec, label = "onTertiary").value,
+        tertiaryContainer = animateColorAsState(target.tertiaryContainer, spec, label = "tertiaryContainer").value,
+        onTertiaryContainer = animateColorAsState(target.onTertiaryContainer, spec, label = "onTertiaryContainer").value,
+        background = animateColorAsState(target.background, spec, label = "background").value,
+        onBackground = animateColorAsState(target.onBackground, spec, label = "onBackground").value,
+        surface = animateColorAsState(target.surface, spec, label = "surface").value,
+        onSurface = animateColorAsState(target.onSurface, spec, label = "onSurface").value,
+        surfaceVariant = animateColorAsState(target.surfaceVariant, spec, label = "surfaceVariant").value,
+        onSurfaceVariant = animateColorAsState(target.onSurfaceVariant, spec, label = "onSurfaceVariant").value,
+        surfaceTint = animateColorAsState(target.surfaceTint, spec, label = "surfaceTint").value,
+        inverseSurface = animateColorAsState(target.inverseSurface, spec, label = "inverseSurface").value,
+        inverseOnSurface = animateColorAsState(target.inverseOnSurface, spec, label = "inverseOnSurface").value,
+        error = animateColorAsState(target.error, spec, label = "error").value,
+        onError = animateColorAsState(target.onError, spec, label = "onError").value,
+        errorContainer = animateColorAsState(target.errorContainer, spec, label = "errorContainer").value,
+        onErrorContainer = animateColorAsState(target.onErrorContainer, spec, label = "onErrorContainer").value,
+        outline = animateColorAsState(target.outline, spec, label = "outline").value,
+        outlineVariant = animateColorAsState(target.outlineVariant, spec, label = "outlineVariant").value,
+        scrim = animateColorAsState(target.scrim, spec, label = "scrim").value,
+        surfaceBright = animateColorAsState(target.surfaceBright, spec, label = "surfaceBright").value,
+        surfaceContainer = animateColorAsState(target.surfaceContainer, spec, label = "surfaceContainer").value,
+        surfaceContainerHigh = animateColorAsState(target.surfaceContainerHigh, spec, label = "surfaceContainerHigh").value,
+        surfaceContainerHighest = animateColorAsState(target.surfaceContainerHighest, spec, label = "surfaceContainerHighest").value,
+        surfaceContainerLow = animateColorAsState(target.surfaceContainerLow, spec, label = "surfaceContainerLow").value,
+        surfaceContainerLowest = animateColorAsState(target.surfaceContainerLowest, spec, label = "surfaceContainerLowest").value,
+        surfaceDim = animateColorAsState(target.surfaceDim, spec, label = "surfaceDim").value,
+    )
+}
+

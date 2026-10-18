@@ -1,5 +1,8 @@
 package me.ash.reader.ui.page.home.reading
 
+import me.ash.reader.ui.theme.palette.animateColorScheme
+import me.ash.reader.ui.theme.palette.LocalWebViewColorScheme
+import androidx.compose.runtime.DisposableEffect
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.Color
 import me.ash.reader.infrastructure.preference.LocalAmoledDarkTheme
@@ -10,7 +13,7 @@ import me.ash.reader.infrastructure.rss.FeedContent
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.Row
-import me.ash.reader.ui.page.home.reading.tts.SpeedChip
+import me.ash.reader.ui.page.home.reading.tts.ReadAloudSpeedSheet
 import me.ash.reader.ui.page.home.flow.readingMinutes
 import androidx.compose.runtime.mutableFloatStateOf
 import me.ash.reader.ui.ext.openURL
@@ -80,8 +83,8 @@ private const val DOWNWARD = -1
 /**
  * The reading page, in colours from the article's picture (like music apps with album art): the
  * whole page, bars and sheets included, uses a Material scheme made from the picture's main
- * colour. Articles without a picture (or with a grey one) keep the app's colours. The article
- * waits a moment (at most 0.4 s) for the colour, so the page doesn't change colour under you.
+ * colour. Articles without a picture (or with a grey one) keep the app's colours. The page opens
+ * in the app's colours and fades into the picture's over 0.4 s as soon as they're known.
  */
 @Composable
 fun ReadingPage(
@@ -103,15 +106,9 @@ fun ReadingPage(
                 ?: html?.let { FeedContent.extractHero(it).first }
         }
     var seed by remember(pictureUrl) { mutableStateOf<Color?>(null) }
-    var colorReady by remember(pictureUrl) { mutableStateOf(pictureUrl == null) }
     LaunchedEffect(pictureUrl) {
         if (pictureUrl == null) return@LaunchedEffect
-        launch {
-            delay(400)
-            colorReady = true
-        }
         seed = FeedAccent.pictureColor(context, pictureUrl)?.let { Color(it) }
-        colorReady = true
     }
     val isDark = LocalDarkTheme.current.isDarkTheme()
     val isAmoled = isDark && LocalAmoledDarkTheme.current.value
@@ -120,7 +117,10 @@ fun ReadingPage(
         remember(pictureSeed, isDark, isAmoled) {
             pictureSeed?.let { pictureColorScheme(it, isDark, isAmoled) }
         }
-    MaterialTheme(colorScheme = scheme ?: MaterialTheme.colorScheme) {
+    val target = scheme ?: MaterialTheme.colorScheme
+    // Everything fades into the new colours; the article's web view takes them straight away.
+    CompositionLocalProvider(LocalWebViewColorScheme provides target) {
+      MaterialTheme(colorScheme = animateColorScheme(target)) {
         ReadingPageContent(
             viewModel = viewModel,
             navigationAction = navigationAction,
@@ -128,8 +128,8 @@ fun ReadingPage(
             onNavAction = onNavAction,
             onNavigateToStylePage = onNavigateToStylePage,
             onNavigateToAiSettings = onNavigateToAiSettings,
-            colorReady = colorReady,
         )
+      }
     }
 }
 
@@ -143,8 +143,6 @@ private fun ReadingPageContent(
     onNavAction: (NavigationAction) -> Unit,
     onNavigateToStylePage: () -> Unit,
     onNavigateToAiSettings: () -> Unit = {},
-    /** The picture's colour is known (or given up on): the article can show. */
-    colorReady: Boolean = true,
 ) {
     val context = LocalContext.current
     val openLink = LocalOpenLink.current
@@ -162,6 +160,7 @@ private fun ReadingPageContent(
     // Reading page additions: how far the article is scrolled, and the quick text settings sheet.
     var readingProgress by remember { mutableFloatStateOf(0f) }
     var showTextSheet by remember { mutableStateOf(false) }
+    var showSpeedSheet by remember { mutableStateOf(false) }
     val totalMinutes = remember(readerState.content.text) { readingMinutes(readerState.content.text ?: "") ?: 1 }
     val timeLeftLabel =
         if (readingProgress < 0.01f) null
@@ -188,6 +187,14 @@ private fun ReadingPageContent(
                 else null
             }
         }
+    // Closing the article (going back, or opening another one) stops it being read aloud. Not when
+    // the screen is only being rebuilt (rotation, theme change), and not when you leave the app.
+    DisposableEffect(currentArticleId) {
+        onDispose {
+            val changing = context.findActivity()?.isChangingConfigurations == true
+            if (!changing && currentArticleId != null && tts.sourceKey == currentArticleId) tts.stop()
+        }
+    }
     // A new article starts unscrolled.
     LaunchedEffect(readerState.articleId) { readingProgress = 0f }
 
@@ -395,8 +402,7 @@ private fun ReadingPageContent(
                                             author = author,
                                             link = link,
                                             publishedDate = publishedDate,
-                                            isLoading =
-                                                content is ReaderState.Loading || !colorReady,
+                                            isLoading = content is ReaderState.Loading,
                                             scrollState = scrollState,
                                             listState = listState,
                                             onImageClick = { imgUrl, altText ->
@@ -488,18 +494,6 @@ private fun ReadingPageContent(
                         ttsButton = {
                           val ttsState =
                               viewModel.textToSpeechManager.stateFlow.collectAsStateValue()
-                          val speed = viewModel.textToSpeechManager.speed.collectAsStateValue()
-                          Row(verticalAlignment = Alignment.CenterVertically) {
-                            // The speed, beside the button while reading or paused.
-                            if (
-                                ttsState is TextToSpeechManager.State.Reading ||
-                                    ttsState is TextToSpeechManager.State.Paused
-                            ) {
-                                SpeedChip(
-                                    speed = speed,
-                                    onClick = { viewModel.textToSpeechManager.cycleSpeed() },
-                                )
-                            }
                             TtsButton(
                                 onClick = {
                                     when (it) {
@@ -530,8 +524,8 @@ private fun ReadingPageContent(
                                 },
                                 state = ttsState,
                                 onStop = { viewModel.textToSpeechManager.stop() },
+                                onSpeed = { showSpeedSheet = true },
                             )
-                          }
                         },
                     )
                 }
@@ -550,6 +544,14 @@ private fun ReadingPageContent(
                 ),
             heading = stringResource(R.string.ai_summary),
             onDismissRequest = { showSummary = false },
+        )
+    }
+    if (showSpeedSheet) {
+        val speed = viewModel.textToSpeechManager.speed.collectAsStateValue()
+        ReadAloudSpeedSheet(
+            speed = speed,
+            onSpeed = { viewModel.textToSpeechManager.setSpeed(it) },
+            onDismiss = { showSpeedSheet = false },
         )
     }
     if (showTextSheet) {
@@ -580,3 +582,13 @@ private fun ReadingPageContent(
         )
     }
 }
+
+private fun android.content.Context.findActivity(): android.app.Activity? {
+    var c: android.content.Context? = this
+    while (c is android.content.ContextWrapper) {
+        if (c is android.app.Activity) return c
+        c = c.baseContext
+    }
+    return null
+}
+

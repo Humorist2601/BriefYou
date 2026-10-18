@@ -1,5 +1,6 @@
 package me.ash.reader.ui.component.webview
 
+import me.ash.reader.ui.theme.palette.LocalWebViewColorScheme
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -61,28 +62,30 @@ fun RYWebView(
     val openLink = LocalOpenLink.current
     val openLinkSpecificBrowser = LocalOpenLinkSpecificBrowser.current
     val tonalElevation = LocalReadingPageTonalElevation.current
+    // On the reading page: the picture's colours straight away, not the fading ones.
+    val colorScheme = LocalWebViewColorScheme.current ?: MaterialTheme.colorScheme
     val backgroundColor =
-        MaterialTheme.colorScheme.surfaceColorAtElevation(tonalElevation.value.dp).toArgb()
+        colorScheme.surfaceColorAtElevation(tonalElevation.value.dp).toArgb()
     // Selected text: the accent colour, see-through over the page, like text selection in the
     // rest of the app (the handles take the accent colour from the theme, see themes.xml).
-    val selectionTextColor = MaterialTheme.colorScheme.onSurface.toArgb()
-    val isDarkBackground = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val selectionTextColor = colorScheme.onSurface.toArgb()
+    val isDarkBackground = colorScheme.surface.luminance() < 0.5f
     val readAloudColor =
-        MaterialTheme.colorScheme.primary
+        colorScheme.primary
             .copy(alpha = 0.22f)
             .compositeOver(Color(backgroundColor))
             .toArgb()
     val selectionBgColor =
-        MaterialTheme.colorScheme.primary
+        colorScheme.primary
             .copy(alpha = 0.35f)
             .compositeOver(Color(backgroundColor))
             .toArgb()
-    val textColor: Int = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    val textColor: Int = colorScheme.onSurfaceVariant.toArgb()
     val textBold: Boolean = LocalReadingTextBold.current.value
     val textAlign: String = LocalReadingTextAlign.current.toTextAlignCSS()
     val textMargin: Int = LocalReadingTextHorizontalPadding.current
-    val boldTextColor: Int = MaterialTheme.colorScheme.onSurface.toArgb()
-    val linkTextColor: Int = MaterialTheme.colorScheme.primary.toArgb()
+    val boldTextColor: Int = colorScheme.onSurface.toArgb()
+    val linkTextColor: Int = colorScheme.primary.toArgb()
     val subheadBold: Boolean = LocalReadingSubheadBold.current.value
     val subheadUpperCase: Boolean = LocalReadingSubheadUpperCase.current.value
     val readingFonts = LocalReadingFonts.current
@@ -91,9 +94,9 @@ fun RYWebView(
     val lineHeight: Float = LocalReadingTextLineHeight.current
     val imgMargin: Int = LocalReadingImageHorizontalPadding.current
     val imgBorderRadius: Int = LocalReadingImageRoundedCorners.current
-    val codeTextColor: Int = MaterialTheme.colorScheme.tertiary.toArgb()
+    val codeTextColor: Int = colorScheme.tertiary.toArgb()
     val codeBgColor: Int =
-        MaterialTheme.colorScheme.surfaceColorAtElevation((tonalElevation.value + 6).dp).toArgb()
+        colorScheme.surfaceColorAtElevation((tonalElevation.value + 6).dp).toArgb()
     val boldCharacters = LocalReadingBoldCharacters.current
 
     val webView by

@@ -188,15 +188,24 @@ class ReadAloudService : Service() {
         return true
     }
 
-    /** The app icon, shown as the "album art". */
+    /** The accent colour (Material You), which fills the media notification. */
+    private val accent by lazy { ContextCompat.getColor(this, R.color.system_accent) }
+
+    /**
+     * The "album art": a square in the accent colour with the Brief You card stack in the middle,
+     * so the whole player takes the accent colour.
+     */
     private val artwork by lazy {
         runCatching {
-                val drawable = ContextCompat.getDrawable(this, R.mipmap.ic_launcher) ?: return@runCatching null
-                val size = 256
-                val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+                val size = 512
+                val bitmap =
+                    android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
                 val canvas = android.graphics.Canvas(bitmap)
-                drawable.setBounds(0, 0, size, size)
-                drawable.draw(canvas)
+                canvas.drawColor(accent)
+                ContextCompat.getDrawable(this, R.drawable.ic_launcher_foreground)?.let {
+                    it.setBounds(0, 0, size, size)
+                    it.draw(canvas)
+                }
                 bitmap
             }
             .getOrNull()
@@ -254,6 +263,9 @@ class ReadAloudService : Service() {
             .setContentTitle(tts.title ?: getString(R.string.read_aloud))
             .setContentText(subtitle())
             .setLargeIcon(artwork)
+            // The whole notification in the accent colour (where Android colours notifications).
+            .setColor(accent)
+            .setColorized(true)
             .setOngoing(!paused)
             .setOnlyAlertOnce(true)
             .setSilent(true)

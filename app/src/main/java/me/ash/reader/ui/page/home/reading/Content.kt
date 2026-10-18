@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.home.reading
 
+import me.ash.reader.ui.component.FloatingBarGap
 import me.ash.reader.R
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
@@ -237,10 +238,11 @@ fun Content(
                     visible = readingAloud && !following,
                     enter = fadeIn() + scaleIn(initialScale = 0.8f),
                     exit = fadeOut() + scaleOut(targetScale = 0.8f),
+                    // Above the reading bar, with the same gap as the reading bar has below it.
                     modifier =
                         Modifier.align(Alignment.BottomCenter)
                             .navigationBarsPadding()
-                            .padding(bottom = 96.dp),
+                            .padding(bottom = FloatingBarGap + ReadingBarHeight + FloatingBarGap),
                 ) {
                     Surface(
                         onClick = {

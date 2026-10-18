@@ -41,6 +41,7 @@
     <string name="reading_back_to_reading">Back to reading</string>
     <string name="read_aloud_play">Play</string>
     <string name="read_aloud_pause">Pause</string>
+    <string name="read_aloud_speed_title">Reading speed</string>
     <string name="read_aloud_speed">Speed %1$s</string>
     <string name="reading_marked_read">Marked as read</string>
     <string name="reading_marked_unread">Marked as unread</string>

@@ -1,5 +1,15 @@
 package me.ash.reader.ui.page.home.reading.tts
 
+import kotlin.math.roundToInt
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Slider
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -54,8 +64,10 @@ fun TtsButton(
     modifier: Modifier = Modifier,
     onClick: (TextToSpeechManager.State) -> Unit,
     state: TextToSpeechManager.State,
-    /** Long press while reading or paused: stop. */
+    /** Long press while paused: stop. */
     onStop: () -> Unit = {},
+    /** Long press while reading: the speed. */
+    onSpeed: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -73,8 +85,8 @@ fun TtsButton(
         }) { state ->
         when (state) {
             // Reading or paused: a wavy ring around the button shows how far it has read (from
-            // the words being spoken), with Pause or Play in the middle. Tap to pause or play,
-            // long press to stop (reading or paused).
+            // the words being spoken), with Pause or Play in the middle. Tap to pause or play;
+            // long press: the speed while reading, stop while paused.
             is TextToSpeechManager.State.Reading, is TextToSpeechManager.State.Paused -> {
                 val playing = state is TextToSpeechManager.State.Reading
                 Box(
@@ -88,7 +100,7 @@ fun TtsButton(
                             },
                             onLongClick = {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onStop()
+                                if (playing) onSpeed() else onStop()
                             },
                         ),
                     contentAlignment = Alignment.Center
@@ -226,32 +238,50 @@ fun Context.openTtsSettings() {
 }
 
 /**
- * Read aloud's speed ("1.25×"); tap for the next speed (0.8× to 2×). Shown beside the read aloud
- * button while reading or paused.
+ * Read aloud's speed, 0.8× to 2×, as a slider in a small sheet (long press on read aloud while
+ * reading). The new speed applies from the current word.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SpeedChip(speed: Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val haptic = LocalHapticFeedback.current
-    Box(
-        modifier =
-            modifier
-                .height(32.dp)
-                .widthIn(min = 44.dp)
-                .clip(CircleShape)
-                .background(LocalContentColor.current.copy(alpha = 0.12f))
-                .clickable {
-                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    onClick()
-                }
-                .padding(horizontal = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = TextToSpeechManager.speedLabel(speed),
-            style = MaterialTheme.typography.labelLarge,
-            color = LocalContentColor.current,
-            maxLines = 1,
-        )
+fun ReadAloudSpeedSheet(speed: Float, onSpeed: (Float) -> Unit, onDismiss: () -> Unit) {
+    var value by remember(speed) { mutableFloatStateOf(speed) }
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier =
+                Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding()
+        ) {
+            Text(
+                stringResource(R.string.read_aloud_speed_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(20.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    TextToSpeechManager.speedLabel(TextToSpeechManager.SPEEDS.first()),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Slider(
+                    value = value,
+                    onValueChange = { value = (it * 20).roundToInt() / 20f },
+                    onValueChangeFinished = { onSpeed(value) },
+                    valueRange = TextToSpeechManager.SPEEDS.first()..TextToSpeechManager.SPEEDS.last(),
+                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                )
+                Text(
+                    TextToSpeechManager.speedLabel(TextToSpeechManager.SPEEDS.last()),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            Text(
+                TextToSpeechManager.speedLabel(value),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+            Spacer(Modifier.height(24.dp))
+        }
     }
 }
-

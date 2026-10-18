@@ -1,6 +1,5 @@
 package me.ash.reader.infrastructure.android
 
-import coil.ImageLoaderFactory
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
@@ -48,32 +47,41 @@ class AndroidApp : Application(), Configuration.Provider {
         // Security.insertProviderAt(Conscrypt.newProvider(), 1)
     }
 
+    @Inject lateinit var androidDatabase: AndroidDatabase
+
     @Inject lateinit var workerFactory: HiltWorkerFactory
 
     @Inject lateinit var workManager: WorkManager
 
+    @Inject lateinit var networkDataSource: NetworkDataSource
+
+    @Inject lateinit var OPMLDataSource: OPMLDataSource
+
+    @Inject lateinit var rssHelper: RssHelper
+
     @Inject lateinit var notificationHelper: NotificationHelper
 
-    /** Used in the background only (update check), so it is built there. */
-    @Inject lateinit var appService: dagger.Lazy<AppService>
+    @Inject lateinit var appService: AppService
 
     @Inject lateinit var androidStringsHelper: AndroidStringsHelper
 
     @Inject lateinit var accountService: AccountService
 
-    /** Used in the background only (first account, sync set-up), so it is built there. */
-    @Inject lateinit var rssService: dagger.Lazy<RssService>
+    @Inject lateinit var localRssService: LocalRssService
+
+    @Inject lateinit var opmlService: OpmlService
+
+    @Inject lateinit var rssService: RssService
 
     @Inject @ApplicationScope lateinit var applicationScope: CoroutineScope
 
     @Inject @IODispatcher lateinit var ioDispatcher: CoroutineDispatcher
 
-    /**
-     * Built when the first picture is needed, not at launch (with the network client under it);
-     * the other services the app used to build here at launch are also left to when they're used,
-     * so the first screen shows sooner.
-     */
-    @Inject lateinit var imageLoader: dagger.Lazy<ImageLoader>
+    @Inject lateinit var okHttpClient: OkHttpClient
+
+    @Inject lateinit var imageLoader: ImageLoader
+
+    @Inject lateinit var imageDownloader: AndroidImageDownloader
 
     @Inject lateinit var settingsProvider: SettingsProvider
 
@@ -101,7 +109,7 @@ class AndroidApp : Application(), Configuration.Provider {
         applicationScope.launch(ioDispatcher) {
             runCatching { java.io.File(filesDir, "ai_cache").deleteRecursively() }
         }
-        Coil.setImageLoader(ImageLoaderFactory { imageLoader.get() })
+        Coil.setImageLoader(imageLoader)
     }
 
     /** Override the [Configuration.Builder] to provide the [HiltWorkerFactory]. */
@@ -118,14 +126,14 @@ class AndroidApp : Application(), Configuration.Provider {
             if (accountService.isNoAccount()) {
                 launch { accountService.initWithDefaultAccount() }
                     .invokeOnCompletion {
-                        rssService.get().get().doSyncOneTime(accountService.getCurrentAccountId())
+                        rssService.get().doSyncOneTime(accountService.getCurrentAccountId())
                     }
             }
         }
     }
 
     private suspend fun workerInit() {
-        rssService.get().get().initSync()
+        rssService.get().initSync()
     }
 
     private suspend fun checkUpdate() {
@@ -133,6 +141,6 @@ class AndroidApp : Application(), Configuration.Provider {
         withContext(ioDispatcher) {
             applicationContext.getLatestApk().let { if (it.exists()) it.del() }
         }
-        appService.get().checkUpdate(showToast = false)
+        appService.checkUpdate(showToast = false)
     }
 }

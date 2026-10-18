@@ -49,6 +49,9 @@ import me.ash.reader.ui.component.FloatingBarGap
 
 private val PillOrigin = TransformOrigin(.5f, 1f)
 
+/** The reading bar's height (48 dp buttons and 4 dp above and below), for things placed above it. */
+val ReadingBarHeight = 56.dp
+
 /**
  * The reading page's actions: a floating pill like the one on the Unread list (accent colors, fully
  * rounded, a soft shadow), with icons only. From left to right: star, AI summary, next article,

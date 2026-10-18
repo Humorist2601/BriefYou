@@ -1,5 +1,6 @@
 package me.ash.reader.infrastructure.android
 
+import kotlinx.coroutines.delay
 import android.content.Context
 import android.os.Build
 import android.os.SystemClock
@@ -65,10 +66,8 @@ class TextToSpeechManager @Inject constructor(
     val sentence = _sentence.asStateFlow()
     private var fullText = ""
 
-    private val prefs = context.getSharedPreferences("read_aloud", Context.MODE_PRIVATE)
-
-    /** Reading speed, 0.8× to 2× (kept between launches, and in the backup). */
-    private val _speed = MutableStateFlow(prefs.getFloat(KEY_SPEED, 1f).coerceIn(SPEEDS.first(), SPEEDS.last()))
+    /** Reading speed, 0.8× to 2×; every new reading starts at 1×. */
+    private val _speed = MutableStateFlow(1f)
     val speed = _speed.asStateFlow()
 
     /** What is being read, in the pieces sent to the engine, and where each starts. */
@@ -143,7 +142,6 @@ class TextToSpeechManager @Inject constructor(
         val new = value.coerceIn(SPEEDS.first(), SPEEDS.last())
         if (new == old) return
         _speed.value = new
-        prefs.edit().putFloat(KEY_SPEED, new).apply()
         tts.setSpeechRate(new)
         msPerChar = msPerChar * old / new
         (state as? State.Reading)?.let { speakFrom(it.spoken) }
@@ -162,6 +160,8 @@ class TextToSpeechManager @Inject constructor(
         state = State.Preparing
         this.title = title
         this.sourceKey = key
+        _speed.value = 1f
+        tts.setSpeechRate(1f)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             tts.language =
@@ -234,14 +234,29 @@ class TextToSpeechManager @Inject constructor(
         segmentStartTime = SystemClock.elapsedRealtime()
         state = State.Reading(segmentStartChars, total)
 
+        // Where each utterance ends, for estimating between reports (see below).
+        val ends = java.util.concurrent.ConcurrentHashMap<String, Int>()
+        // The last real position the engine reported, and when.
+        var known = segmentStartChars
+        var knownAt = SystemClock.elapsedRealtime()
+        var knownEnd = starts.getOrNull(first + 1) ?: total
+        // Whether the engine reports each word (most do); if not, the position is estimated.
+        var wordReports = false
+
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 if (currentRun !== run) return
-                bases[utteranceId]?.let { update(it, total) }
+                bases[utteranceId]?.let {
+                    known = it
+                    knownAt = SystemClock.elapsedRealtime()
+                    knownEnd = ends[utteranceId] ?: total
+                    update(it, total)
+                }
             }
 
             override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
                 if (currentRun !== run) return
+                wordReports = true
                 bases[utteranceId]?.let { update(it + start, total) }
             }
 
@@ -265,7 +280,25 @@ class TextToSpeechManager @Inject constructor(
             val id = "$runId:$index"
             val text = if (index == first) firstPiece.substring(local) else pieces[index]
             bases[id] = if (index == first) starts[index] + local else starts[index]
+            ends[id] = starts.getOrNull(index + 1) ?: total
             tts.speak(text, TextToSpeech.QUEUE_ADD, null, id)
+        }
+        // Some speech engines only say when each paragraph starts, not each word. Then the
+        // position moves on through the paragraph at the measured reading speed (never past its
+        // end), so the progress and the follow-along highlight keep moving between reports.
+        coroutineScope.launch {
+            while (currentRun === run) {
+                delay(ESTIMATE_EVERY_MS)
+                if (currentRun !== run || wordReports) continue
+                val s = state as? State.Reading ?: continue
+                val estimate =
+                    (known + ((SystemClock.elapsedRealtime() - knownAt) / msPerChar).toInt())
+                        .coerceAtMost(knownEnd - 1)
+                if (estimate > s.spoken) {
+                    state = State.Reading(estimate, total)
+                    _sentence.value = sentenceAt(estimate)
+                }
+            }
         }
         // The media notification and controls, which also keep reading going outside the article.
         ReadAloudService.start(context)
@@ -325,7 +358,7 @@ class TextToSpeechManager @Inject constructor(
     companion object {
         /** About 14 characters a second at 1×, until the real speed is measured. */
         private const val DEFAULT_MS_PER_CHAR = 70f
-        private const val KEY_SPEED = "speed"
+        private const val ESTIMATE_EVERY_MS = 250L
         private val SENTENCE_ENDS = charArrayOf('.', '!', '?', '\u2026')
 
         /** The speeds to choose from. */
