@@ -82,8 +82,8 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         // The animated splash plays on fresh launches only (not when the activity is recreated).
-        // Its first frame is the system splash's last one, so the system splash is removed at
-        // once and BriefSplash carries on without a pause.
+        // The system splash is only the background (no icon), so it is removed at once and
+        // BriefSplash plays the whole animation from there.
         val playSplash = savedInstanceState == null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && playSplash) {
             splashScreen.setOnExitAnimationListener { view -> view.remove() }

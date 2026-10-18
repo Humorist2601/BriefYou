@@ -1,8 +1,6 @@
 package me.ash.reader.ui.page.splash
 
 import android.os.Build
-import android.os.Process
-import android.os.SystemClock
 import android.provider.Settings
 import android.view.RoundedCorner
 import androidx.compose.animation.core.Animatable
@@ -47,10 +45,10 @@ import me.ash.reader.R
 /*
  * The animated splash, drawn over the app right after the system splash hands over.
  *
- * It starts on the exact frame the system splash shows (icon A's front card alone and straight, in the splash
- * colours, see ic_launcher_splash_screen and colors_splash), so the system splash is simply
- * removed, and then right away, in about 1.3 s:
- * 0. the straight card tips a little to the right;
+ * The system splash is only the splash background (its icon is empty, see splash_icon_empty and
+ * colors_splash), so nothing waits on screen while the app starts. When it hands over, it is
+ * simply removed and, in about 1.4 s:
+ * 0. icon A's front card appears straight and tips a little to the right;
  * 1. the two back cards fan out from behind the front card on a bouncy spring;
  * 2. the three lines of the brief write in from the left;
  * 3. the AI sparkle pops in with a little twist and settles;
@@ -69,8 +67,10 @@ import me.ash.reader.R
  */
 private val SystemSplashIconSize = 288.dp
 
-/** How long the card takes to tip (the same as the system splash's animated icon). */
-private const val TiltMs = 180L
+/** The straight card fading and growing in, then tipping right, then the back cards fanning. */
+private const val AppearMs = 160
+private const val TiltDelayMs = 90L
+private const val TiltLeadMs = 120L
 private const val LinesDelayMs = 150L
 private const val SparkleDelayMs = 430L
 private const val GrowDelayMs = 680L
@@ -102,6 +102,7 @@ fun BriefSplash(onFinished: () -> Unit, modifier: Modifier = Modifier) {
     val displayCorner = displayCornerRadius()
     val iconPx = with(LocalDensity.current) { SystemSplashIconSize.toPx() }
 
+    val appear = remember { Animatable(0f) }
     val tilt = remember { Animatable(0f) }
     val fan = remember { Animatable(0f) }
     val lines = remember { Animatable(0f) }
@@ -121,21 +122,14 @@ fun BriefSplash(onFinished: () -> Unit, modifier: Modifier = Modifier) {
             currentOnFinished()
             return@LaunchedEffect
         }
-        // The system splash's card tips to the right as soon as it shows (its animated icon), so
-        // the card here is usually tipped already; only a very quick start still sees it move.
-        // Then the two back cards fan out right away.
-        val sinceStart = SystemClock.uptimeMillis() - Process.getStartUptimeMillis()
-        val tiltLeft = (TiltMs - sinceStart).coerceAtLeast(0L)
+        // The system splash is only the background, so nothing sits waiting while the app starts.
+        // Here the straight card appears, tips to the right straight away, and the two back
+        // cards fan out as it lands.
         coroutineScope {
-            if (tiltLeft == 0L) {
-                tilt.snapTo(1f)
-            } else {
-                tilt.snapTo(1f - tiltLeft.toFloat() / TiltMs)
-                launch {
-                    tilt.animateTo(1f, tween(tiltLeft.toInt(), easing = FastOutSlowInEasing))
-                }
-                delay(tiltLeft)
-            }
+            launch { appear.animateTo(1f, tween(AppearMs, easing = FastOutSlowInEasing)) }
+            delay(TiltDelayMs)
+            launch { tilt.animateTo(1f, spring(dampingRatio = 0.6f, stiffness = 500f)) }
+            delay(TiltLeadMs)
             launch { fan.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 260f)) }
             launch {
                 delay(LinesDelayMs)
@@ -203,6 +197,8 @@ fun BriefSplash(onFinished: () -> Unit, modifier: Modifier = Modifier) {
             withTransform({
                 scale(k, k, pivot = CardCenter)
                 rotate(front0 * (1f - g), pivot = CardPivot)
+                val a = 0.88f + 0.12f * appear.value
+                scale(a, a, pivot = CardCenter)
             }) {
                 val rect = Size(CardW, CardH)
                 val topLeft = Offset(CardX, CardY)
@@ -222,7 +218,7 @@ fun BriefSplash(onFinished: () -> Unit, modifier: Modifier = Modifier) {
                         topLeft = topLeft,
                         size = rect,
                         cornerRadius = CornerRadius(radius),
-                        alpha = fillAlpha,
+                        alpha = fillAlpha * appear.value,
                     )
                 }
                 if (contentAlpha > 0f) {
