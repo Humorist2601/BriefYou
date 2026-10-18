@@ -1,6 +1,9 @@
 name: "Build Commit"
 on:
     push:
+        # Read You updates wait there for review; they're built once merged into main.
+        branches-ignore:
+            - read-you-sync
     workflow_dispatch:
 
 jobs:

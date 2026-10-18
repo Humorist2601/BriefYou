@@ -28,7 +28,6 @@
     <string name="ai_summary_thinking">Loading model and reading the article…</string>
     <string name="ai_summary_regenerate">Regenerate</string>
     <string name="ai_summary_retry">Try again</string>
-    <string name="ai_summary_remove_model">Remove model</string>
     <string name="ai_read_aloud">Read aloud</string>
     <string name="ai_stop_reading">Stop</string>
 
@@ -39,7 +38,6 @@
     <string name="ai_ask_hint">Ask about this article</string>
     <string name="ai_ask_send">Ask</string>
     <string name="ai_ask_hint_gist">Ask about these articles</string>
-    <string name="reading_back_to_reading">Back to reading</string>
     <string name="read_aloud_play">Play</string>
     <string name="read_aloud_pause">Pause</string>
     <string name="read_aloud_speed_title">Reading speed</string>
@@ -56,9 +54,7 @@
     <string name="text_settings_all">All reading settings</string>
 
     <!-- Group gist -->
-    <string name="ai_gist">Gist</string>
     <string name="ai_gist_of">Gist of %1$s</string>
-    <string name="ai_gist_action">Generate gist of this list</string>
     <plurals name="ai_gist_based_on">
         <item quantity="one">Based on %1$d article</item>
         <item quantity="other">Based on %1$d articles</item>
@@ -68,16 +64,12 @@
     <string name="ai_settings">AI model</string>
     <string name="ai_settings_desc">On-device Gemma, summaries, gist instructions</string>
     <string name="ai_settings_model">Model</string>
-    <string name="ai_settings_status_missing">No model imported</string>
     <string name="ai_model_tile_missing">No model</string>
     <string name="ai_model_tile_missing_label">Download Gemma, then import it below</string>
     <string name="ai_model_tile_ready_label">Gemma model, on this device</string>
     <string name="ai_model_tile_importing">Importing</string>
     <string name="ai_model_tile_importing_label">Copying the model into the app</string>
     <string name="ai_model_tile_failed">Import failed</string>
-    <string name="ai_settings_status_ready">Imported · %1$s</string>
-    <string name="ai_settings_status_importing">Importing… %1$s</string>
-    <string name="ai_settings_status_failed">Import failed: %1$s</string>
     <string name="ai_settings_download">Download Gemma 4 E2B</string>
     <string name="ai_settings_download_desc">Opens Hugging Face. Download gemma-4-E2B-it.litertlm (about 2.6 GB).</string>
     <string name="ai_settings_import">Import model file</string>
@@ -116,8 +108,6 @@
     <string name="filters_keywords">Muted keywords</string>
     <string name="filters_duplicates">Duplicates</string>
     <string name="filters_add_keyword">Add a muted keyword</string>
-    <string name="filters_apply_now_desc">Run your filters on unread articles now</string>
-    <string name="filters_log_clear_all">Clear the list</string>
     <string name="filters_add_hint">Add a word or phrase</string>
     <string name="filters_add">Add</string>
     <string name="filters_none">No muted keywords yet</string>
@@ -127,8 +117,6 @@
     <string name="filters_log_empty">Nothing has been filtered yet. Articles hidden by your filters will appear here with the reason.</string>
     <string name="filters_log_clear">Clear</string>
     <string name="filters_log_undo">Undo</string>
-    <string name="filters_log_muted">Muted “%1$s” · %2$s</string>
-    <string name="filters_log_duplicate">%1$s · duplicate of %2$s: “%3$s”</string>
     <plurals name="filters_stat_muted">
         <item quantity="one">muted</item>
         <item quantity="other">muted</item>
@@ -146,10 +134,6 @@
     <plurals name="filters_caught">
         <item quantity="one">Caught %1$d</item>
         <item quantity="other">Caught %1$d</item>
-    </plurals>
-    <plurals name="filters_applied">
-        <item quantity="one">%1$d article marked as read</item>
-        <item quantity="other">%1$d articles marked as read</item>
     </plurals>
 
     <!-- Custom feed icons -->
@@ -206,14 +190,11 @@
 
     <!-- Sort feeds and groups -->
     <string name="sort_title">Sort feeds</string>
-    <string name="sort_desc">Order them by name or by count</string>
-    <string name="sort_intro">Choose how groups and feeds are ordered on the Feeds page.</string>
     <string name="sort_groups">Groups</string>
     <string name="sort_feeds">Feeds inside groups</string>
     <string name="sort_default">Default</string>
     <string name="sort_name_asc">A–Z</string>
     <string name="sort_name_desc">Z–A</string>
-    <string name="sort_most_unread">Most unread</string>
     <string name="sort_name">Name</string>
     <string name="sort_count">Unread</string>
     <string name="sort_most_first">Most first</string>

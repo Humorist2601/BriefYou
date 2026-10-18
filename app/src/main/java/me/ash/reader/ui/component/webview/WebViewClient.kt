@@ -99,7 +99,9 @@ class WebViewClient(
                         null,
                         code,
                         connection.responseMessage?.ifBlank { null } ?: "OK",
-                        mapOf("Access-Control-Allow-Origin" to "*"),
+                        // No cross-origin header: the article's scripts mustn't be able to read
+                        // what's fetched here (pictures can still be shown without it).
+                        emptyMap(),
                         connection.inputStream,
                     )
                 }

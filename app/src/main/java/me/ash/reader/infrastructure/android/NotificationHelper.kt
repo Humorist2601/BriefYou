@@ -231,7 +231,6 @@ constructor(
         const val DIGEST_ID = 0x5EAD
         const val PREFS = "notification_digest"
         const val KEY_COUNT = "count"
-        const val KEY_FEEDS = "feeds"
         const val KEY_LINES = "lines"
         const val MAX_LINES = 8
         const val MAX_STORED = 300

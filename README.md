@@ -4,12 +4,15 @@
 <p><b>A calm, private RSS reader for Android, with AI that runs on your phone.</b><br/>
 A fork of <a href="https://github.com/ReadYouApp/ReadYou">Read You</a>.</p>
 <p>
-<a href="../../releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Humorist2601/BriefYou?label=version&color=b8a3f4&style=flat-square"></a>
-<a href="../../actions/workflows/build_commit.yaml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/Humorist2601/BriefYou/build_commit.yaml?branch=main&label=build&style=flat-square"></a>
-<a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/Humorist2601/BriefYou?color=b8a3f4&style=flat-square"></a>
-<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/Humorist2601/BriefYou"><img alt="Add to Obtainium" src="https://img.shields.io/badge/Add_to-Obtainium-7859cc?style=flat-square"></a>
+<a href="../../releases/latest"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/download-dark.svg"><img alt="Download APK" src=".github/assets/badges/download-light.svg" height="56"></picture></a>
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/Humorist2601/BriefYou"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/obtainium-dark.svg"><img alt="Get it on Obtainium" src=".github/assets/badges/obtainium-light.svg" height="56"></picture></a>
 </p>
-<h3><a href="../../releases/latest">⬇ Download the latest APK</a></h3>
+<p>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/ai-dark.svg"><img alt="On-device AI" src=".github/assets/badges/ai-light.svg" height="36"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/private-dark.svg"><img alt="Private" src=".github/assets/badges/private-light.svg" height="36"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/android-dark.svg"><img alt="Android 8.0+" src=".github/assets/badges/android-light.svg" height="36"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/license-dark.svg"><img alt="GPL-3.0" src=".github/assets/badges/license-light.svg" height="36"></picture>
+</p>
 </div>
 
 <table>
@@ -27,7 +30,7 @@ A fork of <a href="https://github.com/ReadYouApp/ReadYou">Read You</a>.</p>
 
 Brief You keeps everything that makes Read You great (Material You design, Reeder-style reading, FreshRSS, Miniflux, Fever, Google Reader API and more) and adds AI that runs **entirely on your phone**: articles and questions never leave it. It installs **next to** Read You (app ID `com.ay.briefyou`); move your feeds over with OPML.
 
-<p align="center"><img alt="Brief You screenshots: feeds, Unread, Triage, AI gist, reading and settings" src=".github/assets/screenshots.png"></p>
+<p align="center"><img alt="Brief You screenshots: feeds, Unread, Triage, AI gist, reading, filters and settings" src=".github/assets/screenshots.png"></p>
 
 ## What's different from Read You
 
@@ -165,6 +168,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Full backup and restore** | One file with subscriptions, starred articles, filters, sync and app settings, AI instructions and more. |
 | **Own updates** | The app checks Brief You's releases, never Read You's. |
 | **Signed releases** | Every push to `main` is built and published as **Brief You 0.16.2.N**. |
+| **Reviewed Read You updates** | Read You's changes arrive daily as a pull request, released only once you merge it. |
 
 <details>
 <summary>More details</summary>
@@ -174,6 +178,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 - Release names are Read You's version plus a rising build number, so each APK installs as an update (works with Obtainium). The notes say which Read You version a build is based on.
 - APKs are for 64-bit ARM phones (arm64-v8a).
 - Builds are signed with Brief You's own key when the repository has the `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` and `KEY_ALIAS` secrets.
+- Read You updates: a daily workflow merges Read You's new commits into a `read-you-sync` branch and opens (or updates) a pull request called *Read You update*. Nothing is built or signed until you merge it. For the pull request to open by itself, allow it in *Settings → Actions → General → Allow GitHub Actions to create and approve pull requests*.
 - To tidy up, run **Actions → Clean up old releases and runs** by hand. It keeps the newest 5 releases and 10 runs per workflow, and starts as a dry run that only lists what it would delete.
 
 </details>
@@ -190,6 +195,6 @@ Open the project in [Android Studio](https://developer.android.com/studio) and r
 
 ## Credits and license
 
-Brief You is built on [**Read You**](https://github.com/ReadYouApp/ReadYou) by [Ashinch](https://github.com/Ashinch) and its contributors. All credit for the original app goes to them, and Brief You follows its updates daily. If you like the app, consider [supporting Read You](https://ash7.io/sponsor).
+Brief You is built on [**Read You**](https://github.com/ReadYouApp/ReadYou) by [Ashinch](https://github.com/Ashinch) and its contributors. All credit for the original app goes to them, and Brief You picks up its updates. If you like the app, consider [supporting Read You](https://ash7.io/sponsor).
 
 Free software under the [**GNU GPL 3.0**](LICENSE). Gemma is provided under Google's Gemma terms; Brief You doesn't include the model, you download it yourself.

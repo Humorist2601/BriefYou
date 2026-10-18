@@ -73,24 +73,15 @@ class TextToSpeechManager @Inject constructor(
      */
     @Volatile var color: Int? = null
 
-    /** Whether the parts came from the page (not used now that follow along is gone). */
-    @Volatile var fromPage: Boolean = false
-        private set
-
-    /** The part (paragraph) being read. */
-    private val _part = MutableStateFlow<Int?>(null)
-    val part = _part.asStateFlow()
-
     private val prefs = context.getSharedPreferences("read_aloud", Context.MODE_PRIVATE)
 
     /** Reading speed, 0.8× to 2× in steps of 0.2; the last one used is kept. */
     private val _speed = MutableStateFlow(snap(prefs.getFloat(KEY_SPEED, 1f)))
     val speed = _speed.asStateFlow()
 
-    /** What is being read, in the pieces sent to the engine, where each starts, and its part. */
+    /** What is being read: the pieces sent to the engine, and where each starts. */
     private var pieces: List<String> = emptyList()
     private var starts: IntArray = IntArray(0)
-    private var pieceParts: IntArray = IntArray(0)
     private var totalChars = 0
 
     /** How long a character takes to say, measured while reading (for the time shown). */
@@ -151,14 +142,14 @@ class TextToSpeechManager @Inject constructor(
         this.color = color
         coroutineScope.launch {
             val plainText = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString()
-            read(plainText.split("\n"), title, key, fromPage = false)
+            read(plainText.split("\n"), title, key)
         }
     }
 
     /** Reads plain text aloud; each line is a part. */
     fun readPlainText(text: String, title: String? = null, color: Int? = null, key: String? = null) {
         this.color = color
-        coroutineScope.launch { read(text.split("\n"), title, key, fromPage = false) }
+        coroutineScope.launch { read(text.split("\n"), title, key) }
     }
 
     /** Sets the reading speed; while reading it carries on from the same word at the new speed. */
@@ -179,14 +170,13 @@ class TextToSpeechManager @Inject constructor(
         setSpeed(next)
     }
 
-    private fun read(parts: List<String>, title: String?, key: String?, fromPage: Boolean) {
+    private fun read(parts: List<String>, title: String?, key: String?) {
         stop()
         if (state != State.Idle) return
 
         state = State.Preparing
         this.title = title
         this.sourceKey = key
-        this.fromPage = fromPage
         tts.setSpeechRate(_speed.value)
 
         val sample = parts.joinToString(" ").take(500)
@@ -195,23 +185,18 @@ class TextToSpeechManager @Inject constructor(
         }
 
         // Each part, with very long ones cut into pieces the speech engine accepts. Empty parts
-        // keep their number (so the page's sentence numbers still match) but aren't spoken.
+        // aren't spoken.
         val maxLength = TextToSpeech.getMaxSpeechInputLength().coerceAtLeast(500) - 100
         val pieceList = ArrayList<String>()
-        val partList = ArrayList<Int>()
-        parts.forEachIndexed { index, part ->
-            if (part.isBlank()) return@forEachIndexed
-            for (piece in splitForSpeech(part.trim(), maxLength)) {
-                pieceList += piece
-                partList += index
-            }
+        for (part in parts) {
+            if (part.isBlank()) continue
+            pieceList += splitForSpeech(part.trim(), maxLength)
         }
         if (pieceList.isEmpty()) {
             state = State.Idle
             return
         }
         pieces = pieceList
-        pieceParts = partList.toIntArray()
         starts = IntArray(pieces.size)
         var at = 0
         pieces.forEachIndexed { index, piece ->
@@ -243,7 +228,6 @@ class TextToSpeechManager @Inject constructor(
         val chars = (positionMs / msPerChar).toInt().coerceIn(0, totalChars - 1)
         if (state is State.Paused) {
             state = State.Paused(chars, totalChars)
-            _part.value = pieceParts.getOrNull(pieceAt(chars))
         } else {
             speakFrom(chars)
         }
@@ -284,7 +268,6 @@ class TextToSpeechManager @Inject constructor(
             current = index
             known = base(index)
             knownAt = SystemClock.elapsedRealtime()
-            _part.value = pieceParts[index]
             update(known, total)
         }
 
@@ -310,7 +293,6 @@ class TextToSpeechManager @Inject constructor(
                 val index = utteranceId?.substringAfter(':')?.toIntOrNull() ?: return
                 if (index >= lastIndex) {
                     currentRun = null
-                    _part.value = null
                     state = State.Idle
                 } else if (index >= current) {
                     // Engines that don't report starts: the next piece starts now.
@@ -380,7 +362,6 @@ class TextToSpeechManager @Inject constructor(
         currentRun = null
         tts.stop()
         state = State.Idle
-        _part.value = null
     }
 
     companion object {

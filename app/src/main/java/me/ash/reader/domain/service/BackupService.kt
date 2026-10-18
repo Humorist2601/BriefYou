@@ -442,7 +442,25 @@ constructor(
 
         /** Value of the "external font" choice in the reading and basic font settings. */
         private const val EXTERNAL_FONT = 5
-        private const val MAX_ENTRY_BYTES = 150 * 1024 * 1024
-        private const val MAX_TOTAL_BYTES = 250L * 1024 * 1024
+        // 64 MB: far more than a normal backup (a few MB), small enough to be safe in memory.
+        private const val MAX_ENTRY_BYTES = 64 * 1024 * 1024
+        private const val MAX_TOTAL_BYTES = 64L * 1024 * 1024
+        private const val MAX_FILE_BYTES = 64 * 1024 * 1024
+
+        /**
+         * Reads a picked backup file, refusing anything over 64 MB (someone could pick a video
+         * by mistake, which wouldn't fit in memory).
+         */
+        fun readBackupFile(input: java.io.InputStream): ByteArray {
+            val out = ByteArrayOutputStream()
+            val chunk = ByteArray(8192)
+            while (true) {
+                val n = input.read(chunk)
+                if (n <= 0) break
+                out.write(chunk, 0, n)
+                if (out.size() > MAX_FILE_BYTES) error("The backup file is too large")
+            }
+            return out.toByteArray()
+        }
     }
 }

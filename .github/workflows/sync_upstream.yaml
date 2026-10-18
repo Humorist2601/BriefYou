@@ -1,10 +1,11 @@
 name: "Sync with Read You"
 
-# Brief You follows Read You automatically: once a day this merges new commits from
-# Ashinch/ReadYou into Brief You (this repo's main branch), keeping all Brief You changes. A clean
-# merge is pushed and built into a new release. If the same lines were changed on both sides,
-# nothing is changed: the run fails (GitHub emails the owner) and lists the conflicting files,
-# and an Issue is opened too when Issues are enabled.
+# Brief You follows Read You: once a day this merges new commits from Ashinch/ReadYou with Brief
+# You's main branch, keeping all Brief You changes, and offers the result as a pull request
+# ("Read You update"). Nothing reaches main, or a signed release, until you merge that pull
+# request yourself. A newer Read You update replaces the open pull request's contents. If the same
+# lines were changed on both sides, nothing is changed: the run fails (GitHub emails the owner)
+# and lists the conflicting files, and an Issue is opened too when Issues are enabled.
 
 on:
     schedule:
@@ -15,6 +16,8 @@ env:
     UPSTREAM_REPO: https://github.com/Ashinch/ReadYou.git
     UPSTREAM_BRANCH: main
     BRIEF_BRANCH: main
+    # Where the merged update waits for review (builds skip this branch).
+    SYNC_BRANCH: read-you-sync
 
 jobs:
     sync:
@@ -22,7 +25,7 @@ jobs:
         permissions:
             contents: write
             issues: write
-            actions: write
+            pull-requests: write
         steps:
             - uses: actions/checkout@v4
               with:
@@ -70,19 +73,33 @@ jobs:
                       exit 1
                   fi
 
-            - name: Push merge
+            - name: Offer the merge as a pull request
               if: steps.merge.outputs.result == 'merged'
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
-                  if ! git push origin "HEAD:$BRIEF_BRANCH"; then
+                  if ! git push --force origin "HEAD:refs/heads/$SYNC_BRANCH"; then
                       # Usually means Read You changed a workflow file, which this token may not push.
                       title="Read You update could not be pushed automatically"
                       if ! gh issue list --state open --search "$title in:title" --json number --jq '.[0].number' 2>/dev/null | grep -q .; then
-                          gh issue create --title "$title" --body "The merge with Read You succeeded but could not be pushed (Read You probably changed a file under .github/workflows). It needs to be pushed by hand." || true
+                          gh issue create --title "$title" --body "The merge with Read You succeeded but could not be pushed (Read You probably changed a file under .github/workflows). It needs to be merged by hand." || true
                       fi
-                      echo "::error title=Push failed::The merge with Read You could not be pushed; it needs to be pushed by hand." 
+                      echo "::error title=Push failed::The merge with Read You could not be pushed; it needs to be merged by hand."
                       exit 1
                   fi
-                  # Pushes made with this token don't start other workflows, so start the build.
-                  gh workflow run build_commit.yaml --ref "$BRIEF_BRANCH"
+                  {
+                      echo "Read You's latest changes, merged with Brief You. Review them, then merge this pull request to build and release them."
+                      echo
+                      echo "### New Read You commits"
+                      git log --format='- %s (%h)' "origin/$BRIEF_BRANCH..upstream/$UPSTREAM_BRANCH" | head -50
+                  } > pr.md
+                  existing=$(gh pr list --head "$SYNC_BRANCH" --base "$BRIEF_BRANCH" --state open --json number --jq '.[0].number')
+                  if [ -n "$existing" ]; then
+                      gh pr edit "$existing" --body-file pr.md
+                      echo "Updated pull request #$existing" >> "$GITHUB_STEP_SUMMARY"
+                  elif ! gh pr create --head "$SYNC_BRANCH" --base "$BRIEF_BRANCH" --title "Read You update" --body-file pr.md; then
+                      # Needs Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests".
+                      link="https://github.com/${{ github.repository }}/compare/$BRIEF_BRANCH...$SYNC_BRANCH"
+                      echo "The update is ready on the \`$SYNC_BRANCH\` branch, but the pull request couldn't be opened automatically. Open it here: $link" >> "$GITHUB_STEP_SUMMARY"
+                      echo "::warning title=Open the pull request by hand::$link (or allow GitHub Actions to create pull requests in the repository settings)"
+                  fi

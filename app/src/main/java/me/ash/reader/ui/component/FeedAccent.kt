@@ -41,6 +41,7 @@ import kotlinx.coroutines.withContext
  */
 object FeedAccent {
     private const val NONE = 0
+    private const val MAX_SAVED = 1000
     private val memory = ConcurrentHashMap<String, Int>()
 
     /** Raw dominant icon color (ARGB), or null when the icon has no clear color. */
@@ -55,6 +56,9 @@ object FeedAccent {
         }
         val color = withContext(Dispatchers.IO) { runCatching { extract(context, iconUrl) }.getOrNull() }
         memory[key] = color ?: NONE
+        // Old icons' colours are never needed again; start over now and then rather than keep
+        // every icon a feed ever had (the current ones are worked out again when shown).
+        if (prefs.all.size > MAX_SAVED) prefs.edit().clear().apply()
         prefs.edit().putInt(key, color ?: NONE).apply()
         return color
     }
@@ -64,7 +68,15 @@ object FeedAccent {
         val bitmap: Bitmap =
             if ("^image/.*;base64,.*".toRegex().matches(iconUrl)) {
                 val bytes = Base64.decode(iconUrl.substringAfter("base64,"), Base64.DEFAULT)
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+                // Read small: only the colours are needed, and a tiny file can be a huge picture.
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+                var sample = 1
+                while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= 64) sample *= 2
+                BitmapFactory.decodeByteArray(
+                    bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample },
+                ) ?: return null
             } else {
                 val result =
                     context.imageLoader.execute(
@@ -93,14 +105,15 @@ object FeedAccent {
         return bmp
     }
 
-    private val pictureMemory = ConcurrentHashMap<String, Int>()
+    /** Colours of recently opened pictures (the newest 200), so the cache can't grow forever. */
+    private val pictureMemory = android.util.LruCache<String, Int>(200)
 
     /**
      * The main colour of a picture (an article's), or null when it has no clear colour (black and
      * white photos, for example). Remembered while the app runs.
      */
     suspend fun pictureColor(context: Context, url: String): Int? {
-        pictureMemory[url]?.let { return it.takeIf { c -> c != NONE } }
+        pictureMemory.get(url)?.let { return it.takeIf { c -> c != NONE } }
         val color =
             withContext(Dispatchers.IO) {
                 runCatching {
@@ -116,7 +129,7 @@ object FeedAccent {
                     }
                     .getOrNull()
             }
-        pictureMemory[url] = color ?: NONE
+        pictureMemory.put(url, color ?: NONE)
         return color
     }
 

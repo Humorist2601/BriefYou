@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brief You: the same rules for Android 12 and newer, for cloud backup and for moving to a new
+     phone. The database holds server logins, so it stays on the phone; the AI model is gigabytes. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="." />
+        <exclude domain="file" path="models/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="." />
+        <exclude domain="file" path="models/" />
+    </device-transfer>
+</data-extraction-rules>

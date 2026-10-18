@@ -164,13 +164,6 @@ internal object BackPreviewState {
 }
 
 /**
- * True while a predictive back gesture is showing. Screens use it to stop drawing shared elements
- * (like the filter bar) above both screens, so everything on the screen moves with the card.
- */
-val isBackPreviewActive: Boolean
-    get() = BackPreviewState.phase != BackPhase.Idle
-
-/**
  * The navigation host's transition for a predictive back: it draws nothing and only keeps both
  * screens on screen. Everything you see is drawn by [BackPreviewPage].
  */

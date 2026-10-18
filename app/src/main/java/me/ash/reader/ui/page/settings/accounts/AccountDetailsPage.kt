@@ -140,7 +140,7 @@ fun AccountDetailsPage(
                         withContext(Dispatchers.IO) {
                             runCatching {
                                     context.contentResolver.openInputStream(it)?.use { s ->
-                                        s.readBytes()
+                                        BackupService.readBackupFile(s)
                                     }
                                 }
                                 .getOrNull()

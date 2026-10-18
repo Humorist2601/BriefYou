@@ -1,24 +1,16 @@
 package me.ash.reader.ui.component.webview
 
-import androidx.compose.runtime.SideEffect
 import me.ash.reader.ui.theme.palette.LocalWebViewColorScheme
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.ui.graphics.compositeOver
-import android.util.Log
+import androidx.compose.runtime.key
+import org.json.JSONObject
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -52,7 +44,6 @@ fun RYWebView(
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val maxWidth = LocalConfiguration.current.screenWidthDp.dp.value
     val openLink = LocalOpenLink.current
     val openLinkSpecificBrowser = LocalOpenLinkSpecificBrowser.current
     val tonalElevation = LocalReadingPageTonalElevation.current
@@ -88,26 +79,6 @@ fun RYWebView(
         colorScheme.surfaceColorAtElevation((tonalElevation.value + 6).dp).toArgb()
     val boldCharacters = LocalReadingBoldCharacters.current
 
-    val webView by
-        remember(backgroundColor) {
-            mutableStateOf(
-                WebViewLayout.get(
-                    context = context,
-                    readingFontsPreference = readingFonts,
-                    webViewClient =
-                        WebViewClient(
-                            context = context,
-                            refererDomain = refererDomain,
-                            pageUrl = baseUrl,
-                            onOpenLink = { url ->
-                                context.openURL(url, openLink, openLinkSpecificBrowser)
-                            },
-                        ),
-                    onImageClick = onImageClick,
-                )
-            )
-        }
-
     val fontPath =
         if (readingFonts is ReadingFontsPreference.External)
             ExternalFonts.FontType.ReadingFont.toPath(context)
@@ -117,51 +88,91 @@ fun RYWebView(
             "/android_res/font/literata.ttf"
         } else null
 
-    AndroidView(
-        modifier = modifier,
-        factory = { webView },
-        update = {
-            it.apply {
-                Log.i("RLog", "maxWidth: ${maxWidth}")
-                Log.i("RLog", "readingFont: ${context.filesDir.absolutePath}")
-                Log.i("RLog", "CustomWebView: ${content}")
-                settings.defaultFontSize = fontSize
-                loadDataWithBaseURL(
-                    null,
-                    WebViewHtml.HTML.format(
-                        WebViewStyle.get(
-                            fontSize = fontSize,
-                            fontPath = fontPath,
-                            lineHeight = lineHeight,
-                            letterSpacing = letterSpacing,
-                            textMargin = textMargin,
-                            textColor = textColor,
-                            textBold = textBold,
-                            textAlign = textAlign,
-                            boldTextColor = boldTextColor,
-                            subheadBold = subheadBold,
-                            subheadUpperCase = subheadUpperCase,
-                            imgMargin = imgMargin,
-                            imgBorderRadius = imgBorderRadius,
-                            linkTextColor = linkTextColor,
-                            codeTextColor = codeTextColor,
-                            codeBgColor = codeBgColor,
-                            tableMargin = textMargin,
-                            selectionTextColor = selectionTextColor,
-                            selectionBgColor = selectionBgColor,
-                            isDark = isDarkBackground,
-                        ),
-                        // The article's address (this used to read the web view's own, empty one,
-                        // so relative images and links didn't work).
-                        baseUrl.orEmpty().replace("\"", "%22"),
-                        content,
-                        WebViewScript.get(boldCharacters.value),
+    val css =
+        WebViewStyle.get(
+            fontSize = fontSize,
+            fontPath = fontPath,
+            lineHeight = lineHeight,
+            letterSpacing = letterSpacing,
+            textMargin = textMargin,
+            textColor = textColor,
+            textBold = textBold,
+            textAlign = textAlign,
+            boldTextColor = boldTextColor,
+            subheadBold = subheadBold,
+            subheadUpperCase = subheadUpperCase,
+            imgMargin = imgMargin,
+            imgBorderRadius = imgBorderRadius,
+            linkTextColor = linkTextColor,
+            codeTextColor = codeTextColor,
+            codeBgColor = codeBgColor,
+            tableMargin = textMargin,
+            selectionTextColor = selectionTextColor,
+            selectionBgColor = selectionBgColor,
+            isDark = isDarkBackground,
+        )
+    val script = WebViewScript.get(boldCharacters.value)
+
+    // Brief You: one web view per article (and reading font), freed when it leaves the screen.
+    // When only the styling changes (the picture's colours arriving, the text sheet), the new
+    // styles are swapped in place: no reload, no blink, and the scroll position stays. Before,
+    // every colour change made a new web view that was never shown or freed, and reloaded the page.
+    key(baseUrl, readingFonts) {
+        val webView = remember {
+            WebViewLayout.get(
+                context = context,
+                readingFontsPreference = readingFonts,
+                webViewClient =
+                    WebViewClient(
+                        context = context,
+                        refererDomain = refererDomain,
+                        pageUrl = baseUrl,
+                        onOpenLink = { url ->
+                            context.openURL(url, openLink, openLinkSpecificBrowser)
+                        },
                     ),
-                    "text/HTML",
-                    "UTF-8",
-                    null,
-                )
-            }
-        },
-    )
+                onImageClick = onImageClick,
+            )
+        }
+        // What the web view currently shows: the page (content and script) and its styles.
+        val shown = remember { arrayOfNulls<String>(2) }
+
+        AndroidView(
+            modifier = modifier,
+            factory = { webView },
+            onRelease = {
+                it.stopLoading()
+                it.destroy()
+            },
+            update = {
+                it.settings.defaultFontSize = fontSize
+                val page = content + "\u0000" + script
+                // A style change while the page is still loading would be lost, so reload then.
+                if (shown[0] != page || (shown[1] != css && it.progress < 100)) {
+                    it.loadDataWithBaseURL(
+                        null,
+                        WebViewHtml.HTML.format(
+                            css,
+                            // The article's address (this used to read the web view's own, empty
+                            // one, so relative images and links didn't work).
+                            baseUrl.orEmpty().replace("\"", "%22"),
+                            content,
+                            script,
+                        ),
+                        "text/HTML",
+                        "UTF-8",
+                        null,
+                    )
+                    shown[0] = page
+                    shown[1] = css
+                } else if (shown[1] != css) {
+                    it.evaluateJavascript(
+                        "document.querySelector('style').textContent = ${JSONObject.quote(css)};",
+                        null,
+                    )
+                    shown[1] = css
+                }
+            },
+        )
+    }
 }

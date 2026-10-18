@@ -8,7 +8,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
@@ -234,7 +233,6 @@ class ReadAloudService : Service() {
                         bitmap
                     }
                     .getOrNull()
-                    ?: BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
             artworkColor = color
             artworkBitmap = made
             return made

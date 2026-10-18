@@ -41,14 +41,22 @@ constructor(
     /** Copies the picked image, scaled down to a small square-ish icon, into private storage. */
     suspend fun setImage(feedId: String, uri: Uri) =
         withContext(Dispatchers.IO) {
+            // Read at about icon size, not full size: a big photo would otherwise need hundreds
+            // of megabytes of memory.
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, bounds)
+            }
+            val options = scaledOptions(bounds) ?: error("Could not read that image")
             val src =
-                context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
-                    ?: error("Could not read that image")
+                context.contentResolver.openInputStream(uri)?.use {
+                    BitmapFactory.decodeStream(it, null, options)
+                } ?: error("Could not read that image")
             storeBitmap(feedId, src)
         }
 
     private suspend fun storeBitmap(feedId: String, src: Bitmap) {
-        val scale = 192f / maxOf(src.width, src.height)
+        val scale = ICON_SIZE.toFloat() / maxOf(src.width, src.height)
         val bmp =
             if (scale < 1f)
                 Bitmap.createScaledBitmap(
@@ -89,8 +97,13 @@ constructor(
                     val bytes =
                         runCatching { Base64.decode(data, Base64.DEFAULT) }.getOrNull()
                             ?: return@withContext
+                    // At about icon size: a tiny file can describe a huge picture.
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                    val options = scaledOptions(bounds) ?: return@withContext
                     val bmp =
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@withContext
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+                            ?: return@withContext
                     storeBitmap(feedId, bmp)
                 }
             }
@@ -125,6 +138,22 @@ constructor(
         /** Image icons in OPML files: `image/png;base64,...` */
         val IMAGE_VALUE = Regex("^image/[a-z+.-]+;base64,(.+)$", RegexOption.DOT_MATCHES_ALL)
         const val MAX_IMPORT_ICON_CHARS = 400_000
+        private const val ICON_SIZE = 192
+        /** 200 megapixels: anything bigger isn't a real photo. */
+        private const val MAX_PIXELS = 200_000_000L
+    }
+
+    /**
+     * Options that read a picture at about icon size (a power of two at least [ICON_SIZE]), or
+     * null when it isn't a readable picture or is absurdly large.
+     */
+    private fun scaledOptions(bounds: BitmapFactory.Options): BitmapFactory.Options? {
+        val w = bounds.outWidth
+        val h = bounds.outHeight
+        if (w <= 0 || h <= 0 || w.toLong() * h > MAX_PIXELS) return null
+        var sample = 1
+        while (maxOf(w, h) / (sample * 2) >= ICON_SIZE) sample *= 2
+        return BitmapFactory.Options().apply { inSampleSize = sample }
     }
 
     private fun safe(id: String) = id.replace(Regex("[^A-Za-z0-9._-]"), "_").take(80)

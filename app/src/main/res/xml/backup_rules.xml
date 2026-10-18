@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brief You: what Android's own automatic backup may copy (Android 11 and older).
+     The database holds server logins, so it stays on the phone; the AI model is gigabytes.
+     Settings still back up. Brief You's own "Back up everything" file is separate. -->
+<full-backup-content>
+    <exclude domain="database" path="." />
+    <exclude domain="file" path="models/" />
+</full-backup-content>
