@@ -209,6 +209,8 @@
     <string name="stats_articles_week">articles this week</string>
     <string name="stats_streak">day streak</string>
     <string name="stats_this_week">This week (minutes)</string>
+    <string name="stats_this_week_articles">This week (articles)</string>
+    <string name="stats_this_week_streak">This week (streak)</string>
     <string name="stats_top_feeds">Feeds you read most</string>
     <string name="stats_nothing_yet">Nothing yet. Open a few articles and they\'ll show up here.</string>
     <string name="stats_all_time">All time</string>

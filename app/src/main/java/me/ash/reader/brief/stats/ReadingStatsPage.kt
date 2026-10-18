@@ -1,5 +1,11 @@
 package me.ash.reader.brief.stats
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -85,6 +91,8 @@ fun ReadingStatsPage(onBack: () -> Unit) {
     LaunchedEffect(Unit) { ReadingStats.load(context) }
     val data = ReadingStats.data
     var confirmReset by rememberSaveable { mutableStateOf(false) }
+    // Which stat the weekly chart shows: tap a tile to choose (it turns tertiary, like the bars).
+    var chartStat by rememberSaveable { mutableStateOf(ChartStat.Minutes) }
 
     val today = LocalDate.now()
     val week = (6 downTo 0).map { today.minusDays(it.toLong()) }
@@ -129,18 +137,24 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                             Icons.Outlined.Schedule,
                             weekMinutes.toString(),
                             stringResource(R.string.stats_minutes_week),
+                            selected = chartStat == ChartStat.Minutes,
+                            onClick = { chartStat = ChartStat.Minutes },
                         )
                         StatTile(
                             Modifier.weight(1f).fillMaxHeight(),
                             Icons.AutoMirrored.Outlined.Article,
                             weekArticles.toString(),
                             stringResource(R.string.stats_articles_week),
+                            selected = chartStat == ChartStat.Articles,
+                            onClick = { chartStat = ChartStat.Articles },
                         )
                         StatTile(
                             Modifier.weight(1f).fillMaxHeight(),
                             Icons.Outlined.LocalFireDepartment,
                             streak.toString(),
                             stringResource(R.string.stats_streak),
+                            selected = chartStat == ChartStat.Streak,
+                            onClick = { chartStat = ChartStat.Streak },
                         )
                     }
                     Spacer(Modifier.height(24.dp))
@@ -148,9 +162,26 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                 item {
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
-                        text = stringResource(R.string.stats_this_week),
+                        text =
+                            stringResource(
+                                when (chartStat) {
+                                    ChartStat.Minutes -> R.string.stats_this_week
+                                    ChartStat.Articles -> R.string.stats_this_week_articles
+                                    ChartStat.Streak -> R.string.stats_this_week_streak
+                                }
+                            ),
                     )
-                    WeekChart(week = week, days = weekDays)
+                    val values =
+                        remember(data, chartStat) {
+                            week.map { day ->
+                                when (chartStat) {
+                                    ChartStat.Minutes -> (data.days[day.toString()]?.seconds ?: 0) / 60
+                                    ChartStat.Articles -> (data.days[day.toString()]?.articles ?: 0).toLong()
+                                    ChartStat.Streak -> streakOn(data, day).toLong()
+                                }
+                            }
+                        }
+                    WeekChart(week = week, values = values)
                     Spacer(Modifier.height(24.dp))
                 }
                 item {
@@ -243,14 +274,59 @@ private fun streakDays(data: ReadingStatsData, today: LocalDate): Int {
     return count
 }
 
-/** A big tonal tile with a number, like the tiles at the top of Filters. */
+/** The streak on [day]: days in a row with an article opened, ending that day (0 if none). */
+private fun streakOn(data: ReadingStatsData, day: LocalDate): Int {
+    var d = day
+    var count = 0
+    while ((data.days[d.toString()]?.articles ?: 0) > 0) {
+        count++
+        d = d.minusDays(1)
+    }
+    return count
+}
+
+/** What the weekly chart shows. */
+private enum class ChartStat {
+    Minutes,
+    Articles,
+    Streak,
+}
+
+/**
+ * A big tonal tile with a number, like the tiles at the top of Filters. Tap to show its stat in
+ * the weekly chart; the chosen one is tertiary, like the chart's bars.
+ */
 @Composable
-private fun StatTile(modifier: Modifier, icon: ImageVector, value: String, label: String) {
+private fun StatTile(
+    modifier: Modifier,
+    icon: ImageVector,
+    value: String,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val haptic = LocalHapticFeedback.current
+    val container by
+        animateColorAsState(
+            if (selected) MaterialTheme.colorScheme.tertiaryContainer
+            else MaterialTheme.colorScheme.primaryContainer,
+            label = "statTile",
+        )
+    val content by
+        animateColorAsState(
+            if (selected) MaterialTheme.colorScheme.onTertiaryContainer
+            else MaterialTheme.colorScheme.onPrimaryContainer,
+            label = "statTileContent",
+        )
     Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        onClick = {
+            if (!selected) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            onClick()
+        },
+        color = container,
+        contentColor = content,
         shape = RoundedCornerShape(24.dp),
-        modifier = modifier,
+        modifier = modifier.semantics { this.selected = selected },
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
@@ -270,10 +346,10 @@ private fun StatTile(modifier: Modifier, icon: ImageVector, value: String, label
     }
 }
 
-/** Minutes read on each of the last seven days, as rounded bars, today last and highlighted. */
+/** The chosen stat on each of the last seven days, as tertiary bars, today last and highlighted. */
 @Composable
-private fun WeekChart(week: List<LocalDate>, days: List<StatsDay>) {
-    val most = days.maxOf { it.seconds }.coerceAtLeast(60)
+private fun WeekChart(week: List<LocalDate>, values: List<Long>) {
+    val most = values.maxOf { it }.coerceAtLeast(1)
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = RoundedCornerShape(24.dp),
@@ -285,7 +361,7 @@ private fun WeekChart(week: List<LocalDate>, days: List<StatsDay>) {
             verticalAlignment = Alignment.Bottom,
         ) {
             week.forEachIndexed { i, date ->
-                val minutes = days[i].seconds / 60
+                val value = values[i]
                 val isToday = i == week.lastIndex
                 Column(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -293,20 +369,24 @@ private fun WeekChart(week: List<LocalDate>, days: List<StatsDay>) {
                     verticalArrangement = Arrangement.Bottom,
                 ) {
                     Text(
-                        text = if (minutes > 0) minutes.toString() else "",
+                        text = if (value > 0) value.toString() else "",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(4.dp))
                     Box(modifier = Modifier.weight(1f).width(22.dp), contentAlignment = Alignment.BottomCenter) {
-                        val fraction = (days[i].seconds.toFloat() / most).coerceIn(0.04f, 1f)
+                        val fraction by
+                            animateFloatAsState(
+                                (value.toFloat() / most).coerceIn(0.04f, 1f),
+                                label = "bar",
+                            )
                         Box(
                             modifier =
                                 Modifier.fillMaxWidth()
                                     .fillMaxHeight(fraction)
                                     .background(
-                                        if (isToday) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                        if (isToday) MaterialTheme.colorScheme.tertiary
+                                        else MaterialTheme.colorScheme.tertiary.copy(alpha = 0.45f),
                                         RoundedCornerShape(11.dp),
                                     )
                         )
