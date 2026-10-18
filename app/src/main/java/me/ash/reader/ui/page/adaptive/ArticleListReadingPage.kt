@@ -1,5 +1,7 @@
 package me.ash.reader.ui.page.adaptive
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.zIndex
 import androidx.compose.animation.ExitTransition
@@ -146,7 +148,8 @@ fun ArticleListReaderPage(
                     else EnterTransition.None,
                 exitTransition =
                     if (isTwoPane) motionDataProvider.calculateExitTransition(paneRole)
-                    else ExitTransition.KeepUntilTransitionsFinished,
+                    // Kept (fully shown) until the article has finished opening over it.
+                    else fadeOut(tween(durationMillis = 1, delayMillis = LIST_KEEP_MS)),
             ) {
                 CompositionLocalProvider(
                     LocalBackgroundTextMeasurementExecutor provides
@@ -248,3 +251,7 @@ fun ArticleListReaderPage(
         },
     )
 }
+
+/** How long the list stays under an opening article (the article's open animation, 450 ms). */
+private const val LIST_KEEP_MS = 460
+

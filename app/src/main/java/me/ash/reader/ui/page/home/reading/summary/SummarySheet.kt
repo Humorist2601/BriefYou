@@ -671,6 +671,7 @@ private fun WhyCard(text: String) {
 }
 
 /** Ask this article: each question on the right, its answer on the left as it is written. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AskConversation(asks: List<AskTurn>) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
