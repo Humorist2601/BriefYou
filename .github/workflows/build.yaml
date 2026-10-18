@@ -1,4 +1,4 @@
-name: "Build Commit"
+name: "Build"
 on:
     push:
         # Read You updates wait there for review; they're built once merged into main.
@@ -11,9 +11,6 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: write
-        env:
-            # Brief You build numbers restarted at 1 after run #16 of this workflow.
-            BUILD_NUMBER_OFFSET: 16
         steps:
             - uses: actions/checkout@v4
               with:
@@ -39,8 +36,10 @@ jobs:
                   cat fork.txt >> "$GITHUB_STEP_SUMMARY"
 
             - name: Set build number
-              # Every CI build gets a higher number, so each release installs as an update.
-              run: echo "CI_BUILD_NUMBER=$(( ${{ github.run_number }} - BUILD_NUMBER_OFFSET ))" >> "$GITHUB_ENV"
+              # This workflow's run number: 1, 2, 3… (it started again at 1 when the workflow
+              # was renamed to build.yaml). It's also the app's version code, so each build
+              # installs as an update over the one before.
+              run: echo "CI_BUILD_NUMBER=${{ github.run_number }}" >> "$GITHUB_ENV"
 
             - name: Use Brief You's signing key
               # With the key in the repo's secrets, builds are signed with it instead of Read
@@ -127,7 +126,7 @@ jobs:
                   if git fetch -q --no-tags https://github.com/Ashinch/ReadYou.git main; then
                       included=$(git log -1 --format=%cd --date=format:'%b %-d, %Y' "$(git merge-base HEAD FETCH_HEAD)")
                   fi
-                  checked=$(gh api "repos/${{ github.repository }}/actions/workflows/sync_upstream.yaml/runs?status=success&per_page=1" \
+                  checked=$(gh api "repos/${{ github.repository }}/actions/workflows/sync.yaml/runs?status=success&per_page=1" \
                       -q '.workflow_runs[0].updated_at // empty' 2>/dev/null | cut -c1-10 || true)
                   [ -n "$checked" ] && checked=$(date -d "$checked" '+%b %-d, %Y') || checked="never"
                   {

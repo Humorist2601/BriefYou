@@ -78,7 +78,7 @@ android {
             // CI builds get a rising version so each release installs as an update. Kept here,
             // away from the upstream version lines, so Read You's version bumps merge cleanly.
             System.getenv("CI_BUILD_NUMBER")?.toIntOrNull()?.let { build ->
-                versionCode = 1000 + build
+                versionCode = build
                 versionNameSuffix = ".$build"
             }
         }
