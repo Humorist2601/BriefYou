@@ -31,7 +31,8 @@ import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.StopCircle
+import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -336,12 +337,27 @@ fun SummarySheet(
                         shape = RoundedCornerShape(8, 50, 50, 8),
                         modifier = Modifier.weight(1f).height(52.dp),
                     ) {
-                        Icon(
-                            if (reading) Icons.Outlined.StopCircle
-                            else Icons.AutoMirrored.Outlined.VolumeUp,
-                            contentDescription = null,
-                            modifier = Modifier.size(ButtonDefaults.IconSize),
-                        )
+                        // While reading: Stop on the Expressive loading shape, like the reading
+                        // bar's read aloud button.
+                        if (reading) {
+                            Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                                LoadingIndicator(
+                                    modifier = Modifier.size(28.dp),
+                                    color = LocalContentColor.current.copy(alpha = 0.22f),
+                                )
+                                Icon(
+                                    Icons.Rounded.Stop,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        } else {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.VolumeUp,
+                                contentDescription = null,
+                                modifier = Modifier.size(ButtonDefaults.IconSize),
+                            )
+                        }
                         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                         Text(
                             stringResource(
@@ -496,8 +512,9 @@ private fun PointCard(text: String, shape: RoundedCornerShape) {
 @Composable
 private fun WhyCard(text: String) {
     Surface(
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        // The same colour as the top boxes on the AI model and Filters settings pages.
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         shape = RoundedCornerShape(24.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {

@@ -65,12 +65,15 @@ object FeedContent {
             el.attr("src", absoluteUrl(el.attr("src"), link) ?: continue)
         }
         for (el in doc.select("img[srcset], source[srcset]")) {
+            val candidates = parseSrcset(el.attr("srcset"))
+            // Leave it exactly as it was when every address is already complete (Substack's
+            // addresses have commas in them, so rewriting is only done when needed).
+            if (candidates.all { (url, _) -> absoluteUrl(url, link) == url }) continue
             el.attr(
                 "srcset",
-                el.attr("srcset").split(",").joinToString(", ") { part ->
-                    val bits = part.trim().split(Regex("\\s+"), limit = 2)
-                    val url = absoluteUrl(bits.first(), link) ?: bits.first()
-                    if (bits.size > 1) "$url ${bits[1]}" else url
+                candidates.joinToString(", ") { (url, descriptor) ->
+                    val full = absoluteUrl(url, link) ?: url
+                    if (descriptor.isNullOrEmpty()) full else "$full $descriptor"
                 },
             )
         }
@@ -79,6 +82,40 @@ object FeedContent {
             if (href.startsWith("#")) continue
             el.attr("href", absoluteUrl(href, link) ?: continue)
         }
+    }
+
+    /**
+     * The (address, size) pairs of a `srcset`, read the way browsers do: an address runs until a
+     * space, so it can contain commas (Substack's do); a comma only ends a candidate after its
+     * size, or when it ends the address itself.
+     */
+    internal fun parseSrcset(srcset: String): List<Pair<String, String?>> {
+        val out = ArrayList<Pair<String, String?>>()
+        var i = 0
+        val n = srcset.length
+        while (i < n) {
+            while (i < n && (srcset[i].isWhitespace() || srcset[i] == ',')) i++
+            if (i >= n) break
+            val urlStart = i
+            while (i < n && !srcset[i].isWhitespace()) i++
+            var url = srcset.substring(urlStart, i)
+            if (url.endsWith(",")) {
+                url = url.trimEnd(',')
+                if (url.isNotEmpty()) out += url to null
+                continue
+            }
+            val descStart = i
+            var depth = 0
+            while (i < n) {
+                val c = srcset[i]
+                if (c == '(') depth++ else if (c == ')') depth-- else if (c == ',' && depth <= 0) break
+                i++
+            }
+            val descriptor = srcset.substring(descStart, i).trim().ifEmpty { null }
+            if (i < n) i++ // the comma
+            if (url.isNotEmpty()) out += url to descriptor
+        }
+        return out
     }
 
     // ---- Wikipedia ----

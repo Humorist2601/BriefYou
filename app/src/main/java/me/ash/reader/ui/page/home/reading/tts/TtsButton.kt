@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -116,7 +116,7 @@ fun TtsButton(
                 ) {
                     // Same color as the other icons around it (the reading bar's content color).
                     Icon(
-                        Icons.Outlined.Headphones,
+                        Icons.AutoMirrored.Outlined.VolumeUp,
                         stringResource(R.string.read_aloud),
                         modifier = Modifier.size(24.dp),
                         tint = LocalContentColor.current

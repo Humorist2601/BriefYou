@@ -1,6 +1,8 @@
 package me.ash.reader.ui.page.splash
 
 import android.os.Build
+import android.os.Process
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.RoundedCorner
 import androidx.compose.animation.core.Animatable
@@ -67,7 +69,8 @@ import me.ash.reader.R
  */
 private val SystemSplashIconSize = 288.dp
 
-private const val TiltLeadMs = 110L
+/** How long the card takes to tip (the same as the system splash's animated icon). */
+private const val TiltMs = 180L
 private const val LinesDelayMs = 150L
 private const val SparkleDelayMs = 430L
 private const val GrowDelayMs = 680L
@@ -118,11 +121,21 @@ fun BriefSplash(onFinished: () -> Unit, modifier: Modifier = Modifier) {
             currentOnFinished()
             return@LaunchedEffect
         }
-        // No waiting: the straight card tips to the right on the first frame, and the two back
-        // cards fan out as it lands.
+        // The system splash's card tips to the right as soon as it shows (its animated icon), so
+        // the card here is usually tipped already; only a very quick start still sees it move.
+        // Then the two back cards fan out right away.
+        val sinceStart = SystemClock.uptimeMillis() - Process.getStartUptimeMillis()
+        val tiltLeft = (TiltMs - sinceStart).coerceAtLeast(0L)
         coroutineScope {
-            launch { tilt.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = 700f)) }
-            delay(TiltLeadMs)
+            if (tiltLeft == 0L) {
+                tilt.snapTo(1f)
+            } else {
+                tilt.snapTo(1f - tiltLeft.toFloat() / TiltMs)
+                launch {
+                    tilt.animateTo(1f, tween(tiltLeft.toInt(), easing = FastOutSlowInEasing))
+                }
+                delay(tiltLeft)
+            }
             launch { fan.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 260f)) }
             launch {
                 delay(LinesDelayMs)
