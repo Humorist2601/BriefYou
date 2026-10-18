@@ -78,17 +78,16 @@ jobs:
                   total=$(wc -l < warnings.txt)
                   brief=$(grep -cE '^app/src/main/java/me/ash/reader/brief/' warnings.txt || true)
                   {
-                      echo "### Kotlin warnings: $total"
+                      echo "### Kotlin warnings"
                       echo
-                      echo "- Brief You's own code: $brief"
-                      echo "- Read You's code: $((total - brief))"
+                      echo "- **Brief You's own code: $brief** (should be 0; listed in the annotations)"
+                      echo "- Read You's code: $((total - brief)) (left to Read You on purpose: see README, How Brief You is organised)"
                   } >> "$GITHUB_STEP_SUMMARY"
-                  # The ones worth fixing, as annotations (readable from the GitHub API): Brief You's
-                  # own, and deprecated Android or library calls. Read You's half-done settings
-                  # migration (DataStoreKey), casts and annotation notices are only counted.
-                  grep -E '^app/src/main/java/me/ash/reader/brief/|is deprecated' warnings.txt \
-                      | grep -v 'type-safe PreferencesKey' > fix.txt || true
-                  echo "- To fix (Brief You's and deprecated library calls): $(wc -l < fix.txt)" >> "$GITHUB_STEP_SUMMARY"
+                  # Brief You's own first (these are the ones to fix), then Read You's deprecated
+                  # library calls, as annotations readable from the GitHub API.
+                  grep -E '^app/src/main/java/me/ash/reader/brief/' warnings.txt > fix.txt || true
+                  grep -vE '^app/src/main/java/me/ash/reader/brief/' warnings.txt \
+                      | grep 'is deprecated' | grep -v 'type-safe PreferencesKey' >> fix.txt || true
                   split -l 12 -d fix.txt part_ || true
                   n=0
                   for f in part_*; do
