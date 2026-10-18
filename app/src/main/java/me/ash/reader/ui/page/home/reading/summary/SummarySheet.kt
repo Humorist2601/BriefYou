@@ -534,7 +534,6 @@ fun SummarySheet(
                             )
                         )
                     }
-                    }
                 }
             }
         }
