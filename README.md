@@ -30,7 +30,7 @@ A fork of <a href="https://github.com/ReadYouApp/ReadYou">Read You</a>.</p>
 
 Brief You keeps everything that makes Read You great (Material You design, Reeder-style reading, FreshRSS, Miniflux, Fever, Google Reader API and more) and adds AI that runs **entirely on your phone**: articles and questions never leave it. It installs **next to** Read You (app ID `com.ay.briefyou`); move your feeds over with OPML.
 
-<p align="center"><img alt="Brief You screenshots: feeds, Unread, Triage, AI gist, reading, filters and settings" src=".github/assets/screenshots.png"></p>
+<p align="center"><img alt="Brief You screenshots: feeds, Unread, reading, Triage, AI gist, Reading stats, filters, AI model and settings" src=".github/assets/screenshots.png"></p>
 
 ## What's different from Read You
 
