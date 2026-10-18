@@ -2,6 +2,12 @@
 
 package me.ash.reader.brief.triage
 
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.RssFeed
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
 import me.ash.reader.brief.stats.ReadingStats
 import me.ash.reader.brief.list.CelebrationBurst
 import me.ash.reader.brief.reading.estimateReadingMinutes
@@ -1118,22 +1124,137 @@ private fun TriageDone(
             textAlign = TextAlign.Center,
         )
         if (!nothingToDo) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.triage_summary, read, saved, skipped),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-        }
-        Spacer(Modifier.height(32.dp))
-        if (next != null) {
-            Button(onClick = onNext, enabled = !loadingNext) {
-                Text(stringResource(R.string.triage_next_group, next.name, next.unread))
+            Spacer(Modifier.height(24.dp))
+            // This session at a glance: read, saved and skipped, as small tiles.
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                SessionTile(
+                    Modifier.weight(1f).fillMaxHeight(),
+                    Icons.Rounded.Check,
+                    read,
+                    stringResource(R.string.triage_tile_read),
+                    MaterialTheme.colorScheme.primaryContainer,
+                    MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                SessionTile(
+                    Modifier.weight(1f).fillMaxHeight(),
+                    Icons.Rounded.Star,
+                    saved,
+                    stringResource(R.string.triage_tile_saved),
+                    MaterialTheme.colorScheme.tertiaryContainer,
+                    MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                SessionTile(
+                    Modifier.weight(1f).fillMaxHeight(),
+                    Icons.Rounded.SkipNext,
+                    skipped,
+                    stringResource(R.string.triage_tile_skipped),
+                    MaterialTheme.colorScheme.surfaceContainerHigh,
+                    MaterialTheme.colorScheme.onSurface,
+                )
             }
+        }
+        Spacer(Modifier.height(24.dp))
+        if (next != null) {
+            NextCard(next = next, loading = loadingNext, onClick = onNext)
+            Spacer(Modifier.height(8.dp))
             TextButton(onClick = onClose) { Text(stringResource(R.string.triage_back_to_list)) }
         } else {
             Button(onClick = onClose) { Text(stringResource(R.string.triage_back_to_list)) }
+        }
+    }
+}
+
+/** One number of the finished session (read, saved or skipped) on a small tonal tile. */
+@Composable
+private fun SessionTile(
+    modifier: Modifier,
+    icon: ImageVector,
+    count: Int,
+    label: String,
+    container: Color,
+    content: Color,
+) {
+    Surface(color = container, contentColor = content, shape = RoundedCornerShape(24.dp), modifier = modifier) {
+        Column(
+            modifier = Modifier.padding(vertical = 14.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.headlineSmall,
+                fontFamily = GoogleSansWideFontFamily,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(text = label, style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+/**
+ * The next group (or feed) with unread articles, as a big card: tap to carry on with it. Shows a
+ * loading indicator while its cards are fetched.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun NextCard(next: TriageNext, loading: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        enabled = !loading,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier =
+                    Modifier.size(52.dp)
+                        .clip(MaterialShapes.Cookie7Sided.toShape())
+                        .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (loading) {
+                    LoadingIndicator(
+                        modifier = Modifier.size(32.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Icon(
+                        if (next.isFeed) Icons.Rounded.RssFeed else Icons.Rounded.Folder,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(26.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.triage_next_up),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Text(
+                    text = next.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = stringResource(R.string.triage_next_unread, next.unread),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            Icon(
+                Icons.AutoMirrored.Rounded.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+            )
         }
     }
 }

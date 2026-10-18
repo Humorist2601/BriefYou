@@ -1,5 +1,18 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package me.ash.reader.brief.filters
 
+import me.ash.reader.brief.ui.GoogleSansWideFontFamily
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.toShape
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Button
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import android.content.Intent
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +26,6 @@ import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.Surface
@@ -73,7 +85,6 @@ import me.ash.reader.ui.component.base.RYSwitch
 import me.ash.reader.ui.component.base.Subtitle
 import me.ash.reader.ui.component.base.TextFieldDialog
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import me.ash.reader.ui.component.base.Tips
 import me.ash.reader.ui.ext.collectAsStateValue
 import me.ash.reader.ui.page.settings.SettingItem
 import me.ash.reader.ui.theme.palette.onLight
@@ -171,14 +182,38 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.filters_duplicates),
                     )
-                    SettingItem(
-                        title = stringResource(R.string.filters_dupes),
-                        desc = stringResource(R.string.filters_dupes_desc),
+                    Spacer(Modifier.height(8.dp))
+                    // The switch in its own card, with its icon on an Expressive shape.
+                    Surface(
                         onClick = { viewModel.filters.setHideDuplicates(!dupes) },
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                     ) {
-                        RYSwitch(activated = dupes) { viewModel.filters.setHideDuplicates(!dupes) }
+                        Row(
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            ShapeIcon(Icons.Outlined.ContentCopy, MaterialShapes.Cookie4Sided)
+                            Spacer(Modifier.width(14.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.filters_dupes),
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                Text(
+                                    text = stringResource(R.string.filters_dupes_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            RYSwitch(activated = dupes) { viewModel.filters.setHideDuplicates(!dupes) }
+                        }
                     }
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(28.dp))
                 }
                 item {
                     Subtitle(
@@ -186,14 +221,37 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         text = stringResource(R.string.filters_keywords),
                     )
                     Spacer(Modifier.height(8.dp))
-                    // The muted keywords as chips in one rounded box, with an Add chip at the end.
+                    // The muted keywords in one card: a header with how many, the words as
+                    // removable chips with an Add chip at the end, and Apply now at the bottom.
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(28.dp),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                     ) {
+                      Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            ShapeIcon(Icons.Outlined.FilterAlt, MaterialShapes.Cookie7Sided)
+                            Spacer(Modifier.width(14.dp))
+                            Text(
+                                text = stringResource(R.string.filters_keywords),
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                shape = CircleShape,
+                            ) {
+                                Text(
+                                    text = keywords.size.toString(),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
                         FlowRow(
-                            modifier = Modifier.padding(12.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             keywords.forEach { word ->
@@ -201,6 +259,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                                     selected = false,
                                     onClick = { viewModel.filters.removeKeyword(word) },
                                     label = { Text(word) },
+                                    shape = CircleShape,
                                     trailingIcon = {
                                         Icon(
                                             Icons.Rounded.Close,
@@ -214,6 +273,14 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                             AssistChip(
                                 onClick = { addDialogVisible = true },
                                 label = { Text(stringResource(R.string.filters_add)) },
+                                shape = CircleShape,
+                                colors =
+                                    AssistChipDefaults.assistChipColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    ),
+                                border = null,
                                 leadingIcon = {
                                     Icon(
                                         Icons.Rounded.Add,
@@ -223,35 +290,39 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                                 },
                             )
                         }
-                    }
-                    if (keywords.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.filters_none),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
-                        )
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    // Run the filters now, with what they caught next to the button.
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        FilledTonalButton(
-                            onClick = viewModel::applyNow,
-                            modifier = Modifier.weight(1f).height(48.dp),
-                        ) {
-                            Text(stringResource(R.string.filters_apply_now))
-                        }
-                        applied?.let {
+                        if (keywords.isEmpty()) {
                             Text(
-                                text = pluralStringResource(R.plurals.filters_caught, it, it),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(start = 16.dp),
+                                text = stringResource(R.string.filters_none),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 4.dp, top = 4.dp),
                             )
                         }
+                        Spacer(Modifier.height(14.dp))
+                        // Run the filters now, with what they caught next to the button.
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Button(
+                                onClick = viewModel::applyNow,
+                                modifier = Modifier.weight(1f).height(48.dp),
+                            ) {
+                                Text(stringResource(R.string.filters_apply_now))
+                            }
+                            applied?.let {
+                                Spacer(Modifier.width(12.dp))
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    shape = CircleShape,
+                                ) {
+                                    Text(
+                                        text = pluralStringResource(R.plurals.filters_caught, it, it),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    )
+                                }
+                            }
+                        }
+                      }
                     }
                     Spacer(Modifier.height(if (undoneCount > 0) 12.dp else 24.dp))
                     // Articles brought back with Undo are skipped from then on; this lets the
@@ -299,7 +370,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         Text(
                             text = dayLabel(day),
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(start = 28.dp, top = 12.dp, bottom = 8.dp),
                         )
                     }
@@ -319,7 +390,21 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                 }
                 item {
                     Spacer(Modifier.height(8.dp))
-                    Tips(text = stringResource(R.string.filters_intro))
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            ShapeIcon(Icons.Outlined.Info, MaterialShapes.Cookie4Sided, tonal = true)
+                            Spacer(Modifier.width(14.dp))
+                            Text(
+                                text = stringResource(R.string.filters_intro),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(24.dp))
                     Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                 }
@@ -352,16 +437,27 @@ private fun StatTile(modifier: Modifier, icon: ImageVector, count: Int, label: S
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         modifier = modifier,
     ) {
-        Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.height(10.dp))
+        Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp)) {
+            Box(
+                modifier =
+                    Modifier.size(40.dp)
+                        .clip(MaterialShapes.Cookie9Sided.toShape())
+                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.height(12.dp))
             Text(
                 text = count.toString(),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
+                style =
+                    MaterialTheme.typography.headlineLarge.copy(
+                        fontFamily = GoogleSansWideFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
             )
             Text(text = label, style = MaterialTheme.typography.labelLarge)
         }
@@ -383,9 +479,31 @@ private fun FilterLogCard(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 1.5.dp),
     ) {
         Row(
-            modifier = Modifier.padding(start = 18.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
+            modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // Why it was filtered, at a glance: a muted word or a duplicate story.
+            val muted = entry.reason == FilterReason.MutedKeyword
+            Box(
+                modifier =
+                    Modifier.size(36.dp)
+                        .clip((if (muted) MaterialShapes.Cookie7Sided else MaterialShapes.Cookie4Sided).toShape())
+                        .background(
+                            if (muted) MaterialTheme.colorScheme.tertiaryContainer
+                            else MaterialTheme.colorScheme.secondaryContainer
+                        ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    if (muted) Icons.Outlined.FilterAlt else Icons.Outlined.ContentCopy,
+                    contentDescription = null,
+                    tint =
+                        if (muted) MaterialTheme.colorScheme.onTertiaryContainer
+                        else MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = entry.title,
@@ -397,9 +515,13 @@ private fun FilterLogCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Why it was filtered, as a small chip.
                     Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        shape = RoundedCornerShape(8.dp),
+                        color =
+                            if (muted) MaterialTheme.colorScheme.tertiaryContainer
+                            else MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor =
+                            if (muted) MaterialTheme.colorScheme.onTertiaryContainer
+                            else MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = CircleShape,
                     ) {
                         Text(
                             text =
@@ -415,7 +537,7 @@ private fun FilterLogCard(
                             style = MaterialTheme.typography.labelMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                         )
                     }
                     // The feed this copy came from (the chip names the feed that had it first).
@@ -448,6 +570,32 @@ private fun FilterLogCard(
                 )
             }
         }
+    }
+}
+
+/** An icon on a small Expressive shape, for the cards on this page. */
+@Composable
+private fun ShapeIcon(
+    icon: ImageVector,
+    shape: androidx.graphics.shapes.RoundedPolygon,
+    tonal: Boolean = false,
+) {
+    Box(
+        modifier =
+            Modifier.size(40.dp)
+                .clip(shape.toShape())
+                .background(
+                    if (tonal) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f)
+                    else MaterialTheme.colorScheme.secondaryContainer
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (tonal) LocalContentColor.current else MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 

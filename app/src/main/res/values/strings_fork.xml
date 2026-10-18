@@ -28,7 +28,7 @@
     <string name="ai_summary_thinking">Loading model and reading the article…</string>
     <string name="ai_summary_regenerate">Regenerate</string>
     <string name="ai_summary_retry">Try again</string>
-    <string name="ai_read_aloud">Read aloud</string>
+    <string name="ai_read_aloud">Read</string>
     <string name="ai_stop_reading">Stop</string>
 
     <!-- Reading page (experiments) -->
@@ -63,19 +63,17 @@
     <!-- Settings → AI model -->
     <string name="ai_settings">AI model</string>
     <string name="ai_settings_desc">On-device Gemma, summaries, gist instructions</string>
-    <string name="ai_settings_model">Model</string>
-    <string name="ai_model_tile_missing">No model</string>
+    <string name="ai_model_name" translatable="false">Gemma 4 E2B</string>
+    <string name="ai_model_ready">Ready on this device · %1$s</string>
+    <string name="ai_model_download">Download</string>
+    <string name="ai_model_import">Import file</string>
+    <string name="ai_model_replace">Import another file</string>
+    <string name="ai_prompt_default">Default</string>
+    <string name="ai_prompt_edited">Edited</string>
     <string name="ai_model_tile_missing_label">Download Gemma, then import it below</string>
-    <string name="ai_model_tile_ready_label">Gemma model, on this device</string>
-    <string name="ai_model_tile_importing">Importing</string>
     <string name="ai_model_tile_importing_label">Copying the model into the app</string>
-    <string name="ai_model_tile_failed">Import failed</string>
-    <string name="ai_settings_download">Download Gemma 4 E2B</string>
     <string name="ai_settings_download_desc">Opens Hugging Face. Download gemma-4-E2B-it.litertlm (about 2.6 GB).</string>
-    <string name="ai_settings_import">Import model file</string>
-    <string name="ai_settings_import_desc">Choose a .litertlm file from your phone</string>
     <string name="ai_settings_remove">Remove model</string>
-    <string name="ai_settings_remove_desc">Deletes the copied model and frees the space</string>
     <string name="ai_settings_instructions">Instructions</string>
     <string name="ai_settings_article_prompt">Article summary instructions</string>
     <string name="ai_settings_gist_prompt">Group gist instructions</string>
@@ -179,14 +177,12 @@
     <string name="triage_open">Open</string>
     <string name="triage_all_done">All caught up</string>
     <string name="triage_nothing">Nothing unread here</string>
-    <string name="triage_summary">%1$d read · %2$d saved · %3$d skipped</string>
     <string name="triage_back_to_list">Back to list</string>
     <string name="triage_auto_start">Start auto-advance</string>
     <string name="triage_auto_stop">Stop auto-advance</string>
     <string name="triage_auto_paused">Auto-advance paused while you hold the card</string>
     <string name="triage_auto_delay">Skip after</string>
     <string name="triage_auto_seconds">%d seconds</string>
-    <string name="triage_next_group">Next: %1$s · %2$d unread</string>
 
     <!-- Sort feeds and groups -->
     <string name="sort_title">Sort feeds</string>
@@ -218,8 +214,8 @@
     <string name="stats_days">days</string>
     <string name="stats_tile_minutes">minutes</string>
     <string name="stats_tile_articles">articles opened</string>
-    <string name="stats_tile_inbox_zero">times inbox zero</string>
-    <string name="stats_tile_triage">Triage cards</string>
+    <string name="stats_tile_inbox_zero">inbox zero</string>
+    <string name="stats_tile_triage">triage cards</string>
     <string name="stats_reset">Reset stats</string>
     <string name="stats_reset_confirm">Your reading stats will start again from zero. This can\'t be undone.</string>
     <string name="stats_reset_action">Reset</string>
@@ -230,4 +226,10 @@
     <string name="shortcut_unread">Unread</string>
     <string name="shortcut_sync">Sync now</string>
     <string name="shortcut_syncing">Syncing feeds…</string>
+    <!-- Triage: All caught up -->
+    <string name="triage_tile_read">read</string>
+    <string name="triage_tile_saved">saved</string>
+    <string name="triage_tile_skipped">skipped</string>
+    <string name="triage_next_up">Next up</string>
+    <string name="triage_next_unread">%1$d unread</string>
 </resources>

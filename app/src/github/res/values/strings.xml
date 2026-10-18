@@ -11,4 +11,7 @@
     <string name="wiki_link" translatable="false">https://github.com/Humorist2601/BriefYou#readme</string>
     <!-- No Telegram group: empty hides the button in Tips & support. -->
     <string name="telegram_link" translatable="false"></string>
+
+    <!-- The read aloud button and notification are labelled just "Read". -->
+    <string name="read_aloud">Read</string>
 </resources>

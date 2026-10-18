@@ -1,5 +1,7 @@
 package me.ash.reader.brief.ai
 
+import androidx.compose.material3.toShape
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.style.TextOverflow
@@ -614,6 +616,7 @@ private fun SummaryCards(text: String, streaming: Boolean) {
                             when (part) {
                                 is SummaryPart.Point ->
                                     PointCard(
+                                        number = position + 1,
                                         text = part.text + cursor,
                                         shape = groupShape(position, run.size),
                                     )
@@ -654,19 +657,30 @@ private fun groupShape(position: Int, size: Int): RoundedCornerShape {
     return RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
 }
 
+/** A key point, numbered on a small Expressive shape. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun PointCard(text: String, shape: RoundedCornerShape) {
+private fun PointCard(number: Int, text: String, shape: RoundedCornerShape) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-            // A small accent dot, level with the first line of the text.
-            Box(modifier = Modifier.padding(top = 8.dp).size(8.dp).background(
-                MaterialTheme.colorScheme.primary,
-                CircleShape,
-            ))
+            Box(
+                modifier =
+                    Modifier.size(30.dp)
+                        .clip(MaterialShapes.Cookie9Sided.toShape())
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = number.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
             Spacer(Modifier.width(14.dp))
             Text(
                 text = text,
@@ -678,22 +692,33 @@ private fun PointCard(text: String, shape: RoundedCornerShape) {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun WhyCard(text: String) {
     Surface(
-        // The same colour as the top boxes on the AI model and Filters settings pages.
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = RoundedCornerShape(24.dp),
+        // Tertiary, so it stands apart from the key points.
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        shape = RoundedCornerShape(28.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(modifier = Modifier.padding(16.dp)) {
-            Icon(
-                Icons.Outlined.Lightbulb,
-                contentDescription = null,
-                modifier = Modifier.size(22.dp),
-            )
-            Spacer(Modifier.width(12.dp))
+            // The bulb on a cookie shape, like a badge.
+            Box(
+                modifier =
+                    Modifier.size(40.dp)
+                        .clip(MaterialShapes.Cookie9Sided.toShape())
+                        .background(MaterialTheme.colorScheme.tertiary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Lightbulb,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.ai_why_it_matters),

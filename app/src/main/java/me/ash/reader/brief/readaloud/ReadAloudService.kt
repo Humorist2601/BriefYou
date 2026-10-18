@@ -271,7 +271,7 @@ class ReadAloudService : Service() {
         super.onDestroy()
     }
 
-    /** "Read aloud · 1.25×". */
+    /** "Read · 1.25×". */
     private fun subtitle(): String =
         getString(R.string.read_aloud) + " \u00B7 " + TextToSpeechManager.speedLabel(tts.speed.value)
 

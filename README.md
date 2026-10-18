@@ -49,7 +49,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 
 - Runs Google's Gemma model through [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM). Nothing is sent to a server, and summaries are never saved.
 - Summaries open in a sheet at 70% of the screen. Each key point slides in as a card as it's written, and "Why it matters" gets its own accent card.
-- Regenerate, Ask and Read aloud are three connected buttons at the bottom of the sheet.
+- Regenerate, Ask and Read are three connected buttons at the bottom of the sheet.
 - Gists: tap **AI gist** in the floating button at the bottom of an *Unread* list. One tap marks all of them as read.
 - Ask slides up a box for questions. Answers are short; the model may add general knowledge, and says when it does.
 
