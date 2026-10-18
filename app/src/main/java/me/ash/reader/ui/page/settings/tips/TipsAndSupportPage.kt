@@ -226,7 +226,9 @@ fun TipsAndSupportPage(
                                 Badge(
                                     modifier = Modifier.animateContentSize(tween(800)),
                                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.tertiary,
+                                    // Brief You: the text colour made for this background, so it
+                                    // always reads (the accent itself could be too close to it).
+                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                                 ) {
                                     Text(text = currentVersion)
                                 }
