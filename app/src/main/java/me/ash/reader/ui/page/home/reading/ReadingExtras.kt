@@ -6,6 +6,12 @@
 
 package me.ash.reader.ui.page.home.reading
 
+import androidx.compose.material3.HorizontalDivider
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.produceState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -65,9 +71,31 @@ import me.ash.reader.ui.component.base.SIZE_1000
  * pages, so nothing new is stored.
  */
 
-/** At the end of an article: the next one. */
+/**
+ * At the end of an article: the next one. It loads its own preview and fades in once it has it
+ * (and the article has had a moment to lay out), so it never flashes while the page settles.
+ */
 @Composable
-fun NextArticleCard(next: ArticleWithFeed?, onNext: () -> Unit) {
+fun NextArticleCard(
+    nextId: String?,
+    load: suspend (String) -> ArticleWithFeed?,
+    onNext: () -> Unit,
+) {
+    // Loading = no answer yet; then either the next article or none (all caught up).
+    val preview by
+        produceState<Result<ArticleWithFeed?>?>(initialValue = null, nextId) {
+            delay(SETTLE_MS)
+            value = Result.success(nextId?.let { load(it) })
+        }
+    AnimatedVisibility(visible = preview != null, enter = fadeIn(tween(250))) {
+        NextArticleContent(next = preview?.getOrNull(), onNext = onNext)
+    }
+}
+
+private const val SETTLE_MS = 500L
+
+@Composable
+private fun NextArticleContent(next: ArticleWithFeed?, onNext: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -153,10 +181,13 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
         ) {
             Text(
                 text = stringResource(R.string.text_settings),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
             )
-            Spacer(Modifier.height(8.dp))
+            // The same header as the other sheets (Sort, AI summary): title, then a divider.
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(14.dp))
 
             SettingSlider(
                 label = stringResource(R.string.text_settings_size),

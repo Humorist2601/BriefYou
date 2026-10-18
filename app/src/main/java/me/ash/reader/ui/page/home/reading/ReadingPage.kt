@@ -1,8 +1,6 @@
 package me.ash.reader.ui.page.home.reading
 
 import me.ash.reader.ui.page.home.flow.readingMinutes
-import me.ash.reader.domain.model.article.ArticleWithFeed
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableFloatStateOf
 import me.ash.reader.ui.ext.openURL
 import me.ash.reader.infrastructure.preference.LocalOpenLinkSpecificBrowser
@@ -101,11 +99,6 @@ fun ReadingPage(
             val left = kotlin.math.ceil(totalMinutes * (1f - readingProgress)).toInt()
             if (left <= 0) stringResource(R.string.reading_almost_done)
             else stringResource(R.string.reading_time_left, left)
-        }
-    val nextArticleId = readerState.nextArticle?.articleId
-    val nextPreview by
-        produceState<ArticleWithFeed?>(initialValue = null, nextArticleId) {
-            value = nextArticleId?.let { viewModel.previewArticle(it) }
         }
     // A new article starts unscrolled.
     LaunchedEffect(readerState.articleId) { readingProgress = 0f }
@@ -322,10 +315,14 @@ fun ReadingPage(
                                                 showFullScreenImageViewer = true
                                             },
                                             afterArticle = {
+                                                // This article's own next one (not the
+                                                // page's, which changes while it slides away).
+                                                val next = nextArticle
                                                 NextArticleCard(
-                                                    next = nextPreview,
+                                                    nextId = next?.articleId,
+                                                    load = viewModel::previewArticle,
                                                     onNext = {
-                                                        readerState.nextArticle?.let { (id, index) ->
+                                                        next?.let { (id, index) ->
                                                             onLoadArticle(id, index)
                                                         }
                                                     },
