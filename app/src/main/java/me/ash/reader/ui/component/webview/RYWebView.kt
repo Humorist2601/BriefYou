@@ -1,5 +1,10 @@
 package me.ash.reader.ui.component.webview
 
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.ui.graphics.compositeOver
 import android.util.Log
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +48,13 @@ fun RYWebView(
     baseUrl: String? = null,
     refererDomain: String? = null,
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
+    /**
+     * Follow along: the sentence being read aloud (null when not), highlighted on the page.
+     * Passed as a State so a new sentence doesn't reload the article.
+     */
+    readAloudSentence: State<String?>? = null,
+    /** Where the highlighted sentence's top is in the web view, in pixels. */
+    onReadAloudPosition: ((topPx: Float) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val maxWidth = LocalConfiguration.current.screenWidthDp.dp.value
@@ -55,6 +67,11 @@ fun RYWebView(
     // rest of the app (the handles take the accent colour from the theme, see themes.xml).
     val selectionTextColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val isDarkBackground = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val readAloudColor =
+        MaterialTheme.colorScheme.primary
+            .copy(alpha = 0.22f)
+            .compositeOver(Color(backgroundColor))
+            .toArgb()
     val selectionBgColor =
         MaterialTheme.colorScheme.primary
             .copy(alpha = 0.35f)
@@ -108,6 +125,25 @@ fun RYWebView(
             "/android_res/font/literata.ttf"
         } else null
 
+    // Follow along: highlight each new sentence and report where it is (the page is loaded once;
+    // only this runs as reading moves on).
+    val latestOnPosition by rememberUpdatedState(onReadAloudPosition)
+    val density = LocalDensity.current.density
+    if (readAloudSentence != null) {
+        LaunchedEffect(webView, readAloudSentence) {
+            snapshotFlow { readAloudSentence.value }
+                .collect { sentence ->
+                    val arg = org.json.JSONObject.quote(sentence ?: "")
+                    webView.evaluateJavascript(
+                        "(typeof briefHighlight === 'function') ? briefHighlight($arg) : -1"
+                    ) { result ->
+                        val top = result?.toFloatOrNull() ?: -1f
+                        if (sentence != null && top >= 0f) latestOnPosition?.invoke(top * density)
+                    }
+                }
+        }
+    }
+
     AndroidView(
         modifier = modifier,
         factory = { webView },
@@ -141,6 +177,7 @@ fun RYWebView(
                             selectionTextColor = selectionTextColor,
                             selectionBgColor = selectionBgColor,
                             isDark = isDarkBackground,
+                            readAloudColor = readAloudColor,
                         ),
                         // The article's address (this used to read the web view's own, empty one,
                         // so relative images and links didn't work).

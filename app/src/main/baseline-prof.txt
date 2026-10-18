@@ -1,0 +1,16 @@
+# Brief You baseline profile.
+#
+# Tells Android to compile the app's own code ahead of time when the app is installed or
+# updated (ProfileInstaller writes it on first launch for APKs installed outside the Play Store),
+# so launching, scrolling the lists and opening articles are smooth from the first run instead of
+# after the system has watched the app for a while. Compose, Material and the other libraries
+# ship their own profiles, which are merged in automatically.
+#
+# The rules use wildcards: every class and method in the app's packages is marked hot (H),
+# used at startup (S) and used after startup (P).
+
+# All of the app's classes.
+Lme/ash/reader/**;
+
+# All of the app's methods.
+HSPLme/ash/reader/**;->**(**)**

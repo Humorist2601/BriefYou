@@ -1,5 +1,7 @@
 package me.ash.reader.ui.page.home.reading
 
+import kotlin.coroutines.cancellation.CancellationException
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Download
@@ -114,6 +116,20 @@ fun ReaderImageViewer(
         var pastPoint by remember { mutableStateOf(false) }
         val threshold = size.height * DismissFraction
         val progress = (drag.value.getDistance() / threshold).coerceIn(0f, 1f)
+
+        // Predictive back: the picture slides down as you swipe back, as if dragged away; let go
+        // and it flies off and closes, change your mind and it springs back.
+        PredictiveBackHandler { events ->
+            try {
+                events.collect { event ->
+                    drag.snapTo(Offset(0f, event.progress * size.height * DismissFraction))
+                }
+                drag.animateTo(Offset(0f, size.height * 1.2f), tween(220))
+                onDismissRequest()
+            } catch (e: CancellationException) {
+                scope.launch { drag.animateTo(Offset.Zero, spring(dampingRatio = 0.7f, stiffness = 500f)) }
+            }
+        }
 
         Box(
             modifier =

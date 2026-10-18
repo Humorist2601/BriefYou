@@ -1,6 +1,14 @@
 package me.ash.reader.ui.component.base
 
-import androidx.activity.compose.BackHandler
+import androidx.activity.BackEventCompat
+import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
@@ -134,13 +142,32 @@ private fun DialogScaffold(
     text: @Composable (() -> Unit)?,
     properties: DialogProperties,
 ) {
-    BackHandler(enabled = properties.dismissOnBackPress) { onDismissRequest() }
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Predictive back: while you swipe back, the dialog shrinks a little and drifts toward the
+    // edge you swipe from, and the scrim lightens; let go and it fades away and closes, change
+    // your mind and it settles back.
+    val scope = rememberCoroutineScope()
+    val back = remember { Animatable(0f) }
+    val leave = remember { Animatable(1f) }
+    var fromLeft by remember { mutableStateOf(true) }
+    PredictiveBackHandler(enabled = properties.dismissOnBackPress) { events ->
+        try {
+            events.collect { event ->
+                fromLeft = event.swipeEdge == BackEventCompat.EDGE_LEFT
+                back.snapTo(event.progress)
+            }
+            leave.animateTo(0f, tween(150))
+            onDismissRequest()
+        } catch (e: CancellationException) {
+            scope.launch { back.animateTo(0f, spring()) }
+        }
+    }
+    val p = back.value
+    Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = leave.value }) {
         // The scrim, over the whole screen (bars included); tapping it closes the dialog.
         Box(
             modifier =
                 Modifier.fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f * (1f - 0.4f * p)))
                     .pointerInput(properties.dismissOnClickOutside) {
                         detectTapGestures {
                             if (properties.dismissOnClickOutside) onDismissRequest()
@@ -163,6 +190,12 @@ private fun DialogScaffold(
                             else Modifier)
                             .then(modifier)
                             .sizeIn(minWidth = 280.dp, maxWidth = 560.dp)
+                            .graphicsLayer {
+                                val scale = 1f - 0.1f * p
+                                scaleX = scale
+                                scaleY = scale
+                                translationX = (if (fromLeft) 1f else -1f) * 8.dp.toPx() * p
+                            }
                             // Taps on the dialog itself don't reach the scrim.
                             .pointerInput(Unit) { detectTapGestures { } },
                     shape = AlertDialogDefaults.shape,

@@ -32,6 +32,14 @@ sealed interface SummaryRequest {
     data class Gist(val filterState: FilterState) : SummaryRequest
 }
 
+/** One question about the article and its answer (streamed in; [error] if it failed). */
+data class AskTurn(
+    val question: String,
+    val answer: String = "",
+    val done: Boolean = false,
+    val error: String? = null,
+)
+
 sealed interface SummaryUiState {
     /** No model imported yet: show setup instructions. */
     data object NeedsModel : SummaryUiState
@@ -74,9 +82,43 @@ constructor(
     private var gistItems: List<GistItem> = emptyList()
     private var startedReading = false
 
+    /** Ask this article: the questions and answers so far. */
+    private val _asks = MutableStateFlow<List<AskTurn>>(emptyList())
+    val asks: StateFlow<List<AskTurn>> = _asks.asStateFlow()
+    private var askJob: Job? = null
+
     fun start(newRequest: SummaryRequest) {
+        val sameArticle =
+            (request as? SummaryRequest.Article)?.articleId ==
+                (newRequest as? SummaryRequest.Article)?.articleId
+        if (!sameArticle) {
+            askJob?.cancel()
+            _asks.value = emptyList()
+        }
         request = newRequest
         load()
+    }
+
+    /** Asks a question about the article; the answer streams into [asks]. */
+    fun ask(question: String) {
+        val req = request as? SummaryRequest.Article ?: return
+        val q = question.trim()
+        if (q.isEmpty() || askJob?.isActive == true) return
+        val history = _asks.value.filter { it.done && it.error == null }.map { it.question to it.answer }
+        _asks.value = _asks.value + AskTurn(question = q)
+        fun updateLast(change: (AskTurn) -> AskTurn) {
+            _asks.value = _asks.value.toMutableList().also { list ->
+                if (list.isNotEmpty()) list[list.lastIndex] = change(list.last())
+            }
+        }
+        askJob =
+            viewModelScope.launch {
+                summarizer
+                    .ask(req.title, req.html, history, q)
+                    .catch { e -> updateLast { it.copy(done = true, error = e.message ?: "Error") } }
+                    .collect { text -> updateLast { it.copy(answer = text) } }
+                updateLast { it.copy(done = true) }
+            }
     }
 
     /** Write the summary again. Summaries are never saved, so this always starts fresh. */
@@ -222,6 +264,11 @@ constructor(
     /** Called when the sheet closes. */
     fun stop() {
         job?.cancel()
+        askJob?.cancel()
+        // An answer cut off by closing the sheet keeps what it had.
+        _asks.value.lastOrNull()?.takeIf { !it.done }?.let { last ->
+            _asks.value = _asks.value.dropLast(1) + last.copy(done = true)
+        }
         importWatch?.cancel()
         // Reading aloud carries on after the sheet closes (stop it from the media notification),
         // like reading an article aloud.

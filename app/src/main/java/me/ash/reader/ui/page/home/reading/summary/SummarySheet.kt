@@ -1,5 +1,18 @@
 package me.ash.reader.ui.page.home.reading.summary
 
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.clickable
 import me.ash.reader.ui.page.home.reading.tts.openTtsSettings
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Pause
@@ -115,6 +128,8 @@ fun SummarySheet(
     val ttsState = viewModel.textToSpeechManager.stateFlow.collectAsStateValue()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val isArticle = request is SummaryRequest.Article
+    val asks = viewModel.asks.collectAsStateValue()
+    var question by rememberSaveable(requestKey) { mutableStateOf("") }
 
     LaunchedEffect(requestKey) { viewModel.start(request) }
     DisposableEffect(Unit) { onDispose { viewModel.stop() } }
@@ -135,6 +150,8 @@ fun SummarySheet(
                     .height(sheetHeight)
                     .padding(horizontal = horizontalPadding)
                     .navigationBarsPadding()
+                    // Room for the keyboard while asking a question.
+                    .imePadding()
         ) {
             // Header: like the sort sheet, a large title, a line about where it comes from, and
             // a divider.
@@ -162,6 +179,10 @@ fun SummarySheet(
             Spacer(Modifier.height(16.dp))
 
             val scrollState = rememberScrollState()
+            // Keep the newest question and answer in view while it's written.
+            LaunchedEffect(asks.size, asks.lastOrNull()?.answer?.length) {
+                if (asks.isNotEmpty()) scrollState.animateScrollTo(scrollState.maxValue)
+            }
             Column(
                 modifier =
                     Modifier.weight(1f)
@@ -236,8 +257,14 @@ fun SummarySheet(
                         }
                     }
 
-                    is SummaryUiState.Streaming ->
+                    is SummaryUiState.Streaming -> {
                         SummaryCards(text = state.text, streaming = !state.done)
+                        // Ask this article: the questions and answers, under the summary.
+                        if (isArticle && asks.isNotEmpty()) {
+                            Spacer(Modifier.height(16.dp))
+                            AskConversation(asks)
+                        }
+                    }
 
                     // An error looks like the loading state: centred, a 56 dp mark, a line under it,
                     // then Try again.
@@ -293,6 +320,35 @@ fun SummarySheet(
                 // A small gap between the points and the buttons, so the points don't run
                 // straight into them as they scroll.
                 Spacer(Modifier.height(12.dp))
+                // Ask this article (once the summary is written).
+                if (isArticle && done) {
+                    val asking = asks.lastOrNull()?.done == false
+                    val send = {
+                        if (question.isNotBlank() && !asking) {
+                            viewModel.ask(question)
+                            question = ""
+                        }
+                    }
+                    OutlinedTextField(
+                        value = question,
+                        onValueChange = { question = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text(stringResource(R.string.ai_ask_hint)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(28.dp),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = { send() }),
+                        trailingIcon = {
+                            IconButton(onClick = send, enabled = question.isNotBlank() && !asking) {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.Send,
+                                    contentDescription = stringResource(R.string.ai_ask_send),
+                                )
+                            }
+                        },
+                    )
+                    Spacer(Modifier.height(10.dp))
+                }
                 if (!isArticle && actionCount != null) {
                     val marked = gistMarkedRead
                     Button(
@@ -341,11 +397,13 @@ fun SummarySheet(
                         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                         Text(stringResource(R.string.ai_summary_regenerate))
                     }
-                    // Read aloud: tap to start, then tap to pause or play; long press stops while
-                    // reading and opens the speech settings while paused.
+                    // Read aloud: tap to start, then tap to pause or play, long press to stop
+                    // (reading or paused). Before it starts, long press opens the speech settings.
                     // While reading, a wavy ring shows how far it has got (like the reading bar).
                     val paused = ttsState is TextToSpeechManager.State.Paused
-                    val buttonShape = RoundedCornerShape(8, 50, 50, 8)
+                    // With the speed pill on the right while reading, this one is the middle piece.
+                    val buttonShape =
+                        if (reading) RoundedCornerShape(8, 8, 8, 8) else RoundedCornerShape(8, 50, 50, 8)
                     val haptic = LocalHapticFeedback.current
                     Surface(
                         shape = buttonShape,
@@ -367,7 +425,7 @@ fun SummarySheet(
                                     },
                                     onLongClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        if (reading && !paused) viewModel.stopReading()
+                                        if (reading) viewModel.stopReading()
                                         else context.openTtsSettings()
                                     },
                                 ),
@@ -410,6 +468,33 @@ fun SummarySheet(
                                 ),
                                 style = MaterialTheme.typography.labelLarge,
                             )
+                        }
+                    }
+                    // The speed (0.8× to 2×), the last piece of the pill, while reading or paused.
+                    if (reading) {
+                        val speed = viewModel.textToSpeechManager.speed.collectAsStateValue()
+                        val speedShape = RoundedCornerShape(8, 50, 50, 8)
+                        Surface(
+                            shape = speedShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier =
+                                Modifier.height(52.dp)
+                                    .clip(speedShape)
+                                    .clickable(role = Role.Button) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                        viewModel.textToSpeechManager.cycleSpeed()
+                                    },
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(horizontal = 18.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    TextToSpeechManager.speedLabel(speed),
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            }
                         }
                     }
                 }
@@ -584,3 +669,50 @@ private fun WhyCard(text: String) {
         }
     }
 }
+
+/** Ask this article: each question on the right, its answer on the left as it is written. */
+@Composable
+private fun AskConversation(asks: List<AskTurn>) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        asks.forEach { turn ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp),
+                    modifier = Modifier.widthIn(max = 300.dp),
+                ) {
+                    Text(
+                        turn.question,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
+                }
+            }
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp),
+                modifier = Modifier.widthIn(max = 340.dp),
+            ) {
+                Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                    when {
+                        turn.error != null ->
+                            Text(
+                                turn.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        turn.answer.isEmpty() && !turn.done ->
+                            LoadingIndicator(modifier = Modifier.size(28.dp))
+                        else ->
+                            Text(
+                                turn.answer + if (turn.done) "" else " \u258D",
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                    }
+                }
+            }
+        }
+    }
+}
+

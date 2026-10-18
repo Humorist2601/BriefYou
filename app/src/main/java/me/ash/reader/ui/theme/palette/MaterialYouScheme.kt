@@ -101,6 +101,19 @@ private fun seededScheme(seed: Color, isDark: Boolean, isAmoled: Boolean): Color
         specVersion = ColorSpec.SpecVersion.SPEC_2025,
     )
 
+/**
+ * A scheme from an article's picture, for the reading page: Material's Content style, which keeps
+ * the picture's own colour (like music apps do with album art), with the same contrast rules.
+ */
+fun pictureColorScheme(seed: Color, isDark: Boolean, isAmoled: Boolean): ColorScheme =
+    dynamicColorScheme(
+        seedColor = seed,
+        isDark = isDark,
+        isAmoled = isAmoled,
+        style = PaletteStyle.Content,
+        specVersion = ColorSpec.SpecVersion.SPEC_2025,
+    )
+
 /** Black surfaces for AMOLED screens, keeping the containers just above black so cards show. */
 private fun ColorScheme.amoled(): ColorScheme =
     copy(

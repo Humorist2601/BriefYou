@@ -186,6 +186,28 @@ constructor(
         return generate(articlePrompt.value, prompt)
     }
 
+    /**
+     * Streams an answer to a question about one article, from the article only (with the last
+     * few questions and answers, so follow-up questions make sense).
+     */
+    fun ask(
+        title: String?,
+        html: String,
+        history: List<Pair<String, String>>,
+        question: String,
+    ): Flow<String> {
+        val prompt = buildString {
+            if (!title.isNullOrBlank()) append("Title: ").append(title).append("\n\n")
+            append("Article:\n").append(htmlToText(html).take(MAX_INPUT_CHARS - 2_000)).append("\n\n")
+            for ((q, a) in history.takeLast(3)) {
+                append("Question: ").append(q.take(300)).append('\n')
+                append("Answer: ").append(a.take(600)).append("\n\n")
+            }
+            append("Question: ").append(question.take(500))
+        }
+        return generate(ASK_PROMPT, prompt)
+    }
+
     /** Streams a gist of many articles (for example everything in a group). */
     fun gist(groupName: String?, items: List<GistItem>): Flow<String> =
         generate(gistPrompt.value, buildGistPrompt(groupName, items))
@@ -345,6 +367,12 @@ constructor(
         private const val MAX_GIST_DESC_CHARS = 220
         private const val IDLE_UNLOAD_MS = 3 * 60 * 1000L
         private const val STOP_TIMEOUT_MS = 15_000L
+
+        private const val ASK_PROMPT =
+            "You answer a reader's questions about one news article. Use only the article you " +
+                "are given. Answer in 1 to 4 short sentences, in the same language as the " +
+                "question. If the article doesn't say, reply that the article doesn't say, and " +
+                "don't guess."
 
         const val DEFAULT_ARTICLE_PROMPT =
             "You summarize articles for a news reader app. Reply with 3 to 5 short bullet " +

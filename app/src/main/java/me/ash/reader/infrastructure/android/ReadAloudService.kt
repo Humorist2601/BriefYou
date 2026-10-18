@@ -64,7 +64,10 @@ class ReadAloudService : Service() {
                         override fun onSeekTo(pos: Long) = tts.seekTo(pos)
 
                         override fun onCustomAction(action: String?, extras: android.os.Bundle?) {
-                            if (action == ACTION_STOP) tts.stop()
+                            when (action) {
+                                ACTION_STOP -> tts.stop()
+                                ACTION_SPEED -> tts.cycleSpeed()
+                            }
                         }
                     }
                 )
@@ -89,6 +92,7 @@ class ReadAloudService : Service() {
             ACTION_STOP -> tts.stop()
             ACTION_PAUSE -> tts.pause()
             ACTION_PLAY -> tts.resume()
+            ACTION_SPEED -> tts.cycleSpeed()
         }
         ensureChannel(this)
         updateSession(tts.state, force = true)
@@ -104,6 +108,16 @@ class ReadAloudService : Service() {
                             if (updateSession(state, force = false)) post(state)
                         }
                         else -> finish()
+                    }
+                }
+            }
+            // A new speed shows straight away (on the speed button and under the title).
+            scope.launch {
+                tts.speed.collect {
+                    val state = tts.state
+                    if (state is TextToSpeechManager.State.Reading || state is TextToSpeechManager.State.Paused) {
+                        updateSession(state, force = true)
+                        post(state)
                     }
                 }
             }
@@ -128,7 +142,7 @@ class ReadAloudService : Service() {
                         MediaMetadataCompat.METADATA_KEY_TITLE,
                         tts.title ?: getString(R.string.read_aloud),
                     )
-                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, getString(R.string.read_aloud))
+                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, subtitle())
                     .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artwork)
                     .build()
@@ -143,6 +157,17 @@ class ReadAloudService : Service() {
                         PlaybackStateCompat.ACTION_PLAY_PAUSE or
                         PlaybackStateCompat.ACTION_STOP or
                         PlaybackStateCompat.ACTION_SEEK_TO
+                )
+                .addCustomAction(
+                    PlaybackStateCompat.CustomAction.Builder(
+                            ACTION_SPEED,
+                            getString(
+                                R.string.read_aloud_speed,
+                                TextToSpeechManager.speedLabel(tts.speed.value),
+                            ),
+                            R.drawable.ic_read_aloud_speed,
+                        )
+                        .build()
                 )
                 .addCustomAction(
                     PlaybackStateCompat.CustomAction.Builder(
@@ -210,6 +235,10 @@ class ReadAloudService : Service() {
         super.onDestroy()
     }
 
+    /** "Read aloud · 1.25×". */
+    private fun subtitle(): String =
+        getString(R.string.read_aloud) + " \u00B7 " + TextToSpeechManager.speedLabel(tts.speed.value)
+
     private fun action(name: String, code: Int): PendingIntent =
         PendingIntent.getService(
             this,
@@ -223,7 +252,7 @@ class ReadAloudService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(tts.title ?: getString(R.string.read_aloud))
-            .setContentText(getString(R.string.read_aloud))
+            .setContentText(subtitle())
             .setLargeIcon(artwork)
             .setOngoing(!paused)
             .setOnlyAlertOnce(true)
@@ -242,10 +271,15 @@ class ReadAloudService : Service() {
                 getString(R.string.ai_stop_reading),
                 action(ACTION_STOP, 3),
             )
+            .addAction(
+                R.drawable.ic_read_aloud_speed,
+                getString(R.string.read_aloud_speed, TextToSpeechManager.speedLabel(tts.speed.value)),
+                action(ACTION_SPEED, 4),
+            )
             .setStyle(
                 MediaStyle()
                     .setMediaSession(session.sessionToken)
-                    .setShowActionsInCompactView(0, 1)
+                    .setShowActionsInCompactView(0, 1, 2)
             )
             .build()
     }
@@ -256,6 +290,7 @@ class ReadAloudService : Service() {
         private const val ACTION_STOP = "me.ash.reader.READ_ALOUD_STOP"
         private const val ACTION_PAUSE = "me.ash.reader.READ_ALOUD_PAUSE"
         private const val ACTION_PLAY = "me.ash.reader.READ_ALOUD_PLAY"
+        private const val ACTION_SPEED = "me.ash.reader.READ_ALOUD_SPEED"
         private const val UPDATE_EVERY_MS = 1_000L
 
         private fun ensureChannel(context: Context) {

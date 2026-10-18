@@ -56,6 +56,21 @@ class TextToSpeechManager @Inject constructor(
     @Volatile var title: String? = null
         private set
 
+    /** What is being read (the article's id), so its page can follow along. */
+    @Volatile var sourceKey: String? = null
+        private set
+
+    /** The sentence being read, for following along on the page. */
+    private val _sentence = MutableStateFlow<String?>(null)
+    val sentence = _sentence.asStateFlow()
+    private var fullText = ""
+
+    private val prefs = context.getSharedPreferences("read_aloud", Context.MODE_PRIVATE)
+
+    /** Reading speed, 0.8× to 2× (kept between launches, and in the backup). */
+    private val _speed = MutableStateFlow(prefs.getFloat(KEY_SPEED, 1f).coerceIn(SPEEDS.first(), SPEEDS.last()))
+    val speed = _speed.asStateFlow()
+
     /** What is being read, in the pieces sent to the engine, and where each starts. */
     private var pieces: List<String> = emptyList()
     private var starts: IntArray = IntArray(0)
@@ -69,7 +84,7 @@ class TextToSpeechManager @Inject constructor(
     private fun initTts(): TextToSpeech {
         return TextToSpeech(context, TextToSpeech.OnInitListener {
             when (it) {
-                TextToSpeech.SUCCESS -> {}
+                TextToSpeech.SUCCESS -> tts.setSpeechRate(_speed.value)
                 else -> {
                     state = State.Error
                     Timber.e("TextToSpeech initialization failed $it")
@@ -109,25 +124,44 @@ class TextToSpeechManager @Inject constructor(
                 else -> 0L
             }
 
-    /** Reads an article aloud, from the beginning. */
-    fun readHtml(htmlContent: String, title: String? = null) {
+    /** Reads an article aloud, from the beginning. [key] names it (the article's id). */
+    fun readHtml(htmlContent: String, title: String? = null, key: String? = null) {
         coroutineScope.launch {
             val plainText = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString()
-            readText(plainText, title)
+            readText(plainText, title, key)
         }
     }
 
     /** Reads plain text aloud; each line becomes its own utterance. */
     fun readPlainText(text: String, title: String? = null) {
-        coroutineScope.launch { readText(text, title) }
+        coroutineScope.launch { readText(text, title, null) }
     }
 
-    private fun readText(text: String, title: String?) {
+    /** Sets the reading speed; while reading it carries on from the same word at the new speed. */
+    fun setSpeed(value: Float) {
+        val old = _speed.value
+        val new = value.coerceIn(SPEEDS.first(), SPEEDS.last())
+        if (new == old) return
+        _speed.value = new
+        prefs.edit().putFloat(KEY_SPEED, new).apply()
+        tts.setSpeechRate(new)
+        msPerChar = msPerChar * old / new
+        (state as? State.Reading)?.let { speakFrom(it.spoken) }
+    }
+
+    /** The next speed in 0.8×, 1×, 1.25×, 1.5×, 1.75×, 2× (back to 0.8× after 2×). */
+    fun cycleSpeed() {
+        val next = SPEEDS.firstOrNull { it > _speed.value + 0.01f } ?: SPEEDS.first()
+        setSpeed(next)
+    }
+
+    private fun readText(text: String, title: String?, key: String?) {
         stop()
         if (state != State.Idle) return
 
         state = State.Preparing
         this.title = title
+        this.sourceKey = key
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             tts.language =
@@ -149,7 +183,8 @@ class TextToSpeechManager @Inject constructor(
             at += piece.length
         }
         totalChars = at
-        msPerChar = DEFAULT_MS_PER_CHAR
+        fullText = pieces.joinToString("")
+        msPerChar = DEFAULT_MS_PER_CHAR / _speed.value
         speakFrom(0)
     }
 
@@ -244,6 +279,21 @@ class TextToSpeechManager @Inject constructor(
             if (measured in 20f..400f) msPerChar = measured
         }
         state = State.Reading(spoken, total)
+        _sentence.value = sentenceAt(spoken)
+    }
+
+    /** The sentence around character [at] (not past its paragraph). */
+    private fun sentenceAt(at: Int): String? {
+        if (at !in fullText.indices) return null
+        val piece = (starts.indexOfLast { it <= at }).coerceAtLeast(0)
+        val pieceStart = starts[piece]
+        val pieceEnd = if (piece + 1 < starts.size) starts[piece + 1] else fullText.length
+        var start = at
+        while (start > pieceStart && fullText[start - 1] !in SENTENCE_ENDS) start--
+        var end = at
+        while (end < pieceEnd && fullText[end] !in SENTENCE_ENDS) end++
+        if (end < pieceEnd) end++
+        return fullText.substring(start, end).trim().ifEmpty { null }
     }
 
     /** Cuts [text] into pieces of at most [max] characters, at sentence ends or spaces. */
@@ -269,11 +319,21 @@ class TextToSpeechManager @Inject constructor(
         currentRun = null
         tts.stop()
         state = State.Idle
+        _sentence.value = null
     }
 
-    private companion object {
-        /** About 14 characters a second, until the real speed is measured. */
-        const val DEFAULT_MS_PER_CHAR = 70f
+    companion object {
+        /** About 14 characters a second at 1×, until the real speed is measured. */
+        private const val DEFAULT_MS_PER_CHAR = 70f
+        private const val KEY_SPEED = "speed"
+        private val SENTENCE_ENDS = charArrayOf('.', '!', '?', '\u2026')
+
+        /** The speeds to choose from. */
+        val SPEEDS = listOf(0.8f, 1f, 1.25f, 1.5f, 1.75f, 2f)
+
+        /** "1.25×". */
+        fun speedLabel(speed: Float): String =
+            String.format(Locale.US, "%.2f", speed).trimEnd('0').trimEnd('.') + "\u00D7"
     }
 }
 

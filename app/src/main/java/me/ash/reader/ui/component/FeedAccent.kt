@@ -93,6 +93,33 @@ object FeedAccent {
         return bmp
     }
 
+    private val pictureMemory = ConcurrentHashMap<String, Int>()
+
+    /**
+     * The main colour of a picture (an article's), or null when it has no clear colour (black and
+     * white photos, for example). Remembered while the app runs.
+     */
+    suspend fun pictureColor(context: Context, url: String): Int? {
+        pictureMemory[url]?.let { return it.takeIf { c -> c != NONE } }
+        val color =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                        val result =
+                            context.imageLoader.execute(
+                                ImageRequest.Builder(context)
+                                    .data(url)
+                                    .size(128)
+                                    .allowHardware(false)
+                                    .build()
+                            )
+                        (result as? SuccessResult)?.drawable?.toBitmapOrNull()?.let(::dominantColor)
+                    }
+                    .getOrNull()
+            }
+        pictureMemory[url] = color ?: NONE
+        return color
+    }
+
     /** Chroma-weighted hue histogram; returns the average color of the strongest hue bucket. */
     private fun dominantColor(src: Bitmap): Int? {
         val bmp = if (src.width > 64 || src.height > 64) Bitmap.createScaledBitmap(src, 64, 64, true) else src

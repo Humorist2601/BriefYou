@@ -1,5 +1,9 @@
 package me.ash.reader.ui.page.adaptive
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.zIndex
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.EnterTransition
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -99,6 +103,9 @@ fun ArticleListReaderPage(
         }
 
     var listAlpha by rememberSaveable { mutableFloatStateOf(1f) }
+    // The article that was open, for shrinking it back into its card while going back (the
+    // destination is already the list by then).
+    val lastReveal = remember { arrayOfNulls<String>(1) }
 
     LaunchedEffect(isTwoPane) {
         Timber.d("isTwoPane: $isTwoPane")
@@ -131,9 +138,15 @@ fun ArticleListReaderPage(
                     scope.launch { paneExpansionState.animateTo(expandedAnchor) }
                 }
             }
+            // On a phone the list stays in place under the article while it opens out of its card
+            // (and comes straight back under it when going back), see ArticleReveal.
             AnimatedPane(
-                enterTransition = motionDataProvider.calculateEnterTransition(paneRole),
-                exitTransition = motionDataProvider.calculateExitTransition(paneRole),
+                enterTransition =
+                    if (isTwoPane) motionDataProvider.calculateEnterTransition(paneRole)
+                    else EnterTransition.None,
+                exitTransition =
+                    if (isTwoPane) motionDataProvider.calculateExitTransition(paneRole)
+                    else ExitTransition.KeepUntilTransitionsFinished,
             ) {
                 CompositionLocalProvider(
                     LocalBackgroundTextMeasurementExecutor provides
@@ -164,10 +177,20 @@ fun ArticleListReaderPage(
         },
         detailPane = {
             AnimatedPane(
-                enterTransition = motionDataProvider.calculateEnterTransition(paneRole),
-                exitTransition = motionDataProvider.calculateExitTransition(paneRole),
+                // Above the list, which stays in place under it on a phone.
+                modifier = if (isTwoPane) Modifier else Modifier.zIndex(1f),
+                enterTransition =
+                    if (isTwoPane) motionDataProvider.calculateEnterTransition(paneRole)
+                    else EnterTransition.None,
+                exitTransition =
+                    if (isTwoPane) motionDataProvider.calculateExitTransition(paneRole)
+                    else ExitTransition.None,
             ) {
                 val contentKey = navigator.currentDestination?.contentKey
+                // The article opens out of its card (and the back gesture shrinks it back in).
+                val revealId = contentKey?.articleId ?: lastReveal[0]
+                if (contentKey != null) lastReveal[0] = contentKey.articleId
+                val reveal = articleReveal(enabled = !isTwoPane, articleId = revealId)
                 LaunchedEffect(contentKey) {
                     if (contentKey == null) {
                         delay(100L)
@@ -181,6 +204,7 @@ fun ArticleListReaderPage(
                 }
 
                 CompositionLocalProvider(LocalTextContentWidth provides animatedContentWidth) {
+                  Box(modifier = reveal) {
                     ReadingPage(
                         viewModel = viewModel,
                         navigationAction = navigationAction,
@@ -218,6 +242,7 @@ fun ArticleListReaderPage(
                         onNavigateToStylePage = onNavigateToStylePage,
                         onNavigateToAiSettings = onNavigateToAiSettings,
                     )
+                  }
                 }
             }
         },

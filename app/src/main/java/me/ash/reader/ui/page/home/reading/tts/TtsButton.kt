@@ -1,5 +1,10 @@
 package me.ash.reader.ui.page.home.reading.tts
 
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.background
 import android.content.Context
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -68,8 +73,8 @@ fun TtsButton(
         }) { state ->
         when (state) {
             // Reading or paused: a wavy ring around the button shows how far it has read (from
-            // the words being spoken), with Pause or Play in the middle. Tap to pause or play;
-            // long press stops while reading, and opens the speech settings while paused.
+            // the words being spoken), with Pause or Play in the middle. Tap to pause or play,
+            // long press to stop (reading or paused).
             is TextToSpeechManager.State.Reading, is TextToSpeechManager.State.Paused -> {
                 val playing = state is TextToSpeechManager.State.Reading
                 Box(
@@ -83,7 +88,7 @@ fun TtsButton(
                             },
                             onLongClick = {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                if (playing) onStop() else context.openTtsSettings()
+                                onStop()
                             },
                         ),
                     contentAlignment = Alignment.Center
@@ -219,3 +224,34 @@ fun Context.openTtsSettings() {
         Toast.makeText(this, "TTS settings screen not found.", Toast.LENGTH_SHORT).show()
     }
 }
+
+/**
+ * Read aloud's speed ("1.25×"); tap for the next speed (0.8× to 2×). Shown beside the read aloud
+ * button while reading or paused.
+ */
+@Composable
+fun SpeedChip(speed: Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val haptic = LocalHapticFeedback.current
+    Box(
+        modifier =
+            modifier
+                .height(32.dp)
+                .widthIn(min = 44.dp)
+                .clip(CircleShape)
+                .background(LocalContentColor.current.copy(alpha = 0.12f))
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    onClick()
+                }
+                .padding(horizontal = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = TextToSpeechManager.speedLabel(speed),
+            style = MaterialTheme.typography.labelLarge,
+            color = LocalContentColor.current,
+            maxLines = 1,
+        )
+    }
+}
+

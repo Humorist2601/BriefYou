@@ -2,6 +2,9 @@
 
 package me.ash.reader.ui.page.home.flow
 
+import androidx.compose.material3.toShape
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.animation.core.FastOutSlowInEasing
 import me.ash.reader.infrastructure.rss.FeedContent
 import androidx.activity.BackEventCompat
 import androidx.activity.compose.PredictiveBackHandler
@@ -1041,6 +1044,7 @@ private fun overlayStyle(action: TriageAction): Triple<Color, ImageVector, Strin
             )
     }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun TriageDone(
     modifier: Modifier,
@@ -1058,19 +1062,40 @@ private fun TriageDone(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(
-            modifier =
-                Modifier.size(96.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Rounded.Check,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
+        // Inbox zero, like the Unread list: when you got through every card, the check pops in on
+        // an Expressive cookie shape and small shapes burst around it (once, with a tick).
+        val celebrate = !nothingToDo
+        val pop = remember { Animatable(if (celebrate) 0f else 1f) }
+        val burst = remember { Animatable(if (celebrate) 0f else 1f) }
+        val haptic = LocalHapticFeedback.current
+        if (celebrate) {
+            LaunchedEffect(Unit) {
+                haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                launch { pop.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 380f)) }
+                burst.animateTo(1f, tween(900, easing = FastOutSlowInEasing))
+            }
+        }
+        Box(contentAlignment = Alignment.Center) {
+            if (celebrate) CelebrationBurst(progress = { burst.value })
+            Box(
+                modifier =
+                    Modifier.size(96.dp)
+                        .graphicsLayer {
+                            scaleX = pop.value
+                            scaleY = pop.value
+                            rotationZ = (1f - pop.value) * -45f
+                        }
+                        .clip(if (celebrate) MaterialShapes.Cookie9Sided.toShape() else CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Rounded.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
         }
         Spacer(Modifier.height(24.dp))
         Text(

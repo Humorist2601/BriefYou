@@ -110,6 +110,21 @@ constructor(
         }
     }
 
+    /**
+     * Removes saved full text of articles that no longer exist (feeds unsubscribed, articles
+     * removed by the server), which nothing else cleans up. [articleIds] are all the account's
+     * articles. Returns how many files were removed.
+     */
+    suspend fun removeOrphans(articleIds: Collection<String>): Int =
+        withContext(ioDispatcher) {
+            runCatching {
+                    val keep = articleIds.mapTo(HashSet()) { getFileNameFor(it) }
+                    val files = currentCacheDir.listFiles() ?: return@runCatching 0
+                    files.count { file -> file.name !in keep && file.delete() }
+                }
+                .getOrDefault(0)
+        }
+
     suspend fun clearCache(): Boolean {
         return withContext(ioDispatcher) {
             runCatching {

@@ -1,5 +1,16 @@
 package me.ash.reader.ui.page.home.reading
 
+import kotlinx.coroutines.delay
+import androidx.compose.ui.graphics.Color
+import me.ash.reader.infrastructure.preference.LocalAmoledDarkTheme
+import me.ash.reader.infrastructure.preference.LocalDarkTheme
+import me.ash.reader.ui.theme.palette.pictureColorScheme
+import me.ash.reader.ui.component.FeedAccent
+import me.ash.reader.infrastructure.rss.FeedContent
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.layout.Row
+import me.ash.reader.ui.page.home.reading.tts.SpeedChip
 import me.ash.reader.ui.page.home.flow.readingMinutes
 import androidx.compose.runtime.mutableFloatStateOf
 import me.ash.reader.ui.ext.openURL
@@ -66,9 +77,65 @@ import me.ash.reader.ui.page.home.reading.tts.TtsButton
 private const val UPWARD = 1
 private const val DOWNWARD = -1
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
+/**
+ * The reading page, in colours from the article's picture (like music apps with album art): the
+ * whole page, bars and sheets included, uses a Material scheme made from the picture's main
+ * colour. Articles without a picture (or with a grey one) keep the app's colours. The article
+ * waits a moment (at most 0.4 s) for the colour, so the page doesn't change colour under you.
+ */
 @Composable
 fun ReadingPage(
+    viewModel: ArticleListReaderViewModel,
+    navigationAction: NavigationAction,
+    onLoadArticle: (String, Int) -> Unit,
+    onNavAction: (NavigationAction) -> Unit,
+    onNavigateToStylePage: () -> Unit,
+    onNavigateToAiSettings: () -> Unit = {},
+) {
+    val context = LocalContext.current
+    val readingUiState = viewModel.readingUiState.collectAsStateValue()
+    val readerState = viewModel.readerStateStateFlow.collectAsStateValue()
+    val article = readingUiState.articleWithFeed?.article
+    val html = readerState.content.text
+    val pictureUrl =
+        remember(article?.id, article?.img, html) {
+            FeedContent.listImage(article?.img, article?.link)?.takeIf { it.isNotBlank() }
+                ?: html?.let { FeedContent.extractHero(it).first }
+        }
+    var seed by remember(pictureUrl) { mutableStateOf<Color?>(null) }
+    var colorReady by remember(pictureUrl) { mutableStateOf(pictureUrl == null) }
+    LaunchedEffect(pictureUrl) {
+        if (pictureUrl == null) return@LaunchedEffect
+        launch {
+            delay(400)
+            colorReady = true
+        }
+        seed = FeedAccent.pictureColor(context, pictureUrl)?.let { Color(it) }
+        colorReady = true
+    }
+    val isDark = LocalDarkTheme.current.isDarkTheme()
+    val isAmoled = isDark && LocalAmoledDarkTheme.current.value
+    val pictureSeed = seed
+    val scheme =
+        remember(pictureSeed, isDark, isAmoled) {
+            pictureSeed?.let { pictureColorScheme(it, isDark, isAmoled) }
+        }
+    MaterialTheme(colorScheme = scheme ?: MaterialTheme.colorScheme) {
+        ReadingPageContent(
+            viewModel = viewModel,
+            navigationAction = navigationAction,
+            onLoadArticle = onLoadArticle,
+            onNavAction = onNavAction,
+            onNavigateToStylePage = onNavigateToStylePage,
+            onNavigateToAiSettings = onNavigateToAiSettings,
+            colorReady = colorReady,
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
+@Composable
+private fun ReadingPageContent(
     //    navController: NavHostController,
     viewModel: ArticleListReaderViewModel,
     navigationAction: NavigationAction,
@@ -76,6 +143,8 @@ fun ReadingPage(
     onNavAction: (NavigationAction) -> Unit,
     onNavigateToStylePage: () -> Unit,
     onNavigateToAiSettings: () -> Unit = {},
+    /** The picture's colour is known (or given up on): the article can show. */
+    colorReady: Boolean = true,
 ) {
     val context = LocalContext.current
     val openLink = LocalOpenLink.current
@@ -100,6 +169,24 @@ fun ReadingPage(
             val left = kotlin.math.ceil(totalMinutes * (1f - readingProgress)).toInt()
             if (left <= 0) stringResource(R.string.reading_almost_done)
             else stringResource(R.string.reading_time_left, left)
+        }
+    // Follow along: the sentence being read aloud, when it's this article that is being read.
+    val tts = viewModel.textToSpeechManager
+    val ttsSentence = tts.sentence.collectAsState()
+    val ttsStateNow = tts.stateFlow.collectAsState()
+    val currentArticleId = readerState.articleId
+    val readAloudSentence =
+        remember(currentArticleId) {
+            derivedStateOf {
+                val state = ttsStateNow.value
+                if (
+                    currentArticleId != null &&
+                        tts.sourceKey == currentArticleId &&
+                        (state is TextToSpeechManager.State.Reading ||
+                            state is TextToSpeechManager.State.Paused)
+                ) ttsSentence.value
+                else null
+            }
         }
     // A new article starts unscrolled.
     LaunchedEffect(readerState.articleId) { readingProgress = 0f }
@@ -308,13 +395,15 @@ fun ReadingPage(
                                             author = author,
                                             link = link,
                                             publishedDate = publishedDate,
-                                            isLoading = content is ReaderState.Loading,
+                                            isLoading =
+                                                content is ReaderState.Loading || !colorReady,
                                             scrollState = scrollState,
                                             listState = listState,
                                             onImageClick = { imgUrl, altText ->
                                                 currentImageData = ImageData(imgUrl, altText)
                                                 showFullScreenImageViewer = true
                                             },
+                                            readAloudSentence = readAloudSentence,
                                             afterArticle = {
                                                 // This article's own next one (not the
                                                 // page's, which changes while it slides away).
@@ -393,9 +482,24 @@ fun ReadingPage(
                             viewModel.textToSpeechManager.readHtml(
                                 readerState.content.text ?: return@BottomBar,
                                 readerState.title,
+                                readerState.articleId,
                             )
                         },
                         ttsButton = {
+                          val ttsState =
+                              viewModel.textToSpeechManager.stateFlow.collectAsStateValue()
+                          val speed = viewModel.textToSpeechManager.speed.collectAsStateValue()
+                          Row(verticalAlignment = Alignment.CenterVertically) {
+                            // The speed, beside the button while reading or paused.
+                            if (
+                                ttsState is TextToSpeechManager.State.Reading ||
+                                    ttsState is TextToSpeechManager.State.Paused
+                            ) {
+                                SpeedChip(
+                                    speed = speed,
+                                    onClick = { viewModel.textToSpeechManager.cycleSpeed() },
+                                )
+                            }
                             TtsButton(
                                 onClick = {
                                     when (it) {
@@ -407,6 +511,7 @@ fun ReadingPage(
                                             viewModel.textToSpeechManager.readHtml(
                                                 readerState.content.text ?: "",
                                                 readerState.title,
+                                                readerState.articleId,
                                             )
                                         }
 
@@ -423,10 +528,10 @@ fun ReadingPage(
                                         }
                                     }
                                 },
-                                state =
-                                    viewModel.textToSpeechManager.stateFlow.collectAsStateValue(),
+                                state = ttsState,
                                 onStop = { viewModel.textToSpeechManager.stop() },
                             )
+                          }
                         },
                     )
                 }

@@ -894,6 +894,10 @@ interface ArticleDao {
     @Query("SELECT id FROM article")
     suspend fun queryAllIds(): List<String>
 
+    // --- Brief You: every article id of an account, to tidy saved full text ---
+    @Query("SELECT id FROM article WHERE accountId = :accountId")
+    suspend fun queryAllIds(accountId: Int): List<String>
+
     // --- Brief You: recent articles for mute filters and duplicate detection ---
     @Transaction
     @Query(

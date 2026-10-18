@@ -22,6 +22,7 @@ constructor(
     private val briefFilters: BriefFilters,
     private val feedIconOverrides: FeedIconOverrides,
     private val notificationHelper: NotificationHelper,
+    private val storageTidy: StorageTidy,
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -52,6 +53,8 @@ constructor(
                 runCatching { briefFilters.apply(accountId) }
                 // Brief You: custom feed icons survive syncs that rewrite icons.
                 runCatching { feedIconOverrides.reapply() }
+                // Brief You: saved full text of removed articles, and space back (see StorageTidy).
+                runCatching { storageTidy.afterSync(accountId) }
                 workManager
                     .beginUniqueWork(
                         uniqueWorkName = POST_SYNC_WORK_NAME,

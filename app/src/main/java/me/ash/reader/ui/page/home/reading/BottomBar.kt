@@ -2,6 +2,9 @@
 
 package me.ash.reader.ui.page.home.reading
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -155,7 +158,11 @@ fun BottomBar(
                         onNextArticle()
                     }
                     // Read aloud keeps its own button, which shows the progress while reading.
-                    Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                    // (It grows to the left with the speed chip while reading.)
+                    Box(
+                        modifier = Modifier.height(48.dp).widthIn(min = 48.dp).animateContentSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         CompositionLocalProvider(LocalContentColor provides content) { ttsButton() }
                     }
                     PillButton(

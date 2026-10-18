@@ -77,6 +77,47 @@ function setBold(enabled) {
 
 ${if (boldCharacters) "setBold(true);" else ""}
 
+// Brief You: follow along with read aloud. Finds the sentence in the article (spaces may differ
+// from the read-aloud text) after the last one found, marks it with a CSS highlight (the article
+// itself isn't changed), and returns its top on the page, or -1 when it isn't found.
+var briefLastEnd = 0;
+function briefHighlight(sentence) {
+    if (!window.CSS || !CSS.highlights) return -1;
+    CSS.highlights.delete("brief-read-aloud");
+    if (!sentence) { briefLastEnd = 0; return -1; }
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    var flat = "", map = [], space = true;
+    while (walker.nextNode()) {
+        var node = walker.currentNode, value = node.nodeValue;
+        var parent = node.parentElement;
+        if (parent && (parent.tagName === "SCRIPT" || parent.tagName === "STYLE")) continue;
+        for (var i = 0; i < value.length; i++) {
+            var c = value[i];
+            if (/\s/.test(c)) {
+                if (space) continue;
+                c = " ";
+                space = true;
+            } else {
+                space = false;
+            }
+            flat += c;
+            map.push([node, i]);
+        }
+    }
+    var wanted = sentence.replace(/\s+/g, " ").trim();
+    if (!wanted) return -1;
+    var at = flat.indexOf(wanted, Math.max(0, briefLastEnd - wanted.length));
+    if (at < 0) at = flat.indexOf(wanted);
+    if (at < 0) return -1;
+    var end = at + wanted.length - 1;
+    briefLastEnd = end + 1;
+    var range = document.createRange();
+    range.setStart(map[at][0], map[at][1]);
+    range.setEnd(map[end][0], map[end][1] + 1);
+    CSS.highlights.set("brief-read-aloud", new Highlight(range));
+    return range.getBoundingClientRect().top + window.scrollY;
+}
+
 var images = document.querySelectorAll("img");
 
 images.forEach(function(img) {
