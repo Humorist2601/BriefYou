@@ -1,0 +1,75 @@
+name: "Clean up old releases and runs"
+
+# Run by hand only (Actions → "Clean up old releases and runs" → Run workflow). Nothing here
+# runs on a schedule or on push. Starts as a dry run: it lists what it would delete, and deletes
+# only when "Dry run" is unticked.
+
+on:
+    workflow_dispatch:
+        inputs:
+            keep_releases:
+                description: "Releases to keep (the newest ones; older releases and their tags are deleted)"
+                type: number
+                default: 5
+            keep_runs:
+                description: "Workflow runs to keep per workflow (the newest ones; older runs and their logs are deleted)"
+                type: number
+                default: 10
+            dry_run:
+                description: "Dry run: only list what would be deleted"
+                type: boolean
+                default: true
+
+jobs:
+    cleanup:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write # releases and tags
+            actions: write # workflow runs
+        env:
+            GH_TOKEN: ${{ github.token }}
+            REPO: ${{ github.repository }}
+            KEEP_RELEASES: ${{ inputs.keep_releases }}
+            KEEP_RUNS: ${{ inputs.keep_runs }}
+            DRY_RUN: ${{ inputs.dry_run }}
+        steps:
+            - name: Old releases
+              run: |
+                  # Newest first by date (not by tag name), so the latest builds are the ones kept.
+                  gh api "repos/$REPO/releases?per_page=100" --paginate \
+                      -q '.[] | [.created_at, .tag_name] | @tsv' \
+                    | sort -r | tail -n +$((KEEP_RELEASES + 1)) | cut -f2 > old_releases.txt
+                  echo "Keeping the newest $KEEP_RELEASES releases; $(wc -l < old_releases.txt) older ones:"
+                  while read -r tag; do
+                      [ -z "$tag" ] && continue
+                      if [ "$DRY_RUN" = "true" ]; then
+                          echo "would delete release and tag $tag"
+                      else
+                          echo "deleting release and tag $tag"
+                          gh release delete "$tag" --repo "$REPO" --cleanup-tag --yes || echo "  failed: $tag"
+                      fi
+                  done < old_releases.txt
+                  echo "- Releases: $(wc -l < old_releases.txt) older than the newest $KEEP_RELEASES $([ "$DRY_RUN" = "true" ] && echo 'would be' || echo 'were') deleted" >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Old workflow runs
+              run: |
+                  total=0
+                  for wf in $(gh api "repos/$REPO/actions/workflows" -q '.workflows[].id'); do
+                      name=$(gh api "repos/$REPO/actions/workflows/$wf" -q .name)
+                      # Newest first; finished runs only (never this run or one in progress).
+                      gh api "repos/$REPO/actions/workflows/$wf/runs?per_page=100" --paginate \
+                          -q '.workflow_runs[] | select(.status == "completed") | .id' \
+                        | tail -n +$((KEEP_RUNS + 1)) > old_runs.txt
+                      n=$(wc -l < old_runs.txt)
+                      total=$((total + n))
+                      echo "$name: keeping the newest $KEEP_RUNS runs; $n older ones"
+                      while read -r run; do
+                          [ -z "$run" ] && continue
+                          if [ "$DRY_RUN" = "true" ]; then
+                              echo "  would delete run $run"
+                          else
+                              gh api -X DELETE "repos/$REPO/actions/runs/$run" >/dev/null || echo "  failed: $run"
+                          fi
+                      done < old_runs.txt
+                  done
+                  echo "- Workflow runs: $total older than the newest $KEEP_RUNS per workflow $([ "$DRY_RUN" = "true" ] && echo 'would be' || echo 'were') deleted" >> "$GITHUB_STEP_SUMMARY"
