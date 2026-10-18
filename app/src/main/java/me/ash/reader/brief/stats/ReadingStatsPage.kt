@@ -3,6 +3,7 @@ package me.ash.reader.brief.stats
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -115,24 +116,28 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                     DisplayText(text = stringResource(R.string.stats_title), desc = "")
                     Spacer(Modifier.height(8.dp))
                     // This week at a glance, like the tiles at the top of Filters.
+                    // All three as tall as the tallest (a label may take two lines).
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .height(IntrinsicSize.Min)
+                                .padding(horizontal = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         StatTile(
-                            Modifier.weight(1f),
+                            Modifier.weight(1f).fillMaxHeight(),
                             Icons.Outlined.Schedule,
                             weekMinutes.toString(),
                             stringResource(R.string.stats_minutes_week),
                         )
                         StatTile(
-                            Modifier.weight(1f),
+                            Modifier.weight(1f).fillMaxHeight(),
                             Icons.AutoMirrored.Outlined.Article,
                             weekArticles.toString(),
                             stringResource(R.string.stats_articles_week),
                         )
                         StatTile(
-                            Modifier.weight(1f),
+                            Modifier.weight(1f).fillMaxHeight(),
                             Icons.Outlined.LocalFireDepartment,
                             streak.toString(),
                             stringResource(R.string.stats_streak),
