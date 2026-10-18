@@ -268,7 +268,7 @@ sealed interface PreferencesKey {
                 IntKey(swipeEndAction),
                 BooleanKey(markAsReadOnScroll),
                 BooleanKey(hideEmptyGroups),
-                BooleanKey(pullToLoadNextFeed),
+                IntKey(pullToLoadNextFeed), // Brief You: a choice of three, not on/off
                 BooleanKey(pullToSwitchArticle),
                 IntKey(openLink),
                 StringKey(openLinkAppSpecificBrowser),
@@ -500,8 +500,9 @@ data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
                     DataStoreKey(booleanPreferencesKey(markAsReadOnScroll), Boolean::class.java),
                 hideEmptyGroups to
                     DataStoreKey(booleanPreferencesKey(hideEmptyGroups), Boolean::class.java),
+                // Brief You: stored as a number (none / next feed / mark read and next feed).
                 pullToLoadNextFeed to
-                    DataStoreKey(booleanPreferencesKey(pullToLoadNextFeed), Boolean::class.java),
+                    DataStoreKey(intPreferencesKey(pullToLoadNextFeed), Int::class.java),
                 pullToSwitchArticle to
                     DataStoreKey(booleanPreferencesKey(pullToSwitchArticle), Boolean::class.java),
                 openLink to DataStoreKey(intPreferencesKey(openLink), Int::class.java),

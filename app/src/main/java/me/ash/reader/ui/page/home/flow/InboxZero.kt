@@ -1,7 +1,5 @@
 package me.ash.reader.ui.page.home.flow
 
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -27,6 +25,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -80,33 +81,24 @@ fun InboxZeroCelebration(visible: Boolean, onFinished: () -> Unit, modifier: Mod
         modifier = modifier.size(280.dp).graphicsLayer { alpha = fade.value },
         contentAlignment = Alignment.Center,
     ) {
-        // A soft raised card behind the tick and the words, so they stand out from the articles
-        // underneath.
-        Surface(
-            shape = RoundedCornerShape(32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shadowElevation = 8.dp,
-            tonalElevation = 2.dp,
-            modifier =
-                Modifier.size(width = 220.dp, height = 168.dp).graphicsLayer {
-                    val s = 0.9f + 0.1f * badge.value.coerceIn(0f, 1f)
-                    scaleX = s
-                    scaleY = s
-                },
-        ) {}
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
           // The burst comes out of the tick itself.
+          val cookie = MaterialShapes.Cookie9Sided.toShape()
           Box(contentAlignment = Alignment.Center) {
             CelebrationBurst(progress = { burst.value })
             Box(
                 modifier =
                     Modifier.size(72.dp)
+                        // A soft shadow under the tick, so it stands out from the articles
+                        // underneath; it grows and turns with it.
                         .graphicsLayer {
                             scaleX = badge.value
                             scaleY = badge.value
                             rotationZ = (1f - badge.value) * -45f
+                            shadowElevation = 10.dp.toPx()
+                            shape = cookie
+                            clip = true
                         }
-                        .clip(MaterialShapes.Cookie9Sided.toShape())
                         .background(MaterialTheme.colorScheme.tertiaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
@@ -121,7 +113,16 @@ fun InboxZeroCelebration(visible: Boolean, onFinished: () -> Unit, modifier: Mod
             Spacer(Modifier.height(14.dp))
             Text(
                 text = stringResource(R.string.reading_all_caught_up),
-                style = MaterialTheme.typography.titleLarge,
+                // A faint shadow, so the words read over the articles underneath.
+                style =
+                    MaterialTheme.typography.titleLarge.copy(
+                        shadow =
+                            Shadow(
+                                color = Color.Black.copy(alpha = 0.25f),
+                                offset = Offset(0f, 2f),
+                                blurRadius = 10f,
+                            )
+                    ),
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.graphicsLayer { alpha = badge.value.coerceIn(0f, 1f) },
