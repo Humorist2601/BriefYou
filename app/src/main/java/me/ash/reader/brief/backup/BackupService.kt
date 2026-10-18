@@ -42,7 +42,7 @@ import me.ash.reader.infrastructure.preference.SyncOnlyOnWiFiPreference
 import me.ash.reader.infrastructure.preference.SyncOnlyWhenChargingPreference
 import me.ash.reader.ui.ext.spacerDollar
 import me.ash.reader.brief.readaloud.TextToSpeechManager // Brief You
-import me.ash.reader.ui.ext.DataStoreKey
+import me.ash.reader.ui.ext.PreferencesKey
 import me.ash.reader.ui.ext.fromDataStoreToJSONString
 import me.ash.reader.ui.ext.fromJSONStringToDataStore
 
@@ -397,13 +397,13 @@ constructor(
 
     private fun isDeviceSpecific(key: String, value: Any?): Boolean =
         key.startsWith("newVersion") ||
-            key == DataStoreKey.skipVersionNumber ||
+            key == PreferencesKey.skipVersionNumber ||
             // Which account is open: account numbers differ between phones.
-            key == DataStoreKey.currentAccountId ||
+            key == PreferencesKey.currentAccountId ||
             // Names an installed browser app, which may not exist on the new phone.
-            key == DataStoreKey.openLinkAppSpecificBrowser ||
+            key == PreferencesKey.openLinkAppSpecificBrowser ||
             // A font file that was added on this phone and won't exist on another one.
-            ((key == DataStoreKey.readingFonts || key == DataStoreKey.basicFonts) &&
+            ((key == PreferencesKey.readingFonts || key == PreferencesKey.basicFonts) &&
                 (value as? Number)?.toInt() == EXTERNAL_FONT)
 
     private fun ZipOutputStream.put(name: String, text: String) {
