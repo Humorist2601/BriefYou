@@ -1,5 +1,15 @@
 package me.ash.reader.brief.stats
 
+import me.ash.reader.ui.component.FeedIcon
+import me.ash.reader.domain.service.AccountService
+import me.ash.reader.domain.repository.FeedDao
+import dagger.hilt.components.SingletonComponent
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.InstallIn
+import dagger.hilt.EntryPoint
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -103,6 +113,24 @@ fun ReadingStatsPage(onBack: () -> Unit) {
     val totalMinutes = data.days.values.sumOf { it.seconds } / 60
     val totalArticles = data.days.values.sumOf { it.articles }
     val topFeeds = remember(data) { data.feeds.entries.sortedByDescending { it.value }.take(5) }
+    // The feeds' current icons (stats keep feed names; the icons are looked up when shown).
+    val feedIcons by
+        produceState(emptyMap<String, String?>(), topFeeds) {
+            value =
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                            val deps =
+                                EntryPointAccessors.fromApplication(
+                                    context.applicationContext,
+                                    StatsDependencies::class.java,
+                                )
+                            deps.feedDao()
+                                .queryAll(deps.accountService().getCurrentAccountId())
+                                .associate { it.name to it.icon }
+                        }
+                        .getOrDefault(emptyMap())
+                }
+        }
 
     // Read You's settings-page scaffold (deprecated by Read You, but all of Read You's settings
     // pages still use it), so this page looks like the others.
@@ -198,7 +226,9 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                         )
                     } else {
                         val most = topFeeds.first().value.coerceAtLeast(1)
-                        topFeeds.forEach { (name, count) -> FeedRow(name, count, count.toFloat() / most) }
+                        topFeeds.forEach { (name, count) ->
+                            FeedRow(name, feedIcons[name], count, count.toFloat() / most)
+                        }
                     }
                     Spacer(Modifier.height(24.dp))
                 }
@@ -283,6 +313,15 @@ private fun streakOn(data: ReadingStatsData, day: LocalDate): Int {
         d = d.minusDays(1)
     }
     return count
+}
+
+/** For looking up the feeds' icons. */
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+internal interface StatsDependencies {
+    fun feedDao(): FeedDao
+
+    fun accountService(): AccountService
 }
 
 /** What the weekly chart shows. */
@@ -408,9 +447,11 @@ private fun WeekChart(week: List<LocalDate>, values: List<Long>) {
 
 /** A feed with how many of its articles were opened, and a bar relative to the most-read one. */
 @Composable
-private fun FeedRow(name: String, count: Int, fraction: Float) {
+private fun FeedRow(name: String, iconUrl: String?, count: Int, fraction: Float) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            FeedIcon(feedName = name, iconUrl = iconUrl, size = 24.dp)
+            Spacer(Modifier.width(12.dp))
             Text(
                 text = name,
                 style = MaterialTheme.typography.titleMedium,
