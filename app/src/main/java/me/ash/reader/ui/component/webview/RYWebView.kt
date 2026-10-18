@@ -1,5 +1,6 @@
 package me.ash.reader.ui.component.webview
 
+import androidx.compose.ui.graphics.compositeOver
 import android.util.Log
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -33,7 +34,6 @@ import me.ash.reader.infrastructure.preference.ReadingFontsPreference
 import me.ash.reader.ui.ext.ExternalFonts
 import me.ash.reader.ui.ext.openURL
 import me.ash.reader.ui.ext.surfaceColorAtElevation
-import me.ash.reader.ui.theme.palette.alwaysLight
 
 @Composable
 fun RYWebView(
@@ -51,9 +51,15 @@ fun RYWebView(
     val tonalElevation = LocalReadingPageTonalElevation.current
     val backgroundColor =
         MaterialTheme.colorScheme.surfaceColorAtElevation(tonalElevation.value.dp).toArgb()
-    val selectionTextColor = Color.Black.toArgb()
+    // Selected text: the accent colour, see-through over the page, like text selection in the
+    // rest of the app (the handles take the accent colour from the theme, see themes.xml).
+    val selectionTextColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val isDarkBackground = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val selectionBgColor = (MaterialTheme.colorScheme.tertiaryContainer alwaysLight true).toArgb()
+    val selectionBgColor =
+        MaterialTheme.colorScheme.primary
+            .copy(alpha = 0.35f)
+            .compositeOver(Color(backgroundColor))
+            .toArgb()
     val textColor: Int = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     val textBold: Boolean = LocalReadingTextBold.current.value
     val textAlign: String = LocalReadingTextAlign.current.toTextAlignCSS()

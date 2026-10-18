@@ -43,6 +43,10 @@ class TextToSpeechManager @Inject constructor(
     /** The reading that is running; callbacks from an older one are ignored. */
     @Volatile private var currentRun: Any? = null
 
+    /** The title of what is being read (shown in the read aloud notification). */
+    @Volatile var title: String? = null
+        private set
+
     /** What is being read, in the pieces sent to the engine. */
     private var pieces: List<String> = emptyList()
 
@@ -71,20 +75,21 @@ class TextToSpeechManager @Inject constructor(
     }
 
     /** Reads an article aloud, from the beginning. */
-    fun readHtml(htmlContent: String) {
+    fun readHtml(htmlContent: String, title: String? = null) {
         coroutineScope.launch {
             val plainText = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString()
-            readText(plainText)
+            readText(plainText, title)
         }
     }
 
     /** Reads plain text aloud; each line becomes its own utterance. */
-    fun readPlainText(text: String) {
-        coroutineScope.launch { readText(text) }
+    fun readPlainText(text: String, title: String? = null) {
+        coroutineScope.launch { readText(text, title) }
     }
 
-    private fun readText(text: String) {
+    private fun readText(text: String, title: String?) {
         stop()
+        this.title = title
 
         if (state != State.Idle) return
 
@@ -106,6 +111,8 @@ class TextToSpeechManager @Inject constructor(
         val total = pieces.size
         val run = Any().also { currentRun = it }
         state = State.Reading(1, total)
+        // The notification with Stop, which also keeps reading going outside the article.
+        ReadAloudService.start(context)
 
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {

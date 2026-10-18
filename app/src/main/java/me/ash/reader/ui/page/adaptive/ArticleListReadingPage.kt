@@ -58,6 +58,7 @@ fun ArticleListReaderPage(
     viewModel: ArticleListReaderViewModel,
     onBack: () -> Unit,
     onNavigateToStylePage: () -> Unit,
+    onNavigateToAiSettings: () -> Unit = {},
 ) {
 
     val scope = rememberCoroutineScope()
@@ -215,6 +216,7 @@ fun ArticleListReaderPage(
                             }
                         },
                         onNavigateToStylePage = onNavigateToStylePage,
+                        onNavigateToAiSettings = onNavigateToAiSettings,
                     )
                 }
             }

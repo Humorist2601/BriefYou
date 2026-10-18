@@ -2,6 +2,7 @@
 
 package me.ash.reader.ui.page.home.reading
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -48,8 +49,9 @@ private val PillOrigin = TransformOrigin(.5f, 1f)
 /**
  * The reading page's actions: a floating pill like the one on the Unread list (accent colors, fully
  * rounded, a soft shadow), with icons only. From left to right: star, AI summary, next article,
- * read aloud, and full content. It shrinks away while you scroll down and comes back when you
- * scroll up.
+ * read aloud, and full content. Long presses: star marks as read or unread, AI opens the AI
+ * settings, next article goes to the previous one, full content opens the browser. It shrinks
+ * away while you scroll down and comes back when you scroll up.
  *
  * [isUnread], [isBoldCharacters], [onUnread], [onBoldCharacters] and [onReadAloud] are kept for the
  * callers but no longer have a button here.
@@ -60,12 +62,17 @@ fun BottomBar(
     isUnread: Boolean,
     isStarred: Boolean,
     isNextArticleAvailable: Boolean,
+    isPreviousArticleAvailable: Boolean = false,
     isFullContent: Boolean,
     isBoldCharacters: Boolean,
     ttsButton: @Composable () -> Unit,
     onUnread: (isUnread: Boolean) -> Unit = {},
     onStarred: (isStarred: Boolean) -> Unit = {},
     onNextArticle: () -> Unit = {},
+    /** Long press on next article: the previous one. */
+    onPreviousArticle: () -> Unit = {},
+    /** Long press on the AI summary button: the AI settings. */
+    onOpenAiSettings: () -> Unit = {},
     onFullContent: (isFullContent: Boolean) -> Unit = {},
     /** Long press on the full content button: open the article in the browser. */
     onOpenInBrowser: () -> Unit = {},
@@ -101,7 +108,8 @@ fun BottomBar(
                 shadowElevation = 6.dp,
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     PillButton(
@@ -110,6 +118,11 @@ fun BottomBar(
                             stringResource(
                                 if (isStarred) R.string.mark_as_unstar else R.string.mark_as_starred
                             ),
+                        // Long press: mark as read or unread.
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onUnread(!isUnread)
+                        },
                     ) {
                         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                         onStarred(!isStarred)
@@ -117,6 +130,10 @@ fun BottomBar(
                     PillButton(
                         icon = Icons.Outlined.AutoAwesome,
                         description = stringResource(R.string.ai_summarize),
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onOpenAiSettings()
+                        },
                     ) {
                         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                         onSummarize()
@@ -125,6 +142,14 @@ fun BottomBar(
                         icon = Icons.Rounded.ExpandMore,
                         description = stringResource(R.string.next_article),
                         enabled = isNextArticleAvailable,
+                        // Long press: the previous article (works even at the end of the list).
+                        onLongClick =
+                            if (isPreviousArticleAvailable) {
+                                {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onPreviousArticle()
+                                }
+                            } else null,
                     ) {
                         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                         onNextArticle()
@@ -166,11 +191,12 @@ private fun PillButton(
             Modifier.size(48.dp)
                 .clip(CircleShape)
                 .combinedClickable(
-                    enabled = enabled,
+                    // Dimmed buttons can still have a long press (next article: previous one).
+                    enabled = enabled || onLongClick != null,
                     role = Role.Button,
                     onClickLabel = description,
                     onLongClick = onLongClick,
-                    onClick = onClick,
+                    onClick = { if (enabled) onClick() },
                 ),
         contentAlignment = Alignment.Center,
     ) {

@@ -75,6 +75,7 @@ fun ReadingPage(
     onLoadArticle: (String, Int) -> Unit,
     onNavAction: (NavigationAction) -> Unit,
     onNavigateToStylePage: () -> Unit,
+    onNavigateToAiSettings: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val openLink = LocalOpenLink.current
@@ -346,6 +347,7 @@ fun ReadingPage(
                         isUnread = readingUiState.isUnread,
                         isStarred = readingUiState.isStarred,
                         isNextArticleAvailable = isNextArticleAvailable,
+                        isPreviousArticleAvailable = isPreviousArticleAvailable,
                         isFullContent =
                             readerState.content is ReaderState.FullContent ||
                                 readerState.content is ReaderState.Error,
@@ -358,6 +360,13 @@ fun ReadingPage(
                                 onLoadArticle(id, index)
                             }
                         },
+                        onPreviousArticle = {
+                            readerState.previousArticle?.let {
+                                val (id, index) = it
+                                onLoadArticle(id, index)
+                            }
+                        },
+                        onOpenAiSettings = onNavigateToAiSettings,
                         // Long press on full content: the article on its website, in the browser
                         // chosen in settings.
                         onOpenInBrowser = {
@@ -373,7 +382,8 @@ fun ReadingPage(
                         onSummarize = { showSummary = true },
                         onReadAloud = {
                             viewModel.textToSpeechManager.readHtml(
-                                readerState.content.text ?: return@BottomBar
+                                readerState.content.text ?: return@BottomBar,
+                                readerState.title,
                             )
                         },
                         ttsButton = {
@@ -386,7 +396,8 @@ fun ReadingPage(
 
                                         TextToSpeechManager.State.Idle -> {
                                             viewModel.textToSpeechManager.readHtml(
-                                                readerState.content.text ?: ""
+                                                readerState.content.text ?: "",
+                                                readerState.title,
                                             )
                                         }
 

@@ -1,5 +1,9 @@
 package me.ash.reader.ui.page.home.reading
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Download
+import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -36,7 +40,6 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -268,9 +271,20 @@ fun ReaderImageViewer(
                 Spacer(Modifier.weight(1f))
 
                 Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
-                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    // The same menu as the article and Triage menus (animated, icons on the left).
+                    AnimatedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                    ) {
                         DropdownMenuItem(
                             text = { Text(text = stringResource(id = R.string.save)) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Rounded.Download,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            },
                             onClick = {
                                 val isStoragePermissionGranted =
                                     ContextCompat.checkSelfPermission(
@@ -289,6 +303,13 @@ fun ReaderImageViewer(
                         // Brief You: share the picture's link.
                         DropdownMenuItem(
                             text = { Text(text = stringResource(id = R.string.share)) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Rounded.Share,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            },
                             onClick = {
                                 expanded = false
                                 val send =

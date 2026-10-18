@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Splash screen colours from the wallpaper (Material You), light theme: background one step
-     off the app's background (surface container), cards in the accent colour with the front one
+<!-- Splash screen colours from the wallpaper (Material You), light theme: background a few
+     steps darker than the app's background (tone 90 here; tone 92 on Android 14+, values-v34), cards in the accent colour with the front one
      strongest (primary), lines and sparkle in the background colour so they look cut out. -->
 <resources>
-    <color name="splash_background">@android:color/system_neutral1_50</color>
+    <color name="splash_background">@android:color/system_neutral1_100</color>
     <color name="splash_card_back">@android:color/system_accent1_200</color>
     <color name="splash_card_middle">@android:color/system_accent1_400</color>
     <color name="splash_card_front">@android:color/system_accent1_600</color>
-    <color name="splash_line">@android:color/system_neutral1_50</color>
-    <color name="splash_sparkle">@android:color/system_neutral1_50</color>
+    <color name="splash_line">@android:color/system_neutral1_100</color>
+    <color name="splash_sparkle">@android:color/system_neutral1_100</color>
 </resources>

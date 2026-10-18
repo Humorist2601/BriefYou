@@ -195,14 +195,17 @@ constructor(
     }
 
     /** Toggles reading the result aloud. */
-    fun readAloud(text: String) {
+    fun readAloud(text: String, title: String? = null) {
         val tts = textToSpeechManager
         if (startedReading && tts.state !is TextToSpeechManager.State.Idle) {
             tts.stop()
             startedReading = false
         } else {
             // Drop the bullet glyphs so they aren't read out.
-            tts.readPlainText(text.lines().joinToString("\n") { it.trimStart('•', '*', '-', ' ') })
+            tts.readPlainText(
+                text.lines().joinToString("\n") { it.trimStart('•', '*', '-', ' ') },
+                title = title,
+            )
             startedReading = true
         }
     }

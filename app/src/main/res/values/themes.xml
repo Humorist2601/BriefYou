@@ -9,8 +9,11 @@
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowContentOverlay">@color/windowBackground</item>
         <item name="android:windowBackground">@color/windowBackground</item>
+        <!-- Text selection handles in articles (drawn by Android) in the accent colour. -->
+        <item name="android:colorAccent">@color/system_accent</item>
+        <item name="android:colorControlActivated">@color/system_accent</item>
         <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">
-            @drawable/splash_icon_empty
+            @drawable/ic_launcher_splash_screen
         </item>
         <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/splash_background</item>
     </style>

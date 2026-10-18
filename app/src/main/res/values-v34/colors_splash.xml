@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 14+, light theme: the splash background is the system's surface container high
+     (tone 92), six steps darker than the app's background (tone 98), the same difference as in
+     dark mode (tone 12 on tone 6). The lines and sparkle match it. -->
+<resources>
+    <color name="splash_background">@android:color/system_surface_container_high_light</color>
+    <color name="splash_line">@android:color/system_surface_container_high_light</color>
+    <color name="splash_sparkle">@android:color/system_surface_container_high_light</color>
+</resources>

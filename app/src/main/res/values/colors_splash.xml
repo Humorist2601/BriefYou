@@ -4,10 +4,10 @@
      colour (front strongest), the lines and sparkle in the background colour so they look cut out.
      Brand violet here; Material You (wallpaper) colours on Android 12+, see values-v31. -->
 <resources>
-    <color name="splash_background">#F1EEF8</color>
+    <color name="splash_background">#E8E4EF</color>
     <color name="splash_card_back">#CFC3F5</color>
     <color name="splash_card_middle">#9C88E0</color>
     <color name="splash_card_front">#5B45B0</color>
-    <color name="splash_line">#F1EEF8</color>
-    <color name="splash_sparkle">#F1EEF8</color>
+    <color name="splash_line">#E8E4EF</color>
+    <color name="splash_sparkle">#E8E4EF</color>
 </resources>

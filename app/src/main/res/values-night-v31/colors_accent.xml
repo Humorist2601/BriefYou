@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The accent colour for the few things Android draws itself, such as the text selection
+     handles in articles (the app's own screens take their colours from Compose). -->
+<resources>
+    <color name="system_accent">@android:color/system_accent1_200</color>
+</resources>

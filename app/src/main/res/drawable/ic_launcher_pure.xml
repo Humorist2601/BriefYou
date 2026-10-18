@@ -6,7 +6,7 @@
     android:viewportWidth="72"
     android:viewportHeight="72">
     <group android:translateX="-18" android:translateY="-18">
-        <group android:pivotX="49.9" android:pivotY="51.8" android:scaleX="0.8" android:scaleY="0.8" android:translateX="4.1" android:translateY="2.2">
+        <group android:pivotX="49.87" android:pivotY="51.81" android:scaleX="0.86" android:scaleY="0.86" android:translateX="4.13" android:translateY="2.19">
             <group android:pivotX="54" android:pivotY="72" android:rotation="-16">
                 <path android:pathData="M42,26H66A7,7 0 0 1 73,33V69A7,7 0 0 1 66,76H42A7,7 0 0 1 35,69V33A7,7 0 0 1 42,26Z" android:fillColor="#FFFFFF" android:fillAlpha="0.35"/>
             </group>

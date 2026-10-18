@@ -2,6 +2,9 @@
 
 package me.ash.reader.ui.page.settings.ai
 
+import androidx.compose.ui.window.DialogProperties
+import me.ash.reader.ui.component.base.keyboardSafe
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.size
@@ -182,6 +185,8 @@ private fun PromptDialog(
 ) {
     var text by remember { mutableStateOf(initial) }
     AlertDialog(
+        modifier = Modifier.imePadding(),
+        properties = DialogProperties().keyboardSafe(),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {

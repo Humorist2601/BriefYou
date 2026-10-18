@@ -332,7 +332,7 @@ fun SummarySheet(
                         Text(stringResource(R.string.ai_summary_regenerate))
                     }
                     FilledTonalButton(
-                        onClick = { streaming?.let { viewModel.readAloud(it.text) } },
+                        onClick = { streaming?.let { viewModel.readAloud(it.text, heading) } },
                         enabled = done,
                         shape = RoundedCornerShape(8, 50, 50, 8),
                         modifier = Modifier.weight(1f).height(52.dp),

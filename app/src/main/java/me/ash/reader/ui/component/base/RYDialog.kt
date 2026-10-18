@@ -1,5 +1,6 @@
 package me.ash.reader.ui.component.base
 
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,8 +20,8 @@ fun RYDialog(
 ) {
     if (visible) {
         AlertDialog(
-            properties = properties,
-            modifier = modifier,
+            properties = properties.keyboardSafe(),
+            modifier = modifier.imePadding(),
             onDismissRequest = onDismissRequest,
             icon = icon,
             title = title,
@@ -30,3 +31,18 @@ fun RYDialog(
         )
     }
 }
+
+/**
+ * Dialog settings for dialogs with text fields. The dialog's window stays full screen and still
+ * while the keyboard opens (the dialog moves up inside it, use with `Modifier.imePadding()`), so
+ * the text cursor's handle shows under the cursor. When the window itself was moved up for the
+ * keyboard, the handle was placed where the field used to be, far below it.
+ */
+fun DialogProperties.keyboardSafe(): DialogProperties =
+    DialogProperties(
+        dismissOnBackPress = dismissOnBackPress,
+        dismissOnClickOutside = dismissOnClickOutside,
+        securePolicy = securePolicy,
+        usePlatformDefaultWidth = usePlatformDefaultWidth,
+        decorFitsSystemWindows = false,
+    )

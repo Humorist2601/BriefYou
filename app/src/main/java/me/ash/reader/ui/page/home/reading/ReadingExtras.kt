@@ -6,6 +6,15 @@
 
 package me.ash.reader.ui.page.home.reading
 
+import androidx.compose.material3.toShape
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.HorizontalDivider
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.produceState
@@ -96,62 +105,103 @@ private const val SETTLE_MS = 500L
 
 @Composable
 private fun NextArticleContent(next: ArticleWithFeed?, onNext: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp)) {
+        if (next != null) NextArticle(next, onNext) else AllCaughtUp()
+    }
+}
+
+/** The next article: what it is, its picture, and a round arrow to go to it. */
+@Composable
+private fun NextArticle(next: ArticleWithFeed, onNext: () -> Unit) {
+    Surface(
+        onClick = onNext,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        if (next != null) {
-            Text(
-                text = stringResource(R.string.reading_up_next),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 8.dp),
-            )
+        Row(
+            modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text =
+                        stringResource(R.string.reading_up_next).uppercase() +
+                            " · " +
+                            next.feed.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = next.article.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            next.article.img?.let { img ->
+                RYAsyncImage(
+                    modifier = Modifier.size(64.dp).clip(RoundedCornerShape(16.dp)),
+                    data = me.ash.reader.infrastructure.rss.FeedContent.listImage(img, next.article.link),
+                    scale = Scale.FILL,
+                    precision = Precision.INEXACT,
+                    size = SIZE_1000,
+                    contentScale = ContentScale.Crop,
+                )
+            }
             Surface(
-                onClick = onNext,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.fillMaxWidth(),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(44.dp),
             ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = next.feed.name,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = next.article.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    next.article.img?.let { img ->
-                        RYAsyncImage(
-                            modifier = Modifier.size(76.dp).clip(RoundedCornerShape(16.dp)),
-                            data = me.ash.reader.infrastructure.rss.FeedContent.listImage(img, next.article.link),
-                            scale = Scale.FILL,
-                            precision = Precision.INEXACT,
-                            size = SIZE_1000,
-                            contentScale = ContentScale.Crop,
-                        )
-                    }
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.AutoMirrored.Rounded.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                    )
                 }
             }
-        } else {
+        }
+    }
+}
+
+/** No next article: a softer card with a check on an Expressive cookie shape. */
+@Composable
+private fun AllCaughtUp() {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 22.dp, horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                modifier =
+                    Modifier.size(52.dp)
+                        .clip(MaterialShapes.Cookie9Sided.toShape())
+                        .background(MaterialTheme.colorScheme.tertiaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+            Spacer(Modifier.height(10.dp))
             Text(
                 text = stringResource(R.string.reading_all_caught_up),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 8.dp),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
     }
@@ -184,10 +234,13 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            // The same header as the other sheets (Sort, AI summary): title, then a divider.
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(Modifier.height(14.dp))
+            // The same header as the other sheets (Sort, AI summary): title, 12 dp, a divider,
+            // 14 dp (the column already puts 6 dp between items).
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+            Spacer(Modifier.height(2.dp))
 
             SettingSlider(
                 label = stringResource(R.string.text_settings_size),

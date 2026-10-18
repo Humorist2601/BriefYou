@@ -194,6 +194,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                                 viewModel = viewModel,
                                 onBack = onBack,
                                 onNavigateToStylePage = { backStack.add(Route.ReadingPageStyle) },
+                                onNavigateToAiSettings = { backStack.add(Route.AiModel) },
                             )
                         }
                     }
