@@ -31,6 +31,7 @@ import me.ash.reader.infrastructure.preference.SyncOnStartPreference
 import me.ash.reader.infrastructure.preference.SyncOnlyOnWiFiPreference
 import me.ash.reader.infrastructure.preference.SyncOnlyWhenChargingPreference
 import me.ash.reader.ui.ext.spacerDollar
+import me.ash.reader.infrastructure.android.TextToSpeechManager
 import me.ash.reader.ui.ext.DataStoreKey
 import me.ash.reader.ui.ext.fromDataStoreToJSONString
 import me.ash.reader.ui.ext.fromJSONStringToDataStore
@@ -80,6 +81,8 @@ data class ExtrasBackup(
     val articlePrompt: String? = null,
     val gistPrompt: String? = null,
     val triageAutoSeconds: Int? = null,
+    /** Read aloud's last speed (added later; older backups don't have it). */
+    val readAloudSpeed: Float? = null,
 )
 
 /**
@@ -91,7 +94,7 @@ data class ExtrasBackup(
  * - `starred.json`: starred articles in full (title, link, text, date, feed).
  * - `account.json`: the account's sync settings (interval, on start, Wi-Fi, charging, how long
  *   to keep read articles, block list).
- * - `extras.json`: your AI instructions, and the Triage auto-advance delay.
+ * - `extras.json`: your AI instructions, the Triage auto-advance delay and read aloud's speed.
  * - `order.json`: how groups and feeds are sorted (by name, by count or by hand), if you set one.
  *   The OPML above is written in that same order, too.
  * - `preferences.json`: appearance, reading and sync settings.
@@ -114,6 +117,7 @@ constructor(
     private val accountService: AccountService,
     private val summarizer: GemmaSummarizer,
     private val workManager: WorkManager,
+    private val tts: dagger.Lazy<TextToSpeechManager>,
     @IODispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
     private val json = Json {
@@ -172,6 +176,9 @@ constructor(
                     gistPrompt = summarizer.customGistPrompt(),
                     triageAutoSeconds =
                         triagePrefs().takeIf { it.contains(TRIAGE_SECONDS) }?.getInt(TRIAGE_SECONDS, 5),
+                    readAloudSpeed =
+                        readAloudPrefs().takeIf { it.contains(READ_ALOUD_SPEED) }
+                            ?.getFloat(READ_ALOUD_SPEED, 1f),
                 )
             val out = ByteArrayOutputStream()
             ZipOutputStream(out).use { zip ->
@@ -353,7 +360,15 @@ constructor(
         summarizer.setArticlePrompt(b.articlePrompt)
         summarizer.setGistPrompt(b.gistPrompt)
         b.triageAutoSeconds?.let { triagePrefs().edit { putInt(TRIAGE_SECONDS, it) } }
+        b.readAloudSpeed?.let { speed ->
+            readAloudPrefs().edit { putFloat(READ_ALOUD_SPEED, speed) }
+            // So it applies straight away, not only after the app restarts.
+            tts.get().setSpeed(speed)
+        }
     }
+
+    /** Read aloud's own settings (see TextToSpeechManager). */
+    private fun readAloudPrefs() = context.getSharedPreferences("read_aloud", Context.MODE_PRIVATE)
 
     /** The Triage screen's own settings (see TriageScreen). */
     private fun triagePrefs() = context.getSharedPreferences("triage", Context.MODE_PRIVATE)
@@ -422,6 +437,7 @@ constructor(
         const val ACCOUNT = "account.json"
         const val EXTRAS = "extras.json"
         private const val TRIAGE_SECONDS = "auto_seconds"
+        private const val READ_ALOUD_SPEED = "speed"
         private const val MAX_STARRED = 100_000
 
         /** Value of the "external font" choice in the reading and basic font settings. */

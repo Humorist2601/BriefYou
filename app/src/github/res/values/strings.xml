@@ -2,4 +2,13 @@
 <resources>
     <!-- Fork build name, so it's distinguishable from the official app on the home screen. -->
     <string name="read_you" translatable="false">Brief You</string>
+
+    <!-- Brief You's own links (the same names as Read You's, so its code is left untouched).
+         Updates come from Brief You's releases, never Read You's. -->
+    <string name="github_link" translatable="false">https://github.com/Humorist2601/BriefYou</string>
+    <string name="update_link" translatable="false">https://api.github.com/repos/Humorist2601/BriefYou/releases/latest</string>
+    <string name="issue_tracer_url" translatable="false">https://github.com/Humorist2601/BriefYou/issues</string>
+    <string name="wiki_link" translatable="false">https://github.com/Humorist2601/BriefYou#readme</string>
+    <!-- No Telegram group: empty hides the button in Tips & support. -->
+    <string name="telegram_link" translatable="false"></string>
 </resources>

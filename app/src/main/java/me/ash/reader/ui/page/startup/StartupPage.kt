@@ -68,7 +68,7 @@ fun StartupPage(
                 item {
                     Tips(
                         modifier = Modifier.padding(top = 40.dp),
-                        text = stringResource(R.string.tos_tips),
+                        text = stringResource(R.string.brief_tos_tips) /* Brief You */,
                     )
                 }
                 item {
@@ -116,7 +116,7 @@ fun StartupPage(
             SelectionContainer {
                 HtmlText(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
-                    text = stringResource(R.string.tos_content),
+                    text = stringResource(R.string.brief_tos_content) /* Brief You */,
                     style =
                         MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant

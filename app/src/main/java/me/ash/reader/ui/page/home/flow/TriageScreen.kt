@@ -49,6 +49,8 @@ import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
@@ -1134,7 +1136,7 @@ private fun TriageDone(
  * Starts and stops auto-advance. While it runs, a ring around the button counts down to the next
  * skip. A long press opens the delay picker.
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AutoAdvanceButton(
     running: Boolean,
@@ -1195,15 +1197,26 @@ private fun AutoAdvanceButton(
             )
         }
         if (running) {
-            CircularProgressIndicator(
-                progress = progress,
-                modifier = Modifier.size(48.dp),
-                strokeWidth = 3.dp,
-                color =
-                    if (paused) MaterialTheme.colorScheme.outline
-                    else MaterialTheme.colorScheme.primary,
-                trackColor = Color.Transparent,
-            )
+            // The same Expressive ring as read aloud: wavy while it counts down, still while a
+            // finger holds the card, over a faint track.
+            val ringColor =
+                if (paused) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
+            if (paused) {
+                CircularProgressIndicator(
+                    progress = progress,
+                    modifier = Modifier.size(48.dp),
+                    strokeWidth = 4.dp,
+                    color = ringColor,
+                    trackColor = ringColor.copy(alpha = 0.2f),
+                )
+            } else {
+                CircularWavyProgressIndicator(
+                    progress = progress,
+                    modifier = Modifier.size(48.dp),
+                    color = ringColor,
+                    trackColor = ringColor.copy(alpha = 0.2f),
+                )
+            }
         }
         // The same popup as the one on an article's long-press: same component, shape and item style.
         AnimatedDropdownMenu(

@@ -13,17 +13,20 @@ class Version(numbers: List<String>) {
     private var major: Int = 0
     private var minor: Int = 0
     private var point: Int = 0
+    // Brief You: the CI build number (0.16.2.17), so each build is newer than the last one.
+    private var build: Int = 0
 
     init {
         major = numbers.getOrNull(0)?.toIntOrNull() ?: 0
         minor = numbers.getOrNull(1)?.toIntOrNull() ?: 0
         point = numbers.getOrNull(2)?.toIntOrNull() ?: 0
+        build = numbers.getOrNull(3)?.toIntOrNull() ?: 0
     }
 
     constructor() : this(listOf())
     constructor(string: String?) : this(string?.split(".") ?: listOf())
 
-    override fun toString() = "$major.$minor.$point"
+    override fun toString() = "$major.$minor.$point" + if (build > 0) ".$build" else ""
 
     /**
      * Use [major], [minor], [point] for comparison.
@@ -39,6 +42,8 @@ class Version(numbers: List<String>) {
         minor < other.minor -> -1
         point > other.point -> 1
         point < other.point -> -1
+        build > other.build -> 1
+        build < other.build -> -1
         else -> 0
     }
 

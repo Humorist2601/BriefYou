@@ -271,19 +271,21 @@ fun TipsAndSupportPage(
                             })
                         Spacer(modifier = Modifier.width(16.dp))
 
-                        // Telegram
-                        RoundIconButton(
-                            RoundIconButtonType.Telegram(
-                                backgroundColor = MaterialTheme.colorScheme.primaryContainer alwaysLight true,
-                            ) {
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                view.playSoundEffect(SoundEffectConstants.CLICK)
-                                context.openURL(
-                                    context.getString(R.string.telegram_link),
-                                    OpenLinkPreference.AutoPreferCustomTabs
-                                )
-                            })
-                        Spacer(modifier = Modifier.width(16.dp))
+                        // Telegram (Brief You: hidden when there is no link)
+                        if (context.getString(R.string.telegram_link).isNotEmpty()) {
+                            RoundIconButton(
+                                RoundIconButtonType.Telegram(
+                                    backgroundColor = MaterialTheme.colorScheme.primaryContainer alwaysLight true,
+                                ) {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    view.playSoundEffect(SoundEffectConstants.CLICK)
+                                    context.openURL(
+                                        context.getString(R.string.telegram_link),
+                                        OpenLinkPreference.AutoPreferCustomTabs
+                                    )
+                                })
+                            Spacer(modifier = Modifier.width(16.dp))
+                        }
 
                         // Help
                         RoundIconButton(

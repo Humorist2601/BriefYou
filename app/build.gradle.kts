@@ -69,6 +69,12 @@ android {
             dimension = "channel"
             // Brief You (fork of Read You) has its own app ID, so it installs next to Read You.
             applicationId = "io.github.humorist2601.briefyou"
+            // Brief You's own name in the network user agent.
+            buildConfigField(
+                "String",
+                "USER_AGENT_STRING",
+                "\"BriefYou/${defaultConfig.versionName}(${defaultConfig.versionCode})\"",
+            )
             // CI builds get a rising version so each release installs as an update. Kept here,
             // away from the upstream version lines, so Read You's version bumps merge cleanly.
             System.getenv("CI_BUILD_NUMBER")?.toIntOrNull()?.let { build ->

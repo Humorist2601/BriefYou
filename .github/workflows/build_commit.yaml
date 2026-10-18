@@ -22,6 +22,27 @@ jobs:
               # Every CI build gets a higher number, so each release installs as an update.
               run: echo "CI_BUILD_NUMBER=$(( ${{ github.run_number }} - BUILD_NUMBER_OFFSET ))" >> "$GITHUB_ENV"
 
+            - name: Use Brief You's signing key
+              # With the key in the repo's secrets, builds are signed with it instead of Read
+              # You's public key (which anyone could sign an "update" with). The build reads
+              # signature/keystore_release.properties first when it exists.
+              env:
+                  KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+                  KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+                  KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+              run: |
+                  if [ -z "$KEYSTORE_BASE64" ]; then
+                      echo "::warning title=Signing::No KEYSTORE_BASE64 secret: signed with Read You's public key."
+                      exit 0
+                  fi
+                  echo "$KEYSTORE_BASE64" | base64 -d > signature/briefyou-release.jks
+                  {
+                      echo "storeFile=../signature/briefyou-release.jks"
+                      echo "storePassword=$KEYSTORE_PASSWORD"
+                      echo "keyPassword=$KEYSTORE_PASSWORD"
+                      echo "keyAlias=${KEY_ALIAS:-briefyou}"
+                  } > signature/keystore_release.properties
+
             - uses: gradle/actions/setup-gradle@v4
             - name: Build APK
               run: |
