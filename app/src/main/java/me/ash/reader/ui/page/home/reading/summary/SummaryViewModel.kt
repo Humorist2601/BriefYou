@@ -194,19 +194,28 @@ constructor(
             }
     }
 
-    /** Toggles reading the result aloud. */
+    /** Long press on read aloud: stop. */
+    fun stopReading() {
+        textToSpeechManager.stop()
+        startedReading = false
+    }
+
+    /** Reads the result aloud, or pauses or plays what is being read. */
     fun readAloud(text: String, title: String? = null) {
         val tts = textToSpeechManager
-        if (startedReading && tts.state !is TextToSpeechManager.State.Idle) {
-            tts.stop()
-            startedReading = false
-        } else {
-            // Drop the bullet glyphs so they aren't read out.
-            tts.readPlainText(
-                text.lines().joinToString("\n") { it.trimStart('•', '*', '-', ' ') },
-                title = title,
-            )
-            startedReading = true
+        // While something is being read aloud, the button pauses or plays it.
+        when (tts.state) {
+            is TextToSpeechManager.State.Reading -> tts.pause()
+            is TextToSpeechManager.State.Paused -> tts.resume()
+            TextToSpeechManager.State.Preparing -> {}
+            else -> {
+                // Drop the bullet glyphs so they aren't read out.
+                tts.readPlainText(
+                    text.lines().joinToString("\n") { it.trimStart('•', '*', '-', ' ') },
+                    title = title,
+                )
+                startedReading = true
+            }
         }
     }
 
@@ -214,7 +223,8 @@ constructor(
     fun stop() {
         job?.cancel()
         importWatch?.cancel()
-        if (startedReading) textToSpeechManager.stop()
+        // Reading aloud carries on after the sheet closes (stop it from the media notification),
+        // like reading an article aloud.
         startedReading = false
     }
 

@@ -1,5 +1,6 @@
 package me.ash.reader.infrastructure.android
 
+import me.ash.reader.ui.component.base.DialogHost
 import me.ash.reader.ui.ext.dataStore
 import me.ash.reader.infrastructure.preference.DarkThemePreference
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -166,7 +167,8 @@ class MainActivity : AppCompatActivity() {
                             NewIntentHandlerEffect(backStack, subscribeViewModel)
                             var showSplash by remember { mutableStateOf(playSplash) }
                             Box(modifier = Modifier.fillMaxSize()) {
-                                AppEntry(backStack)
+                                // Dialogs are drawn in the app's window (see InWindowDialog).
+                                DialogHost { AppEntry(backStack) }
                                 if (showSplash) {
                                     BriefSplash(
                                         onFinished = { showSplash = false },

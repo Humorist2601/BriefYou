@@ -1,5 +1,15 @@
 package me.ash.reader.ui.page.home.reading.summary
 
+import me.ash.reader.ui.page.home.reading.tts.openTtsSettings
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.combinedClickable
+import me.ash.reader.ui.page.home.reading.tts.readProgress
+import me.ash.reader.ui.page.home.reading.tts.ReadAloudRing
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -331,39 +341,76 @@ fun SummarySheet(
                         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                         Text(stringResource(R.string.ai_summary_regenerate))
                     }
-                    FilledTonalButton(
-                        onClick = { streaming?.let { viewModel.readAloud(it.text, heading) } },
-                        enabled = done,
-                        shape = RoundedCornerShape(8, 50, 50, 8),
-                        modifier = Modifier.weight(1f).height(52.dp),
+                    // Read aloud: tap to start, then tap to pause or play; long press stops while
+                    // reading and opens the speech settings while paused.
+                    // While reading, a wavy ring shows how far it has got (like the reading bar).
+                    val paused = ttsState is TextToSpeechManager.State.Paused
+                    val buttonShape = RoundedCornerShape(8, 50, 50, 8)
+                    val haptic = LocalHapticFeedback.current
+                    Surface(
+                        shape = buttonShape,
+                        color =
+                            if (done) MaterialTheme.colorScheme.secondaryContainer
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                        contentColor =
+                            if (done) MaterialTheme.colorScheme.onSecondaryContainer
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        modifier =
+                            Modifier.weight(1f)
+                                .height(52.dp)
+                                .clip(buttonShape)
+                                .combinedClickable(
+                                    enabled = done,
+                                    role = Role.Button,
+                                    onClick = {
+                                        streaming?.let { viewModel.readAloud(it.text, heading) }
+                                    },
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        if (reading && !paused) viewModel.stopReading()
+                                        else context.openTtsSettings()
+                                    },
+                                ),
                     ) {
-                        // While reading: Stop on the Expressive loading shape, like the reading
-                        // bar's read aloud button.
-                        if (reading) {
-                            Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
-                                LoadingIndicator(
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (reading) {
+                                Box(
                                     modifier = Modifier.size(28.dp),
-                                    color = LocalContentColor.current.copy(alpha = 0.22f),
-                                )
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    ReadAloudRing(
+                                        progress = ttsState.readProgress(),
+                                        playing = !paused,
+                                        modifier = Modifier.size(28.dp),
+                                    )
+                                    Icon(
+                                        if (paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                            } else {
                                 Icon(
-                                    Icons.Rounded.Stop,
+                                    Icons.AutoMirrored.Outlined.VolumeUp,
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
+                                    modifier = Modifier.size(ButtonDefaults.IconSize),
                                 )
                             }
-                        } else {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.VolumeUp,
-                                contentDescription = null,
-                                modifier = Modifier.size(ButtonDefaults.IconSize),
+                            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                            Text(
+                                stringResource(
+                                    when {
+                                        !reading -> R.string.ai_read_aloud
+                                        paused -> R.string.read_aloud_play
+                                        else -> R.string.read_aloud_pause
+                                    }
+                                ),
+                                style = MaterialTheme.typography.labelLarge,
                             )
                         }
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text(
-                            stringResource(
-                                if (reading) R.string.ai_stop_reading else R.string.ai_read_aloud
-                            )
-                        )
                     }
                 }
             }

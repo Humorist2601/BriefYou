@@ -17,6 +17,7 @@ activityCompose = "1.12.0-beta01"
 appcompat = "1.7.1"
 browser = "1.8.0"
 coreKtx = "1.16.0"
+androidxMedia = "1.7.0"
 datastore = "1.1.4"
 espresso = "3.5.1"
 lifecycle = "2.8.7"
@@ -124,6 +125,7 @@ navigation-compose = { group = "androidx.navigation", name = "navigation-compose
 lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-media = { group = "androidx.media", name = "media", version.ref = "androidxMedia" }
 activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }

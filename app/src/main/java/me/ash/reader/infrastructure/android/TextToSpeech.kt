@@ -2,6 +2,7 @@ package me.ash.reader.infrastructure.android
 
 import android.content.Context
 import android.os.Build
+import android.os.SystemClock
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.text.Html
@@ -20,6 +21,14 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Read aloud. Progress comes from the words as they are spoken (the speech engine reports where
+ * each word starts), counted in characters of the whole text, so it matches the real position.
+ *
+ * The speech engine can't pause, so pausing stops it and remembers the word; playing again starts
+ * from that word. Seeking works the same way. [ReadAloudService] shows the system media
+ * notification and controls while reading or paused.
+ */
 @Singleton
 class TextToSpeechManager @Inject constructor(
     @ApplicationContext
@@ -27,7 +36,6 @@ class TextToSpeechManager @Inject constructor(
     @ApplicationScope
     private val coroutineScope: CoroutineScope
 ) {
-
 
     private val _stateFlow = MutableStateFlow<State>(State.Idle)
     val stateFlow = _stateFlow.asStateFlow()
@@ -42,13 +50,21 @@ class TextToSpeechManager @Inject constructor(
 
     /** The reading that is running; callbacks from an older one are ignored. */
     @Volatile private var currentRun: Any? = null
+    private var runCounter = 0
 
-    /** The title of what is being read (shown in the read aloud notification). */
+    /** The title of what is being read (shown in the media notification). */
     @Volatile var title: String? = null
         private set
 
-    /** What is being read, in the pieces sent to the engine. */
+    /** What is being read, in the pieces sent to the engine, and where each starts. */
     private var pieces: List<String> = emptyList()
+    private var starts: IntArray = IntArray(0)
+    private var totalChars = 0
+
+    /** How long a character takes to say, measured while reading (for the time shown). */
+    @Volatile private var msPerChar = DEFAULT_MS_PER_CHAR
+    private var segmentStartChars = 0
+    private var segmentStartTime = 0L
 
     private fun initTts(): TextToSpeech {
         return TextToSpeech(context, TextToSpeech.OnInitListener {
@@ -65,14 +81,33 @@ class TextToSpeechManager @Inject constructor(
     sealed interface State {
         object Idle : State
         object Preparing : State
-        /** Reading part [current] of [total]. */
-        class Reading(val current: Int, val total: Int) : State {
+
+        /** Reading: [spoken] of [total] characters said so far. */
+        class Reading(val spoken: Int, val total: Int) : State {
             val progress: Float
-                get() = current.toFloat() / total
+                get() = if (total > 0) (spoken.toFloat() / total).coerceIn(0f, 1f) else 0f
+        }
+
+        /** Paused at character [spoken] of [total]. */
+        class Paused(val spoken: Int, val total: Int) : State {
+            val progress: Float
+                get() = if (total > 0) (spoken.toFloat() / total).coerceIn(0f, 1f) else 0f
         }
 
         object Error : State
     }
+
+    /** About how long the whole text takes to read, and how far in it is (milliseconds). */
+    val durationMs: Long
+        get() = (totalChars * msPerChar).toLong()
+
+    val positionMs: Long
+        get() =
+            when (val s = state) {
+                is State.Reading -> (s.spoken * msPerChar).toLong()
+                is State.Paused -> (s.spoken * msPerChar).toLong()
+                else -> 0L
+            }
 
     /** Reads an article aloud, from the beginning. */
     fun readHtml(htmlContent: String, title: String? = null) {
@@ -89,11 +124,10 @@ class TextToSpeechManager @Inject constructor(
 
     private fun readText(text: String, title: String?) {
         stop()
-        this.title = title
-
         if (state != State.Idle) return
 
         state = State.Preparing
+        this.title = title
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             tts.language =
@@ -108,37 +142,108 @@ class TextToSpeechManager @Inject constructor(
             state = State.Idle
             return
         }
-        val total = pieces.size
+        starts = IntArray(pieces.size)
+        var at = 0
+        pieces.forEachIndexed { index, piece ->
+            starts[index] = at
+            at += piece.length
+        }
+        totalChars = at
+        msPerChar = DEFAULT_MS_PER_CHAR
+        speakFrom(0)
+    }
+
+    /** Pauses (stops the engine and remembers the word). */
+    fun pause() {
+        val s = state as? State.Reading ?: return
+        currentRun = null
+        tts.stop()
+        state = State.Paused(s.spoken, s.total)
+    }
+
+    /** Plays again from where it was paused. */
+    fun resume() {
+        val s = state as? State.Paused ?: return
+        speakFrom(s.spoken)
+    }
+
+    /** Jumps to [positionMs] (from the media controls' progress bar). */
+    fun seekTo(positionMs: Long) {
+        if (totalChars == 0 || (state !is State.Reading && state !is State.Paused)) return
+        val chars = (positionMs / msPerChar).toInt().coerceIn(0, totalChars - 1)
+        if (state is State.Paused) {
+            state = State.Paused(chars, totalChars)
+        } else {
+            speakFrom(chars)
+        }
+    }
+
+    /** Starts speaking at character [offset] of the whole text (from the start of its word). */
+    private fun speakFrom(offset: Int) {
+        if (pieces.isEmpty()) return
+        tts.stop()
         val run = Any().also { currentRun = it }
-        state = State.Reading(1, total)
-        // The notification with Stop, which also keeps reading going outside the article.
-        ReadAloudService.start(context)
+        val runId = ++runCounter
+        val first = (starts.indexOfLast { it <= offset }).coerceAtLeast(0)
+        val firstPiece = pieces[first]
+        val local =
+            (offset - starts[first]).coerceIn(0, firstPiece.length).let { pos ->
+                if (pos == 0) 0 else firstPiece.lastIndexOf(' ', pos).let { if (it < 0) 0 else it + 1 }
+            }
+        // Where each utterance starts in the whole text.
+        val bases = java.util.concurrent.ConcurrentHashMap<String, Int>()
+        val lastId = "$runId:${pieces.lastIndex}"
+        val total = totalChars
+
+        segmentStartChars = starts[first] + local
+        segmentStartTime = SystemClock.elapsedRealtime()
+        state = State.Reading(segmentStartChars, total)
 
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 if (currentRun !== run) return
-                val index = (utteranceId?.toIntOrNull() ?: 1) - 1
-                state = State.Reading(index + 1, total)
+                bases[utteranceId]?.let { update(it, total) }
+            }
+
+            override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+                if (currentRun !== run) return
+                bases[utteranceId]?.let { update(it + start, total) }
             }
 
             override fun onDone(utteranceId: String?) {
                 if (currentRun !== run) return
-                val index = (utteranceId?.toIntOrNull() ?: 1) - 1
-                if (index >= total - 1) {
+                if (utteranceId == lastId) {
                     currentRun = null
                     state = State.Idle
                 }
             }
 
+            @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
                 if (currentRun !== run) return
+                currentRun = null
                 state = State.Error
             }
         })
 
-        for (index in 0 until total) {
-            tts.speak(pieces[index], TextToSpeech.QUEUE_ADD, null, (index + 1).toString())
+        for (index in first..pieces.lastIndex) {
+            val id = "$runId:$index"
+            val text = if (index == first) firstPiece.substring(local) else pieces[index]
+            bases[id] = if (index == first) starts[index] + local else starts[index]
+            tts.speak(text, TextToSpeech.QUEUE_ADD, null, id)
         }
+        // The media notification and controls, which also keep reading going outside the article.
+        ReadAloudService.start(context)
+    }
+
+    private fun update(spoken: Int, total: Int) {
+        // Learn the reading speed as it goes, for the time shown in the media controls.
+        val said = spoken - segmentStartChars
+        if (said > 120) {
+            val measured = (SystemClock.elapsedRealtime() - segmentStartTime).toFloat() / said
+            if (measured in 20f..400f) msPerChar = measured
+        }
+        state = State.Reading(spoken, total)
     }
 
     /** Cuts [text] into pieces of at most [max] characters, at sentence ends or spaces. */
@@ -164,6 +269,11 @@ class TextToSpeechManager @Inject constructor(
         currentRun = null
         tts.stop()
         state = State.Idle
+    }
+
+    private companion object {
+        /** About 14 characters a second, until the real speed is measured. */
+        const val DEFAULT_MS_PER_CHAR = 70f
     }
 }
 

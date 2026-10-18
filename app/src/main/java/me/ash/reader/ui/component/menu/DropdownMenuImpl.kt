@@ -37,6 +37,8 @@ class AnchorEndPopupPositionProvider(
     private val density: Density,
     private val offset: IntOffset,
     private val verticalMargin: Int = with(density) { DropdownMenuVerticalPadding.roundToPx() },
+    /** Line the menu's right edge up with the anchor's (a menu opened from a button). */
+    private val alignToAnchorEnd: Boolean = false,
     private val onTransformOriginCalculated: (transformOrigin: TransformOrigin) -> Unit = { _ -> }
 ) : PopupPositionProvider {
 
@@ -62,7 +64,13 @@ class AnchorEndPopupPositionProvider(
         popupContentSize: IntSize
     ): IntOffset {
 
-        val popupX = offset.x - popupContentSize.width / 2
+        val popupX =
+            if (alignToAnchorEnd) {
+                (anchorBounds.right - popupContentSize.width + offset.x)
+                    .coerceIn(0, (windowSize.width - popupContentSize.width).coerceAtLeast(0))
+            } else {
+                offset.x - popupContentSize.width / 2
+            }
 
         val popupYPrimary = anchorBounds.bottom
 
@@ -76,7 +84,14 @@ class AnchorEndPopupPositionProvider(
             popupYSecondary - verticalMargin
         }
 
-        onTransformOriginCalculated(if (fitsBelow) TopTransformOrigin else BottomTransformOrigin)
+        onTransformOriginCalculated(
+            when {
+                alignToAnchorEnd && fitsBelow -> TransformOrigin(1f, 0f)
+                alignToAnchorEnd -> TransformOrigin(1f, 1f)
+                fitsBelow -> TopTransformOrigin
+                else -> BottomTransformOrigin
+            }
+        )
 
 
         return IntOffset(popupX, popupY)

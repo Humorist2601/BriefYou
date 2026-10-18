@@ -36,7 +36,10 @@
     <string name="reading_time_left">%1$d min left</string>
     <string name="reading_almost_done">Almost done</string>
     <string name="reading_up_next">Up next</string>
-    <string name="read_aloud_notification_text">Reading aloud</string>
+    <string name="read_aloud_play">Play</string>
+    <string name="read_aloud_pause">Pause</string>
+    <string name="reading_marked_read">Marked as read</string>
+    <string name="reading_marked_unread">Marked as unread</string>
     <string name="reading_all_caught_up">You\'re all caught up</string>
     <string name="text_settings">Text</string>
     <string name="text_settings_size">Text size</string>

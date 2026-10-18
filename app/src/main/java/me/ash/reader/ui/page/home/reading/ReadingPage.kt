@@ -352,7 +352,16 @@ fun ReadingPage(
                             readerState.content is ReaderState.FullContent ||
                                 readerState.content is ReaderState.Error,
                         isBoldCharacters = boldCharacters.value,
-                        onUnread = { viewModel.updateReadStatus(it) },
+                        onUnread = {
+                            viewModel.updateReadStatus(it)
+                            // The long press on the star has no visible result, so say what it did.
+                            context.showToast(
+                                context.getString(
+                                    if (it) R.string.reading_marked_unread
+                                    else R.string.reading_marked_read
+                                )
+                            )
+                        },
                         onStarred = { viewModel.updateStarredStatus(it) },
                         onNextArticle = {
                             readerState.nextArticle?.let {
@@ -402,7 +411,11 @@ fun ReadingPage(
                                         }
 
                                         is TextToSpeechManager.State.Reading -> {
-                                            viewModel.textToSpeechManager.stop()
+                                            viewModel.textToSpeechManager.pause()
+                                        }
+
+                                        is TextToSpeechManager.State.Paused -> {
+                                            viewModel.textToSpeechManager.resume()
                                         }
 
                                         TextToSpeechManager.State.Preparing -> {
@@ -412,6 +425,7 @@ fun ReadingPage(
                                 },
                                 state =
                                     viewModel.textToSpeechManager.stateFlow.collectAsStateValue(),
+                                onStop = { viewModel.textToSpeechManager.stop() },
                             )
                         },
                     )

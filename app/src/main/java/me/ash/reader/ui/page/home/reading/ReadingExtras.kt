@@ -6,13 +6,13 @@
 
 package me.ash.reader.ui.page.home.reading
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.toShape
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.Icons
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.HorizontalDivider
@@ -110,17 +110,17 @@ private fun NextArticleContent(next: ArticleWithFeed?, onNext: () -> Unit) {
     }
 }
 
-/** The next article: what it is, its picture, and a round arrow to go to it. */
+/** The next article: what it is and its picture; tap the card to go to it. */
 @Composable
 private fun NextArticle(next: ArticleWithFeed, onNext: () -> Unit) {
     Surface(
         onClick = onNext,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().heightIn(min = EndCardHeight),
     ) {
         Row(
-            modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 12.dp),
+            modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -153,39 +153,26 @@ private fun NextArticle(next: ArticleWithFeed, onNext: () -> Unit) {
                     contentScale = ContentScale.Crop,
                 )
             }
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(44.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.AutoMirrored.Rounded.ArrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-            }
         }
     }
 }
 
-/** No next article: a softer card with a check on an Expressive cookie shape. */
+/** No next article: the same size card, softer, with a check on an Expressive cookie shape. */
 @Composable
 private fun AllCaughtUp() {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().heightIn(min = EndCardHeight),
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 22.dp, horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier =
-                    Modifier.size(52.dp)
+                    Modifier.size(48.dp)
                         .clip(MaterialShapes.Cookie9Sided.toShape())
                         .background(MaterialTheme.colorScheme.tertiaryContainer),
                 contentAlignment = Alignment.Center,
@@ -194,10 +181,10 @@ private fun AllCaughtUp() {
                     Icons.Rounded.Check,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(26.dp),
+                    modifier = Modifier.size(24.dp),
                 )
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.width(14.dp))
             Text(
                 text = stringResource(R.string.reading_all_caught_up),
                 style = MaterialTheme.typography.titleMedium,
@@ -206,6 +193,9 @@ private fun AllCaughtUp() {
         }
     }
 }
+
+/** Both end-of-article cards are at least this tall, so they are the same size. */
+private val EndCardHeight = 92.dp
 
 /**
  * The quick text settings, right over the article (the Style button). It writes the same settings

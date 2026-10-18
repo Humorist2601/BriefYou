@@ -1,8 +1,7 @@
 package me.ash.reader.ui.page.home.feeds.drawer.feed
 
+import me.ash.reader.ui.component.base.InWindowAlertDialog
 import androidx.compose.ui.window.DialogProperties
-import me.ash.reader.ui.component.base.keyboardSafe
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -53,9 +52,7 @@ fun FeedIconDialog(
     onDismiss: () -> Unit,
 ) {
     var emoji by rememberSaveable { mutableStateOf("") }
-    AlertDialog(
-        modifier = Modifier.imePadding(),
-        properties = DialogProperties().keyboardSafe(),
+    InWindowAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.feed_icon_change)) },
         text = {

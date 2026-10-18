@@ -66,6 +66,8 @@ fun AnimatedDropdownMenu(
     offset: IntOffset = IntOffset.Zero,
     scrollState: ScrollState = rememberScrollState(),
     properties: PopupProperties = PopupProperties(focusable = true),
+    /** Open under the anchor, lined up with its right edge (for a menu button). */
+    alignToAnchorEnd: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val expandedState = remember { MutableTransitionState(false) }
@@ -75,10 +77,11 @@ fun AnimatedDropdownMenu(
         val transformOriginState = remember { mutableStateOf(TransformOrigin.Center) }
         val density = LocalDensity.current
         val popupPositionProvider =
-            remember(density, offset) {
+            remember(density, offset, alignToAnchorEnd) {
                 AnchorEndPopupPositionProvider(
                     density,
                     offset,
+                    alignToAnchorEnd = alignToAnchorEnd,
                 ) { transformOrigin ->
                     transformOriginState.value = transformOrigin
                 }

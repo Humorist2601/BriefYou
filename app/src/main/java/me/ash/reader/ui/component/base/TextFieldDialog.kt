@@ -1,6 +1,5 @@
 package me.ash.reader.ui.component.base
 
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -177,9 +176,9 @@ fun TextFieldDialog(
 ) {
     val focusManager = LocalFocusManager.current
 
-    AlertDialog(
-        modifier = modifier.imePadding(),
-        properties = properties.keyboardSafe(),
+    InWindowAlertDialog(
+        modifier = modifier,
+        properties = properties,
         onDismissRequest = onDismissRequest,
         icon = { icon?.let { Icon(imageVector = icon, contentDescription = title) } },
         title = { Text(text = title, maxLines = 1, overflow = TextOverflow.Ellipsis) },

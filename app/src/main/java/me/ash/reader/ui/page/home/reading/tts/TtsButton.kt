@@ -1,5 +1,9 @@
 package me.ash.reader.ui.page.home.reading.tts
 
+import android.content.Context
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Pause
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.widget.Toast
@@ -13,11 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
-import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProgressIndicatorDefaults
@@ -47,44 +49,56 @@ fun TtsButton(
     modifier: Modifier = Modifier,
     onClick: (TextToSpeechManager.State) -> Unit,
     state: TextToSpeechManager.State,
+    /** Long press while reading or paused: stop. */
+    onStop: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
     val motionScheme = MaterialTheme.motionScheme
     AnimatedContent(
         targetState = state,
-        contentKey = { it is TextToSpeechManager.State.Reading },
+        contentKey = { it.isActive() },
         transitionSpec = {
             sharedYAxisTransitionSlow(
                 direction =
-                    if (targetState is TextToSpeechManager.State.Reading) Direction.Forward
+                    if (targetState.isActive()) Direction.Forward
                     else Direction.Backward,
                 motionScheme = motionScheme
             )
         }) { state ->
         when (state) {
-            // Reading: Stop on the Expressive loading shape, slowly morphing behind it (it shows
-            // that it is reading, not how far: the speech engine can't say that reliably). Tap to
-            // stop; the next tap starts over.
-            is TextToSpeechManager.State.Reading -> {
+            // Reading or paused: a wavy ring around the button shows how far it has read (from
+            // the words being spoken), with Pause or Play in the middle. Tap to pause or play;
+            // long press stops while reading, and opens the speech settings while paused.
+            is TextToSpeechManager.State.Reading, is TextToSpeechManager.State.Paused -> {
+                val playing = state is TextToSpeechManager.State.Reading
                 Box(
                     modifier = modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .clickable(onClick = {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            onClick(state)
-                        }),
+                        .combinedClickable(
+                            onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                onClick(state)
+                            },
+                            onLongClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                if (playing) onStop() else context.openTtsSettings()
+                            },
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
-                    LoadingIndicator(
+                    ReadAloudRing(
+                        progress = state.readProgress(),
+                        playing = playing,
                         modifier = Modifier.size(40.dp),
-                        color = LocalContentColor.current.copy(alpha = 0.22f),
                     )
                     Icon(
-                        Icons.Rounded.Stop,
-                        stringResource(R.string.ai_stop_reading),
-                        modifier = Modifier.size(22.dp),
+                        if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        stringResource(
+                            if (playing) R.string.read_aloud_pause else R.string.read_aloud_play
+                        ),
+                        modifier = Modifier.size(20.dp),
                         tint = LocalContentColor.current
                     )
                 }
@@ -98,21 +112,8 @@ fun TtsButton(
                         .combinedClickable(onClick = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             onClick(state)
-                        }, onLongClick = {
-                            try {
-                                val intent = Intent().apply {
-                                    action = "com.android.settings.TTS_SETTINGS"
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                }
-                                context.startActivity(intent)
-                            } catch (e: ActivityNotFoundException) {
-                                Toast.makeText(
-                                    context,
-                                    "TTS settings screen not found.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }), contentAlignment = Alignment.Center
+                        }, onLongClick = { context.openTtsSettings() }),
+                    contentAlignment = Alignment.Center
                 ) {
                     // Same color as the other icons around it (the reading bar's content color).
                     Icon(
@@ -152,15 +153,69 @@ private fun Preview() {
     Column {
         TtsProgressIndicator({ .5f })
 //        TtsButton(onClick = {}, state = TextToSpeechManager.State.Idle)
-//        TtsButton(onClick = {}, state = TextToSpeechManager.State.Reading(2, 4))
+//        TtsButton(onClick = {}, state = TextToSpeechManager.State.Reading(200, 400))
         var state: TextToSpeechManager.State by remember { mutableStateOf(TextToSpeechManager.State.Idle) }
         TtsButton(onClick = {
             state = if (state == TextToSpeechManager.State.Idle) {
-                TextToSpeechManager.State.Reading(2, 4)
+                TextToSpeechManager.State.Reading(200, 400)
             } else {
                 TextToSpeechManager.State.Idle
             }
         }, state = state)
     }
 
+}
+
+private fun TextToSpeechManager.State.isActive() =
+    this is TextToSpeechManager.State.Reading || this is TextToSpeechManager.State.Paused
+
+/** How far read aloud has got, 0 to 1 (0 when it isn't reading). */
+fun TextToSpeechManager.State.readProgress(): Float =
+    when (this) {
+        is TextToSpeechManager.State.Reading -> progress
+        is TextToSpeechManager.State.Paused -> progress
+        else -> 0f
+    }
+
+/**
+ * Read aloud's progress as an Expressive wavy ring (still while paused), in the content colour
+ * over a faint track. Used by the reading bar and the AI summary sheets.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun ReadAloudRing(progress: Float, playing: Boolean, modifier: Modifier = Modifier) {
+    val animated by
+        animateFloatAsState(
+            targetValue = progress,
+            animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec,
+            label = "readAloudProgress",
+        )
+    val color = LocalContentColor.current
+    if (playing) {
+        CircularWavyProgressIndicator(
+            progress = { animated },
+            modifier = modifier,
+            color = color,
+            trackColor = color.copy(alpha = 0.2f),
+        )
+    } else {
+        CircularProgressIndicator(
+            progress = { animated },
+            modifier = modifier,
+            color = color,
+            trackColor = color.copy(alpha = 0.2f),
+            strokeWidth = 4.dp,
+        )
+    }
+}
+
+/** Opens Android's text-to-speech settings (voice, speed, engine). */
+fun Context.openTtsSettings() {
+    try {
+        startActivity(
+            Intent("com.android.settings.TTS_SETTINGS").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(this, "TTS settings screen not found.", Toast.LENGTH_SHORT).show()
+    }
 }

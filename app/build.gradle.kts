@@ -136,6 +136,8 @@ aboutLibraries { excludeFields = arrayOf("generated") }
 
 dependencies {
     // AboutLibraries
+    // Read aloud: the system media notification and controls.
+    implementation(libs.androidx.media)
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
 

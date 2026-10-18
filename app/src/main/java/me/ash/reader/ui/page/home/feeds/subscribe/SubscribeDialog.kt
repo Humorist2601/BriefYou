@@ -1,7 +1,6 @@
 package me.ash.reader.ui.page.home.feeds.subscribe
 
-import me.ash.reader.ui.component.base.keyboardSafe
-import androidx.compose.foundation.layout.imePadding
+import me.ash.reader.ui.component.base.InWindowAlertDialog
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -69,12 +68,12 @@ fun SubscribeDialog(
             }
         }
 
-        AlertDialog(
-            modifier = Modifier.padding(horizontal = 44.dp).imePadding(),
+        InWindowAlertDialog(
+            modifier = Modifier.padding(horizontal = 44.dp),
             properties = DialogProperties(
                 usePlatformDefaultWidth = false,
                 dismissOnClickOutside = false
-            ).keyboardSafe(),
+            ),
             onDismissRequest = {
                 focusManager.clearFocus()
                 subscribeViewModel.hideDrawer()

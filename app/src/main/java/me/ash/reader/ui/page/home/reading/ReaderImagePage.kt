@@ -275,6 +275,7 @@ fun ReaderImageViewer(
                     AnimatedDropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
+                        alignToAnchorEnd = true,
                     ) {
                         DropdownMenuItem(
                             text = { Text(text = stringResource(id = R.string.save)) },
