@@ -23,12 +23,18 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Read aloud. Progress comes from the words as they are spoken (the speech engine reports where
- * each word starts), counted in characters of the whole text, so it matches the real position.
+ * Read aloud.
  *
- * The speech engine can't pause, so pausing stops it and remembers the word; playing again starts
- * from that word. Seeking works the same way. [ReadAloudService] shows the system media
- * notification and controls while reading or paused.
+ * What is read is a list of parts: an article's sentences, taken from the page as it is shown (so
+ * the page can follow along exactly), or the paragraphs of plain text. Each part is spoken as its
+ * own utterance (long ones split further), so the part being read is known on any speech engine:
+ * from "started" reports when the engine sends them, and from "finished" reports otherwise.
+ * Within a part, progress follows the words when the engine reports them, and is estimated from
+ * the measured reading speed when it doesn't.
+ *
+ * The engine can't pause, so pausing stops it and remembers the place; playing again starts from
+ * there (the start of its word). Seeking works the same way. [ReadAloudService] shows the system
+ * media notification and controls while reading or paused.
  */
 @Singleton
 class TextToSpeechManager @Inject constructor(
@@ -61,18 +67,30 @@ class TextToSpeechManager @Inject constructor(
     @Volatile var sourceKey: String? = null
         private set
 
-    /** The sentence being read, for following along on the page. */
-    private val _sentence = MutableStateFlow<String?>(null)
-    val sentence = _sentence.asStateFlow()
-    private var fullText = ""
+    /**
+     * The colour of what is being read (the article page's accent, from its picture when it has
+     * one), which fills the media notification. Null: the app's accent colour.
+     */
+    @Volatile var color: Int? = null
 
-    /** Reading speed, 0.8× to 2×; every new reading starts at 1×. */
-    private val _speed = MutableStateFlow(1f)
+    /** The parts are the page's sentences (see [readSentences]), so the page can follow along. */
+    @Volatile var fromPage: Boolean = false
+        private set
+
+    /** The part being read (an index into the sentences given to [readSentences]). */
+    private val _part = MutableStateFlow<Int?>(null)
+    val part = _part.asStateFlow()
+
+    private val prefs = context.getSharedPreferences("read_aloud", Context.MODE_PRIVATE)
+
+    /** Reading speed, 0.8× to 2× in steps of 0.2; the last one used is kept. */
+    private val _speed = MutableStateFlow(snap(prefs.getFloat(KEY_SPEED, 1f)))
     val speed = _speed.asStateFlow()
 
-    /** What is being read, in the pieces sent to the engine, and where each starts. */
+    /** What is being read, in the pieces sent to the engine, where each starts, and its part. */
     private var pieces: List<String> = emptyList()
     private var starts: IntArray = IntArray(0)
+    private var pieceParts: IntArray = IntArray(0)
     private var totalChars = 0
 
     /** How long a character takes to say, measured while reading (for the time shown). */
@@ -123,72 +141,103 @@ class TextToSpeechManager @Inject constructor(
                 else -> 0L
             }
 
-    /** Reads an article aloud, from the beginning. [key] names it (the article's id). */
-    fun readHtml(htmlContent: String, title: String? = null, key: String? = null) {
+    /**
+     * Reads an article's sentences, as taken from its page (in order), so the page can follow
+     * along. [key] names the article.
+     */
+    fun readSentences(
+        sentences: List<String>,
+        title: String? = null,
+        key: String? = null,
+        color: Int? = null,
+    ) {
+        this.color = color
+        coroutineScope.launch { read(sentences, title, key, fromPage = true) }
+    }
+
+    /** Reads an article aloud from its HTML (when its page can't give its sentences). */
+    fun readHtml(
+        htmlContent: String,
+        title: String? = null,
+        key: String? = null,
+        color: Int? = null,
+    ) {
+        this.color = color
         coroutineScope.launch {
             val plainText = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString()
-            readText(plainText, title, key)
+            read(plainText.split("\n"), title, key, fromPage = false)
         }
     }
 
-    /** Reads plain text aloud; each line becomes its own utterance. */
-    fun readPlainText(text: String, title: String? = null) {
-        coroutineScope.launch { readText(text, title, null) }
+    /** Reads plain text aloud; each line is a part. */
+    fun readPlainText(text: String, title: String? = null, color: Int? = null) {
+        this.color = color
+        coroutineScope.launch { read(text.split("\n"), title, null, fromPage = false) }
     }
 
     /** Sets the reading speed; while reading it carries on from the same word at the new speed. */
     fun setSpeed(value: Float) {
         val old = _speed.value
-        val new = value.coerceIn(SPEEDS.first(), SPEEDS.last())
+        val new = snap(value)
         if (new == old) return
         _speed.value = new
+        prefs.edit().putFloat(KEY_SPEED, new).apply()
         tts.setSpeechRate(new)
         msPerChar = msPerChar * old / new
         (state as? State.Reading)?.let { speakFrom(it.spoken) }
     }
 
-    /** The next speed in 0.8×, 1×, 1.25×, 1.5×, 1.75×, 2× (back to 0.8× after 2×). */
+    /** The next speed (back to 0.8× after 2×). */
     fun cycleSpeed() {
         val next = SPEEDS.firstOrNull { it > _speed.value + 0.01f } ?: SPEEDS.first()
         setSpeed(next)
     }
 
-    private fun readText(text: String, title: String?, key: String?) {
+    private fun read(parts: List<String>, title: String?, key: String?, fromPage: Boolean) {
         stop()
         if (state != State.Idle) return
 
         state = State.Preparing
         this.title = title
         this.sourceKey = key
-        _speed.value = 1f
-        tts.setSpeechRate(1f)
+        this.fromPage = fromPage
+        tts.setSpeechRate(_speed.value)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tts.language =
-                context.detectLocaleFromText(text.take(text.lastIndex.coerceAtMost(500)))
-                    .firstOrNull()?.locale
+        val sample = parts.joinToString(" ").take(500)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && sample.isNotBlank()) {
+            tts.language = context.detectLocaleFromText(sample).firstOrNull()?.locale
         }
 
-        // Paragraphs, with very long ones cut into pieces the speech engine accepts.
+        // Each part, with very long ones cut into pieces the speech engine accepts. Empty parts
+        // keep their number (so the page's sentence numbers still match) but aren't spoken.
         val maxLength = TextToSpeech.getMaxSpeechInputLength().coerceAtLeast(500) - 100
-        pieces = text.split("\n").filterNot { it.isBlank() }.flatMap { splitForSpeech(it, maxLength) }
-        if (pieces.isEmpty()) {
+        val pieceList = ArrayList<String>()
+        val partList = ArrayList<Int>()
+        parts.forEachIndexed { index, part ->
+            if (part.isBlank()) return@forEachIndexed
+            for (piece in splitForSpeech(part.trim(), maxLength)) {
+                pieceList += piece
+                partList += index
+            }
+        }
+        if (pieceList.isEmpty()) {
             state = State.Idle
             return
         }
+        pieces = pieceList
+        pieceParts = partList.toIntArray()
         starts = IntArray(pieces.size)
         var at = 0
         pieces.forEachIndexed { index, piece ->
             starts[index] = at
-            at += piece.length
+            at += piece.length + 1
         }
         totalChars = at
-        fullText = pieces.joinToString("")
         msPerChar = DEFAULT_MS_PER_CHAR / _speed.value
         speakFrom(0)
     }
 
-    /** Pauses (stops the engine and remembers the word). */
+    /** Pauses (stops the engine and remembers the place). */
     fun pause() {
         val s = state as? State.Reading ?: return
         currentRun = null
@@ -208,63 +257,78 @@ class TextToSpeechManager @Inject constructor(
         val chars = (positionMs / msPerChar).toInt().coerceIn(0, totalChars - 1)
         if (state is State.Paused) {
             state = State.Paused(chars, totalChars)
+            _part.value = pieceParts.getOrNull(pieceAt(chars))
         } else {
             speakFrom(chars)
         }
     }
 
-    /** Starts speaking at character [offset] of the whole text (from the start of its word). */
+    private fun pieceAt(offset: Int): Int = (starts.indexOfLast { it <= offset }).coerceAtLeast(0)
+
+    /** Starts speaking at character [offset] (from the start of its word). */
     private fun speakFrom(offset: Int) {
         if (pieces.isEmpty()) return
         tts.stop()
         val run = Any().also { currentRun = it }
         val runId = ++runCounter
-        val first = (starts.indexOfLast { it <= offset }).coerceAtLeast(0)
+        val first = pieceAt(offset)
         val firstPiece = pieces[first]
         val local =
             (offset - starts[first]).coerceIn(0, firstPiece.length).let { pos ->
                 if (pos == 0) 0 else firstPiece.lastIndexOf(' ', pos).let { if (it < 0) 0 else it + 1 }
             }
-        // Where each utterance starts in the whole text.
-        val bases = java.util.concurrent.ConcurrentHashMap<String, Int>()
-        val lastId = "$runId:${pieces.lastIndex}"
         val total = totalChars
+        val lastIndex = pieces.lastIndex
 
         segmentStartChars = starts[first] + local
         segmentStartTime = SystemClock.elapsedRealtime()
-        state = State.Reading(segmentStartChars, total)
 
-        // Where each utterance ends, for estimating between reports (see below).
-        val ends = java.util.concurrent.ConcurrentHashMap<String, Int>()
-        // The last real position the engine reported, and when.
+        // Which piece is being spoken, where it started (in the whole text) and when, and where
+        // it ends. Updated from the engine's reports (see the listener).
+        var current = first
         var known = segmentStartChars
         var knownAt = SystemClock.elapsedRealtime()
-        var knownEnd = starts.getOrNull(first + 1) ?: total
-        // Whether the engine reports each word (most do); if not, the position is estimated.
+        // Whether the engine reports each word; if not, the place in a piece is estimated.
         var wordReports = false
+
+        fun base(index: Int) = if (index == first) starts[index] + local else starts[index]
+        fun pieceEnd(index: Int) = (starts.getOrNull(index + 1) ?: total) - 1
+
+        fun startPiece(index: Int) {
+            current = index
+            known = base(index)
+            knownAt = SystemClock.elapsedRealtime()
+            _part.value = pieceParts[index]
+            update(known, total)
+        }
+
+        startPiece(first)
 
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 if (currentRun !== run) return
-                bases[utteranceId]?.let {
-                    known = it
-                    knownAt = SystemClock.elapsedRealtime()
-                    knownEnd = ends[utteranceId] ?: total
-                    update(it, total)
-                }
+                val index = utteranceId?.substringAfter(':')?.toIntOrNull() ?: return
+                if (index >= current) startPiece(index)
             }
 
             override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
                 if (currentRun !== run) return
+                val index = utteranceId?.substringAfter(':')?.toIntOrNull() ?: return
                 wordReports = true
-                bases[utteranceId]?.let { update(it + start, total) }
+                if (index > current) startPiece(index)
+                if (index == current) update(base(index) + start, total)
             }
 
             override fun onDone(utteranceId: String?) {
                 if (currentRun !== run) return
-                if (utteranceId == lastId) {
+                val index = utteranceId?.substringAfter(':')?.toIntOrNull() ?: return
+                if (index >= lastIndex) {
                     currentRun = null
+                    _part.value = null
                     state = State.Idle
+                } else if (index >= current) {
+                    // Engines that don't report starts: the next piece starts now.
+                    startPiece(index + 1)
                 }
             }
 
@@ -276,16 +340,12 @@ class TextToSpeechManager @Inject constructor(
             }
         })
 
-        for (index in first..pieces.lastIndex) {
-            val id = "$runId:$index"
+        for (index in first..lastIndex) {
             val text = if (index == first) firstPiece.substring(local) else pieces[index]
-            bases[id] = if (index == first) starts[index] + local else starts[index]
-            ends[id] = starts.getOrNull(index + 1) ?: total
-            tts.speak(text, TextToSpeech.QUEUE_ADD, null, id)
+            tts.speak(text, TextToSpeech.QUEUE_ADD, null, "$runId:$index")
         }
-        // Some speech engines only say when each paragraph starts, not each word. Then the
-        // position moves on through the paragraph at the measured reading speed (never past its
-        // end), so the progress and the follow-along highlight keep moving between reports.
+        // Without word reports, the place moves on through the piece at the measured reading
+        // speed (never past its end), so the progress keeps moving.
         coroutineScope.launch {
             while (currentRun === run) {
                 delay(ESTIMATE_EVERY_MS)
@@ -293,11 +353,8 @@ class TextToSpeechManager @Inject constructor(
                 val s = state as? State.Reading ?: continue
                 val estimate =
                     (known + ((SystemClock.elapsedRealtime() - knownAt) / msPerChar).toInt())
-                        .coerceAtMost(knownEnd - 1)
-                if (estimate > s.spoken) {
-                    state = State.Reading(estimate, total)
-                    _sentence.value = sentenceAt(estimate)
-                }
+                        .coerceAtMost(pieceEnd(current))
+                if (estimate > s.spoken) state = State.Reading(estimate, total)
             }
         }
         // The media notification and controls, which also keep reading going outside the article.
@@ -305,28 +362,13 @@ class TextToSpeechManager @Inject constructor(
     }
 
     private fun update(spoken: Int, total: Int) {
-        // Learn the reading speed as it goes, for the time shown in the media controls.
+        // Learn the reading speed as it goes, from real reports only.
         val said = spoken - segmentStartChars
         if (said > 120) {
             val measured = (SystemClock.elapsedRealtime() - segmentStartTime).toFloat() / said
             if (measured in 20f..400f) msPerChar = measured
         }
         state = State.Reading(spoken, total)
-        _sentence.value = sentenceAt(spoken)
-    }
-
-    /** The sentence around character [at] (not past its paragraph). */
-    private fun sentenceAt(at: Int): String? {
-        if (at !in fullText.indices) return null
-        val piece = (starts.indexOfLast { it <= at }).coerceAtLeast(0)
-        val pieceStart = starts[piece]
-        val pieceEnd = if (piece + 1 < starts.size) starts[piece + 1] else fullText.length
-        var start = at
-        while (start > pieceStart && fullText[start - 1] !in SENTENCE_ENDS) start--
-        var end = at
-        while (end < pieceEnd && fullText[end] !in SENTENCE_ENDS) end++
-        if (end < pieceEnd) end++
-        return fullText.substring(start, end).trim().ifEmpty { null }
     }
 
     /** Cuts [text] into pieces of at most [max] characters, at sentence ends or spaces. */
@@ -352,21 +394,24 @@ class TextToSpeechManager @Inject constructor(
         currentRun = null
         tts.stop()
         state = State.Idle
-        _sentence.value = null
+        _part.value = null
     }
 
     companion object {
         /** About 14 characters a second at 1×, until the real speed is measured. */
         private const val DEFAULT_MS_PER_CHAR = 70f
         private const val ESTIMATE_EVERY_MS = 250L
-        private val SENTENCE_ENDS = charArrayOf('.', '!', '?', '\u2026')
+        private const val KEY_SPEED = "speed"
 
-        /** The speeds to choose from. */
-        val SPEEDS = listOf(0.8f, 1f, 1.25f, 1.5f, 1.75f, 2f)
+        /** The speeds to choose from: 0.8× to 2× in steps of 0.2. */
+        val SPEEDS = listOf(0.8f, 1f, 1.2f, 1.4f, 1.6f, 1.8f, 2f)
 
-        /** "1.25×". */
+        /** The nearest speed step. */
+        fun snap(value: Float): Float = SPEEDS.minBy { kotlin.math.abs(it - value) }
+
+        /** "1.2×". */
         fun speedLabel(speed: Float): String =
-            String.format(Locale.US, "%.2f", speed).trimEnd('0').trimEnd('.') + "\u00D7"
+            String.format(Locale.US, "%.1f", speed).trimEnd('0').trimEnd('.') + "\u00D7"
     }
 }
 

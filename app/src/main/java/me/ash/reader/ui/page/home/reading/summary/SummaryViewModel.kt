@@ -243,7 +243,7 @@ constructor(
     }
 
     /** Reads the result aloud, or pauses or plays what is being read. */
-    fun readAloud(text: String, title: String? = null) {
+    fun readAloud(text: String, title: String? = null, color: Int? = null) {
         val tts = textToSpeechManager
         // While something is being read aloud, the button pauses or plays it.
         when (tts.state) {
@@ -255,6 +255,7 @@ constructor(
                 tts.readPlainText(
                     text.lines().joinToString("\n") { it.trimStart('•', '*', '-', ' ') },
                     title = title,
+                    color = color,
                 )
                 startedReading = true
             }

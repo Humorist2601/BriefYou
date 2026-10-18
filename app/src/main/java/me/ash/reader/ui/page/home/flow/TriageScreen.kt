@@ -1086,14 +1086,15 @@ private fun TriageDone(
                             rotationZ = (1f - pop.value) * -45f
                         }
                         .clip(if (celebrate) MaterialShapes.Cookie9Sided.toShape() else CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                        // The same tick colour as everywhere else (Unread, end of article).
+                        .background(MaterialTheme.colorScheme.tertiaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Rounded.Check,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }
         }

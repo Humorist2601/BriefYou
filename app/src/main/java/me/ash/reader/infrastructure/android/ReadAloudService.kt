@@ -188,29 +188,47 @@ class ReadAloudService : Service() {
         return true
     }
 
-    /** The accent colour (Material You), which fills the media notification. */
-    private val accent by lazy { ContextCompat.getColor(this, R.color.system_accent) }
+    /**
+     * The colour that fills the media notification: the article page's (from its picture when it
+     * has one), or the app's accent colour.
+     */
+    private val accent: Int
+        get() = tts.color ?: ContextCompat.getColor(this, R.color.system_accent)
+
+    private var artworkColor: Int? = null
+    private var artworkBitmap: android.graphics.Bitmap? = null
 
     /**
-     * The "album art": a square in the accent colour with the Brief You card stack in the middle,
-     * so the whole player takes the accent colour.
+     * The "album art": a square in that colour with the Brief You card stack in the middle, so the
+     * whole player takes the colour. Made again only when the colour changes.
      */
-    private val artwork by lazy {
-        runCatching {
-                val size = 512
-                val bitmap =
-                    android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
-                val canvas = android.graphics.Canvas(bitmap)
-                canvas.drawColor(accent)
-                ContextCompat.getDrawable(this, R.drawable.ic_launcher_foreground)?.let {
-                    it.setBounds(0, 0, size, size)
-                    it.draw(canvas)
-                }
-                bitmap
-            }
-            .getOrNull()
-            ?: BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
-    }
+    private val artwork: android.graphics.Bitmap?
+        get() {
+            val color = accent
+            artworkBitmap?.takeIf { artworkColor == color }?.let { return it }
+            val made =
+                runCatching {
+                        val size = 512
+                        val bitmap =
+                            android.graphics.Bitmap.createBitmap(
+                                size,
+                                size,
+                                android.graphics.Bitmap.Config.ARGB_8888,
+                            )
+                        val canvas = android.graphics.Canvas(bitmap)
+                        canvas.drawColor(color)
+                        ContextCompat.getDrawable(this, R.drawable.ic_launcher_foreground)?.let {
+                            it.setBounds(0, 0, size, size)
+                            it.draw(canvas)
+                        }
+                        bitmap
+                    }
+                    .getOrNull()
+                    ?: BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
+            artworkColor = color
+            artworkBitmap = made
+            return made
+        }
 
     private fun post(state: TextToSpeechManager.State) {
         val manager = NotificationManagerCompat.from(this)

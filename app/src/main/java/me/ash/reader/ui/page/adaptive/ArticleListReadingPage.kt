@@ -1,5 +1,8 @@
 package me.ash.reader.ui.page.adaptive
 
+import kotlin.coroutines.cancellation.CancellationException
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.mutableStateOf
@@ -105,9 +108,21 @@ fun ArticleListReaderPage(
         }
 
     var listAlpha by rememberSaveable { mutableFloatStateOf(1f) }
-    // The article that was open, for shrinking it back into its card while going back (the
-    // destination is already the list by then).
-    val lastReveal = remember { arrayOfNulls<String>(1) }
+
+    // Brief You: on a phone the article opens out of its card and closes back into it, over a
+    // still picture of the list (see ArticleReveal).
+    val reveal = remember { ArticleReveal() }
+    val listLayer = rememberGraphicsLayer()
+    val ownMotion = !isTwoPane && reveal.listPicture != null
+    val closeArticle: () -> Unit = {
+        scope.launch {
+            reveal.card = ArticleCardBounds.of(navigator.currentDestination?.contentKey?.articleId)
+            reveal.close {
+                navigator.navigateBack(backBehavior)
+                viewModel.clearReadingData()
+            }
+        }
+    }
 
     LaunchedEffect(isTwoPane) {
         Timber.d("isTwoPane: $isTwoPane")
@@ -127,9 +142,11 @@ fun ArticleListReaderPage(
     val animatedContentWidth by animateDpAsState(contentWidth)
     val animatedListAlpha by animateFloatAsState(listAlpha)
 
+    Box(modifier = modifier) {
+    if (!isTwoPane) ArticleRevealBackdrop(reveal)
     NavigableListDetailPaneScaffold(
         navigator = navigator,
-        modifier = modifier,
+        modifier = Modifier,
         defaultBackBehavior = backBehavior,
         paneExpansionDragHandle = { Spacer(modifier = Modifier.width(2.dp)) },
         paneExpansionState = paneExpansionState,
@@ -140,25 +157,26 @@ fun ArticleListReaderPage(
                     scope.launch { paneExpansionState.animateTo(expandedAnchor) }
                 }
             }
-            // On a phone the list stays in place under the article while it opens out of its card
-            // (and comes straight back under it when going back), see ArticleReveal.
+            // On a phone the article opens over a still picture of the list (see ArticleReveal), so
+            // the list pane itself just goes and comes back.
             AnimatedPane(
                 enterTransition =
-                    if (isTwoPane) motionDataProvider.calculateEnterTransition(paneRole)
-                    else EnterTransition.None,
+                    if (ownMotion) EnterTransition.None
+                    else motionDataProvider.calculateEnterTransition(paneRole),
                 exitTransition =
-                    if (isTwoPane) motionDataProvider.calculateExitTransition(paneRole)
-                    // Kept (fully shown) until the article has finished opening over it.
-                    else fadeOut(tween(durationMillis = 1, delayMillis = ARTICLE_OPEN_MS + 10)),
+                    if (ownMotion) ExitTransition.None
+                    else motionDataProvider.calculateExitTransition(paneRole),
             ) {
                 CompositionLocalProvider(
                     LocalBackgroundTextMeasurementExecutor provides
                         Executors.newSingleThreadExecutor(),
-                    // The cards grow into the article on a phone (see ArticleReveal).
-                    LocalArticleSharedScope provides if (isTwoPane) null else sharedTransitionScope,
-                    LocalArticleListPaneScope provides this,
                 ) {
-                    Box(modifier = Modifier.alpha(animatedListAlpha)) {
+                    Box(
+                        modifier =
+                            Modifier.alpha(animatedListAlpha)
+                                // Kept as a picture for the article opening over it (phone).
+                                .then(if (isTwoPane) Modifier else Modifier.recordInto(listLayer))
+                    ) {
                         FlowPage(
                             sharedTransitionScope = sharedTransitionScope,
                             animatedVisibilityScope = animatedVisibilityScope,
@@ -170,10 +188,16 @@ fun ArticleListReaderPage(
                                     PaneAdaptedValue.Expanded,
                             navigateToArticle = { id, index ->
                                 scope.launch {
-                                    navigator.navigateTo(
-                                        pane = ListDetailPaneScaffoldRole.Detail,
-                                        contentKey = ArticleData(articleId = id, listIndex = index),
-                                    )
+                                    if (!isTwoPane) {
+                                        reveal.prepareOpen(listLayer, ArticleCardBounds.of(id))
+                                    }
+                                    launch {
+                                        navigator.navigateTo(
+                                            pane = ListDetailPaneScaffoldRole.Detail,
+                                            contentKey = ArticleData(articleId = id, listIndex = index),
+                                        )
+                                    }
+                                    if (!isTwoPane) reveal.open()
                                 }
                             },
                         )
@@ -183,26 +207,24 @@ fun ArticleListReaderPage(
         },
         detailPane = {
             AnimatedPane(
-                // Above the list, which stays in place under it on a phone.
-                modifier = if (isTwoPane) Modifier else Modifier.zIndex(1f),
                 enterTransition =
-                    if (isTwoPane) motionDataProvider.calculateEnterTransition(paneRole)
-                    else EnterTransition.None,
+                    if (ownMotion) EnterTransition.None
+                    else motionDataProvider.calculateEnterTransition(paneRole),
                 exitTransition =
-                    if (isTwoPane) motionDataProvider.calculateExitTransition(paneRole)
-                    else ExitTransition.None,
+                    if (ownMotion) ExitTransition.None
+                    else motionDataProvider.calculateExitTransition(paneRole),
             ) {
                 val contentKey = navigator.currentDestination?.contentKey
-                // The article grows out of its card (and the back gesture shrinks it back in).
-                val revealId = contentKey?.articleId ?: lastReveal[0]
-                if (contentKey != null) lastReveal[0] = contentKey.articleId
-                val reveal =
-                    Modifier.articlePage(
-                        articleId = revealId,
-                        shared = sharedTransitionScope,
-                        pane = this,
-                        enabled = !isTwoPane,
-                    )
+                // Going back closes the article into its card; the predictive back gesture
+                // follows your finger, letting go finishes it and cancelling opens it again.
+                PredictiveBackHandler(enabled = ownMotion) { events ->
+                    try {
+                        events.collect { event -> reveal.progress.snapTo(1f - event.progress) }
+                        closeArticle()
+                    } catch (e: CancellationException) {
+                        scope.launch { reveal.settleOpen() }
+                    }
+                }
                 LaunchedEffect(contentKey) {
                     if (contentKey == null) {
                         delay(100L)
@@ -216,7 +238,7 @@ fun ArticleListReaderPage(
                 }
 
                 CompositionLocalProvider(LocalTextContentWidth provides animatedContentWidth) {
-                  Box(modifier = reveal) {
+                  Box(modifier = if (ownMotion) Modifier.articleReveal(reveal) else Modifier) {
                     ReadingPage(
                         viewModel = viewModel,
                         navigationAction = navigationAction,
@@ -231,7 +253,9 @@ fun ArticleListReaderPage(
                         onNavAction = {
                             when (it) {
                                 NavigationAction.Close -> {
-                                    if (navigator.canNavigateBack(backBehavior)) {
+                                    if (ownMotion) {
+                                        closeArticle()
+                                    } else if (navigator.canNavigateBack(backBehavior)) {
                                         scope
                                             .launch { navigator.navigateBack(backBehavior) }
                                             .invokeOnCompletion { viewModel.clearReadingData() }
@@ -259,6 +283,7 @@ fun ArticleListReaderPage(
             }
         },
     )
+    }
 }
 
 

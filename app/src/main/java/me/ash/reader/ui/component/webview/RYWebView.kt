@@ -1,5 +1,6 @@
 package me.ash.reader.ui.component.webview
 
+import androidx.compose.runtime.SideEffect
 import me.ash.reader.ui.theme.palette.LocalWebViewColorScheme
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.rememberUpdatedState
@@ -50,10 +51,12 @@ fun RYWebView(
     refererDomain: String? = null,
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
     /**
-     * Follow along: the sentence being read aloud (null when not), highlighted on the page.
-     * Passed as a State so a new sentence doesn't reload the article.
+     * Follow along: the number of the sentence being read aloud (from [pageText]'s list; null
+     * when not reading), highlighted on the page. A State, so a new sentence doesn't reload.
      */
-    readAloudSentence: State<String?>? = null,
+    readAloudPart: State<Int?>? = null,
+    /** Gives the reading page the article's sentences, for read aloud. */
+    pageText: ArticlePageText? = null,
     /** Where the highlighted sentence's top is in the web view, in pixels. */
     onReadAloudPosition: ((topPx: Float) -> Unit)? = null,
 ) {
@@ -128,20 +131,20 @@ fun RYWebView(
             "/android_res/font/literata.ttf"
         } else null
 
-    // Follow along: highlight each new sentence and report where it is (the page is loaded once;
-    // only this runs as reading moves on).
+    // Read aloud takes the sentences from this page; follow along highlights each new one and
+    // reports where it is (the page is loaded once; only this runs as reading moves on).
+    SideEffect { pageText?.webView = webView }
     val latestOnPosition by rememberUpdatedState(onReadAloudPosition)
     val density = LocalDensity.current.density
-    if (readAloudSentence != null) {
-        LaunchedEffect(webView, readAloudSentence) {
-            snapshotFlow { readAloudSentence.value }
-                .collect { sentence ->
-                    val arg = org.json.JSONObject.quote(sentence ?: "")
+    if (readAloudPart != null) {
+        LaunchedEffect(webView, readAloudPart) {
+            snapshotFlow { readAloudPart.value }
+                .collect { part ->
                     webView.evaluateJavascript(
-                        "(typeof briefHighlight === 'function') ? briefHighlight($arg) : -1"
+                        "(typeof briefShow === 'function') ? briefShow(${part ?: -1}) : -1"
                     ) { result ->
                         val top = result?.toFloatOrNull() ?: -1f
-                        if (sentence != null && top >= 0f) latestOnPosition?.invoke(top * density)
+                        if (part != null && top >= 0f) latestOnPosition?.invoke(top * density)
                     }
                 }
         }

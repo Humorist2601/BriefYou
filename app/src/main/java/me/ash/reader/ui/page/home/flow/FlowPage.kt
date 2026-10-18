@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.home.flow
 
+import me.ash.reader.ui.component.base.ScreenOverlay
 import androidx.compose.ui.Alignment
 import androidx.paging.LoadState
 import me.ash.reader.ui.component.FilterBarSpace
@@ -320,6 +321,12 @@ fun FlowPage(
         val before = lastUnread
         lastUnread = unreadTotal
         if (onUnreadPage && before != null && before > 0 && unreadTotal == 0) celebrate = true
+    }
+    // In the exact middle of the screen, over everything.
+    if (celebrate) {
+        ScreenOverlay {
+            InboxZeroCelebration(visible = true, onFinished = { celebrate = false })
+        }
     }
 
     if (isTwoPane) {
@@ -778,12 +785,6 @@ fun FlowPage(
                                 )
                             }
                         }
-                        // Inbox zero: a little celebration when the Unread list empties.
-                        InboxZeroCelebration(
-                            visible = celebrate,
-                            onFinished = { celebrate = false },
-                            modifier = Modifier.align(Alignment.Center),
-                        )
                     }
                 }
             },

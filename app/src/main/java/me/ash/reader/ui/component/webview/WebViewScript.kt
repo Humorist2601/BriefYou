@@ -77,45 +77,76 @@ function setBold(enabled) {
 
 ${if (boldCharacters) "setBold(true);" else ""}
 
-// Brief You: follow along with read aloud. Finds the sentence in the article (spaces may differ
-// from the read-aloud text) after the last one found, marks it with a CSS highlight (the article
-// itself isn't changed), and returns its top on the page, or -1 when it isn't found.
-var briefLastEnd = 0;
-function briefHighlight(sentence) {
-    if (!window.CSS || !CSS.highlights) return -1;
-    CSS.highlights.delete("brief-read-aloud");
-    if (!sentence) { briefLastEnd = 0; return -1; }
+// Brief You: read aloud and follow along. briefSentences() lists the article's sentences as shown
+// (paragraph by paragraph, in page order); read aloud speaks exactly these, so briefShow(i) marks
+// sentence i with a CSS highlight (the article itself isn't changed) and returns its top on the
+// page. The list is rebuilt the same way if the page was reloaded.
+var briefParts = null;
+var BRIEF_BLOCKS = "p,li,h1,h2,h3,h4,h5,h6,blockquote,figcaption,pre,td,th,dd,dt,div,section,article,body";
+function briefBuild() {
     var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    var flat = "", map = [], space = true;
+    var paragraphs = [], current = null;
     while (walker.nextNode()) {
-        var node = walker.currentNode, value = node.nodeValue;
+        var node = walker.currentNode;
         var parent = node.parentElement;
-        if (parent && (parent.tagName === "SCRIPT" || parent.tagName === "STYLE")) continue;
+        if (!parent || parent.closest("script,style,noscript")) continue;
+        if (!/\S/.test(node.nodeValue)) continue;
+        var block = parent.closest(BRIEF_BLOCKS);
+        if (!current || current.block !== block) {
+            current = { block: block, flat: "", map: [], space: true };
+            paragraphs.push(current);
+        }
+        var value = node.nodeValue;
         for (var i = 0; i < value.length; i++) {
             var c = value[i];
             if (/\s/.test(c)) {
-                if (space) continue;
+                if (current.space) continue;
                 c = " ";
-                space = true;
+                current.space = true;
             } else {
-                space = false;
+                current.space = false;
             }
-            flat += c;
-            map.push([node, i]);
+            current.flat += c;
+            current.map.push([node, i]);
         }
     }
-    var wanted = sentence.replace(/\s+/g, " ").trim();
-    if (!wanted) return -1;
-    var at = flat.indexOf(wanted, Math.max(0, briefLastEnd - wanted.length));
-    if (at < 0) at = flat.indexOf(wanted);
-    if (at < 0) return -1;
-    var end = at + wanted.length - 1;
-    briefLastEnd = end + 1;
-    var range = document.createRange();
-    range.setStart(map[at][0], map[at][1]);
-    range.setEnd(map[end][0], map[end][1] + 1);
-    CSS.highlights.set("brief-read-aloud", new Highlight(range));
-    return range.getBoundingClientRect().top + window.scrollY;
+    var parts = [];
+    var segmenter = (window.Intl && Intl.Segmenter) ? new Intl.Segmenter(undefined, { granularity: "sentence" }) : null;
+    paragraphs.forEach(function(p) {
+        var spans = [];
+        if (segmenter) {
+            for (var seg of segmenter.segment(p.flat)) spans.push([seg.index, seg.index + seg.segment.length]);
+        } else {
+            var re = /[^.!?…]+[.!?…]*["'”’)\]]*\s*/g, m;
+            while ((m = re.exec(p.flat)) !== null) spans.push([m.index, m.index + m[0].length]);
+        }
+        spans.forEach(function(span) {
+            var start = span[0], end = span[1];
+            while (start < end && p.flat[start] === " ") start++;
+            while (end > start && p.flat[end - 1] === " ") end--;
+            var text = p.flat.substring(start, end);
+            if (!/[\p{L}\p{N}]/u.test(text)) return;
+            var range = document.createRange();
+            range.setStart(p.map[start][0], p.map[start][1]);
+            range.setEnd(p.map[end - 1][0], p.map[end - 1][1] + 1);
+            parts.push({ text: text, range: range });
+        });
+    });
+    briefParts = parts;
+    return parts;
+}
+function briefSentences() {
+    return briefBuild().map(function(p) { return p.text; });
+}
+function briefShow(i) {
+    if (!window.CSS || !CSS.highlights) return -1;
+    CSS.highlights.delete("brief-read-aloud");
+    if (i < 0) return -1;
+    if (!briefParts) briefBuild();
+    var part = briefParts[i];
+    if (!part) return -1;
+    CSS.highlights.set("brief-read-aloud", new Highlight(part.range));
+    return part.range.getBoundingClientRect().top + window.scrollY;
 }
 
 var images = document.querySelectorAll("img");

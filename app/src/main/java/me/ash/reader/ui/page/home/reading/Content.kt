@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.home.reading
 
+import me.ash.reader.ui.component.webview.ArticlePageText
 import me.ash.reader.ui.component.FloatingBarGap
 import me.ash.reader.R
 import kotlinx.coroutines.launch
@@ -98,8 +99,10 @@ fun Content(
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
     /** Shown after the article (the next article card). */
     afterArticle: (@Composable () -> Unit)? = null,
-    /** Follow along: the sentence being read aloud from this article (null when not reading). */
-    readAloudSentence: State<String?>? = null,
+    /** Follow along: the number of the sentence being read aloud (null when not reading). */
+    readAloudPart: State<Int?>? = null,
+    /** Gives read aloud the article's sentences from the page. */
+    pageText: ArticlePageText? = null,
 ) {
     val context = LocalContext.current
     val subheadUpperCase = LocalReadingSubheadUpperCase.current
@@ -170,7 +173,7 @@ fun Content(
                 var following by remember { mutableStateOf(true) }
                 var autoScrolling by remember { mutableStateOf(false) }
                 var sentenceTop by remember { mutableFloatStateOf(-1f) }
-                val readingAloud = readAloudSentence?.value != null
+                val readingAloud = readAloudPart?.value != null
                 fun showSentence(top: Float) {
                     val target =
                         (webViewTop + top - viewportHeight * 0.3f)
@@ -188,7 +191,7 @@ fun Content(
                 LaunchedEffect(scrollState) {
                     snapshotFlow { scrollState.isScrollInProgress }
                         .collect { moving ->
-                            if (moving && !autoScrolling && readAloudSentence?.value != null) {
+                            if (moving && !autoScrolling && readAloudPart?.value != null) {
                                 following = false
                             }
                         }
@@ -220,7 +223,8 @@ fun Content(
                                 baseUrl = link,
                                 refererDomain = link.extractDomain(),
                                 onImageClick = onImageClick,
-                                readAloudSentence = readAloudSentence,
+                                readAloudPart = readAloudPart,
+                                pageText = pageText,
                                 onReadAloudPosition = { top ->
                                     sentenceTop = top
                                     if (following) showSentence(top)

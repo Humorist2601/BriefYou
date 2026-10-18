@@ -238,13 +238,14 @@ fun Context.openTtsSettings() {
 }
 
 /**
- * Read aloud's speed, 0.8× to 2×, as a slider in a small sheet (long press on read aloud while
- * reading). The new speed applies from the current word.
+ * Read aloud's speed, 0.8× to 2× in steps of 0.2, as a slider in a small sheet (long press on read
+ * aloud while reading). The new speed applies from the current word, and is kept for next time.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReadAloudSpeedSheet(speed: Float, onSpeed: (Float) -> Unit, onDismiss: () -> Unit) {
     var value by remember(speed) { mutableFloatStateOf(speed) }
+    val haptic = LocalHapticFeedback.current
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier =
@@ -263,10 +264,18 @@ fun ReadAloudSpeedSheet(speed: Float, onSpeed: (Float) -> Unit, onDismiss: () ->
                     TextToSpeechManager.speedLabel(TextToSpeechManager.SPEEDS.first()),
                     style = MaterialTheme.typography.labelLarge,
                 )
+                // Steps of 0.2× (0.8× to 2×), with a tick on each one.
                 Slider(
                     value = value,
-                    onValueChange = { value = (it * 20).roundToInt() / 20f },
+                    onValueChange = {
+                        val step = TextToSpeechManager.snap(it)
+                        if (step != value) {
+                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            value = step
+                        }
+                    },
                     onValueChangeFinished = { onSpeed(value) },
+                    steps = TextToSpeechManager.SPEEDS.size - 2,
                     valueRange = TextToSpeechManager.SPEEDS.first()..TextToSpeechManager.SPEEDS.last(),
                     modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
                 )

@@ -81,6 +81,25 @@ fun DialogHost(state: DialogHostState = remember { DialogHostState() }, content:
 }
 
 /**
+ * Something shown over the whole screen, centred on it, above everything (a celebration, say).
+ * It doesn't take touches. Shown while this is in the composition.
+ */
+@Composable
+fun ScreenOverlay(content: @Composable () -> Unit) {
+    val host = LocalDialogHost.current ?: return
+    val entry = remember { DialogEntry() }
+    SideEffect {
+        entry.content = {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
+        }
+    }
+    DisposableEffect(host, entry) {
+        host.entries.add(entry)
+        onDispose { host.entries.remove(entry) }
+    }
+}
+
+/**
  * A Material alert dialog in the app's window (falls back to the normal [AlertDialog] where there
  * is no [DialogHost], such as in a widget's settings).
  */

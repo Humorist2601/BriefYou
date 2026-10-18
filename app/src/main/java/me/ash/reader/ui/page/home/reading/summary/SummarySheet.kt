@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.home.reading.summary
 
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -135,6 +136,9 @@ fun SummarySheet(
     val asks = viewModel.asks.collectAsStateValue()
     var question by rememberSaveable(requestKey) { mutableStateOf("") }
     var showSpeedSheet by remember { mutableStateOf(false) }
+    // The media notification takes the colour of the page the sheet is on (the article's, from its
+    // picture, on the reading page; the accent colour elsewhere).
+    val pageAccent = MaterialTheme.colorScheme.primary.toArgb()
     if (showSpeedSheet) {
         val speed = viewModel.textToSpeechManager.speed.collectAsStateValue()
         ReadAloudSpeedSheet(
@@ -440,7 +444,7 @@ fun SummarySheet(
                                     enabled = done,
                                     role = Role.Button,
                                     onClick = {
-                                        streaming?.let { viewModel.readAloud(it.text, heading) }
+                                        streaming?.let { viewModel.readAloud(it.text, heading, pageAccent) }
                                     },
                                     onLongClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
