@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Brief You launcher icon: a fanned stack of three cards, the front one a mini brief (three
-     lines and the AI sparkle). Adaptive icon foreground on the 108 dp canvas, centred in the
+     lines and the AI sparkle), in soft purples, with orange only for the AI sparkle. Adaptive icon foreground on the 108 dp canvas, centred in the
      safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -9,17 +9,17 @@
     android:viewportHeight="108">
     <group android:pivotX="49.87" android:pivotY="51.81" android:scaleX="0.86" android:scaleY="0.86" android:translateX="4.13" android:translateY="2.19">
         <group android:pivotX="54" android:pivotY="72" android:rotation="-16">
-            <path android:pathData="M42,26H66A7,7 0 0 1 73,33V69A7,7 0 0 1 66,76H42A7,7 0 0 1 35,69V33A7,7 0 0 1 42,26Z" android:fillColor="#7A66C7"/>
+            <path android:pathData="M42,26H66A7,7 0 0 1 73,33V69A7,7 0 0 1 66,76H42A7,7 0 0 1 35,69V33A7,7 0 0 1 42,26Z" android:fillColor="#A08CE0"/>
         </group>
         <group android:pivotX="54" android:pivotY="72" android:rotation="-7">
-            <path android:pathData="M42,26H66A7,7 0 0 1 73,33V69A7,7 0 0 1 66,76H42A7,7 0 0 1 35,69V33A7,7 0 0 1 42,26Z" android:fillColor="#B9A8F2"/>
+            <path android:pathData="M42,26H66A7,7 0 0 1 73,33V69A7,7 0 0 1 66,76H42A7,7 0 0 1 35,69V33A7,7 0 0 1 42,26Z" android:fillColor="#C3B3F5"/>
         </group>
         <group android:pivotX="54" android:pivotY="72" android:rotation="3">
-            <path android:pathData="M42,26H66A7,7 0 0 1 73,33V69A7,7 0 0 1 66,76H42A7,7 0 0 1 35,69V33A7,7 0 0 1 42,26Z" android:fillColor="#F6F1FF"/>
-            <path android:pathData="M43.25,35H62.75A2.25,2.25 0 0 1 65,37.25V37.25A2.25,2.25 0 0 1 62.75,39.5H43.25A2.25,2.25 0 0 1 41,37.25V37.25A2.25,2.25 0 0 1 43.25,35Z" android:fillColor="#46367F"/>
-            <path android:pathData="M42.5,44H65.5A1.5,1.5 0 0 1 67,45.5V45.5A1.5,1.5 0 0 1 65.5,47H42.5A1.5,1.5 0 0 1 41,45.5V45.5A1.5,1.5 0 0 1 42.5,44Z" android:fillColor="#46367F" android:fillAlpha="0.55"/>
-            <path android:pathData="M42.5,50H58.5A1.5,1.5 0 0 1 60,51.5V51.5A1.5,1.5 0 0 1 58.5,53H42.5A1.5,1.5 0 0 1 41,51.5V51.5A1.5,1.5 0 0 1 42.5,50Z" android:fillColor="#46367F" android:fillAlpha="0.55"/>
-            <path android:pathData="M62,57Q62,63.5 68.5,63.5Q62,63.5 62,70Q62,63.5 55.5,63.5Q62,63.5 62,57Z" android:fillColor="#FF9F5A"/>
+            <path android:pathData="M42,26H66A7,7 0 0 1 73,33V69A7,7 0 0 1 66,76H42A7,7 0 0 1 35,69V33A7,7 0 0 1 42,26Z" android:fillColor="#FFFDF8"/>
+            <path android:pathData="M43.25,35H62.75A2.25,2.25 0 0 1 65,37.25V37.25A2.25,2.25 0 0 1 62.75,39.5H43.25A2.25,2.25 0 0 1 41,37.25V37.25A2.25,2.25 0 0 1 43.25,35Z" android:fillColor="#5E4B9C"/>
+            <path android:pathData="M42.5,44H65.5A1.5,1.5 0 0 1 67,45.5V45.5A1.5,1.5 0 0 1 65.5,47H42.5A1.5,1.5 0 0 1 41,45.5V45.5A1.5,1.5 0 0 1 42.5,44Z" android:fillColor="#5E4B9C" android:fillAlpha="0.55"/>
+            <path android:pathData="M42.5,50H58.5A1.5,1.5 0 0 1 60,51.5V51.5A1.5,1.5 0 0 1 58.5,53H42.5A1.5,1.5 0 0 1 41,51.5V51.5A1.5,1.5 0 0 1 42.5,50Z" android:fillColor="#5E4B9C" android:fillAlpha="0.55"/>
+            <path android:pathData="M62,57Q62,63.5 68.5,63.5Q62,63.5 62,70Q62,63.5 55.5,63.5Q62,63.5 62,57Z" android:fillColor="#FFB47E"/>
         </group>
     </group>
 </vector>

@@ -68,7 +68,7 @@ android {
             isDefault = true
             dimension = "channel"
             // Brief You (fork of Read You) has its own app ID, so it installs next to Read You.
-            applicationId = "io.github.humorist2601.briefyou"
+            applicationId = "com.ay.briefyou"
             // Brief You's own name in the network user agent.
             buildConfigField(
                 "String",

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Brief You: deep violet behind the card stack. -->
-    <color name="ic_launcher_background">#46367F</color>
+    <color name="ic_launcher_background">#DCD0FF</color>
 </resources>

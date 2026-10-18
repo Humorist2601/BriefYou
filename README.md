@@ -9,7 +9,7 @@ A fork of <a href="https://github.com/Ashinch/ReadYou">Read You</a>.</p>
 
 Brief You keeps everything that makes Read You great — the Material You design, Reeder-style reading, and support for FreshRSS, Miniflux, Fever, Google Reader API services and more — and adds a private AI layer that runs **entirely on your phone**. Articles, questions and instructions are never sent to a server: the AI is a Gemma model running through Google's open-source [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM).
 
-Brief You installs **alongside** Read You (its own app ID, `io.github.humorist2601.briefyou`), so you can try it without losing anything. Move your feeds over with an OPML export/import.
+Brief You installs **alongside** Read You (its own app ID, `com.ay.briefyou`), so you can try it without losing anything. Move your feeds over with an OPML export/import.
 
 ## What's new compared to Read You
 
@@ -92,7 +92,7 @@ Brief You installs **alongside** Read You (its own app ID, `io.github.humorist26
 
 ## Updates and signing
 
-The app checks **Brief You's own releases** for updates (Read You's are never offered), and its links (GitHub, help, issues, terms) point to this repository. Releases are built by GitHub Actions on every push to `main`. When the repository has the signing secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` and `KEY_ALIAS`, builds are signed with Brief You's own private key; without them they fall back to Read You's public key, and the build shows a warning.
+The app checks **Brief You's own releases** for updates (Read You's are never offered), and its links (GitHub, help, issues, terms) point to this repository. Releases are built by GitHub Actions on every push to `main`. Each is named after Read You's version plus the build number (Read You 0.16.2, build 102: **Brief You 0.16.2.102**, the same version the app shows), and its notes say which Read You version it's based on and how recent its Read You changes are. When the repository has the signing secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` and `KEY_ALIAS`, builds are signed with Brief You's own private key; without them they fall back to Read You's public key, and the build shows a warning.
 
 ## Credits and license
 
