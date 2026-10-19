@@ -3,7 +3,7 @@
 package me.ash.reader.brief.triage
 
 import androidx.compose.material3.LoadingIndicator
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.RssFeed
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -25,6 +25,9 @@ import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -538,8 +541,15 @@ private fun TriageContent(
             }
         }
 
+        // Slides to the next step instead of jumping.
+        val shownProgress by
+            animateFloatAsState(
+                targetValue = if (total == 0) 1f else index.toFloat() / total,
+                animationSpec = tween(durationMillis = 450),
+                label = "triage progress",
+            )
         LinearWavyProgressIndicator(
-            progress = { if (total == 0) 1f else index.toFloat() / total },
+            progress = { shownProgress },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
         )
 
@@ -988,10 +998,11 @@ private fun TriageCard(
             // Colored hint that fades in while you drag.
             if (overlay != null && overlayAlpha > 0.005f) {
                 val (color, icon, label) = overlayStyle(overlay)
+                val strongest = hintAlpha(color)
                 Box(
                     modifier =
                         Modifier.fillMaxSize()
-                            .background(color.copy(alpha = 0.88f * overlayAlpha)),
+                            .background(color.copy(alpha = strongest * overlayAlpha)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
@@ -1025,6 +1036,35 @@ private fun TriageCard(
                     }
                 }
             }
+        }
+    }
+}
+
+/** How strongly the drag hints cover a card at most. */
+private const val HINT_ALPHA = 0.88f
+
+/**
+ * How strongly a hint colour may cover the card: no brighter than the read hint, so a lighter
+ * colour (the star's, in dark theme) doesn't glare next to the others.
+ */
+@Composable
+private fun hintAlpha(color: Color): Float {
+    val card = MaterialTheme.colorScheme.surfaceContainerHigh
+    val reference = MaterialTheme.colorScheme.primaryContainer
+    return remember(color, card, reference) {
+        fun brightness(alpha: Float) = color.copy(alpha = alpha).compositeOver(card).luminance()
+        val target = reference.copy(alpha = HINT_ALPHA).compositeOver(card).luminance()
+        // Only a colour lighter than the card gets brighter as it covers more of it.
+        if (color.luminance() <= card.luminance() || brightness(HINT_ALPHA) <= target) {
+            HINT_ALPHA
+        } else {
+            var low = 0.3f
+            var high = HINT_ALPHA
+            repeat(12) {
+                val mid = (low + high) / 2
+                if (brightness(mid) > target) high = mid else low = mid
+            }
+            low
         }
     }
 }
@@ -1125,19 +1165,12 @@ private fun TriageDone(
         )
         if (!nothingToDo) {
             Spacer(Modifier.height(24.dp))
-            // This session at a glance: read, saved and skipped, as small tiles.
+            // This session at a glance, in the same order as the swipes: saved (left), skipped
+            // (down), read (right).
             Row(
                 modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                SessionTile(
-                    Modifier.weight(1f).fillMaxHeight(),
-                    Icons.Rounded.Check,
-                    read,
-                    stringResource(R.string.triage_tile_read),
-                    MaterialTheme.colorScheme.primaryContainer,
-                    MaterialTheme.colorScheme.onPrimaryContainer,
-                )
                 SessionTile(
                     Modifier.weight(1f).fillMaxHeight(),
                     Icons.Rounded.Star,
@@ -1153,6 +1186,14 @@ private fun TriageDone(
                     stringResource(R.string.triage_tile_skipped),
                     MaterialTheme.colorScheme.surfaceContainerHigh,
                     MaterialTheme.colorScheme.onSurface,
+                )
+                SessionTile(
+                    Modifier.weight(1f).fillMaxHeight(),
+                    Icons.Rounded.Check,
+                    read,
+                    stringResource(R.string.triage_tile_read),
+                    MaterialTheme.colorScheme.primaryContainer,
+                    MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
         }
@@ -1250,11 +1291,15 @@ private fun NextCard(next: TriageNext, loading: Boolean, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            Icon(
-                Icons.AutoMirrored.Rounded.ArrowForward,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-            )
+            Box(
+                modifier =
+                    Modifier.size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.ArrowUpward, contentDescription = null, modifier = Modifier.size(22.dp))
+            }
         }
     }
 }
@@ -1281,7 +1326,7 @@ private fun AutoAdvanceButton(
     val halfMenu = with(density) { 120.dp.roundToPx() }
     val edge = with(density) { 8.dp.roundToPx() }
     var anchorX by remember { mutableIntStateOf(0) }
-    // Always as big as the countdown ring (48dp), so nothing around it moves when the ring appears.
+    // Always 48dp, the same touch area as the undo button, so nothing around it moves.
     Box(
         modifier =
             Modifier.size(48.dp).onGloballyPositioned {
@@ -1289,9 +1334,14 @@ private fun AutoAdvanceButton(
             },
         contentAlignment = Alignment.Center,
     ) {
+        // As big as the undo button (40dp). While the countdown runs, the ring takes that size
+        // and the button shrinks inside it, with room for the waves, so the two together are
+        // still as big as the undo button.
+        val buttonSize by
+            animateDpAsState(if (running) 26.dp else 40.dp, animationSpec = tween(250), label = "auto button")
         Box(
             modifier =
-                Modifier.size(40.dp)
+                Modifier.size(buttonSize)
                     .clip(CircleShape)
                     .background(
                         if (running && !paused) MaterialTheme.colorScheme.primary
@@ -1321,6 +1371,7 @@ private fun AutoAdvanceButton(
                 tint =
                     if (running && !paused) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(if (running) 18.dp else 24.dp),
             )
         }
         if (running) {
@@ -1331,7 +1382,7 @@ private fun AutoAdvanceButton(
             if (paused) {
                 CircularProgressIndicator(
                     progress = progress,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                     strokeWidth = 4.dp,
                     color = ringColor,
                     trackColor = ringColor.copy(alpha = 0.2f),
@@ -1339,7 +1390,7 @@ private fun AutoAdvanceButton(
             } else {
                 CircularWavyProgressIndicator(
                     progress = progress,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                     color = ringColor,
                     trackColor = ringColor.copy(alpha = 0.2f),
                 )

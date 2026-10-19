@@ -4,6 +4,8 @@ package me.ash.reader.brief.filters
 
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily
 import androidx.compose.ui.draw.clip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.toShape
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.LocalContentColor
@@ -54,6 +56,7 @@ import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -135,7 +138,11 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
     val mutedCount = log.count { it.reason == FilterReason.MutedKeyword }
     val duplicateCount = log.count { it.reason == FilterReason.Duplicate }
     // The filtered articles, newest first, under Today / Yesterday / a date.
-    val days = remember(log) { log.sortedByDescending { it.at }.groupBy { dayOf(it.at) } }
+    // Duplicates of one story are grouped under it.
+    val days =
+        remember(log) {
+            log.sortedByDescending { it.at }.groupBy { dayOf(it.at) }.mapValues { logRows(it.value) }
+        }
 
     // Read You's settings-page scaffold (deprecated by Read You, but all of Read You's settings
     // pages still use it), so this page looks like the others.
@@ -374,18 +381,29 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                             modifier = Modifier.padding(start = 28.dp, top = 12.dp, bottom = 8.dp),
                         )
                     }
-                    itemsIndexed(entries, key = { _, it -> it.articleId }) { index, entry ->
-                        FilterLogCard(
-                            entry = entry,
-                            shape = groupShape(index, entries.size),
-                            onOpen = {
-                                context.startActivity(
-                                    Intent(context, MainActivity::class.java)
-                                        .putExtra(ExtraName.ARTICLE_ID, entry.articleId)
-                                )
-                            },
-                            onUndo = { viewModel.undo(entry) },
+                    val open = { articleId: String ->
+                        context.startActivity(
+                            Intent(context, MainActivity::class.java)
+                                .putExtra(ExtraName.ARTICLE_ID, articleId)
                         )
+                    }
+                    itemsIndexed(entries, key = { _, it -> it.key }) { index, row ->
+                        when (row) {
+                            is LogRow.Single ->
+                                FilterLogCard(
+                                    entry = row.entry,
+                                    shape = groupShape(index, entries.size),
+                                    onOpen = { open(row.entry.articleId) },
+                                    onUndo = { viewModel.undo(row.entry) },
+                                )
+                            is LogRow.Duplicates ->
+                                DuplicateGroupCard(
+                                    group = row,
+                                    shape = groupShape(index, entries.size),
+                                    onOpen = open,
+                                    onUndo = { viewModel.undo(it) },
+                                )
+                        }
                     }
                 }
                 item {
@@ -569,6 +587,157 @@ private fun FilterLogCard(
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
+        }
+    }
+}
+
+/** A row of the filtered list: one muted article, or the hidden copies of one story. */
+private sealed interface LogRow {
+    val key: String
+
+    data class Single(val entry: FilterLogEntry) : LogRow {
+        override val key: String
+            get() = entry.articleId
+    }
+
+    data class Duplicates(
+        val originalTitle: String,
+        val originalFeed: String?,
+        val originalId: String?,
+        val copies: List<FilterLogEntry>,
+    ) : LogRow {
+        override val key: String
+            get() = "dupes-" + copies.first().articleId
+    }
+}
+
+/** A day's filtered articles as rows: duplicates of the same story together, in list order. */
+private fun logRows(entries: List<FilterLogEntry>): List<LogRow> {
+    val groups = LinkedHashMap<Any, MutableList<FilterLogEntry>>()
+    for (entry in entries) {
+        val key: Any =
+            if (entry.reason == FilterReason.Duplicate) Triple(entry.detailId, entry.detailFeed, entry.detail)
+            else entry.articleId
+        groups.getOrPut(key) { mutableListOf() } += entry
+    }
+    return groups.values.map { list ->
+        val first = list.first()
+        if (first.reason == FilterReason.Duplicate) {
+            LogRow.Duplicates(
+                originalTitle = first.detail,
+                originalFeed = first.detailFeed,
+                originalId = first.detailId,
+                copies = list,
+            )
+        } else {
+            LogRow.Single(first)
+        }
+    }
+}
+
+/**
+ * The story that was published first (its feed and title; tap to open it, when known), with the
+ * copies that were marked as read under it: each with its feed, and Undo.
+ */
+@Composable
+private fun DuplicateGroupCard(
+    group: LogRow.Duplicates,
+    shape: RoundedCornerShape,
+    onOpen: (String) -> Unit,
+    onUndo: (FilterLogEntry) -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = shape,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 1.5.dp),
+    ) {
+        Column {
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .then(
+                            if (group.originalId != null) Modifier.clickable { onOpen(group.originalId) }
+                            else Modifier
+                        )
+                        .padding(start = 14.dp, end = 16.dp, top = 14.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier =
+                        Modifier.size(36.dp)
+                            .clip(MaterialShapes.Cookie4Sided.toShape())
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.ContentCopy,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text =
+                            group.originalFeed?.let { stringResource(R.string.filters_first_in, it) }
+                                ?: stringResource(R.string.filters_first_story),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = group.originalTitle,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 62.dp, end = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+            group.copies.forEach { copy ->
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .clickable { onOpen(copy.articleId) }
+                            .padding(start = 62.dp, end = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(vertical = 8.dp)) {
+                        Text(
+                            text = copy.feedName,
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = stringResource(R.string.filters_copy_marked_read),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    // Undo on a soft round background.
+                    IconButton(
+                        onClick = { onUndo(copy) },
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                contentColor = MaterialTheme.colorScheme.primary,
+                            ),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.Undo,
+                            contentDescription = stringResource(R.string.filters_log_undo),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
         }
     }
 }

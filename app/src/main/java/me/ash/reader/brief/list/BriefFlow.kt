@@ -1,5 +1,6 @@
 package me.ash.reader.brief.list
 
+import me.ash.reader.domain.data.DiffMapHolder
 import me.ash.reader.brief.app.BriefShortcuts
 import me.ash.reader.brief.stats.ReadingStats
 import androidx.compose.foundation.layout.offset
@@ -82,9 +83,15 @@ class BriefFlowState internal constructor(private val triage: MutableState<Boole
             }
         }
 
-    /** After "mark all as read" from swiping up on the Unread list: the inbox zero celebration. */
-    fun onMarkedAllRead() {
-        if (!showTriage) celebrate = true
+    /**
+     * "Mark all as read" from swiping up on the Unread list, then the inbox zero celebration, but
+     * only when something on the list was still unread: an empty list is already at inbox zero.
+     */
+    fun markAllAsRead(items: List<ArticleFlowItem>, diff: DiffMapHolder, markAllAsRead: () -> Unit) {
+        val anyUnread =
+            items.any { it is ArticleFlowItem.Article && diff.checkIfUnread(it.articleWithFeed) }
+        markAllAsRead()
+        if (anyUnread && !showTriage) celebrate = true
     }
 }
 

@@ -127,6 +127,9 @@
     <string name="filters_yesterday">Yesterday</string>
     <string name="filters_reason_muted">Muted “%1$s”</string>
     <string name="filters_reason_duplicate">Duplicate of %1$s</string>
+    <string name="filters_first_in">First in %1$s</string>
+    <string name="filters_first_story">First story</string>
+    <string name="filters_copy_marked_read">Marked as read</string>
     <string name="filters_from_feed">from %1$s</string>
     <string name="filters_original_story">Original: %1$s</string>
     <plurals name="filters_caught">
@@ -209,7 +212,9 @@
     <string name="stats_this_week_streak">This week (streak)</string>
     <string name="stats_top_feeds">Feeds you read most</string>
     <string name="stats_nothing_yet">Nothing yet. Open a few articles and they\'ll show up here.</string>
-    <string name="stats_all_time">All time</string>
+    <string name="stats_this_month">This month · %1$s</string>
+    <string name="stats_vs_last_month">%1$s vs %2$s</string>
+    <string name="stats_same_as_last_month">Same as %1$s</string>
     <string name="stats_hero_label">minutes reading this week</string>
     <string name="stats_days">days</string>
     <string name="stats_tile_minutes">minutes</string>

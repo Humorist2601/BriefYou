@@ -123,7 +123,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | --- | --- |
 | **One digest notification** | "12 new articles · From 5 feeds", once per sync, instead of one per article. |
 | **Muted keywords** | Unread articles mentioning them are marked read after each sync. |
-| **Duplicate stories** | When several feeds publish the same story, only the first stays unread. |
+| **Duplicate stories** | When the same story is published again (by another feed, or twice by the same feed), only the first stays unread. Filters lists the hidden copies under the story they repeat. |
 | **Recently filtered** | See what was hidden and why, and Undo it. |
 | **Sort feeds and groups** | By name, unread count or the order you added them. |
 
@@ -147,7 +147,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Material You, the current way** | Uses the system's own wallpaper colours; preset colours use Google's latest colour spec. |
 | **Feed colours and icons** | Feed names take a colour from their icon; set an emoji or your own image as a feed's icon. |
 | **App shortcuts** | Long-press the icon for Triage, AI gist, Unread or Sync now. |
-| **Reading stats** | Time spent reading (a bar per day), articles read, your streak and top feeds, in *Settings → Reading stats*. |
+| **Reading stats** | This week Monday to Sunday (a bar per day), articles read, your streak, top feeds, and this month compared with last month, in *Settings → Reading stats*. |
 | **Swipe between Starred, Unread and All** | Each with its own list and scroll position. |
 | **Predictive back** | Matches Android's own back animation, in screens and dialogs. |
 | **New icon and animated splash** | A fanned stack of cards that grows into the app. |

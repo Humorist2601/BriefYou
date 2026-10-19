@@ -8,9 +8,17 @@ import java.time.LocalDate
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** One day of reading: seconds spent with an article open, and how many articles were opened. */
+/**
+ * One day of reading: seconds spent with an article open, how many articles were opened, and the
+ * day's inbox zeros and Triage cards (counted per day since the monthly stats came in).
+ */
 @Serializable
-data class StatsDay(val seconds: Long = 0, val articles: Int = 0)
+data class StatsDay(
+    val seconds: Long = 0,
+    val articles: Int = 0,
+    val inboxZero: Int = 0,
+    val triaged: Int = 0,
+)
 
 /** Everything Reading stats keeps. Days are ISO dates ("2026-10-18"). */
 @Serializable
@@ -95,12 +103,29 @@ object ReadingStats {
     }
 
     @Synchronized
-    fun inboxZero(context: Context) = update(context) { it.copy(inboxZero = it.inboxZero + 1) }
+    fun inboxZero(context: Context) {
+        val today = today()
+        update(context) { d ->
+            val day = d.days[today] ?: StatsDay()
+            d.copy(
+                inboxZero = d.inboxZero + 1,
+                days = d.days + (today to day.copy(inboxZero = day.inboxZero + 1)),
+            )
+        }
+    }
 
     /** A Triage card dealt with ([delta] 1), or brought back with Undo ([delta] -1). */
     @Synchronized
-    fun triaged(context: Context, delta: Int) =
-        update(context) { it.copy(triaged = (it.triaged + delta).coerceAtLeast(0)) }
+    fun triaged(context: Context, delta: Int) {
+        val today = today()
+        update(context) { d ->
+            val day = d.days[today] ?: StatsDay()
+            d.copy(
+                triaged = (d.triaged + delta).coerceAtLeast(0),
+                days = d.days + (today to day.copy(triaged = (day.triaged + delta).coerceAtLeast(0))),
+            )
+        }
+    }
 
     /** Starts over (from the Reading stats page). */
     @Synchronized
@@ -126,6 +151,8 @@ object ReadingStats {
                 StatsDay(
                     seconds = maxOf(a?.seconds ?: 0, b?.seconds ?: 0),
                     articles = maxOf(a?.articles ?: 0, b?.articles ?: 0),
+                    inboxZero = maxOf(a?.inboxZero ?: 0, b?.inboxZero ?: 0),
+                    triaged = maxOf(a?.triaged ?: 0, b?.triaged ?: 0),
                 )
             }
             val feeds = (d.feeds.keys + incoming.feeds.keys).associateWith { key ->

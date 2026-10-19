@@ -37,6 +37,7 @@ enum class FilterReason {
  *
  * @param detail the matched keyword, or the title of the story it duplicated.
  * @param detailFeed for duplicates, the feed that published the story first.
+ * @param detailId for duplicates, the article that published the story first.
  */
 @Serializable
 data class FilterLogEntry(
@@ -46,6 +47,7 @@ data class FilterLogEntry(
     val reason: FilterReason,
     val detail: String,
     val detailFeed: String? = null,
+    val detailId: String? = null,
     val at: Long,
 )
 
@@ -53,9 +55,10 @@ data class FilterLogEntry(
  * Brief You's filters, applied after every sync:
  * - **Mute keywords**: unread articles whose title or description contains a muted word are
  *   marked as read.
- * - **Duplicate stories**: when several feeds publish the same story (very similar titles, the
+ * - **Duplicate stories**: when the same story is published again (very similar titles, the
  *   copy published within 48 hours after the first), only the first copy stays unread; later
- *   copies are marked as read.
+ *   copies are marked as read. Across feeds, titles must be very similar; within one feed they
+ *   must be almost word for word, so a feed's follow-ups and numbered parts stay.
  *
  * Marking read goes through the same path as swiping an article, so it syncs to the account.
  * Every filtered article is recorded in [log] with its reason. [undo] brings one back as unread
@@ -156,6 +159,7 @@ constructor(
                                 reason = FilterReason.Duplicate,
                                 detail = original.article.title,
                                 detailFeed = original.feed.name,
+                                detailId = original.article.id,
                                 at = now,
                             )
                     }
@@ -252,9 +256,10 @@ constructor(
         withContext(Dispatchers.IO) { lock.withLock { writeLog(emptyList()) } }
 
     /**
-     * Articles are in date order. An unread article is a duplicate when an article from a
-     * different feed with a very similar title was published up to 48 hours before it. Returns
-     * (duplicate, the earlier original) pairs.
+     * Articles are in date order. An unread article is a duplicate when an article with a very
+     * similar title was published up to 48 hours before it: from another feed, or from the same
+     * feed with an almost identical title and the same numbers in it. Returns (duplicate, the
+     * earlier original) pairs.
      */
     private fun findDuplicates(
         recent: List<ArticleWithFeed>
@@ -267,9 +272,12 @@ constructor(
             val time = a.article.date.time
             val original =
                 seen.firstOrNull { (other, otherTokens) ->
-                    other.article.feedId != a.article.feedId &&
-                        time - other.article.date.time <= DUPLICATE_WINDOW_MS &&
-                        jaccard(tokens, otherTokens) >= SIMILARITY
+                    if (time - other.article.date.time > DUPLICATE_WINDOW_MS) return@firstOrNull false
+                    val similarity = jaccard(tokens, otherTokens)
+                    if (other.article.feedId != a.article.feedId) similarity >= SIMILARITY
+                    else
+                        similarity >= SAME_FEED_SIMILARITY &&
+                            numbers(other.article.title) == numbers(a.article.title)
                 }
             if (original != null) {
                 if (a.article.isUnread) dupes += a to original.first
@@ -286,6 +294,9 @@ constructor(
             .split(Regex("[^\\p{L}\\p{N}]+"))
             .filter { it.length >= 3 && it !in STOPWORDS }
             .toSet()
+
+    /** The numbers in a title ("Part 2", "iOS 26"), which tell a feed's follow-ups apart. */
+    private fun numbers(title: String): List<String> = Regex("\\d+").findAll(title).map { it.value }.toList()
 
     private fun jaccard(a: Set<String>, b: Set<String>): Double {
         if (a.isEmpty() || b.isEmpty()) return 0.0
@@ -324,6 +335,8 @@ constructor(
         const val MAX_ARTICLES = 1500
         const val MIN_TOKENS = 4
         const val SIMILARITY = 0.6
+        /** Within one feed, titles must be almost word for word. */
+        const val SAME_FEED_SIMILARITY = 0.8
         val STOPWORDS =
             setOf(
                 "the", "and", "for", "with", "from", "that", "this", "are", "was", "will", "has",

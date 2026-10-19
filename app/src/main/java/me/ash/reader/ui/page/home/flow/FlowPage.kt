@@ -627,8 +627,8 @@ fun FlowPage(
                             is LoadAction.NextFeed -> viewModel::loadNextFeedOrGroup
                             LoadAction.MarkAllAsRead -> {
                                 {
-                                    viewModel.markAllAsRead()
-                                    brief.onMarkedAllRead() // Brief You: inbox zero
+                                    // Brief You: inbox zero, only when something was still unread
+                                    brief.markAllAsRead(pagingItems.itemSnapshotList.items, viewModel.diffMapHolder) { viewModel.markAllAsRead() }
                                     currentPullToLoadState?.animateDistanceTo(
                                         targetValue = 0f,
                                         animationSpec = settleSpec,

@@ -41,6 +41,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.toShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,6 +70,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
+import java.time.YearMonth
+import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
@@ -121,14 +125,21 @@ fun ReadingStatsPage(onBack: () -> Unit) {
     var chartStat by rememberSaveable { mutableStateOf(ChartStat.Minutes) }
 
     val today = LocalDate.now()
-    val week = remember(today) { (6 downTo 0).map { today.minusDays(it.toLong()) } }
+    // This week, Monday to Sunday (days still to come stay empty).
+    val week =
+        remember(today) {
+            val monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+            (0..6).map { monday.plusDays(it.toLong()) }
+        }
     val weekDays = week.map { data.days[it.toString()] ?: StatsDay() }
     val weekMinutes = weekDays.sumOf { it.seconds } / 60
     val weekArticles = weekDays.sumOf { it.articles }
     val daysRead = weekDays.count { it.articles > 0 }
     val streak = remember(data) { streakDays(data, today) }
-    val totalMinutes = data.days.values.sumOf { it.seconds } / 60
-    val totalArticles = data.days.values.sumOf { it.articles }
+    val month = YearMonth.from(today)
+    val thisMonth = remember(data, month) { monthTotals(data, month) }
+    val lastMonth = remember(data, month) { monthTotals(data, month.minusMonths(1)) }
+    val lastMonthName = month.minusMonths(1).month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
     val topFeeds = remember(data) { data.feeds.entries.sortedByDescending { it.value }.take(5) }
     // The feeds' current icons (stats keep feed names; the icons are looked up when shown).
     val feedIcons by
@@ -227,7 +238,7 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                                 }
                             ),
                     )
-                    WeekChart(week = week, values = chartValues)
+                    WeekChart(week = week, today = today, values = chartValues)
                     Spacer(Modifier.height(28.dp))
                 }
                 item {
@@ -265,38 +276,52 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                 item {
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
-                        text = stringResource(R.string.stats_all_time),
+                        text =
+                            stringResource(
+                                R.string.stats_this_month,
+                                month.month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault()),
+                            ),
                     )
                     Column(
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            modifier = Modifier.height(IntrinsicSize.Min),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
                             SmallTile(
-                                Modifier.weight(1f),
+                                Modifier.weight(1f).fillMaxHeight(),
                                 Icons.Outlined.Schedule,
-                                totalMinutes.toString(),
+                                thisMonth.minutes.toString(),
                                 stringResource(R.string.stats_tile_minutes),
+                                compareToLast(thisMonth.minutes, lastMonth.minutes, lastMonthName),
                             )
                             SmallTile(
-                                Modifier.weight(1f),
+                                Modifier.weight(1f).fillMaxHeight(),
                                 Icons.AutoMirrored.Outlined.Article,
-                                totalArticles.toString(),
+                                thisMonth.articles.toString(),
                                 stringResource(R.string.stats_tile_articles),
+                                compareToLast(thisMonth.articles, lastMonth.articles, lastMonthName),
                             )
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            modifier = Modifier.height(IntrinsicSize.Min),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
                             SmallTile(
-                                Modifier.weight(1f),
+                                Modifier.weight(1f).fillMaxHeight(),
                                 Icons.Outlined.DoneAll,
-                                data.inboxZero.toString(),
+                                thisMonth.inboxZero.toString(),
                                 stringResource(R.string.stats_tile_inbox_zero),
+                                compareToLast(thisMonth.inboxZero, lastMonth.inboxZero, lastMonthName),
                             )
                             SmallTile(
-                                Modifier.weight(1f),
+                                Modifier.weight(1f).fillMaxHeight(),
                                 Icons.Outlined.Style,
-                                data.triaged.toString(),
+                                thisMonth.triaged.toString(),
                                 stringResource(R.string.stats_tile_triage),
+                                compareToLast(thisMonth.triaged, lastMonth.triaged, lastMonthName),
                             )
                         }
                     }
@@ -520,7 +545,7 @@ private fun StatTile(
  * Expressive shape on top of its bar.
  */
 @Composable
-private fun WeekChart(week: List<LocalDate>, values: List<Long>) {
+private fun WeekChart(week: List<LocalDate>, today: LocalDate, values: List<Long>) {
     val most = values.maxOf { it }.coerceAtLeast(1)
     val grow = remember { Animatable(0f) }
     LaunchedEffect(Unit) { grow.animateTo(1f) }
@@ -536,7 +561,8 @@ private fun WeekChart(week: List<LocalDate>, values: List<Long>) {
         ) {
             week.forEachIndexed { i, date ->
                 val value = values[i]
-                val isToday = i == week.lastIndex
+                val isToday = date == today
+                val isFuture = date.isAfter(today)
                 val target = (value.toFloat() / most).coerceIn(0.06f, 1f)
                 val fraction by animateFloatAsState(target, label = "bar")
                 Column(
@@ -578,8 +604,12 @@ private fun WeekChart(week: List<LocalDate>, values: List<Long>) {
                                     .fillMaxHeight((fraction * grow.value).coerceAtLeast(0.06f))
                                     .clip(CircleShape)
                                     .background(
-                                        if (isToday) MaterialTheme.colorScheme.tertiary
-                                        else MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
+                                        when {
+                                            isToday -> MaterialTheme.colorScheme.tertiary
+                                            // Days still to come: just a faint stub.
+                                            isFuture -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                                            else -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
+                                        }
                                     )
                         )
                     }
@@ -673,9 +703,15 @@ private fun FeedCard(
     }
 }
 
-/** A small tonal tile for the all-time numbers. */
+/** A small tonal tile for this month's numbers, with last month's for comparison. */
 @Composable
-private fun SmallTile(modifier: Modifier, icon: ImageVector, value: String, label: String) {
+private fun SmallTile(
+    modifier: Modifier,
+    icon: ImageVector,
+    value: String,
+    label: String,
+    compare: String?,
+) {
     Surface(
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -708,7 +744,48 @@ private fun SmallTile(modifier: Modifier, icon: ImageVector, value: String, labe
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (compare != null) {
+                    Text(
+                        text = compare,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = LocalContentColor.current.copy(alpha = 0.72f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
+    }
+}
+
+/** A month's totals. */
+private data class MonthTotals(val minutes: Long, val articles: Int, val inboxZero: Int, val triaged: Int)
+
+private fun monthTotals(data: ReadingStatsData, month: YearMonth): MonthTotals {
+    val prefix = "$month-" // days are ISO dates: "2026-10-18"
+    val days = data.days.filterKeys { it.startsWith(prefix) }.values
+    return MonthTotals(
+        minutes = days.sumOf { it.seconds } / 60,
+        articles = days.sumOf { it.articles },
+        inboxZero = days.sumOf { it.inboxZero },
+        triaged = days.sumOf { it.triaged },
+    )
+}
+
+/** "+40 vs Sep", "−5 vs Sep" or "Same as Sep"; nothing when last month has nothing to compare. */
+@Composable
+private fun compareToLast(now: Number, last: Number, lastMonthName: String): String? {
+    val a = now.toLong()
+    val b = last.toLong()
+    if (b == 0L) return null
+    val diff = a - b
+    return when {
+        diff == 0L -> stringResource(R.string.stats_same_as_last_month, lastMonthName)
+        else ->
+            stringResource(
+                R.string.stats_vs_last_month,
+                if (diff > 0) "+$diff" else "\u2212${-diff}",
+                lastMonthName,
+            )
     }
 }
