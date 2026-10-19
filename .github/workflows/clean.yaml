@@ -36,8 +36,9 @@ jobs:
             - name: Old releases
               run: |
                   # Newest first by date (not by tag name), so the latest builds are the ones kept.
+                  # The Nightly prerelease is never counted or deleted here.
                   gh api "repos/$REPO/releases?per_page=100" --paginate \
-                      -q '.[] | [.created_at, .tag_name] | @tsv' \
+                      -q '.[] | select(.prerelease | not) | [.created_at, .tag_name] | @tsv' \
                     | sort -r | tail -n +$((KEEP_RELEASES + 1)) | cut -f2 > old_releases.txt
                   echo "Keeping the newest $KEEP_RELEASES releases; $(wc -l < old_releases.txt) older ones:"
                   while read -r tag; do

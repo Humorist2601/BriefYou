@@ -170,6 +170,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Full backup and restore** | One file with subscriptions, starred articles, filters, sync and app settings, AI instructions and more. |
 | **Own updates** | The app checks Brief You's releases, never Read You's. |
 | **Signed releases** | Every push to `main` is built and published as **Brief You 0.16.2.N**. |
+| **Brief You Nightly** | Every other branch is built as **Brief You Nightly**, its own app with a night-sky icon that installs next to Brief You, published as the one *Nightly* prerelease. |
 | **Reviewed Read You updates** | Read You's changes arrive daily as a pull request, released only once you merge it. |
 
 <details>
@@ -181,7 +182,8 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 - APKs are for 64-bit ARM phones (arm64-v8a).
 - Builds are signed with Brief You's own key when the repository has the `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` and `KEY_ALIAS` secrets.
 - Read You updates: a daily workflow merges Read You's new commits into a `read-you-sync` branch and opens (or updates) a pull request called *Read You update*. Nothing is built or signed until you merge it. For the pull request to open by itself, allow it in *Settings → Actions → General → Allow GitHub Actions to create and approve pull requests*.
-- To tidy up, run **Actions → Clean up old releases and runs** by hand. It keeps the newest 5 releases and 10 runs per workflow, and starts as a dry run that only lists what it would delete.
+- Brief You Nightly (app ID `com.ay.briefyou.nightly`) has its own data and its own build numbers, so test builds never use up release numbers. Each test build replaces the *Nightly* prerelease, and it doesn't offer Brief You's releases as updates.
+- To tidy up, run **Actions → Clean up old releases, tags and runs** by hand. It keeps the newest 5 releases (never the Nightly one) and 10 runs per workflow, deletes release tags no kept release uses, and starts as a dry run that only lists what it would delete.
 
 </details>
 
@@ -202,7 +204,7 @@ Brief You is kept apart from Read You so Read You's updates merge easily:
 
 ## Building
 
-Open the project in [Android Studio](https://developer.android.com/studio) and run it, or build from the command line with `./gradlew assembleGithubRelease`.
+Open the project in [Android Studio](https://developer.android.com/studio) and run it, or build from the command line with `./gradlew assembleGithubRelease` (Brief You Nightly: `./gradlew assembleGithubNightly`).
 
 ## Credits and license
 

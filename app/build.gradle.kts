@@ -107,6 +107,14 @@ android {
             )
             signingConfig = signingConfigs.getByName("release")
         }
+        // Brief You: test builds ("Brief You Nightly"), the same as release but with their own
+        // app ID, name and icon (app/src/nightly), so they install next to Brief You.
+        create("nightly") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".nightly"
+            versionNameSuffix = "-nightly"
+            matchingFallbacks += listOf("release")
+        }
         all { signingConfig = signingConfigs.getByName("release") }
     }
     applicationVariants.all {

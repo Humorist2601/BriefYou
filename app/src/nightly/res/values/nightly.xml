@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brief You Nightly: the test builds (the "nightly" build type), which install next to Brief You
+     with their own name and icon. -->
+<resources>
+    <string name="read_you" translatable="false">Brief You Nightly</string>
+    <!-- Night sky behind the card stack. -->
+    <color name="ic_launcher_background">#211B45</color>
+    <!-- Nightly builds come from the single Nightly prerelease, so they don't offer Brief You's
+         releases as updates. -->
+    <string name="update_link" translatable="false">https://api.github.com/repos/Humorist2601/BriefYou/releases/tags/nightly</string>
+</resources>

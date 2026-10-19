@@ -1,10 +1,23 @@
 name: "Build"
+# Builds main and publishes it as a release. Only main runs this workflow, so its run number (the
+# build number and version code) goes up by one per release. Other branches are built by
+# test.yaml, which reuses this workflow for Brief You Nightly (its own app, published as the one
+# "Nightly" prerelease).
 on:
     push:
-        # Read You updates wait there for review; they're built once merged into main.
-        branches-ignore:
-            - read-you-sync
+        branches:
+            - main
     workflow_dispatch:
+    workflow_call:
+        inputs:
+            nightly:
+                description: "Build Brief You Nightly and publish it as the Nightly prerelease"
+                type: boolean
+                default: false
+
+env:
+    # The build type: release for Brief You, nightly for Brief You Nightly.
+    VARIANT: ${{ inputs.nightly && 'nightly' || 'release' }}
 
 jobs:
     build:
@@ -66,7 +79,7 @@ jobs:
             - name: Build APK
               run: |
                   set -o pipefail
-                  ./gradlew assembleGithubRelease --stacktrace 2>&1 | tee build.log
+                  ./gradlew "assembleGithub${VARIANT^}" --stacktrace 2>&1 | tee build.log
             - name: Summarise warnings
               # Kotlin warnings, Brief You's (brief/ and its copies) and Read You's, as a few
               # annotations (readable from the GitHub API) and a table in the summary.
@@ -108,11 +121,33 @@ jobs:
             - uses: actions/upload-artifact@v7
               with:
                   name: ReadYou-GitHub-Build-${{ github.sha }}
-                  path: app/build/outputs/apk/github/release/*.apk
+                  path: app/build/outputs/apk/github/${{ env.VARIANT }}/*.apk
+
+            - name: Publish Nightly
+              # Test builds: the one Nightly prerelease, replaced by each one (never "latest").
+              if: inputs.nightly
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  apk=$(ls app/build/outputs/apk/github/nightly/*.apk | head -1)
+                  readyou=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
+                  {
+                      echo "Brief You Nightly: a test build of \`${{ github.ref_name }}\` at ${GITHUB_SHA::7}. It installs next to Brief You, with its own data."
+                      echo
+                      echo "### Changes"
+                      git log -1 --format='%s%n%n%b' | grep -vE '^(Co-Authored-By|Claude-Session):'
+                  } > notes.md
+                  gh release delete nightly --cleanup-tag --yes 2>/dev/null || true
+                  gh release create nightly "$apk" \
+                      --title "Brief You Nightly ${readyou}.${CI_BUILD_NUMBER}" \
+                      --notes-file notes.md \
+                      --target "$GITHUB_SHA" \
+                      --prerelease \
+                      --latest=false
 
             - name: Publish release
-              # Only main is released; other branches are just built, to check they compile.
-              if: github.ref_name == 'main'
+              # Only main is released.
+              if: ${{ !inputs.nightly && github.ref_name == 'main' }}
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
