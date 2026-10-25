@@ -1,5 +1,6 @@
 package me.ash.reader.brief.app
 
+import me.ash.reader.brief.reading.screenSwitch
 import androidx.compose.animation.ContentTransform
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +15,7 @@ import androidx.navigation3.runtime.NavKey
 import me.ash.reader.brief.ui.BackPreviewController
 import me.ash.reader.brief.ui.BackPreviewPage
 import me.ash.reader.brief.ui.FilterBarHost
+import me.ash.reader.brief.ui.LocalBackPreviewLeavingPicture
 import me.ash.reader.brief.ui.LocalBackPreviewPicture
 import me.ash.reader.brief.ui.LocalBackStack
 import me.ash.reader.brief.ui.LocalFilterBarHost
@@ -44,12 +46,14 @@ fun NavEntry(
     }
 
 /**
- * The back preview's transition while it runs, or null for the host's own. Put in front of Read
- * You's transitions with `?:`. While the back preview runs, the host's own transitions draw
- * nothing, whichever one the host picks.
+ * The transition between screens, put in front of Read You's with `?:` (so Read You's stays as the
+ * fallback in its file). While the back preview runs: its transition, which draws nothing (the
+ * back preview draws). Otherwise Brief You's overlapping switch ([screenSwitch]) instead of Read
+ * You's shared axis, which faded the old screen out completely before the new one came in, through
+ * the empty background (a dark flash). [forward] is true for opening a screen.
  */
-fun backPreviewTransition(running: () -> Boolean): ContentTransform? =
-    if (running()) backPreviewPopTransform() else null
+fun backPreviewTransition(running: () -> Boolean, forward: Boolean = false): ContentTransform? =
+    if (running()) backPreviewPopTransform() else screenSwitch(forward)
 
 /**
  * Around the app's navigation: the back preview's controller and picture, and the filter bar of
@@ -59,12 +63,14 @@ fun backPreviewTransition(running: () -> Boolean): ContentTransform? =
 @Composable
 fun BriefNavigationHost(backStack: NavBackStack<NavKey>, content: @Composable () -> Unit) {
     val backPreviewPicture = rememberGraphicsLayer()
+    val backPreviewLeavingPicture = rememberGraphicsLayer()
     val filterBarHost = remember { FilterBarHost() }
     BackPreviewController(backStack)
     BriefShortcuts.Handler(backStack)
     CompositionLocalProvider(
         LocalBackStack provides backStack,
         LocalBackPreviewPicture provides backPreviewPicture,
+        LocalBackPreviewLeavingPicture provides backPreviewLeavingPicture,
         LocalFilterBarHost provides filterBarHost,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {

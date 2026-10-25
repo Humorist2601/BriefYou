@@ -136,8 +136,8 @@ fun ArticleListReaderPage(
             }
             AnimatedPane(
                 // Brief You: no dark flash between the list and an article (see PaneTransitions)
-                enterTransition = motionDataProvider.briefEnterTransition(paneRole),
-                exitTransition = motionDataProvider.briefExitTransition(paneRole),
+                enterTransition = motionDataProvider.briefEnterTransition(paneRole, !isTwoPane),
+                exitTransition = motionDataProvider.briefExitTransition(paneRole, !isTwoPane),
             ) {
                 CompositionLocalProvider(
                     LocalBackgroundTextMeasurementExecutor provides
@@ -169,8 +169,8 @@ fun ArticleListReaderPage(
         detailPane = {
             AnimatedPane(
                 // Brief You: no dark flash between the list and an article (see PaneTransitions)
-                enterTransition = motionDataProvider.briefEnterTransition(paneRole),
-                exitTransition = motionDataProvider.briefExitTransition(paneRole),
+                enterTransition = motionDataProvider.briefEnterTransition(paneRole, !isTwoPane),
+                exitTransition = motionDataProvider.briefExitTransition(paneRole, !isTwoPane),
             ) {
                 val contentKey = navigator.currentDestination?.contentKey
                 LaunchedEffect(contentKey) {

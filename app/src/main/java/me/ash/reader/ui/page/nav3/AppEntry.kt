@@ -95,7 +95,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
             transitionSpec = {
-                backPreviewTransition(backPreviewRunning) ?: // Brief You
+                backPreviewTransition(backPreviewRunning, forward = true) ?: // Brief You
                 materialSharedAxisXIn(
                     initialOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() }
                 ) togetherWith
