@@ -112,7 +112,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
             },
             predictivePopTransitionSpec = {
                 // Brief You: the back preview, Android's own back animation between screens.
-                backPreviewTransition { true } ?:
+                backPreviewTransition(running = { true }) ?:
                 materialSharedAxisXIn(
                     initialOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
                 ) togetherWith
