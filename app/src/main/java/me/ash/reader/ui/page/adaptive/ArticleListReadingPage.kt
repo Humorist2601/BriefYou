@@ -1,6 +1,8 @@
 package me.ash.reader.ui.page.adaptive
 
 import me.ash.reader.brief.reading.BriefReadingPage // Brief You
+import me.ash.reader.brief.reading.briefEnterTransition // Brief You
+import me.ash.reader.brief.reading.briefExitTransition // Brief You
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -133,8 +135,9 @@ fun ArticleListReaderPage(
                 }
             }
             AnimatedPane(
-                enterTransition = motionDataProvider.calculateEnterTransition(paneRole),
-                exitTransition = motionDataProvider.calculateExitTransition(paneRole),
+                // Brief You: no dark flash between the list and an article (see PaneTransitions)
+                enterTransition = motionDataProvider.briefEnterTransition(paneRole),
+                exitTransition = motionDataProvider.briefExitTransition(paneRole),
             ) {
                 CompositionLocalProvider(
                     LocalBackgroundTextMeasurementExecutor provides
@@ -165,8 +168,9 @@ fun ArticleListReaderPage(
         },
         detailPane = {
             AnimatedPane(
-                enterTransition = motionDataProvider.calculateEnterTransition(paneRole),
-                exitTransition = motionDataProvider.calculateExitTransition(paneRole),
+                // Brief You: no dark flash between the list and an article (see PaneTransitions)
+                enterTransition = motionDataProvider.briefEnterTransition(paneRole),
+                exitTransition = motionDataProvider.briefExitTransition(paneRole),
             ) {
                 val contentKey = navigator.currentDestination?.contentKey
                 LaunchedEffect(contentKey) {
