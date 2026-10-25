@@ -39,8 +39,8 @@ fun GroupItem(
     groupOptionViewModel: GroupOptionViewModel = hiltViewModel(),
     onExpanded: () -> Unit = {},
     onLongClick: () -> Unit = {},
-    groupOnClick: () -> Unit = {},
     count: Int = 0, // Brief You: the group's unread (or all/starred) count, next to its arrow
+    groupOnClick: () -> Unit = {},
 ) {
     val view = LocalView.current
 
