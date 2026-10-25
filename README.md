@@ -63,6 +63,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Floating toolbar** | Star, AI, next article, read aloud and full content, in a pill that hides while you scroll. |
 | **Toolbar long presses** | Star: read or unread · AI: settings · Next: previous article · Full content: open in browser. |
 | **Quick text sheet** | Size, line height, margins, font and justify, changed live. |
+| **Steady pictures** | Pictures in the text get a box of their own size with a loading indicator and fade in, so the text never jumps. |
 | **Next article card** | At the end of an article, or "You're all caught up". |
 | **Reading time** | `4 min` in the list and on the page. |
 | **Tidier articles** | No share buttons, "Read more" links, "appeared first on" lines or tracking pixels. |
@@ -103,7 +104,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | --- | --- |
 | **Card stack** | Swipe right: read · left: save · up: open · down: skip. Undo takes back your last choice. |
 | **Auto-advance** | Skips each card after a few seconds, with a wavy ring counting down. |
-| **Next group** | When a group is done, carry straight on with the next one that has unread articles. |
+| **Next group** | When a group (or feed) is done, it says how much is still unread elsewhere and carries straight on with the next one. *All caught up* only when nothing is unread anywhere. |
 | **Inbox zero** | A little celebration when you're all caught up. |
 
 <details>
@@ -124,7 +125,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **One digest notification** | "12 new articles · From 5 feeds", once per sync, instead of one per article. |
 | **Muted keywords** | Unread articles mentioning them are marked read after each sync. |
 | **Duplicate stories** | When the same story is published again (by another feed, or twice by the same feed), only the first stays unread. Filters lists the hidden copies under the story they repeat. |
-| **Recently filtered** | See what was hidden and why, and Undo it. |
+| **Recently filtered** | Today's hidden articles and why (for duplicates, which copy was kept unread and which were hidden), with Undo; earlier days under *Earlier*. |
 | **Sort feeds and groups** | By name, unread count or the order you added them. |
 
 <details>

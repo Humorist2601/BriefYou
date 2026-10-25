@@ -81,9 +81,12 @@ import kotlinx.coroutines.flow.collectLatest
  * comes from the gesture while you swipe, and from this file's own animation after you let go. The
  * host's transition draws nothing; it only keeps both screens around.
  *
- * While you swipe, and while a cancelled gesture settles, the screen you are leaving draws
- * everything: the backdrop, a picture of the screen behind (which then draws nothing itself), and
- * itself on top. So it does not matter which of the two the host stacks on top.
+ * While you swipe, while a cancelled gesture settles, and after you let go until the screen you
+ * leave has faded out, the screen you are leaving draws everything: the backdrop, a picture of the
+ * screen behind (which then draws nothing itself), and itself on top. So it does not matter which
+ * of the two the host stacks on top. (When the screen behind drew its own backdrop right after you
+ * let go, it covered the fading screen you leave whenever the host stacked it on top: a brief dark
+ * flash.) Once the screen you leave has faded out, the screen behind draws itself.
  */
 
 /** The system's back gesture curve (Material: "don't use linear progress"). */
@@ -152,6 +155,9 @@ internal object BackPreviewState {
     var startY = 0f
     var rawDy by mutableFloatStateOf(0f)
 
+    /** The screen behind has drawn its picture in this gesture (until then there is nothing to show). */
+    var pictureReady = false
+
     /**
      * Screens the host still shows after a gesture although they should be gone (the one you left
      * after going back, the one behind after a cancel). They are not drawn and can't be touched
@@ -217,6 +223,7 @@ fun BackPreviewController(backStack: List<Any>) {
                     s.settle = 0f
                     s.progress = event.progress
                     s.rawDy = 0f
+                    s.pictureReady = false
                     s.phase = BackPhase.Dragging
                 }
                 s.progress = event.progress
@@ -418,14 +425,21 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
             Role.Behind -> phase == BackPhase.Cancelling
             Role.None -> !isTop && key in s.collapsedKeys
         }
-    // The screen behind, while you swipe: it keeps a picture of itself for the leaving screen to
-    // draw, and draws nothing itself.
-    val recording = role == Role.Behind && phase == BackPhase.Dragging
-    // The screen you leave, while you swipe or a cancel settles: draws the screen behind too.
+    // The screen behind, while you swipe and until the screen you leave has faded out: it keeps a
+    // picture of itself for the leaving screen to draw, and draws nothing itself.
+    val recording =
+        role == Role.Behind &&
+            (phase == BackPhase.Dragging || (phase == BackPhase.Committing && !fadedOut))
+    // The screen you leave, while you swipe, while a cancel settles, and while it fades out after
+    // going back: draws the backdrop and the screen behind too.
     val drawsBehind =
-        role == Role.Leaving && (phase == BackPhase.Dragging || phase == BackPhase.Cancelling)
-    // The screen behind, after it went back: draws itself, growing back to full screen.
-    val growing = role == Role.Behind && phase == BackPhase.Committing
+        role == Role.Leaving &&
+            (phase == BackPhase.Dragging ||
+                phase == BackPhase.Cancelling ||
+                (phase == BackPhase.Committing && !fadedOut))
+    // The screen behind, once the screen you leave has faded out: draws itself, growing back to
+    // full screen.
+    val growing = role == Role.Behind && phase == BackPhase.Committing && fadedOut
 
     val picture = LocalBackPreviewPicture.current
     val density = LocalDensity.current
@@ -451,6 +465,7 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
                 .drawWithContent {
                     if (recording && picture != null) {
                         picture.record { this@drawWithContent.drawContent() }
+                        s.pictureReady = true
                     } else if (!recording) {
                         drawContent()
                     }
@@ -458,9 +473,12 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
                 // Behind everything (drawn before the screen is moved and shrunk, so it fills the
                 // whole display): the backdrop the two cards sit on, dimmed like the screen behind.
                 .drawBehind {
-                    if (drawsBehind) {
+                    // Until the screen behind has drawn its picture there is nothing to show behind
+                    // (and the screen you leave still covers everything).
+                    if (drawsBehind && s.pictureReady) {
+                        val dim = scrim * dimFade()
                         drawRect(backdrop)
-                        drawRect(Color.Black, alpha = scrim)
+                        if (dim > 0.001f) drawRect(Color.Black, alpha = dim)
                         val p = placement(true, size.width, size.height, margin, offset)
                         withTransform({
                             translate(p.x, p.y)
@@ -472,7 +490,7 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
                                 }
                             clipPath(card) {
                                 if (picture != null) drawLayer(picture)
-                                drawRect(Color.Black, alpha = scrim)
+                                if (dim > 0.001f) drawRect(Color.Black, alpha = dim)
                             }
                         }
                     } else if (growing) {

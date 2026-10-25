@@ -27,6 +27,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -170,6 +171,9 @@ data class TriageNext(
     val isFeed: Boolean = false,
 )
 
+/** The unread articles left elsewhere once a group or feed is done, and in how many places. */
+data class TriageLeft(val unread: Int, val places: Int, val isFeeds: Boolean)
+
 /**
  * One triage run: the cards, where you are, and what you did (for Undo). It lives outside the
  * screen, so opening an article from triage and coming back continues exactly where you were. When
@@ -230,6 +234,7 @@ fun TriageScreen(
     onOpen: (ArticleWithFeed) -> Unit,
     onClose: () -> Unit,
     findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
+    findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
 ) {
     val scope = rememberCoroutineScope()
@@ -356,6 +361,7 @@ fun TriageScreen(
             onOpen,
             onClose = { scope.launch { playExit() } },
             findNext,
+            findLeft,
             loadNext,
         )
     }
@@ -406,6 +412,7 @@ private fun TriageContent(
     onOpen: (ArticleWithFeed) -> Unit,
     onClose: () -> Unit,
     findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
+    findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
 ) {
     val haptic = LocalHapticFeedback.current
@@ -438,6 +445,14 @@ private fun TriageContent(
         remember(session.groupId, session.feedId, session.visited, done) {
             if (done) findNext(session.groupId, session.feedId, session.visited) else null
         }
+    val left =
+        remember(session.groupId, session.feedId, session.visited, done) {
+            if (done) findLeft(session.groupId, session.feedId, session.visited) else null
+        }
+    val skippedCount = history.count { it.action == TriageAction.Skip }
+    // "All caught up" (and an inbox zero in Reading stats) only when nothing is unread anywhere:
+    // nothing left in other groups or feeds, and no card skipped here.
+    val allRead = done && total > 0 && next == null && (left?.unread ?: 0) == 0 && skippedCount == 0
 
     fun decide(action: TriageAction) {
         val article = current ?: return
@@ -487,7 +502,7 @@ private fun TriageContent(
     LaunchedEffect(current == null) {
         if (current == null && history.isNotEmpty()) {
             haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-            ReadingStats.inboxZero(context) // Reading stats
+            if (allRead) ReadingStats.inboxZero(context) // Reading stats
         }
     }
 
@@ -562,8 +577,11 @@ private fun TriageContent(
                     },
                 read = history.count { it.action == TriageAction.Read || it.action == TriageAction.Open },
                 saved = history.count { it.action == TriageAction.Save },
-                skipped = history.count { it.action == TriageAction.Skip },
+                skipped = skippedCount,
                 nothingToDo = total == 0,
+                allRead = allRead,
+                title = session.title,
+                left = left,
                 next = next,
                 loadingNext = loadingNext,
                 onNext = {
@@ -998,11 +1016,10 @@ private fun TriageCard(
             // Colored hint that fades in while you drag.
             if (overlay != null && overlayAlpha > 0.005f) {
                 val (color, icon, label) = overlayStyle(overlay)
-                val strongest = hintAlpha(color)
                 Box(
                     modifier =
                         Modifier.fillMaxSize()
-                            .background(color.copy(alpha = strongest * overlayAlpha)),
+                            .background(hintColor(color).copy(alpha = HINT_ALPHA * overlayAlpha)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
@@ -1044,27 +1061,28 @@ private fun TriageCard(
 private const val HINT_ALPHA = 0.88f
 
 /**
- * How strongly a hint colour may cover the card: no brighter than the read hint, so a lighter
- * colour (the star's, in dark theme) doesn't glare next to the others.
+ * A hint colour no brighter than the read hint, so a lighter colour (the star's, in dark theme)
+ * doesn't glare next to the others. It is deepened (mixed with a little black) rather than made
+ * see-through, so it keeps its full colour instead of looking washed out.
  */
 @Composable
-private fun hintAlpha(color: Color): Float {
+private fun hintColor(color: Color): Color {
     val card = MaterialTheme.colorScheme.surfaceContainerHigh
     val reference = MaterialTheme.colorScheme.primaryContainer
     return remember(color, card, reference) {
-        fun brightness(alpha: Float) = color.copy(alpha = alpha).compositeOver(card).luminance()
-        val target = reference.copy(alpha = HINT_ALPHA).compositeOver(card).luminance()
-        // Only a colour lighter than the card gets brighter as it covers more of it.
-        if (color.luminance() <= card.luminance() || brightness(HINT_ALPHA) <= target) {
-            HINT_ALPHA
+        fun shade(amount: Float) = lerp(color, Color.Black, amount)
+        fun brightness(c: Color) = c.copy(alpha = HINT_ALPHA).compositeOver(card).luminance()
+        val target = brightness(reference)
+        if (brightness(color) <= target) {
+            color
         } else {
-            var low = 0.3f
-            var high = HINT_ALPHA
+            var low = 0f
+            var high = 0.6f
             repeat(12) {
                 val mid = (low + high) / 2
-                if (brightness(mid) > target) high = mid else low = mid
+                if (brightness(shade(mid)) > target) low = mid else high = mid
             }
-            low
+            shade(high)
         }
     }
 }
@@ -1106,6 +1124,9 @@ private fun TriageDone(
     saved: Int,
     skipped: Int,
     nothingToDo: Boolean,
+    allRead: Boolean,
+    title: String?,
+    left: TriageLeft?,
     next: TriageNext?,
     loadingNext: Boolean,
     onNext: () -> Unit,
@@ -1116,10 +1137,12 @@ private fun TriageDone(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        // Inbox zero, like the Unread list: when you got through every card, the check pops in on
-        // an Expressive cookie shape and small shapes burst around it (once, with a tick).
-        val celebrate = !nothingToDo
-        val pop = remember { Animatable(if (celebrate) 0f else 1f) }
+        // Inbox zero, like the Unread list: when nothing is unread anywhere any more, the check pops
+        // in on an Expressive cookie shape and small shapes burst around it (once, with a tick).
+        // A group or feed done while more is unread elsewhere gets a quiet folder (or feed) badge.
+        val celebrate = allRead
+        val groupDone = !allRead && !nothingToDo
+        val pop =remember { Animatable(if (celebrate) 0f else 1f) }
         val burst = remember { Animatable(if (celebrate) 0f else 1f) }
         val haptic = LocalHapticFeedback.current
         if (celebrate) {
@@ -1139,30 +1162,72 @@ private fun TriageDone(
                             scaleY = pop.value
                             rotationZ = (1f - pop.value) * -45f
                         }
-                        .clip(if (celebrate) MaterialShapes.Cookie9Sided.toShape() else CircleShape)
+                        .clip(
+                            when {
+                                celebrate -> MaterialShapes.Cookie9Sided.toShape()
+                                groupDone -> RoundedCornerShape(32.dp)
+                                else -> CircleShape
+                            }
+                        )
                         // The same tick colour as everywhere else (Unread, end of article).
-                        .background(MaterialTheme.colorScheme.tertiaryContainer),
+                        .background(
+                            if (groupDone) MaterialTheme.colorScheme.secondaryContainer
+                            else MaterialTheme.colorScheme.tertiaryContainer
+                        ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Rounded.Check,
+                    when {
+                        !groupDone || title == null -> Icons.Rounded.Check
+                        left?.isFeeds == true -> Icons.Rounded.RssFeed
+                        else -> Icons.Rounded.Folder
+                    },
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(if (groupDone) 40.dp else 48.dp),
+                    tint =
+                        if (groupDone) MaterialTheme.colorScheme.onSecondaryContainer
+                        else MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }
         }
         Spacer(Modifier.height(24.dp))
         Text(
             text =
-                stringResource(
-                    if (nothingToDo) R.string.triage_nothing else R.string.triage_all_done
-                ),
+                when {
+                    nothingToDo -> stringResource(R.string.triage_nothing)
+                    allRead -> stringResource(R.string.triage_all_done)
+                    title != null -> stringResource(R.string.triage_group_done, title)
+                    else -> stringResource(R.string.triage_cards_done)
+                },
             style = MaterialTheme.typography.headlineMedium,
             fontFamily = GoogleSansWideFontFamily,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
         )
+        // What's left: nothing anywhere, or how much is still unread elsewhere (or skipped here).
+        val leftText =
+            when {
+                nothingToDo -> null
+                allRead -> stringResource(R.string.triage_everything_read)
+                left != null && left.unread > 0 ->
+                    pluralStringResource(
+                        if (left.isFeeds) R.plurals.triage_left_feeds else R.plurals.triage_left_groups,
+                        left.places,
+                        left.unread,
+                        left.places,
+                    )
+                skipped > 0 -> pluralStringResource(R.plurals.triage_skipped_left, skipped, skipped)
+                else -> null
+            }
+        if (leftText != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = leftText,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
         if (!nothingToDo) {
             Spacer(Modifier.height(24.dp))
             // This session at a glance, in the same order as the swipes: saved (left), skipped

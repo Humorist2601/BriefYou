@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import me.ash.reader.brief.triage.TriageLeft
 import me.ash.reader.brief.triage.TriageNext
 import me.ash.reader.brief.triage.TriageSession
 import me.ash.reader.domain.data.DiffMapHolder
@@ -73,6 +74,42 @@ constructor(
             if (unread > 0) return TriageNext(item.group.id, item.group.name, unread)
         }
         return null
+    }
+
+    /**
+     * Unread articles outside the feed or group the list shows ([feedId] wins over [groupId]), for
+     * inbox zero: the celebration only plays when nothing is unread anywhere. 0 for the list of
+     * everything.
+     */
+    fun unreadOutside(feedId: String?, groupId: String?): Int {
+        val groups = groupWithFeedsListUseCase.groupWithFeedListFlow.value
+        return when {
+            feedId != null -> groups.flatMap { it.feeds }.filter { it.id != feedId }.sumOf { it.important }
+            groupId != null -> groups.filter { it.group.id != groupId }.sumOf { g -> g.feeds.sumOf { it.important } }
+            else -> 0
+        }
+    }
+
+    /**
+     * The unread articles left outside the groups (or feeds) triaged in this session, and in how
+     * many groups (or feeds) they are, for Triage's end screen. Null when that isn't known (triage
+     * opened on everything, or the list isn't showing unread articles).
+     */
+    fun triageLeft(groupId: String?, feedId: String?, visited: Set<String>): TriageLeft? {
+        if (groupId == null && feedId == null) return null
+        if (!filterStateUseCase.filterStateFlow.value.filter.isUnread()) return null
+        val groups = groupWithFeedsListUseCase.groupWithFeedListFlow.value
+        return if (feedId != null) {
+            val left = groups.flatMap { it.feeds }.filter { it.id !in visited && it.important > 0 }
+            TriageLeft(unread = left.sumOf { it.important }, places = left.size, isFeeds = true)
+        } else {
+            val left =
+                groups
+                    .filter { it.group.id !in visited }
+                    .map { it.feeds.sumOf { feed -> feed.important } }
+                    .filter { it > 0 }
+            TriageLeft(unread = left.sum(), places = left.size, isFeeds = false)
+        }
     }
 
     /** The unread articles of a group or feed, newest first like the list, for triage to continue. */

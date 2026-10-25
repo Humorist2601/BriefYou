@@ -127,9 +127,11 @@
     <string name="filters_yesterday">Yesterday</string>
     <string name="filters_reason_muted">Muted “%1$s”</string>
     <string name="filters_reason_duplicate">Duplicate of %1$s</string>
-    <string name="filters_first_in">First in %1$s</string>
-    <string name="filters_first_story">First story</string>
-    <string name="filters_copy_marked_read">Marked as read</string>
+    <string name="filters_kept_unread_from">Kept unread · %1$s</string>
+    <string name="filters_kept_unread">Kept unread</string>
+    <string name="filters_hidden_from">Hidden · %1$s</string>
+    <string name="filters_earlier">Earlier (%1$d)</string>
+    <string name="filters_nothing_today">Nothing filtered today</string>
     <string name="filters_from_feed">from %1$s</string>
     <string name="filters_original_story">Original: %1$s</string>
     <plurals name="filters_caught">
@@ -180,6 +182,21 @@
     <string name="triage_open">Open</string>
     <string name="triage_all_done">All caught up</string>
     <string name="triage_nothing">Nothing unread here</string>
+    <string name="triage_group_done">%1$s done</string>
+    <string name="triage_cards_done">All cards done</string>
+    <string name="triage_everything_read">Nothing unread anywhere</string>
+    <plurals name="triage_left_groups">
+        <item quantity="one">%1$d unread left in %2$d group</item>
+        <item quantity="other">%1$d unread left in %2$d groups</item>
+    </plurals>
+    <plurals name="triage_left_feeds">
+        <item quantity="one">%1$d unread left in %2$d feed</item>
+        <item quantity="other">%1$d unread left in %2$d feeds</item>
+    </plurals>
+    <plurals name="triage_skipped_left">
+        <item quantity="one">%1$d skipped card is still unread</item>
+        <item quantity="other">%1$d skipped cards are still unread</item>
+    </plurals>
     <string name="triage_back_to_list">Back to list</string>
     <string name="triage_auto_start">Start auto-advance</string>
     <string name="triage_auto_stop">Stop auto-advance</string>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.Badge // Brief You
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,6 +40,7 @@ fun GroupItem(
     onExpanded: () -> Unit = {},
     onLongClick: () -> Unit = {},
     groupOnClick: () -> Unit = {},
+    count: Int = 0, // Brief You: the group's unread (or all/starred) count, next to its arrow
 ) {
     val view = LocalView.current
 
@@ -71,6 +73,19 @@ fun GroupItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (count > 0) { // Brief You: the group's count, in the same badge as each feed's
+                Badge(
+                    modifier = Modifier.padding(end = 10.dp),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.outline,
+                    content = {
+                        Text(
+                            text = count.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    },
+                )
+            }
             Row(
                 modifier = Modifier
                     .padding(end = 20.dp)

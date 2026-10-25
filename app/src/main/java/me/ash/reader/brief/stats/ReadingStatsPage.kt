@@ -196,7 +196,7 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                         modifier =
                             Modifier.fillMaxWidth()
                                 .height(IntrinsicSize.Min)
-                                .padding(horizontal = 24.dp),
+                                .padding(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         StatTile(
@@ -256,7 +256,7 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                     } else {
                         val most = topFeeds.first().value.coerceAtLeast(1)
                         Column(
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(3.dp),
                         ) {
                             topFeeds.forEachIndexed { i, (name, count) ->
@@ -283,7 +283,7 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                             ),
                     )
                     Column(
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Row(
@@ -422,7 +422,7 @@ private fun HeroCard(minutes: Long, daysRead: Int) {
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         shape = RoundedCornerShape(32.dp),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 22.dp),
@@ -552,7 +552,7 @@ private fun WeekChart(week: List<LocalDate>, today: LocalDate, values: List<Long
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = RoundedCornerShape(28.dp),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().height(208.dp).padding(16.dp),

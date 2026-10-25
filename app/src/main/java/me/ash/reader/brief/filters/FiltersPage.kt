@@ -54,6 +54,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -135,6 +137,8 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
     val context = LocalContext.current
 
     var addDialogVisible by rememberSaveable { mutableStateOf(false) }
+    // Older days are tucked into one "Earlier" row; today's are always shown.
+    var earlierOpen by rememberSaveable { mutableStateOf(false) }
     val mutedCount = log.count { it.reason == FilterReason.MutedKeyword }
     val duplicateCount = log.count { it.reason == FilterReason.Duplicate }
     // The filtered articles, newest first, under Today / Yesterday / a date.
@@ -165,7 +169,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                     Spacer(Modifier.height(8.dp))
                     // At a glance: what the filters have caught recently.
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         StatTile(
@@ -195,7 +199,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         onClick = { viewModel.filters.setHideDuplicates(!dupes) },
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         shape = RoundedCornerShape(24.dp),
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     ) {
                         Row(
                             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
@@ -233,7 +237,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         shape = RoundedCornerShape(28.dp),
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     ) {
                       Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -372,20 +376,23 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         )
                     }
                 }
-                days.forEach { (day, entries) ->
-                    item(key = "day-$day") {
-                        Text(
-                            text = dayLabel(day),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(start = 28.dp, top = 12.dp, bottom = 8.dp),
-                        )
-                    }
-                    val open = { articleId: String ->
-                        context.startActivity(
-                            Intent(context, MainActivity::class.java)
-                                .putExtra(ExtraName.ARTICLE_ID, articleId)
-                        )
+                val open = { articleId: String ->
+                    context.startActivity(
+                        Intent(context, MainActivity::class.java)
+                            .putExtra(ExtraName.ARTICLE_ID, articleId)
+                    )
+                }
+                // One day's filtered articles: duplicates grouped under the story that was kept.
+                fun dayRows(day: Long, entries: List<LogRow>, header: Boolean) {
+                    if (header) {
+                        item(key = "day-$day") {
+                            Text(
+                                text = dayLabel(day),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 8.dp),
+                            )
+                        }
                     }
                     itemsIndexed(entries, key = { _, it -> it.key }) { index, row ->
                         when (row) {
@@ -406,13 +413,39 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         }
                     }
                 }
+                val today = java.time.LocalDate.now().toEpochDay()
+                val earlier = days.filterKeys { it != today }
+                val todayRows = days[today]
+                if (todayRows != null) {
+                    dayRows(today, todayRows, header = true)
+                } else if (earlier.isNotEmpty()) {
+                    item(key = "nothing-today") {
+                        Text(
+                            text = stringResource(R.string.filters_nothing_today),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+                if (earlier.isNotEmpty()) {
+                    val earlierCount = log.count { dayOf(it.at) != today }
+                    item(key = "earlier") {
+                        EarlierRow(
+                            count = earlierCount,
+                            open = earlierOpen,
+                            onClick = { earlierOpen = !earlierOpen },
+                        )
+                    }
+                    if (earlierOpen) earlier.forEach { (day, entries) -> dayRows(day, entries, header = true) }
+                }
                 item {
                     Spacer(Modifier.height(8.dp))
                     Surface(
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         shape = RoundedCornerShape(24.dp),
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             ShapeIcon(Icons.Outlined.Info, MaterialShapes.Cookie4Sided, tonal = true)
@@ -494,7 +527,7 @@ private fun FilterLogCard(
         onClick = onOpen,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 1.5.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.5.dp),
     ) {
         Row(
             modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
@@ -649,7 +682,7 @@ private fun DuplicateGroupCard(
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 1.5.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.5.dp),
     ) {
         Column {
             Row(
@@ -680,8 +713,8 @@ private fun DuplicateGroupCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text =
-                            group.originalFeed?.let { stringResource(R.string.filters_first_in, it) }
-                                ?: stringResource(R.string.filters_first_story),
+                            group.originalFeed?.let { stringResource(R.string.filters_kept_unread_from, it) }
+                                ?: stringResource(R.string.filters_kept_unread),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,
@@ -708,17 +741,20 @@ private fun DuplicateGroupCard(
                             .padding(start = 62.dp, end = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    // The hidden copy: which feed it came from, and its own title.
                     Column(modifier = Modifier.weight(1f).padding(vertical = 8.dp)) {
                         Text(
-                            text = copy.feedName,
-                            style = MaterialTheme.typography.labelLarge,
+                            text = stringResource(R.string.filters_hidden_from, copy.feedName),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.tertiary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = stringResource(R.string.filters_copy_marked_read),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = copy.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     // Undo on a soft round background.
@@ -738,6 +774,33 @@ private fun DuplicateGroupCard(
                 }
             }
             Spacer(Modifier.height(4.dp))
+        }
+    }
+}
+
+/** "Earlier (12)": opens and closes the filtered articles of the days before today. */
+@Composable
+private fun EarlierRow(count: Int, open: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.filters_earlier, count),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

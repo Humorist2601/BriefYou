@@ -133,7 +133,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                     )
                     // The two instructions as connected cards, each with a preview of its text.
                     Column(
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(3.dp),
                     ) {
                         PromptCard(
@@ -161,7 +161,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         shape = RoundedCornerShape(24.dp),
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
@@ -276,7 +276,7 @@ private fun ModelHero(
         color = container,
         contentColor = content,
         shape = RoundedCornerShape(32.dp),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
     ) {
         Column(modifier = Modifier.padding(horizontal = 22.dp, vertical = 22.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

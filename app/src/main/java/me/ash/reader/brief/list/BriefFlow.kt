@@ -169,9 +169,17 @@ fun BriefFlowOverlays(
     }
 
     if (state.celebrate) {
-        LaunchedEffect(Unit) { ReadingStats.inboxZero(context) } // Reading stats
-        ScreenOverlay {
-            InboxZeroCelebration(visible = true, onFinished = { state.celebrate = false })
+        // Only when nothing is unread anywhere: marking one feed or group as read while others
+        // still have unread articles is not inbox zero.
+        val elsewhere =
+            remember { briefViewModel.unreadOutside(filterUiState.feed?.id, filterUiState.group?.id) }
+        if (elsewhere > 0) {
+            LaunchedEffect(Unit) { state.celebrate = false }
+        } else {
+            LaunchedEffect(Unit) { ReadingStats.inboxZero(context) } // Reading stats
+            ScreenOverlay {
+                InboxZeroCelebration(visible = true, onFinished = { state.celebrate = false })
+            }
         }
     }
 
@@ -237,6 +245,7 @@ fun BriefFlowOverlays(
                 briefViewModel.triageResume = false
             },
             findNext = { groupId, feedId, visited -> briefViewModel.nextTriage(groupId, feedId, visited) },
+            findLeft = { groupId, feedId, visited -> briefViewModel.triageLeft(groupId, feedId, visited) },
             loadNext = { next -> briefViewModel.loadTriage(next) },
         )
     }

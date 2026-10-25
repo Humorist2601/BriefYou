@@ -112,8 +112,14 @@ fun RYWebView(
             selectionTextColor = selectionTextColor,
             selectionBgColor = selectionBgColor,
             isDark = isDarkBackground,
-        )
-    val script = WebViewScript.get(boldCharacters.value)
+        ) +
+            // Boxes with a loading indicator for the pictures still loading (no jumping text).
+            ImagePlaceholders.css(
+                boxColor =
+                    colorScheme.surfaceColorAtElevation((tonalElevation.value + 6).dp).toArgb(),
+                indicatorColor = colorScheme.primary.toArgb(),
+            )
+    val script = WebViewScript.get(boldCharacters.value) + ImagePlaceholders.SCRIPT
 
     // Brief You: one web view per article (and reading font), freed when it leaves the screen.
     // When only the styling changes (the picture's colours arriving, the text sheet), the new
