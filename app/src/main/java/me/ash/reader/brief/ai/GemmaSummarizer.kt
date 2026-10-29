@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
 import com.google.ai.edge.litertlm.Backend
+import me.ash.reader.BuildConfig
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
@@ -65,8 +66,10 @@ data class GistItem(
  *
  * Nothing leaves the phone: the user imports a `.litertlm` model file once (for example Gemma 4
  * E2B from the litert-community page on Hugging Face), it is copied into the app's private
- * storage, and everything runs locally. The engine is loaded on first use (GPU, falling back to
- * CPU) and unloaded after a few idle minutes so the multi-gigabyte model doesn't stay in memory.
+ * storage, and everything runs locally. The engine is loaded ahead of time while you read (see
+ * [preload]) or on first use, on the GPU (falling back to the CPU, which is then remembered so later
+ * loads don't try the GPU first), and unloaded after a few idle minutes so the multi-gigabyte model
+ * doesn't stay in memory.
  * The instructions sent to the model are editable in Settings → AI model.
  */
 @Singleton
@@ -80,7 +83,8 @@ constructor(
     private val prefs = context.getSharedPreferences("ai_settings", Context.MODE_PRIVATE)
     private val engineLock = Mutex()
     private val generationLock = Mutex()
-    private var engine: Engine? = null
+    @Volatile private var engine: Engine? = null
+    private var preloadJob: Job? = null
     private var unloadJob: Job? = null
     private var importJob: Job? = null
     private val activeUses = AtomicInteger(0)
@@ -318,6 +322,22 @@ constructor(
             }
             .flowOn(Dispatchers.Default)
 
+    /**
+     * Starts loading the model in the background, so the first summary or gist doesn't wait for it
+     * (called when you open an article or the Unread list). Does nothing without a model, while one
+     * is being imported, or when it is loaded already. Unused, it unloads after the usual idle time.
+     */
+    fun preload() {
+        if (!hasModel() || engine != null) return
+        if (preloadJob?.isActive == true || importJob?.isActive == true) return
+        preloadJob =
+            appScope.launch(Dispatchers.Default) {
+                runCatching { acquireEngine() }
+                    .onSuccess { if (activeUses.decrementAndGet() == 0) scheduleUnload() }
+                    .onFailure { Timber.w(it, "could not preload the model") }
+            }
+    }
+
     private suspend fun acquireEngine(): Engine {
         engineLock.withLock {
             unloadJob?.cancel()
@@ -327,26 +347,30 @@ constructor(
             }
             check(hasModel()) { "No model imported. Add one in Settings → AI model." }
             val cacheDir = File(context.cacheDir, "litertlm").apply { mkdirs() }.absolutePath
+            fun load(backend: Backend) =
+                Engine(
+                        EngineConfig(
+                            modelPath = modelFile.absolutePath,
+                            backend = backend,
+                            cacheDir = cacheDir,
+                        )
+                    )
+                    .also { it.initialize() }
+            // When the GPU failed before (in this version of the app), go straight to the CPU
+            // instead of trying the GPU again first, which takes a while to fail. A new version
+            // tries the GPU again.
+            val gpuFailed = prefs.getInt(KEY_GPU_FAILED_IN, -1) == BuildConfig.VERSION_CODE
             val created =
-                try {
-                    Engine(
-                            EngineConfig(
-                                modelPath = modelFile.absolutePath,
-                                backend = Backend.GPU(),
-                                cacheDir = cacheDir,
-                            )
-                        )
-                        .also { it.initialize() }
-                } catch (t: Throwable) {
-                    Timber.w(t, "GPU backend failed, falling back to CPU")
-                    Engine(
-                            EngineConfig(
-                                modelPath = modelFile.absolutePath,
-                                backend = Backend.CPU(),
-                                cacheDir = cacheDir,
-                            )
-                        )
-                        .also { it.initialize() }
+                if (gpuFailed) {
+                    load(Backend.CPU())
+                } else {
+                    try {
+                        load(Backend.GPU())
+                    } catch (t: Throwable) {
+                        Timber.w(t, "GPU backend failed, falling back to CPU")
+                        prefs.edit { putInt(KEY_GPU_FAILED_IN, BuildConfig.VERSION_CODE) }
+                        load(Backend.CPU())
+                    }
                 }
             engine = created
             activeUses.incrementAndGet()
@@ -381,6 +405,8 @@ constructor(
 
         private const val KEY_ARTICLE_PROMPT = "article_prompt"
         private const val KEY_GIST_PROMPT = "gist_prompt"
+        /** The app version in which the GPU failed to load the model. */
+        private const val KEY_GPU_FAILED_IN = "gpu_failed_in"
         // Roughly 2.5k tokens of input, leaving room for the instruction and the answer.
         private const val MAX_INPUT_CHARS = 10_000
         private const val MAX_GIST_DESC_CHARS = 220

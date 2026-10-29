@@ -182,8 +182,11 @@
     <string name="triage_open">Open</string>
     <string name="triage_all_done">All caught up</string>
     <string name="triage_nothing">Nothing unread here</string>
-    <string name="triage_group_done">%1$s done</string>
-    <string name="triage_cards_done">All cards done</string>
+    <plurals name="triage_cards_cleared">
+        <item quantity="one">%1$d card cleared</item>
+        <item quantity="other">%1$d cards cleared</item>
+    </plurals>
+    <string name="triage_group_clear">%1$s is clear</string>
     <string name="triage_everything_read">Nothing unread anywhere</string>
     <plurals name="triage_left_groups">
         <item quantity="one">%1$d unread left in %2$d group</item>
@@ -193,9 +196,19 @@
         <item quantity="one">%1$d unread left in %2$d feed</item>
         <item quantity="other">%1$d unread left in %2$d feeds</item>
     </plurals>
+    <string name="triage_left_in_name">%1$d unread left in %2$s</string>
+    <plurals name="triage_groups_clear">
+        <item quantity="one">%1$d of %2$d group clear</item>
+        <item quantity="other">%1$d of %2$d groups clear</item>
+    </plurals>
+    <plurals name="triage_feeds_clear">
+        <item quantity="one">%1$d of %2$d feed clear</item>
+        <item quantity="other">%1$d of %2$d feeds clear</item>
+    </plurals>
+    <string name="triage_percent">%1$d%%</string>
     <plurals name="triage_skipped_left">
-        <item quantity="one">%1$d skipped card is still unread</item>
-        <item quantity="other">%1$d skipped cards are still unread</item>
+        <item quantity="one">%1$d skipped card still unread</item>
+        <item quantity="other">%1$d skipped cards still unread</item>
     </plurals>
     <string name="triage_back_to_list">Back to list</string>
     <string name="triage_auto_start">Start auto-advance</string>

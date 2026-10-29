@@ -48,6 +48,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 <summary>More details</summary>
 
 - Runs Google's Gemma model through [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM). Nothing is sent to a server, and summaries are never saved.
+- The model starts loading in the background when you open an article or an *Unread* list, so ✨ answers without waiting for it, and it unloads after 3 idle minutes. If your phone's GPU can't run it, the app remembers and goes straight to the CPU next time.
 - Summaries open in a sheet at 70% of the screen. Each key point slides in as a card as it's written, and "Why it matters" gets its own accent card.
 - Regenerate, Ask and Read are three connected buttons at the bottom of the sheet.
 - Gists: tap **AI gist** in the floating button at the bottom of an *Unread* list. One tap marks all of them as read.
@@ -104,7 +105,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | --- | --- |
 | **Card stack** | Swipe right: read · left: save · up: open · down: skip. Undo takes back your last choice. |
 | **Auto-advance** | Skips each card after a few seconds, with a wavy ring counting down. |
-| **Next group** | When a group (or feed) is done, it says how much is still unread elsewhere and carries straight on with the next one. *All caught up* only when nothing is unread anywhere. |
+| **Next group** | When a group (or feed) is done: a ring with how much of all your unread is cleared ("3 of 4 groups clear"), what's left, and the next group, which starts by itself after a countdown while auto-advance is on. *All caught up* only when nothing is unread anywhere. |
 | **Inbox zero** | A little celebration when you're all caught up. |
 
 <details>

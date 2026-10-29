@@ -19,6 +19,7 @@ import me.ash.reader.brief.reading.FeedContent
 import androidx.activity.BackEventCompat
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animate
@@ -174,6 +175,15 @@ data class TriageNext(
 /** The unread articles left elsewhere once a group or feed is done, and in how many places. */
 data class TriageLeft(val unread: Int, val places: Int, val isFeeds: Boolean)
 
+/** The end screen's ring: how much of everything unread is cleared, and how many places are clear. */
+internal data class TriageProgress(
+    val fraction: Float,
+    val clear: Int,
+    val total: Int,
+    val remaining: Int,
+    val isFeeds: Boolean,
+)
+
 /**
  * One triage run: the cards, where you are, and what you did (for Undo). It lives outside the
  * screen, so opening an article from triage and coming back continues exactly where you were. When
@@ -210,7 +220,28 @@ class TriageSession(
     /** Auto-advance is running: cards are skipped on their own after a few seconds. */
     var autoRunning by mutableStateOf(false)
 
+    /** Everything unread when the run started (all groups, or all feeds), and in how many. */
+    var startUnread = 0
+        private set
+    var startPlaces = 0
+        private set
+
+    /** Cards skipped in the groups (or feeds) done before this one, and in how many of them. */
+    var skippedBefore = 0
+        private set
+    var placesWithSkips = 0
+        private set
+
+    fun setStart(unread: Int, places: Int) {
+        startUnread = unread
+        startPlaces = places
+    }
+
     fun startNext(next: TriageNext, cards: List<ArticleWithFeed>) {
+        // Skipped cards stay unread: they still count as left when the ring is worked out.
+        val skipped = history.count { it.action == TriageAction.Skip }
+        skippedBefore += skipped
+        if (skipped > 0) placesWithSkips++
         visited = visited + next.id
         groupId = if (next.isFeed) null else next.id
         feedId = if (next.isFeed) next.id else null
@@ -453,6 +484,23 @@ private fun TriageContent(
     // "All caught up" (and an inbox zero in Reading stats) only when nothing is unread anywhere:
     // nothing left in other groups or feeds, and no card skipped here.
     val allRead = done && total > 0 && next == null && (left?.unread ?: 0) == 0 && skippedCount == 0
+    // The ring: how much of everything unread at the start is cleared now (what's left: the
+    // unread in groups not done yet, and the cards skipped along the way), and how many groups
+    // (or feeds) are clear. Null when it isn't known (Triage on everything).
+    val progress =
+        if (done && left != null && session.startUnread > 0) {
+            val remaining = left.unread + session.skippedBefore + skippedCount
+            TriageProgress(
+                fraction = (1f - remaining.toFloat() / session.startUnread).coerceIn(0f, 1f),
+                clear =
+                    (session.startPlaces - left.places - session.placesWithSkips -
+                            (if (skippedCount > 0) 1 else 0))
+                        .coerceIn(0, session.startPlaces),
+                total = session.startPlaces,
+                remaining = remaining,
+                isFeeds = left.isFeeds,
+            )
+        } else null
 
     fun decide(action: TriageAction) {
         val article = current ?: return
@@ -580,6 +628,9 @@ private fun TriageContent(
                 skipped = skippedCount,
                 nothingToDo = total == 0,
                 allRead = allRead,
+                progress = progress,
+                // With auto-advance running, the next group starts by itself after the delay.
+                autoSeconds = if (session.autoRunning) autoSeconds else 0,
                 title = session.title,
                 left = left,
                 next = next,
@@ -1125,6 +1176,8 @@ private fun TriageDone(
     skipped: Int,
     nothingToDo: Boolean,
     allRead: Boolean,
+    progress: TriageProgress?,
+    autoSeconds: Int,
     title: String?,
     left: TriageLeft?,
     next: TriageNext?,
@@ -1139,7 +1192,7 @@ private fun TriageDone(
     ) {
         // Inbox zero, like the Unread list: when nothing is unread anywhere any more, the check pops
         // in on an Expressive cookie shape and small shapes burst around it (once, with a tick).
-        // A group or feed done while more is unread elsewhere gets a quiet folder (or feed) badge.
+        // A group or feed done while more is unread elsewhere: a calm check on a cookie shape.
         val celebrate = allRead
         val groupDone = !allRead && !nothingToDo
         val pop =remember { Animatable(if (celebrate) 0f else 1f) }
@@ -1152,7 +1205,10 @@ private fun TriageDone(
                 burst.animateTo(1f, tween(900, easing = FastOutSlowInEasing))
             }
         }
-        Box(contentAlignment = Alignment.Center) {
+        if (groupDone && progress != null) {
+            // How much of everything unread is cleared, as a wavy Expressive ring that fills in.
+            ProgressRing(progress.fraction)
+        } else Box(contentAlignment = Alignment.Center) {
             if (celebrate) CelebrationBurst(progress = { burst.value })
             Box(
                 modifier =
@@ -1163,29 +1219,22 @@ private fun TriageDone(
                             rotationZ = (1f - pop.value) * -45f
                         }
                         .clip(
-                            when {
-                                celebrate -> MaterialShapes.Cookie9Sided.toShape()
-                                groupDone -> RoundedCornerShape(32.dp)
-                                else -> CircleShape
-                            }
+                            if (nothingToDo) CircleShape else MaterialShapes.Cookie9Sided.toShape()
                         )
-                        // The same tick colour as everywhere else (Unread, end of article).
+                        // The same tick colour as everywhere else (Unread, end of article) for
+                        // inbox zero; the accent's container for a group done.
                         .background(
-                            if (groupDone) MaterialTheme.colorScheme.secondaryContainer
+                            if (groupDone) MaterialTheme.colorScheme.primaryContainer
                             else MaterialTheme.colorScheme.tertiaryContainer
                         ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    when {
-                        !groupDone || title == null -> Icons.Rounded.Check
-                        left?.isFeeds == true -> Icons.Rounded.RssFeed
-                        else -> Icons.Rounded.Folder
-                    },
+                    Icons.Rounded.Check,
                     contentDescription = null,
-                    modifier = Modifier.size(if (groupDone) 40.dp else 48.dp),
+                    modifier = Modifier.size(48.dp),
                     tint =
-                        if (groupDone) MaterialTheme.colorScheme.onSecondaryContainer
+                        if (groupDone) MaterialTheme.colorScheme.onPrimaryContainer
                         else MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }
@@ -1196,19 +1245,31 @@ private fun TriageDone(
                 when {
                     nothingToDo -> stringResource(R.string.triage_nothing)
                     allRead -> stringResource(R.string.triage_all_done)
-                    title != null -> stringResource(R.string.triage_group_done, title)
-                    else -> stringResource(R.string.triage_cards_done)
+                    // How many groups (or feeds) are clear, of all that had unread at the start.
+                    progress != null ->
+                        pluralStringResource(
+                            if (progress.isFeeds) R.plurals.triage_feeds_clear
+                            else R.plurals.triage_groups_clear,
+                            progress.total,
+                            progress.clear,
+                            progress.total,
+                        )
+                    // Triage on everything: every card dealt with.
+                    else -> {
+                        val cleared = read + saved + skipped
+                        pluralStringResource(R.plurals.triage_cards_cleared, cleared, cleared)
+                    }
                 },
             style = MaterialTheme.typography.headlineMedium,
             fontFamily = GoogleSansWideFontFamily,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
         )
-        // What's left: nothing anywhere, or how much is still unread elsewhere (or skipped here).
-        val leftText =
+        // Which group (or feed) is clear, and what's left: how much is still unread elsewhere, or
+        // the cards skipped here.
+        val clearText = title?.let { stringResource(R.string.triage_group_clear, it) }
+        val remainText =
             when {
-                nothingToDo -> null
-                allRead -> stringResource(R.string.triage_everything_read)
                 left != null && left.unread > 0 ->
                     pluralStringResource(
                         if (left.isFeeds) R.plurals.triage_left_feeds else R.plurals.triage_left_groups,
@@ -1218,6 +1279,28 @@ private fun TriageDone(
                     )
                 skipped > 0 -> pluralStringResource(R.plurals.triage_skipped_left, skipped, skipped)
                 else -> null
+            }
+        // With the ring: what's still unread, and where (by name when it's one group).
+        val placesLeft = progress?.let { it.total - it.clear } ?: 0
+        val ringText =
+            when {
+                progress == null || progress.remaining <= 0 -> null
+                placesLeft == 1 && next != null && (left?.places ?: 0) == 1 ->
+                    stringResource(R.string.triage_left_in_name, progress.remaining, next.name)
+                else ->
+                    pluralStringResource(
+                        if (progress.isFeeds) R.plurals.triage_left_feeds else R.plurals.triage_left_groups,
+                        placesLeft,
+                        progress.remaining,
+                        placesLeft,
+                    )
+            }
+        val leftText =
+            when {
+                nothingToDo -> null
+                allRead -> stringResource(R.string.triage_everything_read)
+                progress != null -> ringText
+                else -> listOfNotNull(clearText, remainText).joinToString(" · ").ifEmpty { null }
             }
         if (leftText != null) {
             Spacer(Modifier.height(6.dp))
@@ -1264,12 +1347,51 @@ private fun TriageDone(
         }
         Spacer(Modifier.height(24.dp))
         if (next != null) {
-            NextCard(next = next, loading = loadingNext, onClick = onNext)
+            // Auto-advance: the card counts down (a ring round its arrow), then carries on.
+            val countdown = remember(next) { Animatable(0f) }
+            val continueNow by rememberUpdatedState(onNext)
+            LaunchedEffect(next, autoSeconds, loadingNext) {
+                countdown.snapTo(0f)
+                if (autoSeconds <= 0 || loadingNext) return@LaunchedEffect
+                countdown.animateTo(1f, tween(autoSeconds * 1000, easing = LinearEasing))
+                continueNow()
+            }
+            NextCard(
+                next = next,
+                loading = loadingNext,
+                countdown = if (autoSeconds > 0 && !loadingNext) ({ countdown.value }) else null,
+                onClick = onNext,
+            )
             Spacer(Modifier.height(8.dp))
             TextButton(onClick = onClose) { Text(stringResource(R.string.triage_back_to_list)) }
         } else {
             Button(onClick = onClose) { Text(stringResource(R.string.triage_back_to_list)) }
         }
+    }
+}
+
+/**
+ * How much of everything unread is cleared: a wavy Expressive ring that fills in from where it
+ * starts, with the percentage in the middle.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ProgressRing(fraction: Float) {
+    val shown = remember { Animatable(0f) }
+    LaunchedEffect(fraction) { shown.animateTo(fraction, tween(900, easing = FastOutSlowInEasing)) }
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(128.dp)) {
+        CircularWavyProgressIndicator(
+            progress = { shown.value },
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+        )
+        Text(
+            text = stringResource(R.string.triage_percent, (shown.value * 100).roundToInt()),
+            style = MaterialTheme.typography.headlineSmall,
+            fontFamily = GoogleSansWideFontFamily,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -1307,7 +1429,12 @@ private fun SessionTile(
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun NextCard(next: TriageNext, loading: Boolean, onClick: () -> Unit) {
+private fun NextCard(
+    next: TriageNext,
+    loading: Boolean,
+    countdown: (() -> Float)?,
+    onClick: () -> Unit,
+) {
     Surface(
         onClick = onClick,
         enabled = !loading,
@@ -1364,6 +1491,15 @@ private fun NextCard(next: TriageNext, loading: Boolean, onClick: () -> Unit) {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Rounded.ArrowUpward, contentDescription = null, modifier = Modifier.size(22.dp))
+                if (countdown != null) {
+                    CircularProgressIndicator(
+                        progress = countdown,
+                        modifier = Modifier.size(40.dp),
+                        strokeWidth = 3.dp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        trackColor = Color.Transparent,
+                    )
+                }
             }
         }
     }

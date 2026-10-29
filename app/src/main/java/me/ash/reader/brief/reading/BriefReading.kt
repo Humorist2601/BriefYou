@@ -372,6 +372,8 @@ fun BriefReadingPage(
     onNavigateToStylePage: () -> Unit,
     onNavigateToAiSettings: () -> Unit = {},
 ) {
+    // The AI model starts loading while you read, so the AI button doesn't wait for it.
+    me.ash.reader.brief.ai.PreloadAi()
     BriefReadingTheme(viewModel) {
         ReadingPage(
             viewModel = viewModel,

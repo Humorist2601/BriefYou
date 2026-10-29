@@ -145,6 +145,8 @@ fun BriefFlowOverlays(
     briefViewModel: BriefListViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    // The AI model starts loading on the Unread list, so the gist doesn't wait for it.
+    me.ash.reader.brief.ai.PreloadAi(enabled = filterUiState.filter.isUnread())
     // Opens links the way chosen in the settings ("open links in").
     val uriHandler = LocalUriHandler.current
 
@@ -210,7 +212,14 @@ fun BriefFlowOverlays(
                         feedId = filterUiState.feed?.id,
                         title = filterUiState.feed?.name ?: filterUiState.group?.name,
                     )
-                    .also { briefViewModel.triageSession = it }
+                    .also {
+                        // How much is unread everywhere as it starts, for the progress ring.
+                        if (it.groupId != null || it.feedId != null) {
+                            val (unread, places) = briefViewModel.triageTotals(feeds = it.feedId != null)
+                            it.setStart(unread, places)
+                        }
+                        briefViewModel.triageSession = it
+                    }
         }
         TriageScreen(
             session = session,

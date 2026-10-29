@@ -77,6 +77,19 @@ constructor(
     }
 
     /**
+     * Everything unread when a Triage run starts, for its progress ring: the unread articles in all
+     * groups (or, for a run started from a feed, all feeds), and how many of them have any.
+     */
+    fun triageTotals(feeds: Boolean): Pair<Int, Int> {
+        if (!filterStateUseCase.filterStateFlow.value.filter.isUnread()) return 0 to 0
+        val groups = groupWithFeedsListUseCase.groupWithFeedListFlow.value
+        val counts =
+            if (feeds) groups.flatMap { it.feeds }.map { it.important }
+            else groups.map { g -> g.feeds.sumOf { it.important } }
+        return counts.sum() to counts.count { it > 0 }
+    }
+
+    /**
      * Unread articles outside the feed or group the list shows ([feedId] wins over [groupId]), for
      * inbox zero: the celebration only plays when nothing is unread anywhere. 0 for the list of
      * everything.
