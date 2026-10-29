@@ -151,7 +151,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **App shortcuts** | Long-press the icon for Triage, AI gist, Unread or Sync now. |
 | **Reading stats** | This week Monday to Sunday (a bar per day), articles read, your streak, top feeds, and this month compared with last month, in *Settings → Reading stats*. |
 | **Swipe between Starred, Unread and All** | Each with its own list and scroll position. |
-| **Predictive back** | Matches Android's own back animation, in screens and dialogs. |
+| **Predictive back** | Android's own back animation, in screens and dialogs, with a gentler dim on the screen behind so it never flashes dark. |
 | **New icon and animated splash** | A fanned stack of cards that grows into the app. |
 
 <details>

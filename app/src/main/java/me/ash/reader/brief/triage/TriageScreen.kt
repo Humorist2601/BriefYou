@@ -484,6 +484,8 @@ private fun TriageContent(
     // "All caught up" (and an inbox zero in Reading stats) only when nothing is unread anywhere:
     // nothing left in other groups or feeds, and no card skipped here.
     val allRead = done && total > 0 && next == null && (left?.unread ?: 0) == 0 && skippedCount == 0
+    // The last card's countdown doesn't stay in the ring on the end screen.
+    LaunchedEffect(done) { if (done) autoProgress.floatValue = 0f }
     // The ring: how much of everything unread at the start is cleared now (what's left: the
     // unread in groups not done yet, and the cards skipped along the way), and how many groups
     // (or feeds) are clear. Null when it isn't known (Triage on everything).
@@ -584,8 +586,9 @@ private fun TriageContent(
                 running = session.autoRunning,
                 paused = autoHeld && current != null,
                 seconds = autoSeconds,
-                // No ring on the "All caught up" screen, where there is no card left to skip.
-                progress = { if (current != null) autoProgress.floatValue else 0f },
+                // On a card: the countdown to the next card. On the end screen: the countdown to the
+                // next group (none on "All caught up", where there is nothing to go on to).
+                progress = { autoProgress.floatValue },
                 onToggle = {
                     session.autoRunning = !session.autoRunning
                     haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -629,8 +632,10 @@ private fun TriageContent(
                 nothingToDo = total == 0,
                 allRead = allRead,
                 progress = progress,
-                // With auto-advance running, the next group starts by itself after the delay.
+                // With auto-advance running, the next group starts by itself after the delay; the
+                // countdown shows in the play button's ring at the top, as on the cards.
                 autoSeconds = if (session.autoRunning) autoSeconds else 0,
+                onCountdown = { autoProgress.floatValue = it },
                 title = session.title,
                 left = left,
                 next = next,
@@ -1178,6 +1183,7 @@ private fun TriageDone(
     allRead: Boolean,
     progress: TriageProgress?,
     autoSeconds: Int,
+    onCountdown: (Float) -> Unit,
     title: String?,
     left: TriageLeft?,
     next: TriageNext?,
@@ -1347,21 +1353,21 @@ private fun TriageDone(
         }
         Spacer(Modifier.height(24.dp))
         if (next != null) {
-            // Auto-advance: the card counts down (a ring round its arrow), then carries on.
+            // Auto-advance: counts down (in the play button's ring at the top), then carries on.
             val countdown = remember(next) { Animatable(0f) }
             val continueNow by rememberUpdatedState(onNext)
+            val showCountdown by rememberUpdatedState(onCountdown)
             LaunchedEffect(next, autoSeconds, loadingNext) {
                 countdown.snapTo(0f)
+                showCountdown(0f)
                 if (autoSeconds <= 0 || loadingNext) return@LaunchedEffect
-                countdown.animateTo(1f, tween(autoSeconds * 1000, easing = LinearEasing))
+                countdown.animateTo(1f, tween(autoSeconds * 1000, easing = LinearEasing)) {
+                    showCountdown(value)
+                }
+                showCountdown(0f)
                 continueNow()
             }
-            NextCard(
-                next = next,
-                loading = loadingNext,
-                countdown = if (autoSeconds > 0 && !loadingNext) ({ countdown.value }) else null,
-                onClick = onNext,
-            )
+            NextCard(next = next, loading = loadingNext, onClick = onNext)
             Spacer(Modifier.height(8.dp))
             TextButton(onClick = onClose) { Text(stringResource(R.string.triage_back_to_list)) }
         } else {
@@ -1432,7 +1438,6 @@ private fun SessionTile(
 private fun NextCard(
     next: TriageNext,
     loading: Boolean,
-    countdown: (() -> Float)?,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -1491,15 +1496,6 @@ private fun NextCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Rounded.ArrowUpward, contentDescription = null, modifier = Modifier.size(22.dp))
-                if (countdown != null) {
-                    CircularProgressIndicator(
-                        progress = countdown,
-                        modifier = Modifier.size(40.dp),
-                        strokeWidth = 3.dp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        trackColor = Color.Transparent,
-                    )
-                }
             }
         }
     }

@@ -67,7 +67,8 @@ import kotlinx.coroutines.flow.collectLatest
  *   until its right edge is 8 dp from the screen's edge; from the right edge it stays centred.
  * - It follows your finger up and down, slowing down, and never closer than 8 dp to the edge.
  * - The screen you go back to sits 96 dp to the left and shrinks to 90% along with it, follows the
- *   finger up and down too, and is dimmed (80% in dark mode, 20% in light mode).
+ *   finger up and down too, and is dimmed a little (35% in dark mode, 12% in light mode; the
+ *   system's 80% and 20% made the screen behind flash dark when you let go).
  * - Both have the display's own rounded corners.
  * - The progress goes through the system's back gesture curve, so the motion shows early.
  *
@@ -85,10 +86,9 @@ import kotlinx.coroutines.flow.collectLatest
  * everything: the backdrop, a picture of the screen behind (which then draws nothing itself), and
  * itself on top. After you let go and it goes back, it is the other way round: the screen behind
  * draws everything (the backdrop, itself growing back, and a picture of the screen you leave,
- * fading out on top), and the screen you leave draws nothing itself. So it never matters which of
- * the two the host stacks on top, and the screen behind is always drawn even when the host lets
- * go of the screen you leave early (it does, when you let go near the end of the swipe: before,
- * nothing was drawn for those frames, a dark flash).
+ * fading out on top), and the screen you leave draws itself as well. So it never matters which of
+ * the two the host stacks on top: the screen you leave fades out on top either way, and the screen
+ * behind is always drawn, even when the host lets go of the screen you leave early.
  */
 
 /** The system's back gesture curve (Material: "don't use linear progress"). */
@@ -111,8 +111,8 @@ private fun decelerate(x: Float): Float = 1f - (1f - x) * (1f - x)
 private const val MAX_SCALE = 0.9f
 private val MARGIN = 8.dp
 private val ENTERING_START_OFFSET = 96.dp
-private const val MAX_SCRIM_DARK = 0.8f
-private const val MAX_SCRIM_LIGHT = 0.2f
+private const val MAX_SCRIM_DARK = 0.35f
+private const val MAX_SCRIM_LIGHT = 0.12f
 
 /**
  * How long the navigation host keeps both screens during a predictive back. The host's own
@@ -445,8 +445,8 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
     // The screen behind, after it went back: draws itself, growing back to full screen, with the
     // screen you leave fading out on top of it.
     val growing = role == Role.Behind && phase == BackPhase.Committing
-    // The screen you leave, after it went back: keeps a picture of itself (shrunk, moved and
-    // fading) for the screen behind to draw on top, and draws nothing itself.
+    // The screen you leave, after it went back: draws itself (shrunk, moved and fading) and keeps
+    // a picture of that for the screen behind to draw on top.
     val recordingLeaving = role == Role.Leaving && phase == BackPhase.Committing
 
     val picture = LocalBackPreviewPicture.current
@@ -476,6 +476,11 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
                         picture.record { this@drawWithContent.drawContent() }
                     } else if (recordingLeaving && leavingPicture != null) {
                         leavingPicture.record { this@drawWithContent.drawContent() }
+                        // Drawn here too: when the host stacks this screen on top it shows from
+                        // here, when it stacks it underneath, from the screen behind (which draws
+                        // the picture on top of itself). Before, it only showed from one of the
+                        // two, and on some phones it vanished the moment you let go.
+                        drawContent()
                     } else {
                         drawContent()
                         // On top of the screen behind growing back: the screen you leave, fading
