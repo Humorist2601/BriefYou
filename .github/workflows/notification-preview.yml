@@ -1,0 +1,41 @@
+name: "Notification preview"
+# Screenshots of the digest notification on a stock Android emulator (Brief You Nightly's sample
+# digest, see DigestPreviewReceiver), in both styles and in light and dark. Runs on the
+# notif-preview branch and by hand; the screenshots are this run's "notification-shots" artifact.
+on:
+    push:
+        branches:
+            - notif-preview
+    workflow_dispatch:
+
+jobs:
+    shots:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-java@v6
+              with:
+                  distribution: temurin
+                  java-version: 17
+            - uses: gradle/actions/setup-gradle@v6
+            - name: Build Brief You Nightly
+              run: ./gradlew assembleGithubNightly
+            - name: Enable KVM
+              run: |
+                  echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+                  sudo udevadm control --reload-rules
+                  sudo udevadm trigger --name-match=kvm
+            - name: Screenshots on Android 16
+              uses: reactivecircus/android-emulator-runner@v2
+              with:
+                  api-level: 36
+                  target: google_apis
+                  arch: x86_64
+                  profile: pixel_7
+                  disable-animations: true
+                  script: sh .github/scripts/notification-shots.sh
+            - uses: actions/upload-artifact@v7
+              if: always()
+              with:
+                  name: notification-shots
+                  path: shots/
