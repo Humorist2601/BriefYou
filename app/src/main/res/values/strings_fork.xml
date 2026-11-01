@@ -12,7 +12,6 @@
     </plurals>
     <string name="digest_more_feeds">+%1$d more: %2$s</string>
     <string name="digest_mark_all_read">Mark all read</string>
-    <string name="digest_more_feeds_sender">+%1$d more feeds</string>
 
     <!-- On-device AI summary -->
     <string name="ai_summarize">Summarize</string>

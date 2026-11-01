@@ -9,7 +9,7 @@ import javax.inject.Inject
 /**
  * Brief You Nightly only (registered in the nightly build's manifest): posts a made-up digest so
  * its look can be checked on a phone or emulator without waiting for a sync:
- * `adb shell am broadcast -a me.ash.reader.brief.DIGEST_PREVIEW --es style conversation|list`.
+ * `adb shell am broadcast -f 32 -n <app id>/me.ash.reader.brief.notifications.DigestPreviewReceiver`.
  */
 @AndroidEntryPoint
 class DigestPreviewReceiver : BroadcastReceiver() {
@@ -17,6 +17,6 @@ class DigestPreviewReceiver : BroadcastReceiver() {
     @Inject lateinit var notificationHelper: NotificationHelper
 
     override fun onReceive(context: Context, intent: Intent) {
-        notificationHelper.postSample(conversation = intent.getStringExtra("style") != "list")
+        notificationHelper.postSample()
     }
 }

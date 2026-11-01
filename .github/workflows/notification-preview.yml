@@ -1,6 +1,6 @@
 name: "Notification preview"
 # Screenshots of the digest notification on a stock Android emulator (Brief You Nightly's sample
-# digest, see DigestPreviewReceiver), in both styles and in light and dark. Runs on the
+# digest, see DigestPreviewReceiver), in light and dark. Runs on the
 # notif-preview branch and by hand; the screenshots are this run's "notification-shots" artifact.
 on:
     push:

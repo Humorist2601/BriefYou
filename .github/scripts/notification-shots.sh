@@ -1,5 +1,5 @@
 #!/bin/sh
-# Posts the sample digest (DigestPreviewReceiver, Nightly only) in both styles, light and dark,
+# Posts the sample digest (DigestPreviewReceiver, Nightly only) in light and dark,
 # and screenshots the notification shade. Run by notification-preview.yml on an emulator.
 set -x
 PKG=com.ay.briefyou.nightly
@@ -18,9 +18,9 @@ W=${SIZE%x*}; H=${SIZE#*x}
 for mode in no yes; do
     adb shell cmd uimode night $mode
     sleep 3
-    for style in conversation list; do
+    for style in digest; do
         adb shell cmd statusbar collapse
-        adb shell am broadcast -f 32 -n $RECEIVER --es style $style
+        adb shell am broadcast -f 32 -n $RECEIVER
         sleep 4
         adb shell cmd statusbar expand-notifications
         sleep 3

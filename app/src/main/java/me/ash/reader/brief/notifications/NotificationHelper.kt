@@ -7,17 +7,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Typeface
-import android.text.SpannableStringBuilder
-import android.text.Spanned
-import android.text.style.StyleSpan
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.app.Person
-import androidx.core.graphics.drawable.IconCompat
 import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -173,14 +164,14 @@ constructor(
                 if (f.size < 4) null else Entry(f[0], f[1], f[2], f[3].toLongOrNull() ?: 0L)
             }
         if (total == 0 || entries.isEmpty()) return
-        post(total, entries, conversation = true)
+        post(total, entries)
     }
 
     /**
      * Posts a made-up digest (8 feeds, 21 articles), to see how it looks; Brief You Nightly only
-     * (see DigestPreviewReceiver). [conversation] picks the style.
+     * (see DigestPreviewReceiver).
      */
-    fun postSample(conversation: Boolean) {
+    fun postSample() {
         val now = System.currentTimeMillis()
         val sample =
             listOf(
@@ -198,10 +189,10 @@ constructor(
             sample.flatMapIndexed { i, (feed, title) ->
                 List(counts[i]) { n -> Entry(feed, title, "sample-$i-$n", now - i * 60_000L - n) }
             }
-        post(entries.size, entries, conversation)
+        post(entries.size, entries)
     }
 
-    private fun post(total: Int, entries: List<Entry>, conversation: Boolean) {
+    private fun post(total: Int, entries: List<Entry>) {
         // One line per feed, most recently updated feed first.
         val groups =
             entries.groupBy { it.feed }.values.sortedByDescending { g -> g.maxOf { it.date } }
@@ -212,7 +203,7 @@ constructor(
             feedNames.take(COLLAPSED_FEEDS).joinToString(", ") +
                 if (feedNames.size > COLLAPSED_FEEDS) " +${feedNames.size - COLLAPSED_FEEDS}" else ""
 
-        val style = if (conversation) conversationStyle(title, groups, feedNames) else listStyle(title, groups, feedNames)
+        val style = listStyle(title, groups, feedNames)
 
         // A single new article opens directly; otherwise open the app's article list.
         val openIntent =
@@ -273,8 +264,9 @@ constructor(
     }
 
     /**
-     * The list: one line per feed, its name in bold (some Androids, like GrapheneOS, drop the
-     * bold here). Android shows at most 7 lines, so 6 feeds and a 7th line naming the rest.
+     * The list: one line per feed, "Variety (5) · newest title". Android 16 shows at most 6 lines
+     * here (and draws them all in the same weight, so names can't be bold), so with more than 6
+     * feeds it's 5 feeds and a 6th line naming the rest; no feed is silently left out.
      */
     private fun listStyle(
         title: String,
@@ -282,15 +274,11 @@ constructor(
         feedNames: List<String>,
     ): NotificationCompat.Style {
         val inbox = NotificationCompat.InboxStyle().setBigContentTitle(title)
-        val shown = if (groups.size > MAX_LINES + 1) groups.take(MAX_LINES) else groups
+        val shown = if (groups.size > MAX_LINES) groups.take(MAX_LINES - 1) else groups
         shown.forEach { g ->
             val latest = g.maxBy { it.date }
             inbox.addLine(
-                SpannableStringBuilder()
-                    .append(latest.feed, StyleSpan(Typeface.BOLD), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                    .append(if (g.size > 1) " (${g.size})" else "")
-                    .append(" · ")
-                    .append(latest.title)
+                (if (g.size > 1) "${latest.feed} (${g.size})" else latest.feed) + " · " + latest.title
             )
         }
         if (groups.size > shown.size) {
@@ -302,70 +290,6 @@ constructor(
 
         return inbox
     }
-
-    /**
-     * Like a conversation: each feed is a "sender", which Android itself draws in bold with a
-     * round letter icon, so it looks the same on every phone. The newest feed comes last (where
-     * the collapsed notification shows it); about 4 feeds fit, after a line naming the rest.
-     */
-    private fun conversationStyle(
-        title: String,
-        groups: List<List<Entry>>,
-        feedNames: List<String>,
-    ): NotificationCompat.Style {
-        val me = Person.Builder().setName(context.applicationInfo.loadLabel(context.packageManager)).setKey("me").build()
-        val style =
-            NotificationCompat.MessagingStyle(me)
-                .setConversationTitle(title)
-                .setGroupConversation(true)
-        val shown = if (groups.size > CONVERSATION_FEEDS + 1) groups.take(CONVERSATION_FEEDS) else groups
-        val oldest = groups.minOf { g -> g.minOf { it.date } }
-        if (groups.size > shown.size) {
-            val rest = feedNames.drop(shown.size)
-            style.addMessage(
-                rest.joinToString(", "),
-                oldest - 1,
-                Person.Builder()
-                    .setName(context.getString(R.string.digest_more_feeds_sender, rest.size))
-                    .setKey("more")
-                    .setIcon(IconCompat.createWithBitmap(letterIcon("+", MORE_COLOR)))
-                    .build(),
-            )
-        }
-        shown.reversed().forEach { g ->
-            val latest = g.maxBy { it.date }
-            style.addMessage(
-                latest.title,
-                latest.date,
-                Person.Builder()
-                    .setName(if (g.size > 1) "${latest.feed} · ${g.size}" else latest.feed)
-                    .setKey(latest.feed)
-                    .setIcon(IconCompat.createWithBitmap(letterIcon(latest.feed.take(1), colorFor(latest.feed))))
-                    .build(),
-            )
-        }
-        return style
-    }
-
-    /** A round icon with [letter] on [color], like Brief You's letter feed icons. */
-    private fun letterIcon(letter: String, color: Int): Bitmap {
-        val size = 96
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        paint.color = color
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
-        paint.color = 0xFF1D1B20.toInt()
-        paint.textSize = size * 0.46f
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        paint.textAlign = Paint.Align.CENTER
-        val y = size / 2f - (paint.descent() + paint.ascent()) / 2f
-        canvas.drawText(letter.uppercase(), size / 2f, y, paint)
-        return bitmap
-    }
-
-    /** A soft colour for a feed, the same every time. */
-    private fun colorFor(feed: String): Int = LETTER_COLORS[(feed.hashCode() and 0x7FFFFFFF) % LETTER_COLORS.size]
 
     private fun isDigestShowing(): Boolean {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return false
@@ -384,17 +308,8 @@ constructor(
         const val PREFS = "notification_digest"
         const val KEY_COUNT = "count"
         const val KEY_LINES = "lines"
-        /** Feed lines in the expanded digest; with the "+N more" line, Android's 7 at most. */
+        /** Lines in the expanded digest: Android 16 shows 6 at most (feeds, or 5 and "+N more"). */
         const val MAX_LINES = 6
-        /** Feeds shown as conversation lines, before the line naming the rest. */
-        const val CONVERSATION_FEEDS = 4
-        const val MORE_COLOR = 0xFFCAC4D0.toInt()
-        /** Pastel tones (Material's container colours) for the letter icons. */
-        val LETTER_COLORS =
-            intArrayOf(
-                0xFFF2B8B5.toInt(), 0xFFA8C7FA.toInt(), 0xFFFFD8A8.toInt(), 0xFFB7E4B0.toInt(),
-                0xFFD0BCFF.toInt(), 0xFFFFD8E4.toInt(), 0xFF9EEFFD.toInt(), 0xFFE6E0A0.toInt(),
-            )
         /** Feeds named in the collapsed digest. */
         const val COLLAPSED_FEEDS = 4
         const val MAX_STORED = 300
