@@ -7,6 +7,10 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.StyleSpan
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.edit
@@ -148,6 +152,14 @@ constructor(
 
     private class Entry(val feed: String, val title: String, val id: String, val date: Long)
 
+    /** The ids of the articles in the digest (for Mark all read). */
+    suspend fun digestArticleIds(): Set<String> =
+        mutex.withLock {
+            prefs.getString(KEY_LINES, null).splitLines().mapNotNull { line ->
+                line.split(FIELD_SEP).getOrNull(2)
+            }.toSet()
+        }
+
     private fun postStored() {
         val total = prefs.getInt(KEY_COUNT, 0)
         val entries =
@@ -160,26 +172,31 @@ constructor(
         // One line per feed, most recently updated feed first.
         val groups =
             entries.groupBy { it.feed }.values.sortedByDescending { g -> g.maxOf { it.date } }
+        val feedNames = groups.map { it.first().feed }
         val title = context.resources.getQuantityString(R.plurals.digest_title, total, total)
-        val subtitle =
-            context.resources.getQuantityString(
-                R.plurals.digest_from_feeds,
-                groups.size,
-                groups.size,
-            )
+        // Collapsed: which feeds, not just how many.
+        val collapsed =
+            feedNames.take(COLLAPSED_FEEDS).joinToString(", ") +
+                if (feedNames.size > COLLAPSED_FEEDS) " +${feedNames.size - COLLAPSED_FEEDS}" else ""
 
+        // Expanded: Android shows at most 7 lines here, so 6 feeds and, when there are more, a
+        // 7th line naming the rest (before, an 8th feed was silently left out).
         val inbox = NotificationCompat.InboxStyle().setBigContentTitle(title)
-        val visible = groups.take(MAX_LINES)
-        visible.forEach { g ->
+        val shown = if (groups.size > MAX_LINES + 1) groups.take(MAX_LINES) else groups
+        shown.forEach { g ->
             val latest = g.maxBy { it.date }
             inbox.addLine(
-                if (g.size == 1) "${latest.feed} · ${latest.title}"
-                else "${latest.feed} (${g.size}) · ${latest.title}"
+                SpannableStringBuilder()
+                    .append(latest.feed, StyleSpan(Typeface.BOLD), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    .append(if (g.size > 1) " (${g.size})" else "")
+                    .append(" · ")
+                    .append(latest.title)
             )
         }
-        if (groups.size > visible.size) {
-            inbox.setSummaryText(
-                context.getString(R.string.digest_and_more, groups.size - visible.size)
+        if (groups.size > shown.size) {
+            val rest = feedNames.drop(shown.size)
+            inbox.addLine(
+                context.getString(R.string.digest_more_feeds, rest.size, rest.joinToString(", "))
             )
         }
 
@@ -194,12 +211,36 @@ constructor(
             NotificationCompat.Builder(context, NotificationGroupName.ARTICLE_UPDATE)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(title)
-                .setContentText(subtitle)
+                .setContentText(collapsed)
                 .setNumber(total)
                 .setStyle(inbox)
                 .setOnlyAlertOnce(true)
                 .setAutoCancel(true)
                 .setCategory(NotificationCompat.CATEGORY_SOCIAL)
+                .addAction(
+                    R.drawable.ic_notification,
+                    context.getString(R.string.digest_mark_all_read),
+                    PendingIntent.getBroadcast(
+                        context,
+                        DIGEST_ID,
+                        Intent(context, DigestActionReceiver::class.java)
+                            .setAction(DigestActionReceiver.ACTION_MARK_ALL_READ),
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                    ),
+                )
+                .addAction(
+                    R.drawable.ic_shortcut_triage,
+                    context.getString(R.string.shortcut_triage),
+                    PendingIntent.getActivity(
+                        context,
+                        DIGEST_ID + 1,
+                        me.ash.reader.brief.app.BriefShortcuts.intent(
+                            context,
+                            me.ash.reader.brief.app.BriefShortcuts.Action.Triage,
+                        ),
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                    ),
+                )
                 .setContentIntent(
                     PendingIntent.getActivity(
                         context,
@@ -234,7 +275,10 @@ constructor(
         const val PREFS = "notification_digest"
         const val KEY_COUNT = "count"
         const val KEY_LINES = "lines"
-        const val MAX_LINES = 8
+        /** Feed lines in the expanded digest; with the "+N more" line, Android's 7 at most. */
+        const val MAX_LINES = 6
+        /** Feeds named in the collapsed digest. */
+        const val COLLAPSED_FEEDS = 4
         const val MAX_STORED = 300
         const val POST_DELAY_MS = 2_000L
         const val LINE_SEP = "\u001E"

@@ -36,7 +36,7 @@ import me.ash.reader.ui.ext.getDefaultGroupId
  * The groups and feeds, and the count line ("123 unread"), of any filter, not just the current
  * one. The Feeds screen shows Starred, Unread and All side by side as pages (see BriefFeedsPages),
  * and each page needs its own list so swiping never shows another filter's groups. Each list is
- * in the user's order (see [FeedOrdering]) and shared while someone watches it.
+ * in the user's order (see [FeedOrdering]) and kept up to date from the first time it's shown.
  *
  * The counting follows Read You's GroupWithFeedsListUseCase (which only keeps the current
  * filter's list), so a fix there may need copying here.
@@ -60,7 +60,7 @@ constructor(
     private val feedsFlow: StateFlow<List<GroupWithFeed>> =
         accountFlow
             .flatMapLatest { rssService.get(it.type.id).pullFeeds() }
-            .stateIn(applicationScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .stateIn(applicationScope, SharingStarted.Eagerly, emptyList())
 
     private val defaultGroupId
         get() = accountService.getCurrentAccountId().getDefaultGroupId()
@@ -85,7 +85,9 @@ constructor(
                     },
                     applicationScope,
                     ioDispatcher,
-                    SharingStarted.WhileSubscribed(5_000),
+                    // Kept up to date while you're elsewhere (Triage, an article list), so coming
+                    // back never shows the old groups for a moment before the new ones.
+                    SharingStarted.Eagerly,
                 )
             }
         }
@@ -141,7 +143,7 @@ constructor(
                         }
                     }
                     .flowOn(ioDispatcher)
-                    .stateIn(applicationScope, SharingStarted.WhileSubscribed(5_000), "")
+                    .stateIn(applicationScope, SharingStarted.Eagerly, "")
             }
         }
 

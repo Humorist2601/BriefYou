@@ -75,12 +75,14 @@ object BriefShortcuts {
             .setShortLabel(context.getString(label))
             .setIcon(IconCompat.createWithResource(context, icon))
             .setRank(rank)
-            .setIntent(
-                Intent(context, MainActivity::class.java)
-                    .setAction(ACTION_PREFIX + action.id)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            )
+            .setIntent(intent(context, action))
             .build()
+
+    /** Opens the app at [action], as the shortcut does (also used by the digest's Triage button). */
+    fun intent(context: Context, action: Action): Intent =
+        Intent(context, MainActivity::class.java)
+            .setAction(ACTION_PREFIX + action.id)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
 
     /** The shortcut an intent comes from, if any; the intent is cleared so it's only done once. */
     private fun take(intent: Intent?): Action? {

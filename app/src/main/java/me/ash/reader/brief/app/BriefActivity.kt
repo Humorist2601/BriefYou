@@ -38,6 +38,8 @@ object BriefActivity {
     @InstallIn(SingletonComponent::class)
     internal interface Dependencies {
         fun notificationHelper(): NotificationHelper
+
+        fun readLater(): me.ash.reader.brief.readlater.ReadLater
     }
 
     /**
@@ -56,6 +58,22 @@ object BriefActivity {
         activity.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) {
             BriefShortcuts.publish(appContext)
         }
+        // The saved pages' feed with its current name and icon.
+        activity.lifecycleScope.launch {
+            EntryPointAccessors.fromApplication(appContext, Dependencies::class.java)
+                .readLater()
+                .refreshSavedFeed()
+        }
+        // A web view made ahead of time, so the first article opens without a stutter; freed
+        // with the screen.
+        me.ash.reader.brief.webview.WebViewPool.prepare(activity)
+        activity.lifecycle.addObserver(
+            androidx.lifecycle.LifecycleEventObserver { _, event ->
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_DESTROY) {
+                    me.ash.reader.brief.webview.WebViewPool.clear()
+                }
+            }
+        )
         return playSplash
     }
 

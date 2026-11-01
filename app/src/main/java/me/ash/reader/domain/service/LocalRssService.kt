@@ -74,7 +74,7 @@ constructor(
                     feedId != null -> listOfNotNull(feedDao.queryById(feedId))
                     groupId != null -> feedDao.queryByGroupId(accountId, groupId)
                     else -> feedDao.queryAll(accountId)
-                }
+                }.filterNot { me.ash.reader.brief.readlater.ReadLater.isSavedFeed(it) } // Brief You: saved pages aren't fetched
 
             feedsToSync
                 .mapIndexed { _, currentFeed ->

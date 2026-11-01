@@ -24,8 +24,22 @@ object ImagePlaceholders {
     /** Pictures narrower (or lower) than this many pixels get no box. */
     private const val MIN_SIZE = 120
 
+    /** The last styles made, by their two colours: the reading page asks again on every redraw. */
+    private var lastCss: Triple<Int, Int, String>? = null
+
     /** The styles, in the page's colours: the box's tonal colour and the indicator's. */
     fun css(boxColor: Int, indicatorColor: Int): String {
+        // Building the animated indicator takes a few milliseconds, too long to repeat while the
+        // article opens; it only changes with the colours.
+        lastCss?.let { (box, indicator, css) ->
+            if (box == boxColor && indicator == indicatorColor) return css
+        }
+        return buildCss(boxColor, indicatorColor).also {
+            lastCss = Triple(boxColor, indicatorColor, it)
+        }
+    }
+
+    private fun buildCss(boxColor: Int, indicatorColor: Int): String {
         val box = cssColor(boxColor)
         val indicator = svgDataUri(indicatorColor)
         return """
@@ -170,7 +184,7 @@ img.brief-center {
      * is drawn with the same number of points around the centre so one can morph into the next.
      */
     private fun svgDataUri(argb: Int): String {
-        val paths = SHAPES.map(::shapePath)
+        val paths = PATHS
         val n = paths.size
         val keyTimes = (0..n).joinToString(";") { fmt(it.toDouble() / n, 4) }
         val keySplines = List(n) { "0.3 0 0 1" }.joinToString(";")
@@ -201,6 +215,9 @@ img.brief-center {
             { t -> 0.86 + 0.13 * cos(4 * t) }, // four-sided cookie
             { t -> 1 / sqrt(cos(t).pow(2) + (sin(t) / 0.72).pow(2)) }, // oval
         )
+
+    /** The shapes' paths, worked out once. */
+    private val PATHS: List<String> by lazy { SHAPES.map(::shapePath) }
 
     /** A shape as a path of [POINTS] points, scaled so every shape looks the same size. */
     private fun shapePath(shape: (Double) -> Double): String {

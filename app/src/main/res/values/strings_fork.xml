@@ -10,11 +10,8 @@
         <item quantity="one">%1$d new article</item>
         <item quantity="other">%1$d new articles</item>
     </plurals>
-    <plurals name="digest_from_feeds">
-        <item quantity="one">From %1$d feed</item>
-        <item quantity="other">From %1$d feeds</item>
-    </plurals>
-    <string name="digest_and_more">+%1$d more</string>
+    <string name="digest_more_feeds">+%1$d more: %2$s</string>
+    <string name="digest_mark_all_read">Mark all read</string>
 
     <!-- On-device AI summary -->
     <string name="ai_summarize">Summarize</string>
@@ -267,4 +264,17 @@
     <string name="triage_tile_skipped">skipped</string>
     <string name="triage_next_up">Next up</string>
     <string name="triage_next_unread">%1$d unread</string>
+    <!-- Read later (sharing a link to Brief You) -->
+    <string name="read_later_label">Read Later</string>
+    <string name="share_add_feed_label">Add Feed</string>
+    <string name="read_later_saving">Saving for later…</string>
+    <string name="read_later_saved">Saved for later</string>
+    <string name="read_later_already">Already saved</string>
+    <string name="read_later_where">In Starred · works offline</string>
+    <string name="read_later_read_now">Read now</string>
+    <string name="read_later_done">Done</string>
+    <string name="read_later_closes">Closes by itself in %1$d s</string>
+    <string name="read_later_failed">Couldn\'t save this page</string>
+    <string name="read_later_no_link">There\'s no web address in what was shared.</string>
+    <string name="read_later_not_local">Read later works with local accounts only, because a sync service would remove the saved pages at its next sync.</string>
 </resources>

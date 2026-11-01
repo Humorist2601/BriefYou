@@ -111,7 +111,7 @@ class OpmlService @Inject constructor(
                                 put("isDefault", (it.group.id == defaultGroup?.id).toString())
                             }
                         },
-                        it.feeds.map { feed ->
+                        it.feeds.filterNot { me.ash.reader.brief.readlater.ReadLater.isSavedFeed(it) }.map { feed -> // Brief You: not the saved pages
                             Outline(
                                 mutableMapOf(
                                     "text" to feed.name,
