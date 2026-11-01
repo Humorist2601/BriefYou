@@ -67,7 +67,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Steady pictures** | Pictures in the text get a box of their own size with the same shape-changing loading indicator as the rest of the app, and fade in, so the text never jumps. |
 | **Next article card** | At the end of an article, or "You're all caught up". |
 | **Reading time** | `4 min` in the list and on the page. |
-| **Read later** | Share a link from any app to *Read later*: the page is saved with its full text as a starred article (in a *Saved Articles* feed with a bookmark icon), so it reads offline. A small sheet confirms it and closes by itself. Local accounts only. |
+| **Read later** | Share a link from any app to *Read Later* (or to *Add Feed* to subscribe to its feed): the page is saved with its full text as a starred article (in a *Saved Articles* feed with a bookmark icon), so it reads offline. A small sheet confirms it and closes by itself. Local accounts only. |
 | **Tidier articles** | No share buttons, "Read more" links, "appeared first on" lines or tracking pixels. |
 
 <details>
@@ -124,7 +124,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 
 | Feature | What it does |
 | --- | --- |
-| **One digest notification** | "12 new articles · From 5 feeds", once per sync, instead of one per article. |
+| **One digest notification** | "12 new articles · Variety, Kotaku, Kagi News +2", once per sync, instead of one per article, with **Mark all read** and **Triage** buttons. |
 | **Muted keywords** | Unread articles mentioning them are marked read after each sync. |
 | **Duplicate stories** | When the same story is published again (by another feed, or twice by the same feed), only the first stays unread. Filters lists the hidden copies under the story they repeat. |
 | **Recently filtered** | Today's hidden articles and why (for duplicates, which copy was kept unread and which were hidden), with Undo; earlier days under *Earlier*. |
@@ -133,7 +133,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 <details>
 <summary>More details</summary>
 
-- The digest lists one line per feed, so busy feeds never push the others out.
+- The digest lists one line per feed (feed name in bold), so busy feeds never push the others out; up to 6 feeds, then a line naming the rest ("+2 more: XKCD, Reddit Comics").
 - A copy is a very similar title from another feed within 48 hours, so repeating headlines like weekly roundups aren't caught.
 - Undone articles aren't filtered again; *Reset undone articles* lets the filters catch them.
 - The sort is used everywhere: Triage's next group, OPML exports and the backup.

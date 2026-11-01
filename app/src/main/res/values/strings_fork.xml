@@ -10,11 +10,8 @@
         <item quantity="one">%1$d new article</item>
         <item quantity="other">%1$d new articles</item>
     </plurals>
-    <plurals name="digest_from_feeds">
-        <item quantity="one">From %1$d feed</item>
-        <item quantity="other">From %1$d feeds</item>
-    </plurals>
-    <string name="digest_and_more">+%1$d more</string>
+    <string name="digest_more_feeds">+%1$d more: %2$s</string>
+    <string name="digest_mark_all_read">Mark all read</string>
 
     <!-- On-device AI summary -->
     <string name="ai_summarize">Summarize</string>
@@ -268,7 +265,8 @@
     <string name="triage_next_up">Next up</string>
     <string name="triage_next_unread">%1$d unread</string>
     <!-- Read later (sharing a link to Brief You) -->
-    <string name="read_later_label">Read later</string>
+    <string name="read_later_label">Read Later</string>
+    <string name="share_add_feed_label">Add Feed</string>
     <string name="read_later_saving">Saving for later…</string>
     <string name="read_later_saved">Saved for later</string>
     <string name="read_later_already">Already saved</string>

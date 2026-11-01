@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.Bookmark // Brief You
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,6 +26,9 @@ import me.ash.reader.ui.component.base.RYAsyncImage
 /** Feed icons stored as "emoji:😀" are custom emoji icons (Brief You). */
 const val EMOJI_PREFIX = "emoji:"
 
+/** The icon of Read later's Saved Articles feed: a bookmark, drawn like the letter icons (Brief You). */
+const val SAVED_ARTICLES_ICON = "icon:bookmark"
+
 @Composable
 fun FeedIcon(
     modifier: Modifier = Modifier,
@@ -33,7 +37,19 @@ fun FeedIcon(
     size: Dp = 20.dp,
     placeholderIcon: ImageVector? = null,
 ) {
-    if (iconUrl != null && iconUrl.startsWith(EMOJI_PREFIX)) { // Brief You
+    if (iconUrl == SAVED_ARTICLES_ICON) { // Brief You: Read later's Saved Articles feed
+        Box(
+            modifier = modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.primary), // Brief You
+            contentAlignment = Alignment.Center, // Brief You
+        ) { // Brief You
+            Icon( // Brief You
+                imageVector = androidx.compose.material.icons.Icons.Rounded.Bookmark, // Brief You
+                contentDescription = feedName, // Brief You
+                tint = MaterialTheme.colorScheme.onPrimary, // Brief You
+                modifier = Modifier.size(size * 0.6f), // Brief You
+            ) // Brief You
+        } // Brief You
+    } else if (iconUrl != null && iconUrl.startsWith(EMOJI_PREFIX)) { // Brief You
         Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
             Text(
                 text = iconUrl.removePrefix(EMOJI_PREFIX),

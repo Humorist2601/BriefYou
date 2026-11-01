@@ -154,7 +154,7 @@ constructor(
         }
 
     private suspend fun upToDate(feed: Feed): Feed {
-        val icon = feed.icon ?: SAVED_FEED_ICON
+        val icon = feed.icon?.takeIf { it != OLD_SAVED_FEED_ICON } ?: SAVED_FEED_ICON
         if (feed.name == SAVED_FEED_NAME && feed.icon == icon) return feed
         return feed.copy(name = SAVED_FEED_NAME, icon = icon).also { feedDao.update(it) }
     }
@@ -173,8 +173,11 @@ constructor(
     companion object {
         private const val SAVED_FEED = "brief_you_saved_for_later"
         private const val SAVED_FEED_NAME = "Saved Articles"
-        /** A bookmark, shown like a custom emoji icon (see FeedIcon). */
-        private const val SAVED_FEED_ICON = "emoji:\uD83D\uDD16"
+        /** A bookmark icon, drawn by FeedIcon. */
+        private const val SAVED_FEED_ICON = me.ash.reader.ui.component.SAVED_ARTICLES_ICON
+
+        /** The emoji icon the feed had in a test build, replaced by the bookmark icon. */
+        private const val OLD_SAVED_FEED_ICON = "emoji:\uD83D\uDD16"
 
         /** Not a real address: the saved feed is never fetched (see [isSavedFeed]). */
         const val SAVED_FEED_URL = "briefyou://saved-for-later"

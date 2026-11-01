@@ -73,6 +73,8 @@ object FeedAccent {
     }
 
     private suspend fun extract(context: Context, iconUrl: String): Int? {
+        // Saved Articles' bookmark is drawn in the theme's colour: no colour of its own.
+        if (iconUrl == me.ash.reader.ui.component.SAVED_ARTICLES_ICON) return null
         if (iconUrl.startsWith(EMOJI_PREFIX)) return dominantColor(renderEmoji(iconUrl.removePrefix(EMOJI_PREFIX)))
         val bitmap: Bitmap =
             if ("^image/.*;base64,.*".toRegex().matches(iconUrl)) {
