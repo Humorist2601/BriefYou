@@ -70,6 +70,17 @@ object ImagePlaceholders {
 .brief-box.brief-loaded > img {
     opacity: 1;
 }
+/* Pictures narrower than the text: centred (wide ones still run edge to edge). */
+.brief-box.brief-center {
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+img.brief-center {
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 100% !important;
+}
 .brief-box + small {
     display: inline-block;
     margin-top: var(--image-caption-margin) !important;
@@ -88,13 +99,22 @@ object ImagePlaceholders {
 // Brief You: picture placeholders (see ImagePlaceholders)
 (function () {
     var MIN = $MIN_SIZE;
+    // A picture (or its box) narrower than the text is centred; icons and emoji stay in the line.
+    function centerIfSmall(el, width) {
+        var column = el.parentElement;
+        while (column && column.clientWidth === 0) column = column.parentElement;
+        if (column && width >= MIN && width < column.clientWidth - 1) el.classList.add("brief-center");
+    }
     document.querySelectorAll("article img").forEach(function (img) {
         if (img.closest("table") || img.closest(".brief-box")) return;
         // The size the page gives the picture: its width and height, or a pixel size in its style.
         var w = parseInt(img.getAttribute("width")) || (/px$/.test(img.style.width) ? parseInt(img.style.width) : 0);
         var h = parseInt(img.getAttribute("height")) || (/px$/.test(img.style.height) ? parseInt(img.style.height) : 0);
         if ((w && w < MIN) || (h && h < MIN / 2)) return;
-        if (img.complete && img.naturalWidth > 0) return;
+        if (img.complete && img.naturalWidth > 0) {
+            centerIfSmall(img, img.naturalWidth);
+            return;
+        }
 
         var guess = !(w && h);
         var box = document.createElement("span");
@@ -104,6 +124,7 @@ object ImagePlaceholders {
         box.style.width = w ? w + "px" : "100vw";
         img.parentNode.insertBefore(box, img);
         box.appendChild(img);
+        if (w) centerIfSmall(box, w);
 
         function unbox() {
             if (!box.parentNode) return;
@@ -126,6 +147,7 @@ object ImagePlaceholders {
                 box.style.height = from + "px";
                 var width = box.getBoundingClientRect().width;
                 box.style.height = (width * img.naturalHeight / img.naturalWidth) + "px";
+                centerIfSmall(box, img.naturalWidth);
             }
             box.classList.add("brief-loaded");
         }
