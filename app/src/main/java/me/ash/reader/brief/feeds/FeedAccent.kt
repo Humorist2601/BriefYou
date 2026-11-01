@@ -48,21 +48,28 @@ object FeedAccent {
 
     /** Raw dominant icon color (ARGB), or null when the icon has no clear color. */
     suspend fun sourceColor(context: Context, iconUrl: String): Int? {
-        val key = hash(iconUrl)
-        memory[key]?.let { return it.takeIf { c -> c != NONE } }
-        val prefs = context.getSharedPreferences("feed_accent", Context.MODE_PRIVATE)
-        if (prefs.contains(key)) {
-            val c = prefs.getInt(key, NONE)
-            memory[key] = c
-            return c.takeIf { it != NONE }
-        }
-        val color = withContext(Dispatchers.IO) { runCatching { extract(context, iconUrl) }.getOrNull() }
-        memory[key] = color ?: NONE
-        // Old icons' colours are never needed again; start over now and then rather than keep
-        // every icon a feed ever had (the current ones are worked out again when shown).
-        if (prefs.all.size > MAX_SAVED) prefs.edit().clear().apply()
-        prefs.edit().putInt(key, color ?: NONE).apply()
-        return color
+        // Looked up by the icon's address first: every row of the article list asks while you
+        // scroll, and this answers at once without any work on the main thread. Only a colour
+        // not known yet in memory goes to the saved ones and the icon (in the background).
+        memory[iconUrl]?.let { return it.takeIf { c -> c != NONE } }
+        val color =
+            withContext(Dispatchers.IO) {
+                val key = hash(iconUrl)
+                val prefs = context.getSharedPreferences("feed_accent", Context.MODE_PRIVATE)
+                if (prefs.contains(key)) {
+                    prefs.getInt(key, NONE)
+                } else {
+                    val found = runCatching { extract(context, iconUrl) }.getOrNull() ?: NONE
+                    // Old icons' colours are never needed again; start over now and then rather
+                    // than keep every icon a feed ever had (the current ones are worked out again
+                    // when shown).
+                    if (prefs.all.size > MAX_SAVED) prefs.edit().clear().apply()
+                    prefs.edit().putInt(key, found).apply()
+                    found
+                }
+            }
+        memory[iconUrl] = color
+        return color.takeIf { it != NONE }
     }
 
     private suspend fun extract(context: Context, iconUrl: String): Int? {
@@ -235,10 +242,16 @@ object FeedAccent {
         }
     }
 
-    private fun hash(s: String): String =
-        MessageDigest.getInstance("SHA-1").digest(s.toByteArray()).joinToString("") {
-            "%02x".format(it)
+    private fun hash(s: String): String {
+        val bytes = MessageDigest.getInstance("SHA-1").digest(s.toByteArray())
+        val hex = "0123456789abcdef"
+        val out = StringBuilder(bytes.size * 2)
+        for (b in bytes) {
+            val v = b.toInt() and 0xFF
+            out.append(hex[v ushr 4]).append(hex[v and 0x0F])
         }
+        return out.toString()
+    }
 
     /** Muted: Material's custom colors sit well below the dynamic palette's most vivid tones. */
     private const val MAX_CHROMA = 38.0

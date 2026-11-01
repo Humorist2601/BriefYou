@@ -327,12 +327,12 @@ constructor(
             if (articleWithFeed.feed.isFullContent) {
                 val fullContent =
                     readerCacheHelper.readFullContent(articleWithFeed.article.id).getOrNull()
-                if (fullContent != null) ReaderState.FullContent(FeedContent.forReader(fullContent, articleWithFeed.article.link)) // Brief You: tidied
+                if (fullContent != null) ReaderState.FullContent(FeedContent.forReaderInBackground(fullContent, articleWithFeed.article.link)) // Brief You: tidied, off the main thread
                 else {
                     renderFullContent()
                     ReaderState.Loading
                 }
-            } else ReaderState.Description(FeedContent.forReader(articleWithFeed.article.rawDescription, articleWithFeed.article.link)) // Brief You
+            } else ReaderState.Description(FeedContent.forReaderInBackground(articleWithFeed.article.rawDescription, articleWithFeed.article.link)) // Brief You: off the main thread
 
         return copy(content = contentState)
     }
@@ -352,7 +352,7 @@ constructor(
                     .readOrFetchFullContent(currentArticle!!)
                     .onSuccess { content ->
                         _readerState.update {
-                            it.copy(content = ReaderState.FullContent(content = FeedContent.forReader(content, currentArticle?.link))) // Brief You
+                            it.copy(content = ReaderState.FullContent(content = FeedContent.forReaderInBackground(content, currentArticle?.link))) // Brief You: off the main thread
                         }
                     }
                     .onFailure { th ->

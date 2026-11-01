@@ -294,7 +294,9 @@ fun ArticleItem(
                     data = imgData,
                     scale = Scale.FILL,
                     precision = Precision.INEXACT,
-                    size = SIZE_1000,
+                    // Brief You: decoded at the size shown (80 dp), not 1000 px, so scrolling keeps
+                    // more thumbnails in memory and decodes less
+                    size = with(androidx.compose.ui.platform.LocalDensity.current) { 80.dp.roundToPx() }.let { coil.size.Size(it, it) },
                     contentScale = ContentScale.Crop,
                 )
             }

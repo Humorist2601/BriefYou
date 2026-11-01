@@ -145,8 +145,6 @@ fun BriefFlowOverlays(
     briefViewModel: BriefListViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    // The AI model starts loading on the Unread list, so the gist doesn't wait for it.
-    me.ash.reader.brief.ai.PreloadAi(enabled = filterUiState.filter.isUnread())
     // Opens links the way chosen in the settings ("open links in").
     val uriHandler = LocalUriHandler.current
 

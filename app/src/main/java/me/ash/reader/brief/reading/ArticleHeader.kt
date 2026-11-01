@@ -33,10 +33,8 @@ data class BriefArticle(val hero: String?, val body: String, val minutes: Int?)
 /** [content] split into a large leading picture and the rest, with the actual reading time. */
 @Composable
 fun rememberBriefArticle(content: String): BriefArticle =
-    remember(content) {
-        val (hero, body) = FeedContent.extractHero(content)
-        BriefArticle(hero = hero, body = body, minutes = readingMinutes(content))
-    }
+    // Usually ready already: prepared in the background while the article loaded.
+    remember(content) { FeedContent.prepared(content) }
 
 /**
  * Lines the title block up with the article text: the reading text padding setting, less the

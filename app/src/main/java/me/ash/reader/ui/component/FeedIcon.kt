@@ -50,7 +50,7 @@ fun FeedIcon(
         }
     }
     // e.g. image/gif;base64,R0lGODlh...
-    else if ("^image/.*;base64,.*".toRegex().matches(iconUrl)) {
+    else if (iconUrl.startsWith("image/") && iconUrl.contains(";base64,")) { // Brief You: no pattern built on every redraw
         Base64Image(
             modifier = modifier
                 .size(size)

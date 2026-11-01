@@ -73,7 +73,7 @@ fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composabl
     val pictureUrl =
         remember(article?.id, article?.img, html) {
             FeedContent.listImage(article?.img, article?.link)?.takeIf { it.isNotBlank() }
-                ?: html?.let { FeedContent.extractHero(it).first }
+                ?: html?.let { FeedContent.prepared(it).hero }
         }
     var seed by remember(pictureUrl) { mutableStateOf<Color?>(null) }
     LaunchedEffect(pictureUrl) {
@@ -164,7 +164,9 @@ private fun TrackReadingStats(articleId: String?, feedName: String) {
 @Composable
 fun briefTimeLeft(state: BriefReadingState, readerState: ReaderState): String? {
     val totalMinutes =
-        remember(readerState.content.text) { readingMinutes(readerState.content.text ?: "") ?: 1 }
+        remember(readerState.content.text) {
+            readerState.content.text?.let { FeedContent.prepared(it).minutes } ?: 1
+        }
     val progress = state.progress
     if (progress < 0.01f) return null
     val left = ceil(totalMinutes * (1f - progress)).toInt()
@@ -372,8 +374,6 @@ fun BriefReadingPage(
     onNavigateToStylePage: () -> Unit,
     onNavigateToAiSettings: () -> Unit = {},
 ) {
-    // The AI model starts loading while you read, so the AI button doesn't wait for it.
-    me.ash.reader.brief.ai.PreloadAi()
     BriefReadingTheme(viewModel) {
         ReadingPage(
             viewModel = viewModel,
