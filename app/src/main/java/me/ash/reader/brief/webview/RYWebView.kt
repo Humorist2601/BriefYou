@@ -123,11 +123,8 @@ fun RYWebView(
                 isDark = isDarkBackground,
             ) +
                 // Boxes with a loading indicator for the pictures still loading (no jumping text).
-                ImagePlaceholders.css(
-                    boxColor =
-                        colorScheme.surfaceColorAtElevation((tonalElevation.value + 6).dp).toArgb(),
-                    indicatorColor = colorScheme.primary.toArgb(),
-                )
+                // (the same tonal colour as code blocks, and the accent colour).
+                ImagePlaceholders.css(boxColor = codeBgColor, indicatorColor = linkTextColor)
         }
     val script =
         remember(boldCharacters.value) { WebViewScript.get(boldCharacters.value) + ImagePlaceholders.SCRIPT }
