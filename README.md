@@ -64,7 +64,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Floating toolbar** | Star, AI, next article, read aloud and full content, in a pill that hides while you scroll. |
 | **Toolbar long presses** | Star: read or unread · AI: settings · Next: previous article · Full content: open in browser. |
 | **Quick text sheet** | Size, line height, margins, font and justify, changed live. |
-| **Steady pictures** | Pictures in the text get a box of their own size with a loading indicator and fade in, so the text never jumps. |
+| **Steady pictures** | Pictures in the text get a box of their own size with the same shape-changing loading indicator as the rest of the app, and fade in, so the text never jumps. |
 | **Next article card** | At the end of an article, or "You're all caught up". |
 | **Reading time** | `4 min` in the list and on the page. |
 | **Tidier articles** | No share buttons, "Read more" links, "appeared first on" lines or tracking pixels. |

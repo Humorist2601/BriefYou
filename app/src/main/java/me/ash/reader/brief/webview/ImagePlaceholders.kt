@@ -1,15 +1,18 @@
 package me.ash.reader.brief.webview
 
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.pow
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * Placeholders for the pictures in an article, so the text doesn't jump while they load.
  *
  * Each picture that isn't there yet is put in a box of its own size (read from its width and
- * height; a wide 16:9 box when the page doesn't say). The box is tonal, with a turning Material 3
- * Expressive shape as the loading indicator. When the picture arrives the indicator fades away and
+ * height; a wide 16:9 box when the page doesn't say). The box is tonal, with Material 3 Expressive's
+ * shape-changing loading indicator in the middle. When the picture arrives the indicator fades away and
  * the picture fades in; a box that had to guess eases to the picture's real shape first. Small
  * pictures (icons, emoji) and pictures already loaded get no box.
  *
@@ -46,7 +49,6 @@ object ImagePlaceholders {
     height: 44px;
     margin: -22px 0 0 -22px;
     background: url("$indicator") center / contain no-repeat;
-    animation: brief-indicator 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     transition: opacity 0.2s ease;
 }
 .brief-box.brief-loaded {
@@ -54,7 +56,6 @@ object ImagePlaceholders {
 }
 .brief-box.brief-loaded::after {
     opacity: 0;
-    animation: none;
 }
 .brief-box > img {
     display: block !important;
@@ -84,11 +85,6 @@ img.brief-center {
 .brief-box + small {
     display: inline-block;
     margin-top: var(--image-caption-margin) !important;
-}
-@keyframes brief-indicator {
-    0% { transform: rotate(0deg) scale(0.86); }
-    50% { transform: rotate(180deg) scale(1); }
-    100% { transform: rotate(360deg) scale(0.86); }
 }
 """
     }
@@ -167,18 +163,75 @@ img.brief-center {
         return "rgba(${argb shr 16 and 0xFF}, ${argb shr 8 and 0xFF}, ${argb and 0xFF}, $a)"
     }
 
-    /** A nine-sided cookie (an Expressive shape) as an SVG data address, in [argb]. */
+    /**
+     * The loading indicator as an animated SVG data address, in [argb]: like Material 3
+     * Expressive's LoadingIndicator (used elsewhere in the app), it turns while morphing through
+     * soft burst, nine-sided cookie, pentagon, pill, sunny, four-sided cookie and oval. Every shape
+     * is drawn with the same number of points around the centre so one can morph into the next.
+     */
     private fun svgDataUri(argb: Int): String {
-        val points =
-            (0 until 90).joinToString(" ") { i ->
-                val t = 2 * PI * i / 90
-                val r = 18 + 2.4 * cos(9 * t)
-                "%.2f,%.2f".format(java.util.Locale.ROOT, 22 + r * cos(t), 22 + r * sin(t))
-            }
+        val paths = SHAPES.map(::shapePath)
+        val n = paths.size
+        val keyTimes = (0..n).joinToString(";") { fmt(it.toDouble() / n, 4) }
+        val keySplines = List(n) { "0.3 0 0 1" }.joinToString(";")
+        val rotation = (0..n).joinToString(";") { "${fmt(it * 360.0 * 3 / n, 1)} 22 22" }
+        val timing =
+            "dur='${fmt(n * 0.65, 2)}s' repeatCount='indefinite' calcMode='spline' " +
+                "keyTimes='$keyTimes' keySplines='$keySplines'"
         val hex = "%06X".format(argb and 0xFFFFFF)
         val svg =
             "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'>" +
-                "<polygon points='$points' fill='%23$hex'/></svg>"
+                "<path fill='%23$hex' d='${paths[0]}'>" +
+                "<animate attributeName='d' $timing values='${(paths + paths[0]).joinToString(";")}'/>" +
+                "<animateTransform attributeName='transform' type='rotate' $timing values='$rotation'/>" +
+                "</path></svg>"
         return "data:image/svg+xml;utf8,$svg"
     }
+
+    private const val POINTS = 96
+
+    /** The shapes as a distance from the centre for each angle. */
+    private val SHAPES: List<(Double) -> Double> =
+        listOf(
+            { t -> 0.86 + 0.084 * cos(10 * t).pow(3) + 0.05 * cos(10 * t) }, // soft burst
+            { t -> 0.9 + 0.08 * cos(9 * t) }, // nine-sided cookie
+            { t -> roundedPolygon(t, 5) }, // pentagon
+            { t -> pill(t) },
+            { t -> 0.9 + 0.1 * cos(8 * t) }, // sunny
+            { t -> 0.86 + 0.13 * cos(4 * t) }, // four-sided cookie
+            { t -> 1 / sqrt(cos(t).pow(2) + (sin(t) / 0.72).pow(2)) }, // oval
+        )
+
+    /** A shape as a path of [POINTS] points, scaled so every shape looks the same size. */
+    private fun shapePath(shape: (Double) -> Double): String {
+        val radii = DoubleArray(POINTS) { shape(2 * PI * it / POINTS) }
+        val scale = 19 / sqrt(radii.sumOf { it * it } / POINTS) * 0.93
+        return radii.withIndex().joinToString("L", prefix = "M", postfix = "Z") { (i, r) ->
+            val t = 2 * PI * i / POINTS
+            "${fmt(22 + scale * r * cos(t), 1)} ${fmt(22 + scale * r * sin(t), 1)}"
+        }
+    }
+
+    private fun roundedPolygon(t: Double, sides: Int): Double {
+        val step = 2 * PI / sides
+        val u = ((t + PI / 2) % step + step) % step - step / 2
+        val r = cos(PI / sides) / cos(u)
+        return 0.75 * r + 0.25 * cos(PI / sides) * 1.06
+    }
+
+    /** A horizontal pill (stadium): where the ray at angle [t] leaves it. */
+    private fun pill(t: Double, half: Double = 1.0, radius: Double = 0.58): Double {
+        var lo = 0.0
+        var hi = 2.0
+        repeat(40) {
+            val m = (lo + hi) / 2
+            val x = (abs(m * cos(t)) - (half - radius)).coerceAtLeast(0.0)
+            val y = abs(m * sin(t))
+            if (x * x + y * y <= radius * radius) lo = m else hi = m
+        }
+        return lo
+    }
+
+    private fun fmt(value: Double, decimals: Int) =
+        "%.${decimals}f".format(java.util.Locale.ROOT, value)
 }
