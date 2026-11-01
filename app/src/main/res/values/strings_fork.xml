@@ -267,4 +267,16 @@
     <string name="triage_tile_skipped">skipped</string>
     <string name="triage_next_up">Next up</string>
     <string name="triage_next_unread">%1$d unread</string>
+    <!-- Read later (sharing a link to Brief You) -->
+    <string name="read_later_label">Read later</string>
+    <string name="read_later_saving">Saving for later…</string>
+    <string name="read_later_saved">Saved for later</string>
+    <string name="read_later_already">Already saved</string>
+    <string name="read_later_where">In Starred · works offline</string>
+    <string name="read_later_read_now">Read now</string>
+    <string name="read_later_done">Done</string>
+    <string name="read_later_closes">Closes by itself in %1$d s</string>
+    <string name="read_later_failed">Couldn\'t save this page</string>
+    <string name="read_later_no_link">There\'s no web address in what was shared.</string>
+    <string name="read_later_not_local">Read later works with local accounts only, because a sync service would remove the saved pages at its next sync.</string>
 </resources>

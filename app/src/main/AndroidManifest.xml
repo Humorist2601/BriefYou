@@ -107,6 +107,23 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+        <!-- Brief You: Read later, in the Share menu: saves a shared link as a starred article. -->
+        <activity
+            android:name="me.ash.reader.brief.readlater.ReadLaterActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:label="@string/read_later_label"
+            android:icon="@mipmap/ic_launcher"
+            android:taskAffinity=""
+            android:theme="@style/Theme.BriefYou.ReadLater">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".infrastructure.android.CrashReportActivity"
             android:exported="false"
