@@ -7,10 +7,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.Typeface
-import android.text.SpannableStringBuilder
-import android.text.Spanned
-import android.text.style.StyleSpan
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.edit
@@ -168,7 +164,35 @@ constructor(
                 if (f.size < 4) null else Entry(f[0], f[1], f[2], f[3].toLongOrNull() ?: 0L)
             }
         if (total == 0 || entries.isEmpty()) return
+        post(total, entries)
+    }
 
+    /**
+     * Posts a made-up digest (8 feeds, 21 articles), to see how it looks; Brief You Nightly only
+     * (see DigestPreviewReceiver).
+     */
+    fun postSample() {
+        val now = System.currentTimeMillis()
+        val sample =
+            listOf(
+                "Variety" to "Godzilla Minus Zero cast got a standing ovation at the Tokyo festival",
+                "Kagi News" to "World leaders open the climate summit as talks stall on funding",
+                "Kotaku" to "Valve's cancelled Portal prequel F-Stop has leaked",
+                "Daily Briefs" to "Daily Hacker News for 2026-10-31",
+                "Rock Paper Shotgun" to "The Sunday Papers",
+                "Wikipedia" to "November 1 Wikipedia featured article",
+                "XKCD" to "Earth Sized Planets",
+                "Reddit Comics" to "Happy Halloween 2026",
+            )
+        val counts = listOf(5, 6, 3, 2, 1, 1, 1, 2)
+        val entries =
+            sample.flatMapIndexed { i, (feed, title) ->
+                List(counts[i]) { n -> Entry(feed, title, "sample-$i-$n", now - i * 60_000L - n) }
+            }
+        post(entries.size, entries)
+    }
+
+    private fun post(total: Int, entries: List<Entry>) {
         // One line per feed, most recently updated feed first.
         val groups =
             entries.groupBy { it.feed }.values.sortedByDescending { g -> g.maxOf { it.date } }
@@ -179,26 +203,7 @@ constructor(
             feedNames.take(COLLAPSED_FEEDS).joinToString(", ") +
                 if (feedNames.size > COLLAPSED_FEEDS) " +${feedNames.size - COLLAPSED_FEEDS}" else ""
 
-        // Expanded: Android shows at most 7 lines here, so 6 feeds and, when there are more, a
-        // 7th line naming the rest (before, an 8th feed was silently left out).
-        val inbox = NotificationCompat.InboxStyle().setBigContentTitle(title)
-        val shown = if (groups.size > MAX_LINES + 1) groups.take(MAX_LINES) else groups
-        shown.forEach { g ->
-            val latest = g.maxBy { it.date }
-            inbox.addLine(
-                SpannableStringBuilder()
-                    .append(latest.feed, StyleSpan(Typeface.BOLD), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                    .append(if (g.size > 1) " (${g.size})" else "")
-                    .append(" · ")
-                    .append(latest.title)
-            )
-        }
-        if (groups.size > shown.size) {
-            val rest = feedNames.drop(shown.size)
-            inbox.addLine(
-                context.getString(R.string.digest_more_feeds, rest.size, rest.joinToString(", "))
-            )
-        }
+        val style = listStyle(title, groups, feedNames)
 
         // A single new article opens directly; otherwise open the app's article list.
         val openIntent =
@@ -213,7 +218,7 @@ constructor(
                 .setContentTitle(title)
                 .setContentText(collapsed)
                 .setNumber(total)
-                .setStyle(inbox)
+                .setStyle(style)
                 .setOnlyAlertOnce(true)
                 .setAutoCancel(true)
                 .setCategory(NotificationCompat.CATEGORY_SOCIAL)
@@ -258,6 +263,34 @@ constructor(
         }
     }
 
+    /**
+     * The list: one line per feed, "Variety (5) · newest title". Android 16 shows at most 6 lines
+     * here (and draws them all in the same weight, so names can't be bold), so with more than 6
+     * feeds it's 5 feeds and a 6th line naming the rest; no feed is silently left out.
+     */
+    private fun listStyle(
+        title: String,
+        groups: List<List<Entry>>,
+        feedNames: List<String>,
+    ): NotificationCompat.Style {
+        val inbox = NotificationCompat.InboxStyle().setBigContentTitle(title)
+        val shown = if (groups.size > MAX_LINES) groups.take(MAX_LINES - 1) else groups
+        shown.forEach { g ->
+            val latest = g.maxBy { it.date }
+            inbox.addLine(
+                (if (g.size > 1) "${latest.feed} (${g.size})" else latest.feed) + " · " + latest.title
+            )
+        }
+        if (groups.size > shown.size) {
+            val rest = feedNames.drop(shown.size)
+            inbox.addLine(
+                context.getString(R.string.digest_more_feeds, rest.size, rest.joinToString(", "))
+            )
+        }
+
+        return inbox
+    }
+
     private fun isDigestShowing(): Boolean {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return false
         return nm.activeNotifications.any { it.id == DIGEST_ID }
@@ -275,7 +308,7 @@ constructor(
         const val PREFS = "notification_digest"
         const val KEY_COUNT = "count"
         const val KEY_LINES = "lines"
-        /** Feed lines in the expanded digest; with the "+N more" line, Android's 7 at most. */
+        /** Lines in the expanded digest: Android 16 shows 6 at most (feeds, or 5 and "+N more"). */
         const val MAX_LINES = 6
         /** Feeds named in the collapsed digest. */
         const val COLLAPSED_FEEDS = 4

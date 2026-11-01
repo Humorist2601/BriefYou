@@ -133,7 +133,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 <details>
 <summary>More details</summary>
 
-- The digest lists one line per feed (feed name in bold), so busy feeds never push the others out; up to 6 feeds, then a line naming the rest ("+2 more: XKCD, Reddit Comics").
+- The digest lists one line per feed, so busy feeds never push the others out. Android shows at most 6 lines, so with more than 6 feeds it shows 5 and a line naming the rest ("+3 more: XKCD, Reddit Comics, Wikipedia").
 - A copy is a very similar title from another feed within 48 hours, so repeating headlines like weekly roundups aren't caught.
 - Undone articles aren't filtered again; *Reset undone articles* lets the filters catch them.
 - The sort is used everywhere: Triage's next group, OPML exports and the backup.
