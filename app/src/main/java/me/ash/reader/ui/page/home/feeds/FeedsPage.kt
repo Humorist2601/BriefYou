@@ -160,7 +160,9 @@ fun FeedsPage(
         scope.launch {
             owner.lifecycle.eventFlow.collect {
                 when (it) {
-                    Lifecycle.Event.ON_RESUME,
+                    Lifecycle.Event.ON_RESUME -> { // Brief You: after the screen's animation
+                        scope.launch { kotlinx.coroutines.delay(700); feedsViewModel.commitDiffs() } // Brief You
+                    } // Brief You
                     Lifecycle.Event.ON_PAUSE -> {
                         feedsViewModel.commitDiffs()
                     }

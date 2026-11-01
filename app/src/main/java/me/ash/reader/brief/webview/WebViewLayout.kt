@@ -19,7 +19,8 @@ object WebViewLayout {
         webViewClient: WebViewClient,
         onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
     ) =
-        WebView(context).apply {
+        // The spare one made ahead of time when there is one (see WebViewPool).
+        WebViewPool.take(context).apply {
             this.webViewClient = webViewClient
             scrollBarSize = 0
             isHorizontalScrollBarEnabled = false

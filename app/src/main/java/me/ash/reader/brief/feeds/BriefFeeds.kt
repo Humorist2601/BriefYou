@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -126,6 +127,14 @@ fun BriefFeedsPages(
     val lists = hiltViewModel<BriefFeedsViewModel>().lists
     val filters = Filter.values
     val pagerState = pager.pagerState
+    // At first only the page you see is built, so coming to the Feeds screen (from an article
+    // list, Triage or the back gesture) builds one list in its first frames, not three. The other
+    // two follow once the screen has settled, ready before you can swipe to them.
+    var neighboursReady by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(NEIGHBOURS_AFTER_MS)
+        neighboursReady = true
+    }
     PullToRefreshBox(
         state = state,
         isRefreshing = isRefreshing,
@@ -143,8 +152,9 @@ fun BriefFeedsPages(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
             key = { filters[it].index },
-            // All three pages stay ready, so the one you swipe to is already filled in.
-            beyondViewportPageCount = filters.size - 1,
+            // All three pages stay ready (once the screen has settled), so the one you swipe to
+            // is already filled in.
+            beyondViewportPageCount = if (neighboursReady) filters.size - 1 else 0,
         ) { page ->
             val pageFilter = filters[page]
             // Each page has its own list and count line, so a page never shows another filter's
@@ -176,6 +186,9 @@ fun BriefFeedsPages(
         }
     }
 }
+
+/** How long after the Feeds screen appears its other two pages are built. */
+private const val NEIGHBOURS_AFTER_MS = 600L
 
 /** The sheet to sort groups and feeds (opened from the sort button on the Feeds screen). */
 @Composable

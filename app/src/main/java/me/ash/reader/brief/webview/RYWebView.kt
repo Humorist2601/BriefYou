@@ -10,6 +10,7 @@ import androidx.compose.runtime.key
 import org.json.JSONObject
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -90,36 +91,46 @@ fun RYWebView(
             "/android_res/font/literata.ttf"
         } else null
 
+    // Made again only when a setting or colour changes, not on every redraw while the article
+    // opens (the styles are long, and the pictures' loading indicator is drawn shape by shape).
     val css =
-        WebViewStyle.get(
-            fontSize = fontSize,
-            fontPath = fontPath,
-            lineHeight = lineHeight,
-            letterSpacing = letterSpacing,
-            textMargin = textMargin,
-            textColor = textColor,
-            textBold = textBold,
-            textAlign = textAlign,
-            boldTextColor = boldTextColor,
-            subheadBold = subheadBold,
-            subheadUpperCase = subheadUpperCase,
-            imgMargin = imgMargin,
-            imgBorderRadius = imgBorderRadius,
-            linkTextColor = linkTextColor,
-            codeTextColor = codeTextColor,
-            codeBgColor = codeBgColor,
-            tableMargin = textMargin,
-            selectionTextColor = selectionTextColor,
-            selectionBgColor = selectionBgColor,
-            isDark = isDarkBackground,
-        ) +
-            // Boxes with a loading indicator for the pictures still loading (no jumping text).
-            ImagePlaceholders.css(
-                boxColor =
-                    colorScheme.surfaceColorAtElevation((tonalElevation.value + 6).dp).toArgb(),
-                indicatorColor = colorScheme.primary.toArgb(),
-            )
-    val script = WebViewScript.get(boldCharacters.value) + ImagePlaceholders.SCRIPT
+        remember(
+            fontSize, fontPath, lineHeight, letterSpacing, textMargin, textColor, textBold,
+            textAlign, boldTextColor, subheadBold, subheadUpperCase, imgMargin, imgBorderRadius,
+            linkTextColor, codeTextColor, codeBgColor, selectionTextColor, selectionBgColor,
+            isDarkBackground,
+        ) {
+            WebViewStyle.get(
+                fontSize = fontSize,
+                fontPath = fontPath,
+                lineHeight = lineHeight,
+                letterSpacing = letterSpacing,
+                textMargin = textMargin,
+                textColor = textColor,
+                textBold = textBold,
+                textAlign = textAlign,
+                boldTextColor = boldTextColor,
+                subheadBold = subheadBold,
+                subheadUpperCase = subheadUpperCase,
+                imgMargin = imgMargin,
+                imgBorderRadius = imgBorderRadius,
+                linkTextColor = linkTextColor,
+                codeTextColor = codeTextColor,
+                codeBgColor = codeBgColor,
+                tableMargin = textMargin,
+                selectionTextColor = selectionTextColor,
+                selectionBgColor = selectionBgColor,
+                isDark = isDarkBackground,
+            ) +
+                // Boxes with a loading indicator for the pictures still loading (no jumping text).
+                ImagePlaceholders.css(
+                    boxColor =
+                        colorScheme.surfaceColorAtElevation((tonalElevation.value + 6).dp).toArgb(),
+                    indicatorColor = colorScheme.primary.toArgb(),
+                )
+        }
+    val script =
+        remember(boldCharacters.value) { WebViewScript.get(boldCharacters.value) + ImagePlaceholders.SCRIPT }
 
     // Brief You: one web view per article (and reading font), freed when it leaves the screen.
     // When only the styling changes (the picture's colours arriving, the text sheet), the new
@@ -142,21 +153,22 @@ fun RYWebView(
                 onImageClick = onImageClick,
             )
         }
-        // What the web view currently shows: the page (content and script) and its styles.
-        val shown = remember { arrayOfNulls<String>(2) }
+        // Have the next article's web view ready (made at a quiet moment, see WebViewPool).
+        LaunchedEffect(webView) { WebViewPool.prepare(context) }
+        // What the web view currently shows: its content, styles and script (kept apart, so a
+        // redraw doesn't join the whole article into a new string just to compare it).
+        val shown = remember { arrayOfNulls<String>(3) }
 
         AndroidView(
             modifier = modifier,
             factory = { webView },
-            onRelease = {
-                it.stopLoading()
-                it.destroy()
-            },
+            // Freed after the closing animation, so closing the article doesn't stutter.
+            onRelease = { WebViewPool.release(it) },
             update = {
                 it.settings.defaultFontSize = fontSize
-                val page = content + "\u0000" + script
+                val pageChanged = shown[0] != content || shown[2] != script
                 // A style change while the page is still loading would be lost, so reload then.
-                if (shown[0] != page || (shown[1] != css && it.progress < 100)) {
+                if (pageChanged || (shown[1] != css && it.progress < 100)) {
                     it.loadDataWithBaseURL(
                         null,
                         WebViewHtml.HTML.format(
@@ -171,8 +183,9 @@ fun RYWebView(
                         "UTF-8",
                         null,
                     )
-                    shown[0] = page
+                    shown[0] = content
                     shown[1] = css
+                    shown[2] = script
                 } else if (shown[1] != css) {
                     it.evaluateJavascript(
                         "document.querySelector('style').textContent = ${JSONObject.quote(css)};",

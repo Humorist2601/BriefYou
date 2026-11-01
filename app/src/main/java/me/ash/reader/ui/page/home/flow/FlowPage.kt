@@ -65,6 +65,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos // Brief You
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -309,7 +310,18 @@ fun FlowPage(
                         it is ArticleFlowItem.Article && it.articleWithFeed.article.id == articleId
                     } ?: -1
 
-                if (index != -1) {
+                // Brief You: coming back from an article, leave the list where it was if that
+                // article's row is still on screen; only jump when it isn't (e.g. after swiping
+                // through several articles in the reader).
+                if (listState.layoutInfo.totalItemsCount == 0) withFrameNanos {}
+                val layout = listState.layoutInfo
+                val onScreen =
+                    layout.visibleItemsInfo.any {
+                        it.index == index &&
+                            it.offset >= layout.viewportStartOffset &&
+                            it.offset + it.size <= layout.viewportEndOffset
+                    }
+                if (index != -1 && !onScreen) {
                     snapAppBarToCollapsed()
                     listState.requestScrollToItem(index, scrollOffset = -400)
                 }
