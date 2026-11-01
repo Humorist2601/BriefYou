@@ -28,8 +28,8 @@ import org.jsoup.nodes.Document
  * Read later: a web page shared to Brief You from another app is saved as a starred article, with
  * its full text, so it reads offline like any other article.
  *
- * Saved pages belong to a feed of their own, "Saved for later", that is never synced (it has no
- * real address) and lives in the default group. Only local accounts can save: a sync service
+ * Saved pages belong to a feed of their own, "Saved Articles" (with a bookmark icon), that is
+ * never synced (it has no real address) and lives in the default group. Only local accounts can save: a sync service
  * (FreshRSS, Fever) would drop articles it doesn't know about at the next sync.
  */
 @Singleton
@@ -124,20 +124,39 @@ constructor(
             )
         }
 
-    /** The "Saved for later" feed of [accountId], made the first time something is saved. */
+    /** The "Saved Articles" feed of [accountId], made the first time something is saved. */
     private suspend fun savedFeed(accountId: Int): Feed {
         val id = accountId.spacerDollar(SAVED_FEED)
-        feedDao.queryById(id)?.let { return it }
+        feedDao.queryById(id)?.let { return upToDate(it) }
         val feed =
             Feed(
                 id = id,
-                name = "Saved for later",
+                name = SAVED_FEED_NAME,
+                icon = SAVED_FEED_ICON,
                 url = SAVED_FEED_URL,
                 groupId = accountId.getDefaultGroupId(),
                 accountId = accountId,
             )
         feedDao.insert(feed)
         return feed
+    }
+
+    /**
+     * Gives an existing saved feed of the current account its current name and icon (it was
+     * called "Saved for later", without an icon, in a test build). A custom icon you set is kept.
+     */
+    suspend fun refreshSavedFeed() =
+        withContext(ioDispatcher) {
+            runCatching {
+                val accountId = accountService.getCurrentAccountId()
+                feedDao.queryById(accountId.spacerDollar(SAVED_FEED))?.let { upToDate(it) }
+            }
+        }
+
+    private suspend fun upToDate(feed: Feed): Feed {
+        val icon = feed.icon ?: SAVED_FEED_ICON
+        if (feed.name == SAVED_FEED_NAME && feed.icon == icon) return feed
+        return feed.copy(name = SAVED_FEED_NAME, icon = icon).also { feedDao.update(it) }
     }
 
     private fun meta(page: Document, name: String): String? =
@@ -153,6 +172,9 @@ constructor(
 
     companion object {
         private const val SAVED_FEED = "brief_you_saved_for_later"
+        private const val SAVED_FEED_NAME = "Saved Articles"
+        /** A bookmark, shown like a custom emoji icon (see FeedIcon). */
+        private const val SAVED_FEED_ICON = "emoji:\uD83D\uDD16"
 
         /** Not a real address: the saved feed is never fetched (see [isSavedFeed]). */
         const val SAVED_FEED_URL = "briefyou://saved-for-later"

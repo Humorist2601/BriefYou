@@ -67,7 +67,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Steady pictures** | Pictures in the text get a box of their own size with the same shape-changing loading indicator as the rest of the app, and fade in, so the text never jumps. |
 | **Next article card** | At the end of an article, or "You're all caught up". |
 | **Reading time** | `4 min` in the list and on the page. |
-| **Read later** | Share a link from any app to *Read later*: the page is saved with its full text as a starred article (in a *Saved for later* feed), so it reads offline. A small sheet confirms it and closes by itself. Local accounts only. |
+| **Read later** | Share a link from any app to *Read later*: the page is saved with its full text as a starred article (in a *Saved Articles* feed with a bookmark icon), so it reads offline. A small sheet confirms it and closes by itself. Local accounts only. |
 | **Tidier articles** | No share buttons, "Read more" links, "appeared first on" lines or tracking pixels. |
 
 <details>
