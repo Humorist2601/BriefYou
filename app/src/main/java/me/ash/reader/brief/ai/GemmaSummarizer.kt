@@ -66,10 +66,9 @@ data class GistItem(
  *
  * Nothing leaves the phone: the user imports a `.litertlm` model file once (for example Gemma 4
  * E2B from the litert-community page on Hugging Face), it is copied into the app's private
- * storage, and everything runs locally. The engine is loaded ahead of time while you read (see
- * [preload]) or on first use, on the GPU (falling back to the CPU, which is then remembered so later
- * loads don't try the GPU first), and unloaded after a few idle minutes so the multi-gigabyte model
- * doesn't stay in memory.
+ * storage, and everything runs locally. The engine is loaded on first use, on the GPU (falling
+ * back to the CPU, which is then remembered so later loads don't try the GPU first), and unloaded
+ * after a few idle minutes so the multi-gigabyte model doesn't stay in memory.
  * The instructions sent to the model are editable in Settings → AI model.
  */
 @Singleton
@@ -84,7 +83,6 @@ constructor(
     private val engineLock = Mutex()
     private val generationLock = Mutex()
     @Volatile private var engine: Engine? = null
-    private var preloadJob: Job? = null
     private var unloadJob: Job? = null
     private var importJob: Job? = null
     private val activeUses = AtomicInteger(0)
@@ -321,22 +319,6 @@ constructor(
                 }
             }
             .flowOn(Dispatchers.Default)
-
-    /**
-     * Starts loading the model in the background, so the first summary or gist doesn't wait for it
-     * (called when you open an article or the Unread list). Does nothing without a model, while one
-     * is being imported, or when it is loaded already. Unused, it unloads after the usual idle time.
-     */
-    fun preload() {
-        if (!hasModel() || engine != null) return
-        if (preloadJob?.isActive == true || importJob?.isActive == true) return
-        preloadJob =
-            appScope.launch(Dispatchers.Default) {
-                runCatching { acquireEngine() }
-                    .onSuccess { if (activeUses.decrementAndGet() == 0) scheduleUnload() }
-                    .onFailure { Timber.w(it, "could not preload the model") }
-            }
-    }
 
     private suspend fun acquireEngine(): Engine {
         engineLock.withLock {

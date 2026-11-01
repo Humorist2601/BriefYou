@@ -48,7 +48,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 <summary>More details</summary>
 
 - Runs Google's Gemma model through [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM). Nothing is sent to a server, and summaries are never saved.
-- The model starts loading in the background when you open an article or an *Unread* list, so ✨ answers without waiting for it, and it unloads after 3 idle minutes. If your phone's GPU can't run it, the app remembers and goes straight to the CPU next time.
+- The model loads when you first use it and unloads after 3 idle minutes. If your phone's GPU can't run it, the app remembers and goes straight to the CPU next time.
 - Summaries open in a sheet at 70% of the screen. Each key point slides in as a card as it's written, and "Why it matters" gets its own accent card.
 - Regenerate, Ask and Read are three connected buttons at the bottom of the sheet.
 - Gists: tap **AI gist** in the floating button at the bottom of an *Unread* list. One tap marks all of them as read.
@@ -64,7 +64,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Floating toolbar** | Star, AI, next article, read aloud and full content, in a pill that hides while you scroll. |
 | **Toolbar long presses** | Star: read or unread · AI: settings · Next: previous article · Full content: open in browser. |
 | **Quick text sheet** | Size, line height, margins, font and justify, changed live. |
-| **Steady pictures** | Pictures in the text get a box of their own size with a loading indicator and fade in, so the text never jumps. |
+| **Steady pictures** | Pictures in the text get a box of their own size with the same shape-changing loading indicator as the rest of the app, and fade in, so the text never jumps. |
 | **Next article card** | At the end of an article, or "You're all caught up". |
 | **Reading time** | `4 min` in the list and on the page. |
 | **Tidier articles** | No share buttons, "Read more" links, "appeared first on" lines or tracking pixels. |
@@ -147,7 +147,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Material 3 Expressive** | Shape-morphing buttons, shaped icons, Expressive loading and pull-to-refresh, wavy progress. |
 | **Google Sans Flex** | Rounded throughout, with wide headings. Reading fonts: Google Sans Flex, Literata, system, or your own. |
 | **Material You, the current way** | Uses the system's own wallpaper colours; preset colours use Google's latest colour spec. |
-| **Feed colours and icons** | Feed names take a colour from their icon; set an emoji or your own image as a feed's icon. |
+| **Feed colours and icons** | Feed names take a colour from their icon; set an emoji or your own image as a feed's icon. Icons are kept in the image cache and loaded at the size they're shown; a site without an icon is searched again once a week, not on every sync. |
 | **App shortcuts** | Long-press the icon for Triage, AI gist, Unread or Sync now. |
 | **Reading stats** | This week Monday to Sunday (a bar per day), articles read, your streak, top feeds, and this month compared with last month, in *Settings → Reading stats*. |
 | **Swipe between Starred, Unread and All** | Each with its own list and scroll position. |

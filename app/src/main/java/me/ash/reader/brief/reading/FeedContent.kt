@@ -1,6 +1,8 @@
 package me.ash.reader.brief.reading
 
 import java.net.URI
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -28,6 +30,33 @@ import org.jsoup.nodes.Element
  *   the comic.
  */
 object FeedContent {
+
+    /**
+     * The last few articles prepared for the reading page (lead picture split off, reading time),
+     * so the page finds them ready instead of reading the whole article again as it opens.
+     */
+    private val preparedCache =
+        object : LinkedHashMap<String, BriefArticle>(8, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, BriefArticle>?) =
+                size > 6
+        }
+
+    /** [content] split into its lead picture and the rest, with its reading time (cached). */
+    fun prepared(content: String): BriefArticle {
+        synchronized(preparedCache) { preparedCache[content] }?.let { return it }
+        val (hero, body) = extractHero(content)
+        val article = BriefArticle(hero = hero, body = body, minutes = readingMinutes(content))
+        synchronized(preparedCache) { preparedCache[content] = article }
+        return article
+    }
+
+    /**
+     * [forReader] and [prepared], off the main thread: opening an article used to read the whole
+     * article three times on the main thread (tidying it, then splitting off its lead picture
+     * twice) while its opening animation ran.
+     */
+    suspend fun forReaderInBackground(html: String, link: String?): String =
+        withContext(Dispatchers.Default) { forReader(html, link).also { prepared(it) } }
 
     /** A complete address for [url], read against the article's [base] address. */
     fun absoluteUrl(url: String?, base: String?): String? {

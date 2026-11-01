@@ -48,6 +48,9 @@ object ImageLoaderModule {
                     }
                 )
             }
+            // Brief You: keep icons and pictures in the disk cache even when a site says not to
+            // (they were downloaded again every time); the cache still clears itself when full.
+            .respectCacheHeaders(false)
             // Enable disk cache
             .diskCache(
                 DiskCache.Builder()

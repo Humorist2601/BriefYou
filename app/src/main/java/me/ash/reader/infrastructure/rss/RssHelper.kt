@@ -1,5 +1,6 @@
 package me.ash.reader.infrastructure.rss
 
+import me.ash.reader.brief.feeds.IconLookups // Brief You
 import me.ash.reader.brief.reading.FeedContent // Brief You
 
 import android.content.Context
@@ -288,12 +289,16 @@ constructor(
         return imgRegex.find(text)?.groupValues?.get(2)?.takeIf { !it.startsWith("data:") }
     }
 
-    suspend fun queryRssIconLink(feedLink: String?): String? {
+    suspend fun queryRssIconLink(feedLink: String?, force: Boolean = false): String? { // Brief You: force
         if (feedLink.isNullOrEmpty()) return null
         val iconFinder = BestIconFinder(okHttpClient)
         val domain = feedLink.extractDomain()
+        // Brief You: a site whose icon wasn't found is searched again once a week, not every sync
+        val site = domain ?: feedLink
+        if (!force && !IconLookups.shouldTry(context, site)) return null
         return iconFinder.findBestIcon(domain ?: feedLink).also {
             Log.i("RLog", "queryRssIconByLink: get $it from $domain")
+            IconLookups.record(context, site, found = !it.isNullOrEmpty()) // Brief You
         }
     }
 
