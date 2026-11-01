@@ -36,21 +36,15 @@ import androidx.compose.material3.adaptive.layout.calculateDefaultExitTransition
 private const val DURATION = 300
 private const val HALF = DURATION / 2
 private const val OFFSET_FACTOR = 0.10f
-/** How long the scaffold keeps both panes after a back gesture (longer than its animation). */
-private const val BACK_GESTURE_DURATION = 1000
 private val Emphasized = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 fun <Role : PaneScaffoldRole> PaneScaffoldMotionDataProvider<Role>.briefEnterTransition(
     role: Role,
     singlePane: Boolean,
-    backGesture: Boolean = false,
 ): EnterTransition {
     val motion = this[role].motion
     return when {
-        // The back gesture from an article: the back preview draws both panes (see
-        // ArticleBackPreview); the scaffold only keeps them on screen.
-        backGesture -> fadeIn(tween(BACK_GESTURE_DURATION), initialAlpha = 1f)
         motion == PaneMotion.EnterFromRight -> enter { (it * OFFSET_FACTOR).toInt() }
         motion == PaneMotion.EnterFromLeft -> enter { -(it * OFFSET_FACTOR).toInt() }
         singlePane && motion != PaneMotion.NoMotion && motion != PaneMotion.AnimateBounds ->
@@ -63,11 +57,9 @@ fun <Role : PaneScaffoldRole> PaneScaffoldMotionDataProvider<Role>.briefEnterTra
 fun <Role : PaneScaffoldRole> PaneScaffoldMotionDataProvider<Role>.briefExitTransition(
     role: Role,
     singlePane: Boolean,
-    backGesture: Boolean = false,
 ): ExitTransition {
     val motion = this[role].motion
     return when {
-        backGesture -> fadeOut(tween(BACK_GESTURE_DURATION), targetAlpha = 1f)
         motion == PaneMotion.ExitToLeft -> exit { -(it * OFFSET_FACTOR).toInt() }
         motion == PaneMotion.ExitToRight -> exit { (it * OFFSET_FACTOR).toInt() }
         singlePane && motion != PaneMotion.NoMotion && motion != PaneMotion.AnimateBounds ->

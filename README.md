@@ -147,11 +147,11 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Material 3 Expressive** | Shape-morphing buttons, shaped icons, Expressive loading and pull-to-refresh, wavy progress. |
 | **Google Sans Flex** | Rounded throughout, with wide headings. Reading fonts: Google Sans Flex, Literata, system, or your own. |
 | **Material You, the current way** | Uses the system's own wallpaper colours; preset colours use Google's latest colour spec. |
-| **Feed colours and icons** | Feed names take a colour from their icon; set an emoji or your own image as a feed's icon. |
+| **Feed colours and icons** | Feed names take a colour from their icon; set an emoji or your own image as a feed's icon. Icons are kept in the image cache and loaded at the size they're shown; a site without an icon is searched again once a week, not on every sync. |
 | **App shortcuts** | Long-press the icon for Triage, AI gist, Unread or Sync now. |
 | **Reading stats** | This week Monday to Sunday (a bar per day), articles read, your streak, top feeds, and this month compared with last month, in *Settings → Reading stats*. |
 | **Swipe between Starred, Unread and All** | Each with its own list and scroll position. |
-| **Predictive back** | Android's own back animation in every screen, from an article to its list, and in dialogs, with a gentler dim on the screen behind so it never flashes dark. |
+| **Predictive back** | Android's own back animation, in screens and dialogs, with a gentler dim on the screen behind so it never flashes dark. |
 | **New icon and animated splash** | A fanned stack of cards that grows into the app. |
 
 <details>

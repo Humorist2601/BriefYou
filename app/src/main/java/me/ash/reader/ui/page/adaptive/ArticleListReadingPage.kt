@@ -1,11 +1,6 @@
 package me.ash.reader.ui.page.adaptive
 
 import me.ash.reader.brief.reading.BriefReadingPage // Brief You
-import me.ash.reader.brief.ui.rememberArticleBackRunning // Brief You
-import me.ash.reader.brief.ui.ArticleListPane // Brief You
-import me.ash.reader.brief.ui.ArticleDetailPane // Brief You
-import me.ash.reader.brief.ui.ArticleBackPane // Brief You
-import me.ash.reader.brief.ui.ArticleBackController // Brief You
 import me.ash.reader.brief.reading.briefEnterTransition // Brief You
 import me.ash.reader.brief.reading.briefExitTransition // Brief You
 import android.os.Parcelable
@@ -126,14 +121,6 @@ fun ArticleListReaderPage(
     val animatedContentWidth by animateDpAsState(contentWidth)
     val animatedListAlpha by animateFloatAsState(listAlpha)
 
-    // Brief You: the back gesture from an article, like every other screen's (see ArticleBackPreview)
-    val articleShown = { navigator.currentDestination?.pane == ListDetailPaneScaffoldRole.Detail } // Brief You
-    // Brief You: only while the scaffold itself follows the back gesture (not when the AI sheet,
-    // the picture viewer or a menu takes it)
-    val articleBackActive = { !isTwoPane && articleShown() && navigator.scaffoldState.isPredictiveBackInProgress }
-    ArticleBackController(active = articleBackActive, articleShown = articleShown) // Brief You
-    val articleBack = rememberArticleBackRunning(articleBackActive) // Brief You
-
     NavigableListDetailPaneScaffold(
         navigator = navigator,
         modifier = modifier,
@@ -149,14 +136,13 @@ fun ArticleListReaderPage(
             }
             AnimatedPane(
                 // Brief You: no dark flash between the list and an article (see PaneTransitions)
-                enterTransition = motionDataProvider.briefEnterTransition(paneRole, !isTwoPane, articleBack()),
-                exitTransition = motionDataProvider.briefExitTransition(paneRole, !isTwoPane, articleBack()),
+                enterTransition = motionDataProvider.briefEnterTransition(paneRole, !isTwoPane),
+                exitTransition = motionDataProvider.briefExitTransition(paneRole, !isTwoPane),
             ) {
                 CompositionLocalProvider(
                     LocalBackgroundTextMeasurementExecutor provides
                         Executors.newSingleThreadExecutor()
                 ) {
-                    ArticleBackPane(ArticleListPane) { // Brief You: drawn by the back preview
                     Box(modifier = Modifier.alpha(animatedListAlpha)) {
                         FlowPage(
                             sharedTransitionScope = sharedTransitionScope,
@@ -177,15 +163,14 @@ fun ArticleListReaderPage(
                             },
                         )
                     }
-                    } // Brief You: end of the list pane drawn by the back preview
                 }
             }
         },
         detailPane = {
             AnimatedPane(
                 // Brief You: no dark flash between the list and an article (see PaneTransitions)
-                enterTransition = motionDataProvider.briefEnterTransition(paneRole, !isTwoPane, articleBack()),
-                exitTransition = motionDataProvider.briefExitTransition(paneRole, !isTwoPane, articleBack()),
+                enterTransition = motionDataProvider.briefEnterTransition(paneRole, !isTwoPane),
+                exitTransition = motionDataProvider.briefExitTransition(paneRole, !isTwoPane),
             ) {
                 val contentKey = navigator.currentDestination?.contentKey
                 LaunchedEffect(contentKey) {
@@ -201,7 +186,6 @@ fun ArticleListReaderPage(
                 }
 
                 CompositionLocalProvider(LocalTextContentWidth provides animatedContentWidth) {
-                    ArticleBackPane(ArticleDetailPane) { // Brief You: drawn by the back preview
                     BriefReadingPage( // Brief You: in the picture's colours
                         viewModel = viewModel,
                         navigationAction = navigationAction,
@@ -239,7 +223,6 @@ fun ArticleListReaderPage(
                         onNavigateToStylePage = onNavigateToStylePage,
                         onNavigateToAiSettings = onNavigateToAiSettings, // Brief You
                     )
-                    } // Brief You: end of the article pane drawn by the back preview
                 }
             }
         },

@@ -241,7 +241,7 @@ constructor(
         _feedOptionUiState.value.feed?.let { feed ->
             viewModelScope.launch(ioDispatcher) {
                 iconOverrides.clear(feed.id)
-                val icon = rssHelper.queryRssIconLink(feed.url) ?: return@launch
+                val icon = rssHelper.queryRssIconLink(feed.url, force = true) ?: return@launch // Brief You: by hand, always
                 feedDao.update(feed.copy(icon = icon))
                 fetchFeed(feed.id)
             }

@@ -51,7 +51,11 @@ object BriefActivity {
             activity.splashScreen.setOnExitAnimationListener { view -> view.remove() }
         }
         syncSplashNightMode(activity)
-        BriefShortcuts.publish(activity)
+        // Off the main thread: publishing shortcuts asks the system and can take a while.
+        val appContext = activity.applicationContext
+        activity.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+            BriefShortcuts.publish(appContext)
+        }
         return playSplash
     }
 

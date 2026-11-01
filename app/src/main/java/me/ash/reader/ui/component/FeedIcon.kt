@@ -59,12 +59,15 @@ fun FeedIcon(
             onEmpty = { FontIcon(modifier, size, feedName ?: "") },
         )
     } else {
+        // Brief You: decoded at the size it's shown (icons are often 512 px or more)
+        val px = with(androidx.compose.ui.platform.LocalDensity.current) { size.roundToPx() }.coerceAtLeast(1)
         RYAsyncImage(
             modifier = modifier
                 .size(size)
                 .clip(CircleShape),
             contentDescription = feedName ?: "",
             data = iconUrl,
+            size = coil.size.Size(px, px), // Brief You
             placeholder = null,
         )
     }
