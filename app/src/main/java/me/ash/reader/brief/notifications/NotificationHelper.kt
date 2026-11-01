@@ -313,7 +313,7 @@ constructor(
         groups: List<List<Entry>>,
         feedNames: List<String>,
     ): NotificationCompat.Style {
-        val me = Person.Builder().setName(context.getString(R.string.app_name)).setKey("me").build()
+        val me = Person.Builder().setName(context.applicationInfo.loadLabel(context.packageManager)).setKey("me").build()
         val style =
             NotificationCompat.MessagingStyle(me)
                 .setConversationTitle(title)
