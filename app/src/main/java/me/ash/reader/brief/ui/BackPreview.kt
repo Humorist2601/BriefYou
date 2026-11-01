@@ -122,13 +122,20 @@ private const val MAX_SCRIM_LIGHT = 0.12f
 const val BACK_PREVIEW_DURATION = 1000
 
 /** After you let go and it goes back: 450 ms, as in the system. */
-private const val COMMIT_DURATION = 450
+internal const val COMMIT_DURATION = 450
 
 /** After you let go and it does not go back. */
-private const val CANCEL_DURATION = 300
+internal const val CANCEL_DURATION = 300
 
 /** The part of the commit animation in which the screen you leave fades out. */
 private const val LEAVING_FADE = 0.2f
+
+/** Which back preview follows a gesture: the navigation host's screens, or an article's panes. */
+internal enum class BackOwner {
+    Navigation,
+    /** An article over its list on a phone (see ArticleBackPreview). */
+    Article,
+}
 
 internal enum class BackPhase {
     Idle,
@@ -143,6 +150,8 @@ internal enum class BackPhase {
 /** One back gesture. Only one runs at a time. Written by [BackPreviewController]. */
 internal object BackPreviewState {
     var phase by mutableStateOf(BackPhase.Idle)
+    /** Who follows the gesture that is running. */
+    var owner by mutableStateOf<BackOwner?>(null)
     /** The screen you are leaving and the screen behind it (their navigation keys). */
     var leavingKey by mutableStateOf<Any?>(null)
     var behindKey by mutableStateOf<Any?>(null)
@@ -166,6 +175,16 @@ internal object BackPreviewState {
 
     /** The screens the host is showing right now, and whether its transition is moving them. */
     val composed = HashMap<Any, Boolean>()
+
+    /** No gesture any more (after it settles, or when its screen goes away mid-gesture). */
+    fun reset() {
+        phase = BackPhase.Idle
+        owner = null
+        leavingKey = null
+        behindKey = null
+        progress = 0f
+        settle = 0f
+    }
 }
 
 /**
@@ -199,12 +218,16 @@ fun rememberBackPreviewRunning(): () -> Boolean {
 fun BackPreviewController(backStack: List<Any>) {
     val dispatcher =
         LocalNavigationEventDispatcherOwner.current?.navigationEventDispatcher ?: return
+    // Leaving mid-gesture (rotating, leaving the app) never leaves the back preview stuck.
+    DisposableEffect(Unit) {
+        onDispose { if (BackPreviewState.owner == BackOwner.Navigation) BackPreviewState.reset() }
+    }
     LaunchedEffect(dispatcher, backStack) {
         val s = BackPreviewState
         dispatcher.transitionState.collectLatest { gesture ->
             if (gesture is NavigationEventTransitionState.InProgress) {
                 val event = gesture.latestEvent
-                if (s.phase != BackPhase.Dragging) {
+                if (s.phase == BackPhase.Idle) {
                     if (backStack.size < 2) return@collectLatest
                     val leaving = backStack.last()
                     val behind = backStack[backStack.size - 2]
@@ -222,11 +245,14 @@ fun BackPreviewController(backStack: List<Any>) {
                     s.settle = 0f
                     s.progress = event.progress
                     s.rawDy = 0f
+                    s.owner = BackOwner.Navigation
                     s.phase = BackPhase.Dragging
                 }
+                // A gesture followed by an article's panes is theirs (see ArticleBackPreview).
+                if (s.owner != BackOwner.Navigation) return@collectLatest
                 s.progress = event.progress
                 s.rawDy = event.touchY - s.startY
-            } else if (s.phase == BackPhase.Dragging) {
+            } else if (s.phase == BackPhase.Dragging && s.owner == BackOwner.Navigation) {
                 s.releasedAt = s.progress
                 // Right away, as if it goes back (at the start this looks exactly like the last
                 // frame of the swipe): the screen behind then draws itself, so something is drawn
@@ -269,11 +295,7 @@ fun BackPreviewController(backStack: List<Any>) {
                     if (leftOver != null && s.composed.containsKey(leftOver)) {
                         s.collapsedKeys.add(leftOver)
                     }
-                    s.phase = BackPhase.Idle
-                    s.leavingKey = null
-                    s.behindKey = null
-                    s.progress = 0f
-                    s.settle = 0f
+                    s.reset()
                 }
             }
         }
@@ -417,6 +439,18 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
         }
     }
 
+    val isTop = LocalBackStack.current.lastOrNull() == key
+    BackPreviewLayer(key, collapsedWhenIdle = !isTop && key in s.collapsedKeys, content = content)
+}
+
+/**
+ * The back preview's drawing for one screen (or pane) with key [key]: shrunk, moved, dimmed or
+ * hidden as the gesture in [BackPreviewState] says, whichever way the host stacks the two. When no
+ * gesture involves it, it is drawn as it is, or not at all when [collapsedWhenIdle].
+ */
+@Composable
+internal fun BackPreviewLayer(key: Any, collapsedWhenIdle: Boolean, content: @Composable () -> Unit) {
+    val s = BackPreviewState
     val phase = s.phase
     val role =
         when {
@@ -428,13 +462,12 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
     val fadedOut by remember {
         derivedStateOf { s.phase == BackPhase.Committing && s.settle >= LEAVING_FADE }
     }
-    val isTop = LocalBackStack.current.lastOrNull() == key
     // Not drawn and can't be touched (but keeps its state).
     val collapsed =
         when (role) {
             Role.Leaving -> fadedOut
             Role.Behind -> phase == BackPhase.Cancelling
-            Role.None -> !isTop && key in s.collapsedKeys
+            Role.None -> collapsedWhenIdle
         }
     // The screen behind, while you swipe: it keeps a picture of itself for the leaving screen to
     // draw, and draws nothing itself.

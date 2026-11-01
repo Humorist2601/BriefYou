@@ -15,6 +15,7 @@ import androidx.navigation3.runtime.NavKey
 import me.ash.reader.brief.ui.BackPreviewController
 import me.ash.reader.brief.ui.BackPreviewPage
 import me.ash.reader.brief.ui.FilterBarHost
+import me.ash.reader.brief.ui.LocalBackDispatcher
 import me.ash.reader.brief.ui.LocalBackPreviewLeavingPicture
 import me.ash.reader.brief.ui.LocalBackPreviewPicture
 import me.ash.reader.brief.ui.LocalBackStack
@@ -70,6 +71,9 @@ fun BriefNavigationHost(backStack: NavBackStack<NavKey>, content: @Composable ()
     CompositionLocalProvider(
         LocalBackStack provides backStack,
         LocalBackPreviewPicture provides backPreviewPicture,
+        LocalBackDispatcher provides
+            androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner.current
+                ?.navigationEventDispatcher,
         LocalBackPreviewLeavingPicture provides backPreviewLeavingPicture,
         LocalFilterBarHost provides filterBarHost,
     ) {
