@@ -10,6 +10,9 @@ on:
         branches-ignore:
             - main
             - read-you-sync
+        # A commit that only changes documents makes no Nightly.
+        paths-ignore:
+            - "**.md"
 
 jobs:
     build:
