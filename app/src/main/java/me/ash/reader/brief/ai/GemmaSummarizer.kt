@@ -189,6 +189,18 @@ constructor(
     }
 
     /**
+     * Streams a very short summary for a Triage card: 3 bullet points of one short sentence each,
+     * so it fits on the card. Each emission is the full text generated so far.
+     */
+    fun summarizeForCard(title: String?, html: String): Flow<String> {
+        val prompt = buildString {
+            if (!title.isNullOrBlank()) append("Title: ").append(title).append("\n\n")
+            append(htmlToText(html).take(MAX_INPUT_CHARS))
+        }
+        return generate(CARD_PROMPT, prompt)
+    }
+
+    /**
      * Streams an answer to a question about one article, from the article only (with the last
      * few questions and answers, so follow-up questions make sense).
      */
@@ -407,6 +419,13 @@ constructor(
                 "also use general knowledge for background; when part of your answer is not from " +
                 "the list, say so briefly. Answer in 1 to 4 short sentences, in the same language " +
                 "as the question."
+
+        private const val CARD_PROMPT =
+            "You summarize news articles for a small card in a news reader app. Reply with " +
+                "exactly 3 bullet points starting with \"• \", each one short sentence of at " +
+                "most 18 words with the key facts (what happened, who, the most important " +
+                "detail). Write in the same language as the article. Do not add facts that are " +
+                "not in the article and do not add any preamble or closing line."
 
         const val DEFAULT_ARTICLE_PROMPT =
             "You summarize articles for a news reader app. Reply with 3 to 5 short bullet " +

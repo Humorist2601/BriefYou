@@ -79,6 +79,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -131,6 +132,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import me.ash.reader.R
+import me.ash.reader.brief.ui.LocalBackStack
+import me.ash.reader.ui.page.nav3.key.Route
 import me.ash.reader.domain.model.article.ArticleWithFeed
 import me.ash.reader.ui.component.FeedIcon
 import me.ash.reader.ui.component.base.RYAsyncImage
@@ -697,6 +700,20 @@ private fun TriageStack(
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val returnSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    // Long-press summaries (see TriageSummary.kt), kept for the whole run so Undo keeps them.
+    val summaries = rememberCardSummaries()
+    val currentSummary = summaries[current.article.id]
+    // A summary still being written stops when its card leaves.
+    DisposableEffect(current.article.id) {
+        val id = current.article.id
+        onDispose { summaries.stop(id) }
+    }
+    val backStack = LocalBackStack.current
+    val openAiSettings = {
+        @Suppress("UNCHECKED_CAST")
+        (backStack as? MutableList<Any>)?.add(Route.AiModel)
+        Unit
+    }
     // Where a card that was dealt with went: off the side, the top or the bottom of the screen.
     // A card brought back with Undo starts there, so it never shows up in the middle first.
     val screen = LocalConfiguration.current
@@ -801,8 +818,8 @@ private fun TriageStack(
 
             // Auto-advance: when the time is up the card is skipped (left unread). Touching the card
             // pauses the countdown where it is, and letting go carries on from there; every new
-            // card starts from the beginning.
-            val touching = dragging || held
+            // card starts from the beginning. A card with a summary stays paused until it's swiped.
+            val touching = dragging || held || currentSummary != null
             LaunchedEffect(touching, autoSeconds) { onHeldChange(touching && autoSeconds > 0) }
             LaunchedEffect(autoSeconds, current.article.id, touching, busy) {
                 if (autoSeconds <= 0) {
@@ -868,7 +885,14 @@ private fun TriageStack(
                                         held = true
                                         tryAwaitRelease()
                                         held = false
-                                    }
+                                    },
+                                    // Holding still for a moment: a short AI summary on the card.
+                                    onLongPress = {
+                                        if (!busy && summaries[current.article.id] == null) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            summaries.request(current, scope)
+                                        }
+                                    },
                                 )
                             }
                             .pointerInput(current.article.id) {
@@ -910,7 +934,11 @@ private fun TriageStack(
                                 article = card,
                                 overlay = if (isFront) hintAction else null,
                                 overlayAlpha = if (isFront) hintAlpha else 0f,
-                                modifier = if (isFront) frontModifier else backModifier,
+                                summary = summaries[card.article.id],
+                                onOpenAiSettings = openAiSettings,
+                                modifier =
+                                    if (isFront) frontModifier.aiGlow(summaries[card.article.id], CARD_CORNER)
+                                    else backModifier,
                             )
                         }
                     }
@@ -996,6 +1024,8 @@ private fun TriageCard(
     article: ArticleWithFeed,
     overlay: TriageAction?,
     overlayAlpha: Float,
+    summary: CardSummary? = null,
+    onOpenAiSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val feed = article.feed
@@ -1004,7 +1034,7 @@ private fun TriageCard(
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(36.dp),
+        shape = RoundedCornerShape(CARD_CORNER),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 2.dp,
         shadowElevation = 4.dp,
@@ -1035,11 +1065,18 @@ private fun TriageCard(
                     )
                 }
 
-                if (item.img != null) {
-                    Spacer(Modifier.height(16.dp))
+                // The picture folds away to make room for a summary.
+                val imageHeight by
+                    animateDpAsState(
+                        if (summary == null) 150.dp else 0.dp,
+                        MaterialTheme.motionScheme.defaultSpatialSpec(),
+                        label = "picture",
+                    )
+                if (item.img != null && imageHeight > 0.5.dp) {
+                    Spacer(Modifier.height(16.dp * (imageHeight / 150.dp)))
                     RYAsyncImage(
                         modifier =
-                            Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(24.dp)),
+                            Modifier.fillMaxWidth().height(imageHeight).clip(RoundedCornerShape(24.dp)),
                         data = FeedContent.listImage(item.img, item.link),
                         scale = Scale.FILL,
                         precision = Precision.INEXACT,
@@ -1058,7 +1095,9 @@ private fun TriageCard(
                 )
 
                 Spacer(Modifier.height(12.dp))
-                if (item.shortDescription.isNotBlank()) {
+                if (summary != null) {
+                    CardSummaryContent(summary, onOpenAiSettings)
+                } else if (item.shortDescription.isNotBlank()) {
                     Text(
                         text = item.shortDescription,
                         style = MaterialTheme.typography.bodyLarge,
@@ -1112,6 +1151,9 @@ private fun TriageCard(
         }
     }
 }
+
+/** The cards' corner radius. */
+private val CARD_CORNER = 36.dp
 
 /** How strongly the drag hints cover a card at most. */
 private const val HINT_ALPHA = 0.88f

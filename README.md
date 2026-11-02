@@ -105,6 +105,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | Feature | What it does |
 | --- | --- |
 | **Card stack** | Swipe right: read · left: save · up: open · down: skip. Undo takes back your last choice. |
+| **Summary on the card** | Long-press a card: the on-device AI writes 3 key points right on it, with a glowing border while it works. The card stays paused until you swipe it. |
 | **Auto-advance** | Skips each card after a few seconds, with a wavy ring counting down. |
 | **Next group** | When a group (or feed) is done: a ring with how much of all your unread is cleared ("3 of 4 groups clear"), what's left, and the next group, which starts by itself after a countdown while auto-advance is on. *All caught up* only when nothing is unread anywhere. |
 | **Inbox zero** | A little celebration when you're all caught up. |
