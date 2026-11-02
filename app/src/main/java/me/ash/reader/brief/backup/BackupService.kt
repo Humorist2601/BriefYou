@@ -90,6 +90,7 @@ data class ExtrasBackup(
     /** Null where the default instructions are used. */
     val articlePrompt: String? = null,
     val gistPrompt: String? = null,
+    val cardPrompt: String? = null,
     val triageAutoSeconds: Int? = null,
     /** Read aloud's last speed (added later; older backups don't have it). */
     val readAloudSpeed: Float? = null,
@@ -186,6 +187,7 @@ constructor(
                 ExtrasBackup(
                     articlePrompt = summarizer.customArticlePrompt(),
                     gistPrompt = summarizer.customGistPrompt(),
+                    cardPrompt = summarizer.customCardPrompt(),
                     triageAutoSeconds =
                         triagePrefs().takeIf { it.contains(TRIAGE_SECONDS) }?.getInt(TRIAGE_SECONDS, 5),
                     readAloudSpeed =
@@ -374,6 +376,7 @@ constructor(
     private fun restoreExtras(b: ExtrasBackup) {
         summarizer.setArticlePrompt(b.articlePrompt)
         summarizer.setGistPrompt(b.gistPrompt)
+        summarizer.setCardPrompt(b.cardPrompt)
         b.triageAutoSeconds?.let { triagePrefs().edit { putInt(TRIAGE_SECONDS, it) } }
         b.readAloudSpeed?.let { speed ->
             readAloudPrefs().edit { putFloat(READ_ALOUD_SPEED, speed) }

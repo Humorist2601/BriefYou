@@ -61,6 +61,13 @@ data class GistItem(
     val description: String,
 )
 
+/** The app's AI features, for warming the model up where you use them (see warmUp). */
+enum class AiUse {
+    Article,
+    Gist,
+    Card,
+}
+
 /**
  * On-device article summaries and group gists with a Gemma model run through LiteRT-LM.
  *
@@ -98,6 +105,10 @@ constructor(
         MutableStateFlow(prefs.getString(KEY_GIST_PROMPT, null) ?: DEFAULT_GIST_PROMPT)
     val gistPrompt: StateFlow<String> = _gistPrompt.asStateFlow()
 
+    private val _cardPrompt =
+        MutableStateFlow(prefs.getString(KEY_CARD_PROMPT, null) ?: DEFAULT_CARD_PROMPT)
+    val cardPrompt: StateFlow<String> = _cardPrompt.asStateFlow()
+
     fun hasModel(): Boolean = modelFile.isFile && modelFile.length() > 0
 
     fun setArticlePrompt(value: String?) {
@@ -111,6 +122,14 @@ constructor(
         prefs.edit { if (v == null) remove(KEY_GIST_PROMPT) else putString(KEY_GIST_PROMPT, v) }
         _gistPrompt.value = v ?: DEFAULT_GIST_PROMPT
     }
+
+    fun setCardPrompt(value: String?) {
+        val v = value?.takeIf { it.isNotBlank() }
+        prefs.edit { if (v == null) remove(KEY_CARD_PROMPT) else putString(KEY_CARD_PROMPT, v) }
+        _cardPrompt.value = v ?: DEFAULT_CARD_PROMPT
+    }
+
+    fun customCardPrompt(): String? = prefs.getString(KEY_CARD_PROMPT, null)
 
     /** The instructions the user wrote, for a backup; null where the default is used. */
     fun customArticlePrompt(): String? = prefs.getString(KEY_ARTICLE_PROMPT, null)
@@ -181,6 +200,7 @@ constructor(
 
     /** Streams a summary of one article. Each emission is the full text generated so far. */
     fun summarize(title: String?, html: String): Flow<String> {
+        recordUse(AiUse.Article)
         val prompt = buildString {
             if (!title.isNullOrBlank()) append("Title: ").append(title).append("\n\n")
             append(htmlToText(html).take(MAX_INPUT_CHARS))
@@ -197,7 +217,8 @@ constructor(
             if (!title.isNullOrBlank()) append("Title: ").append(title).append("\n\n")
             append(htmlToText(html).take(MAX_INPUT_CHARS))
         }
-        return generate(CARD_PROMPT, prompt)
+        recordUse(AiUse.Card)
+        return generate(cardPrompt.value, prompt)
     }
 
     /**
@@ -242,8 +263,10 @@ constructor(
     }
 
     /** Streams a gist of many articles (for example everything in a group). */
-    fun gist(groupName: String?, items: List<GistItem>): Flow<String> =
-        generate(gistPrompt.value, buildGistPrompt(groupName, items))
+    fun gist(groupName: String?, items: List<GistItem>): Flow<String> {
+        recordUse(AiUse.Gist)
+        return generate(gistPrompt.value, buildGistPrompt(groupName, items))
+    }
 
     private fun buildGistPrompt(groupName: String?, items: List<GistItem>): String = buildString {
         if (!groupName.isNullOrBlank()) append("Group: ").append(groupName).append("\n\n")
@@ -332,6 +355,64 @@ constructor(
             }
             .flowOn(Dispatchers.Default)
 
+    /**
+     * Loads the model ahead of time, at a moment when [use] is likely to follow: opening Triage,
+     * an article or the Unread list (only if you've used that AI feature at least [minUses]
+     * times in the last week; 0 when the intent is already clear, like a long press half-way). Only when the phone can afford it: not in battery saver, with battery to
+     * spare or charging, and enough free memory for the model. The model then unloads after the
+     * usual idle minutes if nothing uses it.
+     */
+    fun warmUp(use: AiUse, minUses: Int = HABIT_MIN_USES) {
+        if (engine != null || warming || !hasModel()) return
+        if (minUses > 0 && !isHabit(use, minUses)) return
+        if (!canAfford()) return
+        warming = true
+        appScope.launch(Dispatchers.Default) {
+            try {
+                acquireEngine()
+                if (activeUses.decrementAndGet() == 0) scheduleUnload()
+            } catch (t: Throwable) {
+                Timber.w(t, "AI warm-up failed")
+            } finally {
+                warming = false
+            }
+        }
+    }
+
+    @Volatile private var warming = false
+
+    /** Remembers when each AI feature was used, so warm-ups follow your habits. */
+    private fun recordUse(use: AiUse) {
+        val now = System.currentTimeMillis()
+        val key = KEY_USES_PREFIX + use.name
+        val recent =
+            (prefs.getString(key, null)?.split(',')?.mapNotNull { it.toLongOrNull() } ?: emptyList())
+                .filter { now - it < HABIT_WINDOW_MS }
+                .takeLast(9) + now
+        prefs.edit { putString(key, recent.joinToString(",")) }
+    }
+
+    private fun isHabit(use: AiUse, minUses: Int): Boolean {
+        val now = System.currentTimeMillis()
+        val uses =
+            prefs.getString(KEY_USES_PREFIX + use.name, null)?.split(',')?.mapNotNull { it.toLongOrNull() }
+                ?: return false
+        return uses.count { now - it < HABIT_WINDOW_MS } >= minUses
+    }
+
+    private fun canAfford(): Boolean =
+        runCatching {
+                val power = context.getSystemService(android.os.PowerManager::class.java)
+                if (power?.isPowerSaveMode == true) return false
+                val battery = context.getSystemService(android.os.BatteryManager::class.java)
+                val level = battery?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: 100
+                if (level in 0 until MIN_BATTERY && battery?.isCharging != true) return false
+                val activity = context.getSystemService(android.app.ActivityManager::class.java)
+                val memory = android.app.ActivityManager.MemoryInfo().also { activity?.getMemoryInfo(it) }
+                !memory.lowMemory && memory.availMem > modelFile.length() + MEMORY_MARGIN_BYTES
+            }
+            .getOrDefault(false)
+
     private suspend fun acquireEngine(): Engine {
         engineLock.withLock {
             unloadJob?.cancel()
@@ -398,6 +479,14 @@ constructor(
         const val MODEL_PAGE = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm"
 
         private const val KEY_ARTICLE_PROMPT = "article_prompt"
+        private const val KEY_CARD_PROMPT = "card_prompt"
+        private const val KEY_USES_PREFIX = "uses_"
+        /** A feature counts as a habit after this many uses in the last week. */
+        const val HABIT_MIN_USES = 2
+        private const val HABIT_WINDOW_MS = 7L * 24 * 60 * 60 * 1000
+        private const val MIN_BATTERY = 20
+        /** Free memory needed on top of the model's size before warming it up. */
+        private const val MEMORY_MARGIN_BYTES = 1_500_000_000L
         private const val KEY_GIST_PROMPT = "gist_prompt"
         /** The app version in which the GPU failed to load the model. */
         private const val KEY_GPU_FAILED_IN = "gpu_failed_in"
@@ -420,7 +509,7 @@ constructor(
                 "the list, say so briefly. Answer in 1 to 4 short sentences, in the same language " +
                 "as the question."
 
-        private const val CARD_PROMPT =
+        const val DEFAULT_CARD_PROMPT =
             "You summarize news articles for a small card in a news reader app. Reply with " +
                 "exactly 3 bullet points starting with \"• \", each one short sentence of at " +
                 "most 18 words with the key facts (what happened, who, the most important " +

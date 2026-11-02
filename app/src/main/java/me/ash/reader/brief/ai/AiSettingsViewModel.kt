@@ -14,6 +14,7 @@ class AiSettingsViewModel @Inject constructor(private val summarizer: GemmaSumma
     val modelState: StateFlow<ModelState> = summarizer.modelState
     val articlePrompt: StateFlow<String> = summarizer.articlePrompt
     val gistPrompt: StateFlow<String> = summarizer.gistPrompt
+    val cardPrompt: StateFlow<String> = summarizer.cardPrompt
 
     fun importModel(uri: Uri) = summarizer.importModel(uri)
 
@@ -22,4 +23,6 @@ class AiSettingsViewModel @Inject constructor(private val summarizer: GemmaSumma
     fun setArticlePrompt(value: String?) = summarizer.setArticlePrompt(value)
 
     fun setGistPrompt(value: String?) = summarizer.setGistPrompt(value)
+
+    fun setCardPrompt(value: String?) = summarizer.setCardPrompt(value)
 }

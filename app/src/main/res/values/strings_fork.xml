@@ -74,6 +74,7 @@
     <string name="ai_settings_instructions">Instructions</string>
     <string name="ai_settings_article_prompt">Article summary instructions</string>
     <string name="ai_settings_gist_prompt">Group gist instructions</string>
+    <string name="ai_settings_card_prompt">Triage card summary instructions</string>
     <string name="ai_settings_reset">Reset to default</string>
     <string name="ai_settings_save">Save</string>
     <string name="ai_settings_cancel">Cancel</string>
@@ -267,8 +268,8 @@
     <string name="triage_summary_working">Summarising…</string>
     <string name="triage_summary_done">Summary · tap for the article</string>
     <string name="triage_summary_tap_for_summary">Tap for the summary</string>
-    <string name="triage_summary_failed">Couldn\'t summarise this one</string>
     <string name="triage_summary_no_model_title">AI summary</string>
+    <string name="triage_summary_failed">Couldn\'t summarise this one</string>
     <string name="triage_summary_no_model">Set up the AI model to summarise cards with a long press.</string>
     <string name="triage_summary_open_settings">AI model settings</string>
     <!-- Read later (sharing a link to Brief You) -->
