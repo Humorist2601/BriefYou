@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
 import com.google.ai.edge.litertlm.Backend
-import me.ash.reader.BuildConfig
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
@@ -60,13 +59,6 @@ data class GistItem(
     val title: String,
     val description: String,
 )
-
-/** The app's AI features, for warming the model up where you use them (see warmUp). */
-enum class AiUse {
-    Article,
-    Gist,
-    Card,
-}
 
 /**
  * On-device article summaries and group gists with a Gemma model run through LiteRT-LM.
@@ -200,7 +192,6 @@ constructor(
 
     /** Streams a summary of one article. Each emission is the full text generated so far. */
     fun summarize(title: String?, html: String): Flow<String> {
-        recordUse(AiUse.Article)
         val prompt = buildString {
             if (!title.isNullOrBlank()) append("Title: ").append(title).append("\n\n")
             append(htmlToText(html).take(MAX_INPUT_CHARS))
@@ -217,7 +208,6 @@ constructor(
             if (!title.isNullOrBlank()) append("Title: ").append(title).append("\n\n")
             append(htmlToText(html).take(MAX_INPUT_CHARS))
         }
-        recordUse(AiUse.Card)
         return generate(cardPrompt.value, prompt)
     }
 
@@ -264,7 +254,6 @@ constructor(
 
     /** Streams a gist of many articles (for example everything in a group). */
     fun gist(groupName: String?, items: List<GistItem>): Flow<String> {
-        recordUse(AiUse.Gist)
         return generate(gistPrompt.value, buildGistPrompt(groupName, items))
     }
 
@@ -356,49 +345,39 @@ constructor(
             .flowOn(Dispatchers.Default)
 
     /**
-     * Loads the model ahead of time, at a moment when [use] is likely to follow: opening Triage,
-     * an article or the Unread list (only if you've used that AI feature at least [minUses]
-     * times in the last week; 0 when the intent is already clear, like a long press half-way). Only when the phone can afford it: not in battery saver, with battery to
-     * spare or charging, and enough free memory for the model. The model then unloads after the
-     * usual idle minutes if nothing uses it.
+     * Brief You is on screen: the model loads in the background a moment later (after the app's
+     * start-up animations), so every AI feature answers without waiting for it — Google's own
+     * advice for LiteRT-LM, whose loading can take up to 10 seconds. Only when the phone can
+     * afford it: not in battery saver, with battery to spare (or charging) and enough free
+     * memory; otherwise it loads on first use. It stays loaded while the app is open.
      */
-    fun warmUp(use: AiUse, minUses: Int = HABIT_MIN_USES) {
-        if (engine != null || warming || !hasModel()) return
-        if (minUses > 0 && !isHabit(use, minUses)) return
-        if (!canAfford()) return
-        warming = true
-        appScope.launch(Dispatchers.Default) {
-            try {
-                acquireEngine()
-                if (activeUses.decrementAndGet() == 0) scheduleUnload()
-            } catch (t: Throwable) {
-                Timber.w(t, "AI warm-up failed")
-            } finally {
-                warming = false
+    fun onAppForeground() {
+        inForeground = true
+        unloadJob?.cancel()
+        warmJob?.cancel()
+        warmJob =
+            appScope.launch(Dispatchers.Default) {
+                delay(WARM_UP_DELAY_MS)
+                if (engine != null || !hasModel() || !canAfford()) return@launch
+                try {
+                    acquireEngine()
+                    // Left the app while it loaded: unload later as usual.
+                    if (activeUses.decrementAndGet() == 0 && !inForeground) scheduleUnload()
+                } catch (t: Throwable) {
+                    Timber.w(t, "AI warm-up failed")
+                }
             }
-        }
     }
 
-    @Volatile private var warming = false
-
-    /** Remembers when each AI feature was used, so warm-ups follow your habits. */
-    private fun recordUse(use: AiUse) {
-        val now = System.currentTimeMillis()
-        val key = KEY_USES_PREFIX + use.name
-        val recent =
-            (prefs.getString(key, null)?.split(',')?.mapNotNull { it.toLongOrNull() } ?: emptyList())
-                .filter { now - it < HABIT_WINDOW_MS }
-                .takeLast(9) + now
-        prefs.edit { putString(key, recent.joinToString(",")) }
+    /** Brief You left the screen: the model unloads a few minutes later unless it's in use. */
+    fun onAppBackground() {
+        inForeground = false
+        warmJob?.cancel()
+        if (activeUses.get() == 0) scheduleUnload()
     }
 
-    private fun isHabit(use: AiUse, minUses: Int): Boolean {
-        val now = System.currentTimeMillis()
-        val uses =
-            prefs.getString(KEY_USES_PREFIX + use.name, null)?.split(',')?.mapNotNull { it.toLongOrNull() }
-                ?: return false
-        return uses.count { now - it < HABIT_WINDOW_MS } >= minUses
-    }
+    @Volatile private var inForeground = false
+    private var warmJob: Job? = null
 
     private fun canAfford(): Boolean =
         runCatching {
@@ -431,10 +410,12 @@ constructor(
                         )
                     )
                     .also { it.initialize() }
-            // When the GPU failed before (in this version of the app), go straight to the CPU
-            // instead of trying the GPU again first, which takes a while to fail. A new version
-            // tries the GPU again.
-            val gpuFailed = prefs.getInt(KEY_GPU_FAILED_IN, -1) == BuildConfig.VERSION_CODE
+            // When the GPU failed before, go straight to the CPU instead of trying the GPU again
+            // first, which takes a while to fail (Pixels' Tensor chips have no OpenCL, which
+            // LiteRT's GPU backend needs). The GPU is tried again after a month, in case an
+            // update made it work.
+            val failedAt = prefs.getLong(KEY_GPU_FAILED_AT, 0L)
+            val gpuFailed = failedAt > 0 && System.currentTimeMillis() - failedAt < GPU_RETRY_AFTER_MS
             val created =
                 if (gpuFailed) {
                     load(Backend.CPU())
@@ -443,7 +424,7 @@ constructor(
                         load(Backend.GPU())
                     } catch (t: Throwable) {
                         Timber.w(t, "GPU backend failed, falling back to CPU")
-                        prefs.edit { putInt(KEY_GPU_FAILED_IN, BuildConfig.VERSION_CODE) }
+                        prefs.edit { putLong(KEY_GPU_FAILED_AT, System.currentTimeMillis()) }
                         load(Backend.CPU())
                     }
                 }
@@ -464,7 +445,8 @@ constructor(
 
     private suspend fun unload(force: Boolean = false) =
         engineLock.withLock {
-            if (!force && activeUses.get() > 0) return@withLock
+            // Kept while the app is open; unloaded a few minutes after you leave it.
+            if (!force && (activeUses.get() > 0 || inForeground)) return@withLock
             engine?.close()
             engine = null
         }
@@ -480,16 +462,15 @@ constructor(
 
         private const val KEY_ARTICLE_PROMPT = "article_prompt"
         private const val KEY_CARD_PROMPT = "card_prompt"
-        private const val KEY_USES_PREFIX = "uses_"
-        /** A feature counts as a habit after this many uses in the last week. */
-        const val HABIT_MIN_USES = 2
-        private const val HABIT_WINDOW_MS = 7L * 24 * 60 * 60 * 1000
+        /** After the app opens, before the model starts loading (after start-up animations). */
+        private const val WARM_UP_DELAY_MS = 2_500L
+        private const val GPU_RETRY_AFTER_MS = 30L * 24 * 60 * 60 * 1000
         private const val MIN_BATTERY = 20
-        /** Free memory needed on top of the model's size before warming it up. */
+        /** Free memory needed on top of the model's size before loading it ahead. */
         private const val MEMORY_MARGIN_BYTES = 1_500_000_000L
         private const val KEY_GIST_PROMPT = "gist_prompt"
         /** The app version in which the GPU failed to load the model. */
-        private const val KEY_GPU_FAILED_IN = "gpu_failed_in"
+        private const val KEY_GPU_FAILED_AT = "gpu_failed_at"
         // Roughly 2.5k tokens of input, leaving room for the instruction and the answer.
         private const val MAX_INPUT_CHARS = 10_000
         private const val MAX_GIST_DESC_CHARS = 220

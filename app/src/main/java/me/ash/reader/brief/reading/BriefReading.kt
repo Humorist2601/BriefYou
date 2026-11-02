@@ -374,8 +374,6 @@ fun BriefReadingPage(
     onNavigateToStylePage: () -> Unit,
     onNavigateToAiSettings: () -> Unit = {},
 ) {
-    // The AI summary loads ahead if you often use it while reading.
-    me.ash.reader.brief.ai.WarmUpAiIfHabit(me.ash.reader.brief.ai.AiUse.Article)
     BriefReadingTheme(viewModel) {
         ReadingPage(
             viewModel = viewModel,

@@ -707,8 +707,6 @@ private fun TriageStack(
     // Holding the card builds up to the summary: it sinks a little and its border starts to
     // glow over the long-press time, then springs back as the summary starts.
     val charge = remember(current.article.id) { Animatable(0f) }
-    // The model loads ahead when Triage opens if you often summarise cards.
-    me.ash.reader.brief.ai.WarmUpAiIfHabit(me.ash.reader.brief.ai.AiUse.Card)
     // A summary still being written stops when its card leaves.
     DisposableEffect(current.article.id) {
         val id = current.article.id

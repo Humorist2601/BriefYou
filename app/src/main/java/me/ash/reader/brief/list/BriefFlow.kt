@@ -112,10 +112,6 @@ fun BriefFlowFab(
     searching: Boolean,
     briefViewModel: BriefListViewModel = hiltViewModel(),
 ) {
-    // The gist loads ahead on the Unread list if you often use it there.
-    if (filterUiState.filter.isUnread() && !searching) {
-        me.ash.reader.brief.ai.WarmUpAiIfHabit(me.ash.reader.brief.ai.AiUse.Gist)
-    }
     FlowActionsFab(
         // [FloatingBarGap] above the bottom bar instead of the standard 16 dp above its 8 dp top
         // padding.

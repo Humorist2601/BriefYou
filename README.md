@@ -48,7 +48,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 <summary>More details</summary>
 
 - Runs Google's Gemma model through [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM). Nothing is sent to a server, and summaries are never saved.
-- The model loads ahead where you use it: when you open an article, the Unread list or Triage, if you've used that AI feature at least twice in the last week. Only when the phone can afford it: not in battery saver, with battery to spare or charging, and enough free memory. Otherwise it loads on first use. It unloads after 3 idle minutes. If your phone's GPU can't run it, the app remembers and goes straight to the CPU next time.
+- The model loads in the background a moment after you open the app (Google's advice for LiteRT-LM, whose loading can take up to 10 seconds), so AI answers without waiting; it stays loaded while the app is open and unloads 3 minutes after you leave it. It only loads ahead when the phone can afford it: not in battery saver, with battery to spare or charging, and enough free memory; otherwise it loads on first use. If your phone's GPU can't run it (Pixels' Tensor chips can't), the app remembers and goes straight to the CPU, trying the GPU again after a month.
 - Summaries open in a sheet at 70% of the screen. Each key point slides in as a card as it's written, and "Why it matters" gets its own accent card.
 - Regenerate, Ask and Read are three connected buttons at the bottom of the sheet.
 - Gists: tap **AI gist** in the floating button at the bottom of an *Unread* list. One tap marks all of them as read.
