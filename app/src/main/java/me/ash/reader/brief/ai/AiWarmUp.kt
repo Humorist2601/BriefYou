@@ -23,7 +23,8 @@ fun rememberAiWarmUp(): (AiUse, Int) -> Unit {
         val summarizer =
             EntryPointAccessors.fromApplication(context.applicationContext, AiWarmUpDependencies::class.java)
                 .summarizer()
-        { use, minUses -> summarizer.warmUp(use, minUses) }
+        val warmUp: (AiUse, Int) -> Unit = { use, minUses -> summarizer.warmUp(use, minUses) }
+        warmUp
     }
 }
 
