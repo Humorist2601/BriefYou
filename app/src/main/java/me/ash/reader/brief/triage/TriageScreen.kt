@@ -112,6 +112,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -703,6 +704,9 @@ private fun TriageStack(
     // Long-press summaries (see TriageSummary.kt), kept for the whole run so Undo keeps them.
     val summaries = rememberCardSummaries()
     val currentSummary = summaries[current.article.id]
+    // Holding the card builds up to the summary: it sinks a little and its border starts to
+    // glow over the long-press time, then springs back as the summary starts.
+    val charge = remember(current.article.id) { Animatable(0f) }
     // A summary still being written stops when its card leaves.
     DisposableEffect(current.article.id) {
         val id = current.article.id
@@ -820,6 +824,14 @@ private fun TriageStack(
             // pauses the countdown where it is, and letting go carries on from there; every new
             // card starts from the beginning. A card with a summary stays paused until it's swiped.
             val touching = dragging || held || currentSummary != null
+            val longPressMs = LocalViewConfiguration.current.longPressTimeoutMillis.toInt()
+            LaunchedEffect(held, dragging, currentSummary == null) {
+                if (held && !dragging && currentSummary == null) {
+                    charge.animateTo(1f, tween(longPressMs, easing = LinearEasing))
+                } else {
+                    charge.animateTo(0f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium))
+                }
+            }
             LaunchedEffect(touching, autoSeconds) { onHeldChange(touching && autoSeconds > 0) }
             LaunchedEffect(autoSeconds, current.article.id, touching, busy) {
                 if (autoSeconds <= 0) {
@@ -877,6 +889,10 @@ private fun TriageStack(
                                 translationX = dragX.value
                                 translationY = dragY.value
                                 rotationZ = (dragX.value / widthPx) * 12f
+                                // Sinks a little while held for a summary.
+                                val press = 1f - 0.04f * charge.value
+                                scaleX = press
+                                scaleY = press
                             }
                             // Holding the card (without moving it) pauses auto-advance.
                             .pointerInput(current.article.id + "hold") {
@@ -891,6 +907,13 @@ private fun TriageStack(
                                         if (!busy && summaries[current.article.id] == null) {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             summaries.request(current, scope)
+                                        }
+                                    },
+                                    // A tap on a summarised card: back to its own description,
+                                    // and another tap shows the summary again.
+                                    onTap = {
+                                        if (summaries.toggle(current.article.id)) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
                                         }
                                     },
                                 )
@@ -934,11 +957,20 @@ private fun TriageStack(
                                 article = card,
                                 overlay = if (isFront) hintAction else null,
                                 overlayAlpha = if (isFront) hintAlpha else 0f,
-                                summary = summaries[card.article.id],
+                                summary = summaries.shown(card.article.id),
+                                hasHiddenSummary =
+                                    summaries[card.article.id] != null &&
+                                        summaries.shown(card.article.id) == null,
                                 onOpenAiSettings = openAiSettings,
                                 modifier =
-                                    if (isFront) frontModifier.aiGlow(summaries[card.article.id], CARD_CORNER)
-                                    else backModifier,
+                                    if (isFront) {
+                                        frontModifier.aiGlow(
+                                            summaries.shown(card.article.id),
+                                            CARD_CORNER,
+                                            charging = held && !dragging && currentSummary == null,
+                                            charge = { charge.value },
+                                        )
+                                    } else backModifier,
                             )
                         }
                     }
@@ -1025,6 +1057,7 @@ private fun TriageCard(
     overlay: TriageAction?,
     overlayAlpha: Float,
     summary: CardSummary? = null,
+    hasHiddenSummary: Boolean = false,
     onOpenAiSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -1095,6 +1128,10 @@ private fun TriageCard(
                 )
 
                 Spacer(Modifier.height(12.dp))
+                if (hasHiddenSummary) {
+                    SummaryHint()
+                    Spacer(Modifier.height(8.dp))
+                }
                 if (summary != null) {
                     CardSummaryContent(summary, onOpenAiSettings)
                 } else if (item.shortDescription.isNotBlank()) {

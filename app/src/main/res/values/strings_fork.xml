@@ -265,7 +265,8 @@
     <string name="triage_next_up">Next up</string>
     <string name="triage_next_unread">%1$d unread</string>
     <string name="triage_summary_working">Summarising…</string>
-    <string name="triage_summary_done">Summary · on this device</string>
+    <string name="triage_summary_done">Summary · tap for the article</string>
+    <string name="triage_summary_tap_for_summary">Tap for the summary</string>
     <string name="triage_summary_failed">Couldn\'t summarise this one</string>
     <string name="triage_summary_no_model_title">AI summary</string>
     <string name="triage_summary_no_model">Set up the AI model to summarise cards with a long press.</string>

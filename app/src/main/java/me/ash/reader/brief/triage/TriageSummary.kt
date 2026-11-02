@@ -91,9 +91,22 @@ data class CardSummary(
 @Stable
 class CardSummaries internal constructor(private val summarizer: GemmaSummarizer) {
     private val summaries = mutableStateMapOf<String, CardSummary>()
+    /** Cards switched back to their own description with a tap (the summary is kept). */
+    private val hidden = mutableStateMapOf<String, Boolean>()
     private var job: Job? = null
 
     operator fun get(articleId: String): CardSummary? = summaries[articleId]
+
+    /** The summary to show on the card: none while it's switched back to the description. */
+    fun shown(articleId: String): CardSummary? =
+        summaries[articleId]?.takeIf { hidden[articleId] != true }
+
+    /** A tap: between the summary and the card's own description. False when there's no summary. */
+    fun toggle(articleId: String): Boolean {
+        if (summaries[articleId] == null) return false
+        hidden[articleId] = hidden[articleId] != true
+        return true
+    }
 
     /** Starts summarising [article] (once: a summary already there or underway is kept). */
     fun request(article: ArticleWithFeed, scope: CoroutineScope) {
@@ -162,10 +175,16 @@ private val GlowColors =
 
 /**
  * The glowing border: a line of turning colour around the card while [summary] is being written,
- * fading to a faint, slower glow once it's done. Nothing is drawn without a summary.
+ * fading to a faint glow once it's done. While a finger holds the card it starts to show
+ * ([charge], 0 to 1 over the long press), so the press visibly builds up to the summary.
  */
 @Composable
-fun Modifier.aiGlow(summary: CardSummary?, corner: Dp): Modifier {
+fun Modifier.aiGlow(
+    summary: CardSummary?,
+    corner: Dp,
+    charging: Boolean = false,
+    charge: () -> Float = { 0f },
+): Modifier {
     val target =
         when {
             summary == null || summary.noModel || summary.failed -> 0f
@@ -173,23 +192,29 @@ fun Modifier.aiGlow(summary: CardSummary?, corner: Dp): Modifier {
             else -> 0.3f
         }
     val strength by animateFloatAsState(target, tween(500), label = "glow")
-    if (strength <= 0.001f && target == 0f) return this
-    val transition = rememberInfiniteTransition(label = "glow turn")
-    val angle by
-        transition.animateFloat(
-            0f,
-            360f,
-            infiniteRepeatable(tween(2_400, easing = LinearEasing), RepeatMode.Restart),
-            label = "glow angle",
-        )
+    // Turning only while there is something to show, so an idle card isn't redrawn every frame.
+    val angle =
+        if (charging || charge() > 0.001f || target > 0f || strength > 0.001f) {
+            rememberInfiniteTransition(label = "glow turn")
+                .animateFloat(
+                    0f,
+                    360f,
+                    infiniteRepeatable(tween(2_400, easing = LinearEasing), RepeatMode.Restart),
+                    label = "glow angle",
+                )
+        } else null
+    if (angle == null) return this
     return drawWithContent {
         drawContent()
+        // While a finger holds the card, the colours start to show (the long press "charging").
+        val alpha = maxOf(strength, charge() * 0.7f)
+        if (alpha <= 0.001f) return@drawWithContent
         val width = 3.dp.toPx()
         val cx = size.width / 2f
         val cy = size.height / 2f
         val shader =
             SweepGradient(cx, cy, GlowColors, null).apply {
-                setLocalMatrix(Matrix().apply { setRotate(angle, cx, cy) })
+                setLocalMatrix(Matrix().apply { setRotate(angle.value, cx, cy) })
             }
         val r = corner.toPx() - width / 2f
         drawRoundRect(
@@ -198,7 +223,7 @@ fun Modifier.aiGlow(summary: CardSummary?, corner: Dp): Modifier {
             size = Size(size.width - width, size.height - width),
             cornerRadius = CornerRadius(r, r),
             style = Stroke(width),
-            alpha = strength,
+            alpha = alpha,
         )
     }
 }
@@ -307,5 +332,25 @@ private fun ShimmerLines() {
                         }
                 )
         }
+    }
+}
+
+/** On a card switched back to its description: a reminder that a tap shows the summary again. */
+@Composable
+fun SummaryHint() {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = androidx.compose.material.icons.Icons.Rounded.AutoAwesome,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = stringResource(R.string.triage_summary_tap_for_summary),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 6.dp),
+        )
     }
 }
