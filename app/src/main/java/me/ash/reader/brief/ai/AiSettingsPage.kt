@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Newspaper
+import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.width
@@ -79,6 +80,7 @@ import me.ash.reader.ui.theme.palette.onLight
 private enum class PromptKind {
     Article,
     Gist,
+    Card,
 }
 
 @Composable
@@ -87,6 +89,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
     val model = viewModel.modelState.collectAsStateValue()
     val articlePrompt = viewModel.articlePrompt.collectAsStateValue()
     val gistPrompt = viewModel.gistPrompt.collectAsStateValue()
+    val cardPrompt = viewModel.cardPrompt.collectAsStateValue()
     var editing by rememberSaveable { mutableStateOf<PromptKind?>(null) }
 
     val picker =
@@ -131,7 +134,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.ai_settings_instructions),
                     )
-                    // The two instructions as connected cards, each with a preview of its text.
+                    // The three instructions as connected cards, each with a preview of its text.
                     Column(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -149,8 +152,16 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                             title = stringResource(R.string.ai_settings_gist_prompt),
                             text = gistPrompt,
                             edited = gistPrompt.trim() != GemmaSummarizer.DEFAULT_GIST_PROMPT.trim(),
-                            shape = RoundedCornerShape(6.dp, 6.dp, 24.dp, 24.dp),
+                            shape = RoundedCornerShape(6.dp),
                             onClick = { editing = PromptKind.Gist },
+                        )
+                        PromptCard(
+                            icon = Icons.Outlined.Style,
+                            title = stringResource(R.string.ai_settings_card_prompt),
+                            text = cardPrompt,
+                            edited = cardPrompt.trim() != GemmaSummarizer.DEFAULT_CARD_PROMPT.trim(),
+                            shape = RoundedCornerShape(6.dp, 6.dp, 24.dp, 24.dp),
+                            onClick = { editing = PromptKind.Card },
                         )
                     }
                     Spacer(modifier = Modifier.height(20.dp))
@@ -207,6 +218,14 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                 initial = gistPrompt,
                 default = GemmaSummarizer.DEFAULT_GIST_PROMPT,
                 onSave = viewModel::setGistPrompt,
+                onDismiss = { editing = null },
+            )
+        PromptKind.Card ->
+            PromptDialog(
+                title = stringResource(R.string.ai_settings_card_prompt),
+                initial = cardPrompt,
+                default = GemmaSummarizer.DEFAULT_CARD_PROMPT,
+                onSave = viewModel::setCardPrompt,
                 onDismiss = { editing = null },
             )
         null -> Unit

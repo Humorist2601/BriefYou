@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
 import com.google.ai.edge.litertlm.Backend
-import me.ash.reader.BuildConfig
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
@@ -98,6 +97,10 @@ constructor(
         MutableStateFlow(prefs.getString(KEY_GIST_PROMPT, null) ?: DEFAULT_GIST_PROMPT)
     val gistPrompt: StateFlow<String> = _gistPrompt.asStateFlow()
 
+    private val _cardPrompt =
+        MutableStateFlow(prefs.getString(KEY_CARD_PROMPT, null) ?: DEFAULT_CARD_PROMPT)
+    val cardPrompt: StateFlow<String> = _cardPrompt.asStateFlow()
+
     fun hasModel(): Boolean = modelFile.isFile && modelFile.length() > 0
 
     fun setArticlePrompt(value: String?) {
@@ -111,6 +114,14 @@ constructor(
         prefs.edit { if (v == null) remove(KEY_GIST_PROMPT) else putString(KEY_GIST_PROMPT, v) }
         _gistPrompt.value = v ?: DEFAULT_GIST_PROMPT
     }
+
+    fun setCardPrompt(value: String?) {
+        val v = value?.takeIf { it.isNotBlank() }
+        prefs.edit { if (v == null) remove(KEY_CARD_PROMPT) else putString(KEY_CARD_PROMPT, v) }
+        _cardPrompt.value = v ?: DEFAULT_CARD_PROMPT
+    }
+
+    fun customCardPrompt(): String? = prefs.getString(KEY_CARD_PROMPT, null)
 
     /** The instructions the user wrote, for a backup; null where the default is used. */
     fun customArticlePrompt(): String? = prefs.getString(KEY_ARTICLE_PROMPT, null)
@@ -189,6 +200,18 @@ constructor(
     }
 
     /**
+     * Streams a very short summary for a Triage card: 3 bullet points of one short sentence each,
+     * so it fits on the card. Each emission is the full text generated so far.
+     */
+    fun summarizeForCard(title: String?, html: String): Flow<String> {
+        val prompt = buildString {
+            if (!title.isNullOrBlank()) append("Title: ").append(title).append("\n\n")
+            append(htmlToText(html).take(MAX_INPUT_CHARS))
+        }
+        return generate(cardPrompt.value, prompt)
+    }
+
+    /**
      * Streams an answer to a question about one article, from the article only (with the last
      * few questions and answers, so follow-up questions make sense).
      */
@@ -230,8 +253,9 @@ constructor(
     }
 
     /** Streams a gist of many articles (for example everything in a group). */
-    fun gist(groupName: String?, items: List<GistItem>): Flow<String> =
-        generate(gistPrompt.value, buildGistPrompt(groupName, items))
+    fun gist(groupName: String?, items: List<GistItem>): Flow<String> {
+        return generate(gistPrompt.value, buildGistPrompt(groupName, items))
+    }
 
     private fun buildGistPrompt(groupName: String?, items: List<GistItem>): String = buildString {
         if (!groupName.isNullOrBlank()) append("Group: ").append(groupName).append("\n\n")
@@ -320,6 +344,54 @@ constructor(
             }
             .flowOn(Dispatchers.Default)
 
+    /**
+     * Brief You is on screen: the model loads in the background a moment later (after the app's
+     * start-up animations), so every AI feature answers without waiting for it — Google's own
+     * advice for LiteRT-LM, whose loading can take up to 10 seconds. Only when the phone can
+     * afford it: not in battery saver, with battery to spare (or charging) and enough free
+     * memory; otherwise it loads on first use. It stays loaded while the app is open.
+     */
+    fun onAppForeground() {
+        inForeground = true
+        unloadJob?.cancel()
+        warmJob?.cancel()
+        warmJob =
+            appScope.launch(Dispatchers.Default) {
+                delay(WARM_UP_DELAY_MS)
+                if (engine != null || !hasModel() || !canAfford()) return@launch
+                try {
+                    acquireEngine()
+                    // Left the app while it loaded: unload later as usual.
+                    if (activeUses.decrementAndGet() == 0 && !inForeground) scheduleUnload()
+                } catch (t: Throwable) {
+                    Timber.w(t, "AI warm-up failed")
+                }
+            }
+    }
+
+    /** Brief You left the screen: the model unloads a few minutes later unless it's in use. */
+    fun onAppBackground() {
+        inForeground = false
+        warmJob?.cancel()
+        if (activeUses.get() == 0) scheduleUnload()
+    }
+
+    @Volatile private var inForeground = false
+    private var warmJob: Job? = null
+
+    private fun canAfford(): Boolean =
+        runCatching {
+                val power = context.getSystemService(android.os.PowerManager::class.java)
+                if (power?.isPowerSaveMode == true) return false
+                val battery = context.getSystemService(android.os.BatteryManager::class.java)
+                val level = battery?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: 100
+                if (level in 0 until MIN_BATTERY && battery?.isCharging != true) return false
+                val activity = context.getSystemService(android.app.ActivityManager::class.java)
+                val memory = android.app.ActivityManager.MemoryInfo().also { activity?.getMemoryInfo(it) }
+                !memory.lowMemory && memory.availMem > modelFile.length() + MEMORY_MARGIN_BYTES
+            }
+            .getOrDefault(false)
+
     private suspend fun acquireEngine(): Engine {
         engineLock.withLock {
             unloadJob?.cancel()
@@ -338,10 +410,12 @@ constructor(
                         )
                     )
                     .also { it.initialize() }
-            // When the GPU failed before (in this version of the app), go straight to the CPU
-            // instead of trying the GPU again first, which takes a while to fail. A new version
-            // tries the GPU again.
-            val gpuFailed = prefs.getInt(KEY_GPU_FAILED_IN, -1) == BuildConfig.VERSION_CODE
+            // When the GPU failed before, go straight to the CPU instead of trying the GPU again
+            // first, which takes a while to fail (Pixels' Tensor chips have no OpenCL, which
+            // LiteRT's GPU backend needs). The GPU is tried again after a month, in case an
+            // update made it work.
+            val failedAt = prefs.getLong(KEY_GPU_FAILED_AT, 0L)
+            val gpuFailed = failedAt > 0 && System.currentTimeMillis() - failedAt < GPU_RETRY_AFTER_MS
             val created =
                 if (gpuFailed) {
                     load(Backend.CPU())
@@ -350,7 +424,7 @@ constructor(
                         load(Backend.GPU())
                     } catch (t: Throwable) {
                         Timber.w(t, "GPU backend failed, falling back to CPU")
-                        prefs.edit { putInt(KEY_GPU_FAILED_IN, BuildConfig.VERSION_CODE) }
+                        prefs.edit { putLong(KEY_GPU_FAILED_AT, System.currentTimeMillis()) }
                         load(Backend.CPU())
                     }
                 }
@@ -371,7 +445,8 @@ constructor(
 
     private suspend fun unload(force: Boolean = false) =
         engineLock.withLock {
-            if (!force && activeUses.get() > 0) return@withLock
+            // Kept while the app is open; unloaded a few minutes after you leave it.
+            if (!force && (activeUses.get() > 0 || inForeground)) return@withLock
             engine?.close()
             engine = null
         }
@@ -386,9 +461,16 @@ constructor(
         const val MODEL_PAGE = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm"
 
         private const val KEY_ARTICLE_PROMPT = "article_prompt"
+        private const val KEY_CARD_PROMPT = "card_prompt"
+        /** After the app opens, before the model starts loading (after start-up animations). */
+        private const val WARM_UP_DELAY_MS = 2_500L
+        private const val GPU_RETRY_AFTER_MS = 30L * 24 * 60 * 60 * 1000
+        private const val MIN_BATTERY = 20
+        /** Free memory needed on top of the model's size before loading it ahead. */
+        private const val MEMORY_MARGIN_BYTES = 1_500_000_000L
         private const val KEY_GIST_PROMPT = "gist_prompt"
         /** The app version in which the GPU failed to load the model. */
-        private const val KEY_GPU_FAILED_IN = "gpu_failed_in"
+        private const val KEY_GPU_FAILED_AT = "gpu_failed_at"
         // Roughly 2.5k tokens of input, leaving room for the instruction and the answer.
         private const val MAX_INPUT_CHARS = 10_000
         private const val MAX_GIST_DESC_CHARS = 220
@@ -407,6 +489,13 @@ constructor(
                 "also use general knowledge for background; when part of your answer is not from " +
                 "the list, say so briefly. Answer in 1 to 4 short sentences, in the same language " +
                 "as the question."
+
+        const val DEFAULT_CARD_PROMPT =
+            "You summarize news articles for a small card in a news reader app. Reply with " +
+                "exactly 3 bullet points starting with \"• \", each one short sentence of at " +
+                "most 18 words with the key facts (what happened, who, the most important " +
+                "detail). Write in the same language as the article. Do not add facts that are " +
+                "not in the article and do not add any preamble or closing line."
 
         const val DEFAULT_ARTICLE_PROMPT =
             "You summarize articles for a news reader app. Reply with 3 to 5 short bullet " +

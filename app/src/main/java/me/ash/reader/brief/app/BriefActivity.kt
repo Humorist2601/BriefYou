@@ -40,6 +40,8 @@ object BriefActivity {
         fun notificationHelper(): NotificationHelper
 
         fun readLater(): me.ash.reader.brief.readlater.ReadLater
+
+        fun summarizer(): me.ash.reader.brief.ai.GemmaSummarizer
     }
 
     /**
@@ -67,10 +69,18 @@ object BriefActivity {
         // A web view made ahead of time, so the first article opens without a stutter; freed
         // with the screen.
         me.ash.reader.brief.webview.WebViewPool.prepare(activity)
+        // The AI model loads in the background while the app is open and unloads a few minutes
+        // after you leave it (see GemmaSummarizer.onAppForeground).
+        val summarizer =
+            EntryPointAccessors.fromApplication(appContext, Dependencies::class.java).summarizer()
         activity.lifecycle.addObserver(
             androidx.lifecycle.LifecycleEventObserver { _, event ->
-                if (event == androidx.lifecycle.Lifecycle.Event.ON_DESTROY) {
-                    me.ash.reader.brief.webview.WebViewPool.clear()
+                when (event) {
+                    androidx.lifecycle.Lifecycle.Event.ON_START -> summarizer.onAppForeground()
+                    androidx.lifecycle.Lifecycle.Event.ON_STOP -> summarizer.onAppBackground()
+                    androidx.lifecycle.Lifecycle.Event.ON_DESTROY ->
+                        me.ash.reader.brief.webview.WebViewPool.clear()
+                    else -> Unit
                 }
             }
         )

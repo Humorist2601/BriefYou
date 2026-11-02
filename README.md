@@ -42,13 +42,13 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Group gists** | A briefing of the newest 40 unread articles in a group, feed or everything, grouped by story. |
 | **Ask** | Ask questions about an article or a gist. |
 | **Read aloud** | Any summary or gist can be read aloud. |
-| **Your instructions** | Edit exactly what the model is told, in *Settings → AI model*. |
+| **Your instructions** | Edit exactly what the model is told for article summaries, gists and Triage card summaries, in *Settings → AI model*. |
 
 <details>
 <summary>More details</summary>
 
 - Runs Google's Gemma model through [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM). Nothing is sent to a server, and summaries are never saved.
-- The model loads when you first use it and unloads after 3 idle minutes. If your phone's GPU can't run it, the app remembers and goes straight to the CPU next time.
+- The model loads in the background a moment after you open the app (Google's advice for LiteRT-LM, whose loading can take up to 10 seconds), so AI answers without waiting; it stays loaded while the app is open and unloads 3 minutes after you leave it. It only loads ahead when the phone can afford it: not in battery saver, with battery to spare or charging, and enough free memory; otherwise it loads on first use. If your phone's GPU can't run it (Pixels' Tensor chips can't), the app remembers and goes straight to the CPU, trying the GPU again after a month.
 - Summaries open in a sheet at 70% of the screen. Each key point slides in as a card as it's written, and "Why it matters" gets its own accent card.
 - Regenerate, Ask and Read are three connected buttons at the bottom of the sheet.
 - Gists: tap **AI gist** in the floating button at the bottom of an *Unread* list. One tap marks all of them as read.
@@ -105,6 +105,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | Feature | What it does |
 | --- | --- |
 | **Card stack** | Swipe right: read · left: save · up: open · down: skip. Undo takes back your last choice. |
+| **Summary on the card** | Long-press a card: it sinks a little and its border starts to glow in Google's AI colours, then the on-device AI writes 3 key points right on it. Tap the card to switch between the summary and the article's own description. Auto-advance pauses while the summary shows. |
 | **Auto-advance** | Skips each card after a few seconds, with a wavy ring counting down. |
 | **Next group** | When a group (or feed) is done: a ring with how much of all your unread is cleared ("3 of 4 groups clear"), what's left, and the next group, which starts by itself after a countdown while auto-advance is on. *All caught up* only when nothing is unread anywhere. |
 | **Inbox zero** | A little celebration when you're all caught up. |
