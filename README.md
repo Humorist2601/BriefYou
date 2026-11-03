@@ -115,10 +115,9 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 <summary>More details</summary>
 
 - Open it with **Triage** in the floating button at the bottom of an *Unread* list.
-- Auto-advance pauses while you hold a card; long press its button to choose the delay (3–30 s, 5 by default).
+- Auto-advance pauses while you hold a card, while a card shows its summary and while the groups sheet is open: the button turns grey and its ring stops where it was, then carries on. Long press the button to choose the delay (3–30 s, 5 by default).
 - Haptics mark the swipe threshold, each choice, Undo and finishing the stack.
 - Undo on the first card of a group goes back into the group before it and takes back its last card.
-- Auto-advance pauses while the groups sheet is open.
 - Next groups follow your Feeds order. The back gesture turns Triage into a card that follows your finger and is tossed aside.
 - Inbox zero also plays when you swipe up to mark everything read on the Unread list.
 
@@ -149,7 +148,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 
 | Feature | What it does |
 | --- | --- |
-| **Material 3 Expressive** | Shape-morphing buttons, shaped icons, Expressive loading and pull-to-refresh, wavy progress. |
+| **Material 3 Expressive** | Shape-morphing buttons, shaped icons, Expressive loading and pull-to-refresh, wavy progress. Back buttons (lists, Settings and its pages) and Triage's close button are the same tonal circle. |
 | **Google Sans Flex** | Rounded throughout, with wide headings. Reading fonts: Google Sans Flex, Literata, system, or your own. |
 | **Material You, the current way** | Uses the system's own wallpaper colours; preset colours use Google's latest colour spec. |
 | **Feed colours and icons** | Feed names take a colour from their icon (a pale or grey icon gets a steady colour of its own); set an emoji or your own image as a feed's icon. Icons are kept in the image cache and loaded at the size they're shown; a site without an icon is searched again once a week, not on every sync. |

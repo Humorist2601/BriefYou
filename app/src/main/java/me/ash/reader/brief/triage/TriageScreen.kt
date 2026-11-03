@@ -145,6 +145,8 @@ import me.ash.reader.ui.component.base.SIZE_1000
 import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.brief.feeds.rememberFeedAccent
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily // Brief You
+import me.ash.reader.brief.ui.TonalCircleButton
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -698,9 +700,13 @@ private fun TriageContent(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onClose) {
-                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close))
-            }
+            // The same tonal circle as the article list's back button.
+            TonalCircleButton(
+                icon = Icons.Rounded.Close,
+                description = stringResource(R.string.close),
+                modifier = Modifier.offset(x = (-4).dp),
+                onClick = onClose,
+            )
             // "Triage", with a small chip for where you are in the run right after it (it never
             // moves, as "Triage" doesn't change), and the group (or feed) with the cards left in
             // small text underneath. Tap the chip to see the run's groups and jump or skip.
@@ -772,7 +778,9 @@ private fun TriageContent(
             }
             AutoAdvanceButton(
                 running = session.autoRunning,
-                paused = autoHeld && current != null,
+                // The same pause for a finger on the card, a card showing its summary, and the
+                // groups sheet open.
+                paused = (autoHeld && current != null) || sheetOpen,
                 seconds = autoSeconds,
                 // On a card: the countdown to the next card. On the end screen: the countdown to the
                 // next group (none on "All caught up", where there is nothing to go on to).
@@ -834,7 +842,8 @@ private fun TriageContent(
                 // With auto-advance running, the next group starts by itself after the delay; the
                 // countdown shows in the play button's ring at the top, as on the cards.
                 // Paused while the groups sheet is open.
-                autoSeconds = if (session.autoRunning && !sheetOpen) autoSeconds else 0,
+                autoSeconds = if (session.autoRunning) autoSeconds else 0,
+                paused = sheetOpen,
                 onCountdown = { autoProgress.floatValue = it },
                 title = session.title,
                 left = left,
@@ -851,7 +860,8 @@ private fun TriageContent(
                     },
                 current = current,
                 next = articles.getOrNull(index + 1),
-                autoSeconds = if (session.autoRunning && !loadingNext && !sheetOpen) autoSeconds else 0,
+                autoSeconds = if (session.autoRunning && !loadingNext) autoSeconds else 0,
+                paused = sheetOpen,
                 onAutoProgress = { autoProgress.floatValue = it },
                 onDecide = { decide(it) },
                 onHeldChange = { autoHeld = it },
@@ -886,6 +896,8 @@ private fun TriageStack(
     current: ArticleWithFeed,
     next: ArticleWithFeed?,
     autoSeconds: Int,
+    /** Paused from outside the card (the groups sheet is open): the countdown stops where it is. */
+    paused: Boolean = false,
     onAutoProgress: (Float) -> Unit,
     onDecide: (TriageAction) -> Unit,
     onHeldChange: (Boolean) -> Unit = {},
@@ -1018,7 +1030,7 @@ private fun TriageStack(
             // pauses the countdown where it is, and letting go carries on from there; every new
             // card starts from the beginning. A card showing its summary stays paused.
             // (A card switched back to its description with a tap carries on counting down.)
-            val touching = dragging || held || summaries.shown(current.article.id) != null
+            val touching = dragging || held || summaries.shown(current.article.id) != null || paused
             val longPressMs = LocalViewConfiguration.current.longPressTimeoutMillis.toInt()
             LaunchedEffect(held, dragging, currentSummary == null) {
                 if (held && !dragging && currentSummary == null) {
@@ -1457,6 +1469,8 @@ private fun TriageDone(
     allRead: Boolean,
     progress: TriageProgress?,
     autoSeconds: Int,
+    /** The groups sheet is open: the countdown to the next group stops where it is. */
+    paused: Boolean = false,
     onCountdown: (Float) -> Unit,
     title: String?,
     left: TriageLeft?,
@@ -1631,11 +1645,17 @@ private fun TriageDone(
             val countdown = remember(next) { Animatable(0f) }
             val continueNow by rememberUpdatedState(onNext)
             val showCountdown by rememberUpdatedState(onCountdown)
-            LaunchedEffect(next, autoSeconds, loadingNext) {
-                countdown.snapTo(0f)
-                showCountdown(0f)
-                if (autoSeconds <= 0 || loadingNext) return@LaunchedEffect
-                countdown.animateTo(1f, tween(autoSeconds * 1000, easing = LinearEasing)) {
+            LaunchedEffect(next, autoSeconds, loadingNext, paused) {
+                if (autoSeconds <= 0 || loadingNext) {
+                    countdown.snapTo(0f)
+                    showCountdown(0f)
+                    return@LaunchedEffect
+                }
+                // Paused: stays where it is, and carries on from there afterwards.
+                showCountdown(countdown.value)
+                if (paused) return@LaunchedEffect
+                val remaining = ((1f - countdown.value) * autoSeconds * 1000).toInt().coerceAtLeast(1)
+                countdown.animateTo(1f, tween(remaining, easing = LinearEasing)) {
                     showCountdown(value)
                 }
                 showCountdown(0f)

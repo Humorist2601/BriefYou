@@ -1,5 +1,8 @@
 package me.ash.reader.ui.component.base
 
+import androidx.compose.material.icons.Icons // Brief You
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack // Brief You
+import me.ash.reader.brief.ui.TonalCircleButton // Brief You
 import android.view.HapticFeedbackConstants
 import android.view.SoundEffectConstants
 import androidx.compose.foundation.layout.size
@@ -33,6 +36,20 @@ fun FeedbackIconButton(
     onClick: () -> Unit = {},
 ) {
     val view = LocalView.current
+
+    // Brief You: every back arrow (Settings and its pages, AI model, Reading stats, Filters) is the
+    // same tonal circle as the article list's back button.
+    if (imageVector == Icons.AutoMirrored.Rounded.ArrowBack) { // Brief You
+        TonalCircleButton( // Brief You
+            icon = imageVector, // Brief You
+            description = contentDescription.orEmpty(), // Brief You
+        ) { // Brief You
+            if (isHaptic == true) view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) // Brief You
+            if (isSound == true) view.playSoundEffect(SoundEffectConstants.CLICK) // Brief You
+            onClick() // Brief You
+        } // Brief You
+        return // Brief You
+    } // Brief You
 
     BadgedBox(
         badge = {
