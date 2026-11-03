@@ -160,9 +160,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 /** How long a finger must stay still on a card before the long-press glow starts. */
 private const val CHARGE_DELAY_MS = 180L
 
-/** A feed of the group you're in, for the groups sheet: how many of its cards are left. */
-internal data class FeedLeft(val id: String, val name: String, val icon: String?, val left: Int)
-
 /** What a card can be swiped to. */
 internal enum class TriageAction {
     /** Mark as read and move on. */
@@ -377,7 +374,6 @@ fun TriageScreen(
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
     listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext> = { _, _ -> emptyList() },
-    feedOrder: (groupId: String) -> List<String> = { emptyList() },
 ) {
     val scope = rememberCoroutineScope()
     val enter = remember { Animatable(0f) }
@@ -506,7 +502,6 @@ fun TriageScreen(
             findLeft,
             loadNext,
             listPlaces,
-            feedOrder,
         )
     }
     }
@@ -559,7 +554,6 @@ private fun TriageContent(
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
     listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext>,
-    feedOrder: (groupId: String) -> List<String>,
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -890,21 +884,6 @@ private fun TriageContent(
             currentLeft = (total - index).coerceAtLeast(0),
             visited = session.visited,
             leftIn = session.leftIn,
-            // In a run of groups: the feeds of the group you're in, in the Feeds page order, with
-            // the cards left in each.
-            hereFeeds =
-                remember(session.articles, index, isFeeds) {
-                    if (isFeeds) emptyList()
-                    else {
-                        val ahead = session.articles.drop(index).groupingBy { it.feed.id }.eachCount()
-                        val order = session.groupId?.let(feedOrder).orEmpty()
-                        session.articles
-                            .map { it.feed }
-                            .distinctBy { it.id }
-                            .sortedBy { feed -> order.indexOf(feed.id).let { if (it < 0) Int.MAX_VALUE else it } }
-                            .map { FeedLeft(it.id, it.name, it.icon, ahead[it.id] ?: 0) }
-                    }
-                },
             isFeeds = isFeeds,
             title = session.title,
             skipTarget = remember(session.visited) { findNext(session.groupId, session.feedId, session.visited) },
@@ -1989,7 +1968,6 @@ private fun TriagePlacesSheet(
     currentLeft: Int,
     visited: Set<String>,
     leftIn: Map<String, Int>,
-    hereFeeds: List<FeedLeft> = emptyList(),
     isFeeds: Boolean,
     title: String?,
     skipTarget: TriageNext?,
@@ -2016,8 +1994,7 @@ private fun TriagePlacesSheet(
                 modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                places.forEach { place ->
-                item(key = place.id) {
+                items(places, key = { it.id }) { place ->
                     val here = place.id == currentId
                     // A group you moved on from with cards still unread can be opened again.
                     val leftBehind = if (here) 0 else leftIn[place.id] ?: 0
@@ -2090,35 +2067,6 @@ private fun TriagePlacesSheet(
                             )
                         }
                     }
-                }
-                // The feeds of the group you're in, and what's left in each (just to see; the
-                // group is where you jump). Lined up with the group rows, no indent.
-                if (place.id == currentId) {
-                    items(hereFeeds, key = { "feed:" + it.id }) { feed ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            FeedIcon(feedName = feed.name, iconUrl = feed.icon, size = 26.dp)
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                text = feed.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text(
-                                text =
-                                    if (feed.left > 0) feed.left.toString()
-                                    else stringResource(R.string.triage_place_done),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
                 }
             }
             Spacer(Modifier.height(12.dp))
