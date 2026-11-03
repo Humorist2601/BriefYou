@@ -77,6 +77,26 @@ constructor(
     }
 
     /**
+     * Every group (or, for a run started from a feed, every feed) with unread articles, in the
+     * Feeds page order, for Triage's header sheet and the end screen's choices. The current one
+     * and those already done are included too, so the sheet can show where you are.
+     */
+    fun triagePlaces(feeds: Boolean, visited: Set<String>): List<TriageNext> {
+        if (!filterStateUseCase.filterStateFlow.value.filter.isUnread()) return emptyList()
+        val groups = groupWithFeedsListUseCase.groupWithFeedListFlow.value
+        return if (feeds) {
+            groups
+                .flatMap { it.feeds }
+                .filter { it.important > 0 || it.id in visited }
+                .map { TriageNext(it.id, it.name, it.important, isFeed = true) }
+        } else {
+            groups
+                .map { g -> TriageNext(g.group.id, g.group.name, g.feeds.sumOf { it.important }) }
+                .filter { it.unread > 0 || it.id in visited }
+        }
+    }
+
+    /**
      * Everything unread when a Triage run starts, for its progress ring: the unread articles in all
      * groups (or, for a run started from a feed, all feeds), and how many of them have any.
      */

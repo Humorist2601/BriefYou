@@ -1,4 +1,7 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(
+    androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class,
+    androidx.compose.foundation.layout.ExperimentalLayoutApi::class,
+)
 
 package me.ash.reader.brief.triage
 
@@ -142,6 +145,13 @@ import me.ash.reader.ui.component.base.SIZE_1000
 import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.brief.feeds.rememberFeedAccent
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily // Brief You
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.rememberModalBottomSheetState
 /** What a card can be swiped to. */
 internal enum class TriageAction {
     /** Mark as read and move on. */
@@ -218,6 +228,10 @@ class TriageSession(
     var visited by mutableStateOf(setOfNotNull(groupId, feedId))
         private set
 
+    /** How many cards each group (or feed) of the run had when it was started, for the run's bar. */
+    var placeSizes by mutableStateOf(listOfNotNull(feedId ?: groupId).associateWith { articles.size })
+        private set
+
     var index by mutableIntStateOf(0)
     internal val history = mutableStateListOf<TriageStep>()
 
@@ -233,6 +247,12 @@ class TriageSession(
     /** Cards skipped in the groups (or feeds) done before this one, and in how many of them. */
     var skippedBefore = 0
         private set
+
+    /** Cards read (or opened) and saved in the groups (or feeds) done before this one. */
+    var readBefore = 0
+        private set
+    var savedBefore = 0
+        private set
     var placesWithSkips = 0
         private set
 
@@ -242,11 +262,15 @@ class TriageSession(
     }
 
     fun startNext(next: TriageNext, cards: List<ArticleWithFeed>) {
-        // Skipped cards stay unread: they still count as left when the ring is worked out.
-        val skipped = history.count { it.action == TriageAction.Skip }
+        // Skipped cards stay unread: they still count as left when the ring is worked out. So do
+        // the cards not reached yet when you jump to another group (or feed) from the header.
+        val skipped = history.count { it.action == TriageAction.Skip } + (articles.size - index).coerceAtLeast(0)
         skippedBefore += skipped
         if (skipped > 0) placesWithSkips++
+        readBefore += history.count { it.action == TriageAction.Read || it.action == TriageAction.Open }
+        savedBefore += history.count { it.action == TriageAction.Save }
         visited = visited + next.id
+        placeSizes = placeSizes + (next.id to cards.size)
         groupId = if (next.isFeed) null else next.id
         feedId = if (next.isFeed) next.id else null
         title = next.name
@@ -271,6 +295,7 @@ fun TriageScreen(
     findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
+    listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext> = { _, _ -> emptyList() },
 ) {
     val scope = rememberCoroutineScope()
     val enter = remember { Animatable(0f) }
@@ -398,6 +423,7 @@ fun TriageScreen(
             findNext,
             findLeft,
             loadNext,
+            listPlaces,
         )
     }
     }
@@ -449,6 +475,7 @@ private fun TriageContent(
     findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
+    listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext>,
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -552,6 +579,36 @@ private fun TriageContent(
         session.index = (session.index - 1).coerceAtLeast(0)
     }
 
+    // The run's groups (or feeds), for the header's sheet and the end screen's choices. Only for a
+    // run started from a group or a feed (Triage on everything has nowhere else to go).
+    val isFeeds = session.feedId != null
+    val hasPlaces = session.groupId != null || session.feedId != null
+    var sheetOpen by remember { mutableStateOf(false) }
+    val runPlaces =
+        remember(session.visited, done) {
+            if (done && hasPlaces) listPlaces(isFeeds, session.visited) else emptyList()
+        }
+    val others = remember(runPlaces, next) { runPlaces.filter { it.id !in session.visited && it.id != next?.id } }
+
+    // Carries on with [target]: the end screen floats away (or the cards drop out of the way when
+    // jumping from the middle of a group), then the new stack swipes up from the bottom.
+    fun goTo(target: TriageNext) {
+        if (loadingNext) return
+        loadingNext = true
+        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+        scope.launch {
+            val loading = async { runCatching { loadNext(target) }.getOrDefault(emptyList()) }
+            if (done) doneExit.animateTo(1f, tween(180))
+            else stackRise.animateTo(1f, tween(200, easing = FastOutLinearInEasing))
+            val cards = loading.await()
+            stackRise.snapTo(1f)
+            session.startNext(target, cards)
+            doneExit.snapTo(0f)
+            stackRise.animateTo(0f, riseSpec)
+            loadingNext = false
+        }
+    }
+
     // A confirming tap when the last card is dealt with.
     LaunchedEffect(current == null) {
         if (current == null && history.isNotEmpty()) {
@@ -569,21 +626,63 @@ private fun TriageContent(
             IconButton(onClick = onClose) {
                 Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close))
             }
+            // The group (or feed), the cards left, and a chip with where you are in the run. Tap the
+            // chip to see the run's groups and jump to another, or skip this one.
+            val canJump = hasPlaces && session.startPlaces > 0
             Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
                 Text(
-                    text = stringResource(R.string.triage),
+                    text = session.title?.takeIf { it.isNotBlank() } ?: stringResource(R.string.triage),
                     style = MaterialTheme.typography.titleLarge,
                     fontFamily = GoogleSansWideFontFamily,
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                if (current != null) {
-                    val left =
-                        pluralStringResource(R.plurals.triage_left, total - index, total - index)
-                    Text(
-                        text = session.title?.takeIf { it.isNotBlank() }?.let { "$it · $left" } ?: left,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (current != null) {
+                        Text(
+                            text = pluralStringResource(R.plurals.triage_left, total - index, total - index),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                        if (canJump) Spacer(Modifier.width(8.dp))
+                    }
+                    if (canJump) {
+                        val places = maxOf(session.startPlaces, session.visited.size)
+                        Surface(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                sheetOpen = true
+                            },
+                            enabled = !loadingNext,
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(start = 6.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    if (isFeeds) Icons.Rounded.RssFeed else Icons.Rounded.Folder,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text =
+                                        stringResource(
+                                            if (isFeeds) R.string.triage_feed_of else R.string.triage_group_of,
+                                            session.visited.size.coerceAtMost(places),
+                                            places,
+                                        ),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                )
+                            }
+                        }
+                    }
                 }
             }
             AutoAdvanceButton(
@@ -611,17 +710,23 @@ private fun TriageContent(
             }
         }
 
-        // Slides to the next step instead of jumping.
-        val shownProgress by
-            animateFloatAsState(
-                targetValue = if (total == 0) 1f else index.toFloat() / total,
-                animationSpec = tween(durationMillis = 450),
-                label = "triage progress",
+        if (done && runPlaces.size > 1) {
+            // A group (or feed) is done: the bar becomes the whole run, one piece per group, sized
+            // by how many cards it had. Done ones are filled, the ones to come are empty.
+            RunBar(runPlaces = runPlaces, sizes = session.placeSizes, visited = session.visited)
+        } else {
+            // This group's cards; slides to the next step instead of jumping.
+            val shownProgress by
+                animateFloatAsState(
+                    targetValue = if (total == 0) 1f else index.toFloat() / total,
+                    animationSpec = tween(durationMillis = 450),
+                    label = "triage progress",
+                )
+            LinearWavyProgressIndicator(
+                progress = { shownProgress },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
             )
-        LinearWavyProgressIndicator(
-            progress = { shownProgress },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-        )
+        }
 
         if (current == null) {
             TriageDone(
@@ -630,9 +735,14 @@ private fun TriageContent(
                         alpha = 1f - doneExit.value
                         translationY = -doneExit.value * 56.dp.toPx()
                     },
-                read = history.count { it.action == TriageAction.Read || it.action == TriageAction.Open },
-                saved = history.count { it.action == TriageAction.Save },
-                skipped = skippedCount,
+                // All caught up: the whole run, every group (or feed) of it; otherwise this one.
+                read =
+                    history.count { it.action == TriageAction.Read || it.action == TriageAction.Open } +
+                        (if (allRead) session.readBefore else 0),
+                saved =
+                    history.count { it.action == TriageAction.Save } +
+                        (if (allRead) session.savedBefore else 0),
+                skipped = skippedCount + (if (allRead) session.skippedBefore else 0),
                 nothingToDo = total == 0,
                 allRead = allRead,
                 progress = progress,
@@ -644,27 +754,9 @@ private fun TriageContent(
                 left = left,
                 next = next,
                 loadingNext = loadingNext,
-                onNext = {
-                    val target = next
-                    if (target != null && !loadingNext) {
-                        loadingNext = true
-                        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        scope.launch {
-                            // Load the cards while the "All caught up" screen floats away.
-                            val loading = async {
-                                runCatching { loadNext(target) }.getOrDefault(emptyList())
-                            }
-                            doneExit.animateTo(1f, tween(180))
-                            val cards = loading.await()
-                            // The new cards start below the screen and swipe up into place.
-                            stackRise.snapTo(1f)
-                            session.startNext(target, cards)
-                            doneExit.snapTo(0f)
-                            stackRise.animateTo(0f, riseSpec)
-                            loadingNext = false
-                        }
-                    }
-                },
+                onNext = { next?.let { goTo(it) } },
+                others = others,
+                onChoose = { goTo(it) },
                 onClose = onClose,
             )
         } else {
@@ -683,6 +775,23 @@ private fun TriageContent(
                 onReturned = { returning = null },
             )
         }
+    }
+
+    if (sheetOpen) {
+        TriagePlacesSheet(
+            places = remember(session.visited) { listPlaces(isFeeds, session.visited) },
+            currentId = session.feedId ?: session.groupId,
+            currentLeft = (total - index).coerceAtLeast(0),
+            visited = session.visited,
+            isFeeds = isFeeds,
+            title = session.title,
+            skipTarget = remember(session.visited) { findNext(session.groupId, session.feedId, session.visited) },
+            onPick = {
+                sheetOpen = false
+                goTo(it)
+            },
+            onDismiss = { sheetOpen = false },
+        )
     }
 }
 
@@ -1269,6 +1378,8 @@ private fun TriageDone(
     next: TriageNext?,
     loadingNext: Boolean,
     onNext: () -> Unit,
+    others: List<TriageNext> = emptyList(),
+    onChoose: (TriageNext) -> Unit = {},
     onClose: () -> Unit,
 ) {
     Column(
@@ -1448,6 +1559,37 @@ private fun TriageDone(
                 continueNow()
             }
             NextCard(next = next, loading = loadingNext, onClick = onNext)
+            // Any other group (or feed) still to do, to pick instead of the next one.
+            if (others.isNotEmpty()) {
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    text = stringResource(R.string.triage_or_choose),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(start = 4.dp, bottom = 6.dp),
+                )
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    maxLines = 2,
+                ) {
+                    others.forEach { place ->
+                        SuggestionChip(
+                            onClick = { onChoose(place) },
+                            enabled = !loadingNext,
+                            label = {
+                                Text(
+                                    "${place.name} · ${place.unread}",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.height(8.dp))
             TextButton(onClick = onClose) { Text(stringResource(R.string.triage_back_to_list)) }
         } else {
@@ -1466,11 +1608,14 @@ private fun ProgressRing(fraction: Float) {
     val shown = remember { Animatable(0f) }
     LaunchedEffect(fraction) { shown.animateTo(fraction, tween(900, easing = FastOutSlowInEasing)) }
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(128.dp)) {
+        // A gentle wave: lower and longer than the default, so the ring reads calm.
         CircularWavyProgressIndicator(
             progress = { shown.value },
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.primary,
             trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+            amplitude = { p -> if (p <= 0.05f || p >= 0.97f) 0f else 0.35f },
+            wavelength = 40.dp,
         )
         Text(
             text = stringResource(R.string.triage_percent, (shown.value * 100).roundToInt()),
@@ -1718,6 +1863,191 @@ private fun AutoAdvanceButton(
                     },
                 )
             }
+        }
+    }
+}
+
+/**
+ * The groups (or feeds) of this Triage run, opened from the header: done ones are ticked, the one
+ * you're in is highlighted with the cards left, the rest show their unread count. Tap one to go
+ * there now (the cards left here stay unread), or skip to the next.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun TriagePlacesSheet(
+    places: List<TriageNext>,
+    currentId: String?,
+    currentLeft: Int,
+    visited: Set<String>,
+    isFeeds: Boolean,
+    title: String?,
+    skipTarget: TriageNext?,
+    onPick: (TriageNext) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
+            Text(
+                text = stringResource(if (isFeeds) R.string.triage_places_feeds else R.string.triage_places_groups),
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = GoogleSansWideFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+            Text(
+                text = stringResource(R.string.triage_jump_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 12.dp),
+            )
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(places, key = { it.id }) { place ->
+                    val here = place.id == currentId
+                    val doneHere = !here && place.id in visited
+                    Surface(
+                        onClick = { onPick(place) },
+                        enabled = !here && !doneHere,
+                        shape = RoundedCornerShape(if (here) 20.dp else 16.dp),
+                        color =
+                            if (here) MaterialTheme.colorScheme.secondaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor =
+                            if (here) MaterialTheme.colorScheme.onSecondaryContainer
+                            else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier =
+                                    Modifier.size(26.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (here || doneHere) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.surfaceContainerHighest
+                                        ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    when {
+                                        doneHere -> Icons.Rounded.Check
+                                        isFeeds -> Icons.Rounded.RssFeed
+                                        else -> Icons.Rounded.Folder
+                                    },
+                                    contentDescription = null,
+                                    tint =
+                                        if (here || doneHere) MaterialTheme.colorScheme.onPrimary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(15.dp),
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = place.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = if (here) FontWeight.SemiBold else FontWeight.Normal,
+                                color =
+                                    if (doneHere) MaterialTheme.colorScheme.onSurfaceVariant
+                                    else androidx.compose.ui.graphics.Color.Unspecified,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text =
+                                    when {
+                                        here -> stringResource(R.string.triage_place_here, currentLeft)
+                                        doneHere -> stringResource(R.string.triage_place_done)
+                                        else -> place.unread.toString()
+                                    },
+                                style = MaterialTheme.typography.labelLarge,
+                                color =
+                                    if (here) MaterialTheme.colorScheme.onSecondaryContainer
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (skipTarget != null) {
+                    FilledTonalButton(onClick = { onPick(skipTarget) }, modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.triage_skip_place, title ?: ""),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.triage_keep_going))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The whole run once a group (or feed) is done: one piece per group in the Feeds page order, as
+ * wide as the cards it had (or has left, for those still to come). Finished ones fill in; their
+ * names are on the left underneath, the ones to come on the right.
+ */
+@Composable
+private fun RunBar(runPlaces: List<TriageNext>, sizes: Map<String, Int>, visited: Set<String>) {
+    val fill = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { fill.animateTo(1f, tween(600, easing = FastOutSlowInEasing)) }
+    val doneColor = MaterialTheme.colorScheme.primary
+    val todoColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 12.dp, bottom = 6.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().height(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            runPlaces.forEach { place ->
+                val isDone = place.id in visited
+                Box(
+                    modifier =
+                        Modifier.weight((sizes[place.id] ?: place.unread).coerceAtLeast(1).toFloat())
+                            .fillMaxHeight()
+                            .clip(CircleShape)
+                            .background(todoColor)
+                            .drawBehind {
+                                if (isDone) {
+                                    drawRoundRect(
+                                        color = doneColor,
+                                        size = Size(size.width * fill.value, size.height),
+                                        cornerRadius = CornerRadius(size.height / 2),
+                                    )
+                                }
+                            }
+                )
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            val (doneNames, todoNames) = runPlaces.partition { it.id in visited }
+            Text(
+                text = doneNames.joinToString(" · ") { it.name },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = todoNames.joinToString(" · ") { it.name },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

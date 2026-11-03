@@ -55,7 +55,8 @@ object FeedAccent {
         val color =
             withContext(Dispatchers.IO) {
                 val key = hash(iconUrl)
-                val prefs = context.getSharedPreferences("feed_accent", Context.MODE_PRIVATE)
+                // v2: pale icon colours are picked up too (the old cache said "no colour").
+                val prefs = context.getSharedPreferences("feed_accent_v2", Context.MODE_PRIVATE)
                 if (prefs.contains(key)) {
                     prefs.getInt(key, NONE)
                 } else {
@@ -157,7 +158,9 @@ object FeedAccent {
             if ((p ushr 24) < 128) continue
             val lab = argbToLab(p)
             val chroma = sqrt(lab[1] * lab[1] + lab[2] * lab[2])
-            if (chroma < 15 || lab[0] < 15 || lab[0] > 95) continue // greys, near-black, near-white
+            // Greys, near-black and pure white are skipped; faint and pale colours still count
+            // (light icons: a pale blue or pink is still the feed's colour).
+            if (chroma < 8 || lab[0] < 12 || lab[0] > 98) continue
             val hue = (atan2(lab[2], lab[1]) * 180 / PI + 360) % 360
             val b = (hue / (360.0 / bins)).toInt().coerceIn(0, bins - 1)
             weight[b] += chroma
@@ -172,6 +175,15 @@ object FeedAccent {
         return labToArgb(sumL[best] / w, sumA[best] / w, sumB[best] / w)
     }
 
+    /**
+     * A colour for a feed whose icon has none (white, grey or black icons): a hue picked from the
+     * icon's address, the same every time, so every feed name still gets a colour of its own.
+     */
+    fun fallbackSource(iconUrl: String): Int {
+        val hue = ((iconUrl.hashCode().toLong() and 0x7FFFFFFF) % 360) * PI / 180
+        return labToArgb(60.0, 40.0 * cos(hue), 40.0 * sin(hue))
+    }
+
     /** The source color adapted to the current theme, as described on [FeedAccent]. */
     fun themed(source: Int, primary: Color, dark: Boolean): Color {
         val s = argbToLab(source)
@@ -182,7 +194,8 @@ object FeedAccent {
         // Material harmonization: rotate halfway toward primary, at most 15°.
         val rotation = minOf(abs(diff) * 0.5, 15.0) * Math.signum(diff)
         val hue = (sHue + rotation) * PI / 180
-        var chroma = minOf(sqrt(s[1] * s[1] + s[2] * s[2]), MAX_CHROMA)
+        // Pale icons: their hue is lifted to a readable accent (at least MIN_CHROMA).
+        var chroma = sqrt(s[1] * s[1] + s[2] * s[2]).coerceIn(MIN_CHROMA, MAX_CHROMA)
         val l = if (dark) 80.0 else 40.0
         // Reduce chroma until the color fits in sRGB.
         while (chroma > 0) {
@@ -257,6 +270,9 @@ object FeedAccent {
 
     /** Muted: Material's custom colors sit well below the dynamic palette's most vivid tones. */
     private const val MAX_CHROMA = 38.0
+
+    /** Colourful enough to read as the feed's colour, even from a pale icon. */
+    private const val MIN_CHROMA = 24.0
 }
 
 /** The themed accent color for a feed's icon, or null (use the default) while unknown or grey. */
@@ -267,7 +283,10 @@ fun rememberFeedAccent(iconUrl: String?): Color? {
     val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val source by
         produceState<Int?>(null, iconUrl) {
-            value = iconUrl?.takeIf { it.isNotBlank() }?.let { FeedAccent.sourceColor(context, it) }
+            value =
+                iconUrl?.takeIf { it.isNotBlank() }?.let {
+                    FeedAccent.sourceColor(context, it) ?: FeedAccent.fallbackSource(it)
+                }
         }
     return remember(source, primary, dark) {
         source?.let { FeedAccent.themed(it, primary, dark) }
