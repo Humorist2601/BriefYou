@@ -266,7 +266,6 @@
     <string name="triage_next_up">Next up</string>
     <string name="triage_next_unread">%1$d unread</string>
     <string name="triage_place_of">%1$d of %2$d</string>
-    <string name="triage_or_choose">Or choose</string>
     <string name="triage_places_groups">Groups in this run</string>
     <string name="triage_places_feeds">Feeds in this run</string>
     <string name="triage_place_done">Done</string>

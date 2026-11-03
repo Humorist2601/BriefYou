@@ -63,7 +63,7 @@ constructor(
             val ordered = if (start < 0) feeds else feeds.drop(start + 1) + feeds.take(start)
             return ordered
                 .firstOrNull { it.id !in visited && it.important > 0 }
-                ?.let { TriageNext(it.id, it.name, it.important, isFeed = true) }
+                ?.let { TriageNext(it.id, it.name, it.important, isFeed = true, icon = it.icon) }
         }
 
         val start = groups.indexOfFirst { it.group.id == groupId }
@@ -88,7 +88,7 @@ constructor(
             groups
                 .flatMap { it.feeds }
                 .filter { it.important > 0 || it.id in visited }
-                .map { TriageNext(it.id, it.name, it.important, isFeed = true) }
+                .map { TriageNext(it.id, it.name, it.important, isFeed = true, icon = it.icon) }
         } else {
             groups
                 .map { g -> TriageNext(g.group.id, g.group.name, g.feeds.sumOf { it.important }) }
