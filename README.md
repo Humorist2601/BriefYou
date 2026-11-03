@@ -118,6 +118,8 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 - Auto-advance pauses while you hold a card, while a card shows its summary and while the groups sheet is open: the button turns grey and its ring stops where it was, then carries on. Long press the button to choose the delay (3–30 s, 5 by default).
 - Haptics mark the swipe threshold, each choice, Undo and finishing the stack.
 - Undo on the first card of a group goes back into the group before it and takes back its last card.
+- When a group is done, its bar shrinks into its piece of the run while the other groups' pieces fade in; starting the next group, its piece grows back into the bar.
+- The long-press glow only starts once your finger has stayed still for a moment, so swiping never shows it.
 - Next groups follow your Feeds order. The back gesture turns Triage into a card that follows your finger and is tossed aside.
 - Inbox zero also plays when you swipe up to mark everything read on the Unread list.
 
