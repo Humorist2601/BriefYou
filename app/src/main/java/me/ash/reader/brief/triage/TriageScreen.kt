@@ -18,7 +18,6 @@ import me.ash.reader.brief.reading.estimateReadingMinutes
 import androidx.compose.material3.toShape
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.CubicBezierEasing
 import me.ash.reader.brief.reading.FeedContent
 import androidx.activity.BackEventCompat
 import androidx.activity.compose.PredictiveBackHandler
@@ -2110,8 +2109,8 @@ private fun TriageBar(
     val morph = remember { Animatable(if (showRun) 1f else 0f) }
     // The piece the bar shrinks into (or grows out of).
     var focusId by remember { mutableStateOf(hereId) }
-    // Slow enough to follow: the bar visibly shrinks into its piece (Material's emphasized curve).
-    val spec = tween<Float>(durationMillis = 650, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f))
+    // Linear here: each of the two steps below gets its own smooth in-and-out curve.
+    val spec = tween<Float>(durationMillis = 800, easing = LinearEasing)
     // The wave calms down before the bar turns into the run (and comes back after the reverse),
     // so it never jumps from wavy to straight.
     var calm by remember { mutableStateOf(showRun) }
@@ -2141,8 +2140,13 @@ private fun TriageBar(
     }
     Canvas(modifier = modifier.height(34.dp)) {
         val t = morph.value
+        // One step after the other, the same both ways. Finishing a group: the bar shrinks into
+        // its piece (first 60%), then the other pieces fade in (from 40%). Going back: the other
+        // pieces fade out first, then the bar grows back to the full width.
+        val shrink = FastOutSlowInEasing.transform((t / 0.6f).coerceIn(0f, 1f))
+        val others = FastOutSlowInEasing.transform(((t - 0.4f) / 0.6f).coerceIn(0f, 1f))
         val gap = 4.dp.toPx()
-        val thickness = lerp(4.dp.toPx(), 6.dp.toPx(), t)
+        val thickness = lerp(4.dp.toPx(), 6.dp.toPx(), shrink)
         val y = (size.height - thickness) / 2
         val radius = CornerRadius(thickness / 2)
         val weights = runPlaces.map { (sizes[it.id] ?: it.unread).coerceAtLeast(1).toFloat() }
@@ -2162,20 +2166,20 @@ private fun TriageBar(
         runPlaces.forEachIndexed { k, place ->
             if (k == focus) return@forEachIndexed
             val color = if (place.id in visited) doneColor else todoColor
-            drawRoundRect(color.copy(alpha = color.alpha * t), Offset(starts[k], y), Size(widths[k], thickness), radius)
+            drawRoundRect(color.copy(alpha = color.alpha * others), Offset(starts[k], y), Size(widths[k], thickness), radius)
         }
         // ...then this group's own bar on top: from the full width to its piece, filled as far as
         // it got. Drawn last, so the others never show through it while it moves.
         if (focus >= 0) {
-            val left = lerp(0f, starts[focus], t)
-            val width = lerp(size.width, widths[focus], t)
+            val left = lerp(0f, starts[focus], shrink)
+            val width = lerp(size.width, widths[focus], shrink)
             drawRoundRect(todoColor, Offset(left, y), Size(width, thickness), radius)
             val fill = groupProgress().coerceIn(0f, 1f)
             if (fill > 0f) drawRoundRect(doneColor, Offset(left, y), Size(width * fill, thickness), radius)
         }
         // No piece for this group (it isn't in the run's list): the run just fades in.
         if (focus < 0) {
-            drawRoundRect(todoColor.copy(alpha = todoColor.alpha * (1f - t)), Offset(0f, y), Size(size.width, thickness), radius)
+            drawRoundRect(todoColor.copy(alpha = todoColor.alpha * (1f - others)), Offset(0f, y), Size(size.width, thickness), radius)
         }
     }
 }
