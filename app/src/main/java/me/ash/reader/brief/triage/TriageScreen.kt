@@ -18,6 +18,7 @@ import me.ash.reader.brief.reading.estimateReadingMinutes
 import androidx.compose.material3.toShape
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.CubicBezierEasing
 import me.ash.reader.brief.reading.FeedContent
 import androidx.activity.BackEventCompat
 import androidx.activity.compose.PredictiveBackHandler
@@ -810,16 +811,16 @@ private fun TriageContent(
         }
 
         // This group's cards; slides to the next step instead of jumping.
-        val shownProgress by
-            animateFloatAsState(
-                targetValue = if (total == 0) 1f else index.toFloat() / total,
-                animationSpec = tween(durationMillis = 450),
-                label = "triage progress",
-            )
+        val targetProgress = if (total == 0) 1f else index.toFloat() / total
+        // A new group starts from where it is (empty), it doesn't slide down from the last one.
+        val progressAnim = remember(hereId) { Animatable(targetProgress) }
+        LaunchedEffect(progressAnim, targetProgress) {
+            progressAnim.animateTo(targetProgress, tween(durationMillis = 450))
+        }
         // While swiping: this group's wavy bar. Once it's done: the whole run, one piece per
         // group, and the bar turns into one into the other (see TriageBar).
         TriageBar(
-            groupProgress = { shownProgress },
+            groupProgress = { progressAnim.value },
             showRun = done && runPlaces.size > 1,
             runPlaces = runPlaces,
             sizes = session.placeSizes,
@@ -2109,22 +2110,33 @@ private fun TriageBar(
     val morph = remember { Animatable(if (showRun) 1f else 0f) }
     // The piece the bar shrinks into (or grows out of).
     var focusId by remember { mutableStateOf(hereId) }
-    val spec = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
+    // Slow enough to follow: the bar visibly shrinks into its piece (Material's emphasized curve).
+    val spec = tween<Float>(durationMillis = 650, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f))
+    // The wave calms down before the bar turns into the run (and comes back after the reverse),
+    // so it never jumps from wavy to straight.
+    var calm by remember { mutableStateOf(showRun) }
     LaunchedEffect(showRun) {
         focusId = hereId
         if (showRun) {
-            // Let the group's bar fill up (and its wave calm down) first.
-            kotlinx.coroutines.delay(300)
+            calm = true
+            // The group's bar fills up and its wave flattens out first.
+            kotlinx.coroutines.delay(550)
             morph.animateTo(1f, spec)
         } else {
             morph.animateTo(0f, spec)
+            calm = false
         }
     }
     val doneColor = WavyProgressIndicatorDefaults.indicatorColor
     val todoColor = WavyProgressIndicatorDefaults.trackColor
     val modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
     if (morph.value == 0f || runPlaces.size < 2) {
-        LinearWavyProgressIndicator(progress = groupProgress, modifier = modifier.padding(vertical = 12.dp))
+        LinearWavyProgressIndicator(
+            progress = groupProgress,
+            modifier = modifier.padding(vertical = 12.dp),
+            // Flat while calm: the indicator eases its wave in and out by itself.
+            amplitude = { p -> if (calm) 0f else WavyProgressIndicatorDefaults.indicatorAmplitude(p) },
+        )
         return
     }
     Canvas(modifier = modifier.height(34.dp)) {
@@ -2136,25 +2148,30 @@ private fun TriageBar(
         val weights = runPlaces.map { (sizes[it.id] ?: it.unread).coerceAtLeast(1).toFloat() }
         val available = size.width - gap * (runPlaces.size - 1)
         val sum = weights.sum()
-        var x = 0f
         val focus = runPlaces.indexOfFirst { it.id == focusId }
+        // Where each piece sits in the run.
+        val starts = FloatArray(runPlaces.size)
+        val widths = FloatArray(runPlaces.size)
+        var x = 0f
+        runPlaces.indices.forEach { k ->
+            starts[k] = x
+            widths[k] = available * weights[k] / sum
+            x += widths[k] + gap
+        }
+        // The other groups first, fading in (or out) at their places...
         runPlaces.forEachIndexed { k, place ->
-            val w = available * weights[k] / sum
-            if (k == focus) {
-                // The group's own bar: from the full width to its piece, filled as far as it got.
-                val left = lerp(0f, x, t)
-                val width = lerp(size.width, w, t)
-                drawRoundRect(todoColor, Offset(left, y), Size(width, thickness), radius)
-                val fill = groupProgress().coerceIn(0f, 1f)
-                if (fill > 0f) {
-                    drawRoundRect(doneColor, Offset(left, y), Size(width * fill, thickness), radius)
-                }
-            } else {
-                // The other groups fade in (or out) at their places.
-                val color = if (place.id in visited) doneColor else todoColor
-                drawRoundRect(color.copy(alpha = color.alpha * t), Offset(x, y), Size(w, thickness), radius)
-            }
-            x += w + gap
+            if (k == focus) return@forEachIndexed
+            val color = if (place.id in visited) doneColor else todoColor
+            drawRoundRect(color.copy(alpha = color.alpha * t), Offset(starts[k], y), Size(widths[k], thickness), radius)
+        }
+        // ...then this group's own bar on top: from the full width to its piece, filled as far as
+        // it got. Drawn last, so the others never show through it while it moves.
+        if (focus >= 0) {
+            val left = lerp(0f, starts[focus], t)
+            val width = lerp(size.width, widths[focus], t)
+            drawRoundRect(todoColor, Offset(left, y), Size(width, thickness), radius)
+            val fill = groupProgress().coerceIn(0f, 1f)
+            if (fill > 0f) drawRoundRect(doneColor, Offset(left, y), Size(width * fill, thickness), radius)
         }
         // No piece for this group (it isn't in the run's list): the run just fades in.
         if (focus < 0) {
