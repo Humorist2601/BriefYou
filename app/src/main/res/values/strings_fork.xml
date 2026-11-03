@@ -211,7 +211,7 @@
     <string name="triage_back_to_list">Back to list</string>
     <string name="triage_auto_start">Start auto-advance</string>
     <string name="triage_auto_stop">Stop auto-advance</string>
-    <string name="triage_auto_paused">Auto-advance paused while you hold the card</string>
+    <string name="triage_auto_paused">Auto-advance paused</string>
     <string name="triage_auto_delay">Skip after</string>
     <string name="triage_auto_seconds">%d seconds</string>
 
