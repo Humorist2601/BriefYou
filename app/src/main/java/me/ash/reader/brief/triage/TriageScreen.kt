@@ -1739,7 +1739,9 @@ private fun NextCard(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 } else if (next.isFeed) {
-                    FeedIcon(feedName = next.name, iconUrl = next.icon, size = 30.dp)
+                    // The feed's icon fills the whole cookie shape: it is round and as big as the
+                    // shape, so the shape's clip cuts it into the cookie.
+                    FeedIcon(feedName = next.name, iconUrl = next.icon, size = 52.dp)
                 } else {
                     Icon(
                         Icons.Rounded.Folder,
