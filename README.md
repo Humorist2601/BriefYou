@@ -108,7 +108,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Summary on the card** | Long-press a card: it sinks a little and its border starts to glow in Google's AI colours, then the on-device AI writes 3 key points right on it. Tap the card to switch between the summary and the article's own description. Auto-advance pauses while the summary shows. |
 | **Auto-advance** | Skips each card after a few seconds, with a wavy ring counting down. |
 | **Next group** | When a group (or feed) is done: the bar at the top splits into one piece per group of the run (sized by its cards, done ones filled), a ring with how much of all your unread is cleared ("3 of 4 groups clear"), what's left, and the next group, which starts by itself after a countdown while auto-advance is on. The other groups are chips to pick instead. *All caught up* only when nothing is unread anywhere, with the read, saved and skipped totals of the whole run. |
-| **Jump between groups** | The header shows the group, the cards left and a "Group 2 of 5" chip. Tap the chip for every group in the run: jump to any of them, or skip this one. The cards you leave stay unread. |
+| **Jump between groups** | The header keeps "Triage" with a small "2 of 5" chip after it, and the group and cards left underneath. Tap the chip for every group in the run: jump to any of them, or skip this one. The cards you leave stay unread. |
 | **Inbox zero** | A little celebration when you're all caught up. |
 
 <details>

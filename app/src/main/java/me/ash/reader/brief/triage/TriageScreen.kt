@@ -626,42 +626,34 @@ private fun TriageContent(
             IconButton(onClick = onClose) {
                 Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close))
             }
-            // The group (or feed), the cards left, and a chip with where you are in the run. Tap the
-            // chip to see the run's groups and jump to another, or skip this one.
+            // "Triage", with a small chip for where you are in the run right after it (it never
+            // moves, as "Triage" doesn't change), and the group (or feed) with the cards left in
+            // small text underneath. Tap the chip to see the run's groups and jump or skip.
             val canJump = hasPlaces && session.startPlaces > 0
             Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-                Text(
-                    text = session.title?.takeIf { it.isNotBlank() } ?: stringResource(R.string.triage),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontFamily = GoogleSansWideFontFamily,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (current != null) {
-                        Text(
-                            text = pluralStringResource(R.plurals.triage_left, total - index, total - index),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                        )
-                        if (canJump) Spacer(Modifier.width(8.dp))
-                    }
+                    Text(
+                        text = stringResource(R.string.triage),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontFamily = GoogleSansWideFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                    )
                     if (canJump) {
                         val places = maxOf(session.startPlaces, session.visited.size)
+                        Spacer(Modifier.width(8.dp))
                         Surface(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 sheetOpen = true
                             },
                             enabled = !loadingNext,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         ) {
                             Row(
-                                modifier = Modifier.padding(start = 6.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
+                                modifier = Modifier.padding(start = 7.dp, end = 9.dp, top = 3.dp, bottom = 3.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Icon(
@@ -673,7 +665,7 @@ private fun TriageContent(
                                 Text(
                                     text =
                                         stringResource(
-                                            if (isFeeds) R.string.triage_feed_of else R.string.triage_group_of,
+                                            R.string.triage_place_of,
                                             session.visited.size.coerceAtMost(places),
                                             places,
                                         ),
@@ -683,6 +675,20 @@ private fun TriageContent(
                             }
                         }
                     }
+                }
+                val leftText =
+                    if (current != null) pluralStringResource(R.plurals.triage_left, total - index, total - index)
+                    else null
+                val sub =
+                    listOfNotNull(session.title?.takeIf { it.isNotBlank() }, leftText).joinToString(" · ")
+                if (sub.isNotEmpty()) {
+                    Text(
+                        text = sub,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
             AutoAdvanceButton(
@@ -1996,8 +2002,7 @@ private fun TriagePlacesSheet(
 
 /**
  * The whole run once a group (or feed) is done: one piece per group in the Feeds page order, as
- * wide as the cards it had (or has left, for those still to come). Finished ones fill in; their
- * names are on the left underneath, the ones to come on the right.
+ * wide as the cards it had (or has left, for those still to come). Finished ones fill in.
  */
 @Composable
 private fun RunBar(runPlaces: List<TriageNext>, sizes: Map<String, Int>, visited: Set<String>) {
@@ -2005,7 +2010,7 @@ private fun RunBar(runPlaces: List<TriageNext>, sizes: Map<String, Int>, visited
     LaunchedEffect(Unit) { fill.animateTo(1f, tween(600, easing = FastOutSlowInEasing)) }
     val doneColor = MaterialTheme.colorScheme.primary
     val todoColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 12.dp, bottom = 6.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 14.dp)) {
         Row(modifier = Modifier.fillMaxWidth().height(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             runPlaces.forEach { place ->
                 val isDone = place.id in visited
@@ -2026,28 +2031,6 @@ private fun RunBar(runPlaces: List<TriageNext>, sizes: Map<String, Int>, visited
                             }
                 )
             }
-        }
-        Spacer(Modifier.height(4.dp))
-        Row(modifier = Modifier.fillMaxWidth()) {
-            val (doneNames, todoNames) = runPlaces.partition { it.id in visited }
-            Text(
-                text = doneNames.joinToString(" · ") { it.name },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = todoNames.joinToString(" · ") { it.name },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.End,
-                modifier = Modifier.weight(1f),
-            )
         }
     }
 }
