@@ -32,6 +32,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.util.lerp
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -146,6 +147,8 @@ import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.brief.feeds.rememberFeedAccent
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily // Brief You
 import me.ash.reader.brief.ui.TonalCircleButton
+import androidx.compose.foundation.Canvas
+import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
@@ -154,6 +157,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
+/** How long a finger must stay still on a card before the long-press glow starts. */
+private const val CHARGE_DELAY_MS = 180L
+
+/** A feed of the group you're in, for the groups sheet: how many of its cards are left. */
+internal data class FeedLeft(val id: String, val name: String, val icon: String?, val left: Int)
+
 /** What a card can be swiped to. */
 internal enum class TriageAction {
     /** Mark as read and move on. */
@@ -368,6 +377,7 @@ fun TriageScreen(
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
     listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext> = { _, _ -> emptyList() },
+    feedOrder: (groupId: String) -> List<String> = { emptyList() },
 ) {
     val scope = rememberCoroutineScope()
     val enter = remember { Animatable(0f) }
@@ -496,6 +506,7 @@ fun TriageScreen(
             findLeft,
             loadNext,
             listPlaces,
+            feedOrder,
         )
     }
     }
@@ -548,6 +559,7 @@ private fun TriageContent(
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
     listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext>,
+    feedOrder: (groupId: String) -> List<String>,
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -803,23 +815,23 @@ private fun TriageContent(
             }
         }
 
-        if (done && runPlaces.size > 1) {
-            // A group (or feed) is done: the bar becomes the whole run, one piece per group, sized
-            // by how many cards it had. Done ones are filled, the ones to come are empty.
-            RunBar(runPlaces = runPlaces, sizes = session.placeSizes, visited = session.visited)
-        } else {
-            // This group's cards; slides to the next step instead of jumping.
-            val shownProgress by
-                animateFloatAsState(
-                    targetValue = if (total == 0) 1f else index.toFloat() / total,
-                    animationSpec = tween(durationMillis = 450),
-                    label = "triage progress",
-                )
-            LinearWavyProgressIndicator(
-                progress = { shownProgress },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+        // This group's cards; slides to the next step instead of jumping.
+        val shownProgress by
+            animateFloatAsState(
+                targetValue = if (total == 0) 1f else index.toFloat() / total,
+                animationSpec = tween(durationMillis = 450),
+                label = "triage progress",
             )
-        }
+        // While swiping: this group's wavy bar. Once it's done: the whole run, one piece per
+        // group, and the bar turns into one into the other (see TriageBar).
+        TriageBar(
+            groupProgress = { shownProgress },
+            showRun = done && runPlaces.size > 1,
+            runPlaces = runPlaces,
+            sizes = session.placeSizes,
+            visited = session.visited,
+            hereId = hereId,
+        )
 
         if (current == null) {
             TriageDone(
@@ -878,6 +890,21 @@ private fun TriageContent(
             currentLeft = (total - index).coerceAtLeast(0),
             visited = session.visited,
             leftIn = session.leftIn,
+            // In a run of groups: the feeds of the group you're in, in the Feeds page order, with
+            // the cards left in each.
+            hereFeeds =
+                remember(session.articles, index, isFeeds) {
+                    if (isFeeds) emptyList()
+                    else {
+                        val ahead = session.articles.drop(index).groupingBy { it.feed.id }.eachCount()
+                        val order = session.groupId?.let(feedOrder).orEmpty()
+                        session.articles
+                            .map { it.feed }
+                            .distinctBy { it.id }
+                            .sortedBy { feed -> order.indexOf(feed.id).let { if (it < 0) Int.MAX_VALUE else it } }
+                            .map { FeedLeft(it.id, it.name, it.icon, ahead[it.id] ?: 0) }
+                    }
+                },
             isFeeds = isFeeds,
             title = session.title,
             skipTarget = remember(session.visited) { findNext(session.groupId, session.feedId, session.visited) },
@@ -1034,7 +1061,13 @@ private fun TriageStack(
             val longPressMs = LocalViewConfiguration.current.longPressTimeoutMillis.toInt()
             LaunchedEffect(held, dragging, currentSummary == null) {
                 if (held && !dragging && currentSummary == null) {
-                    charge.animateTo(1f, tween(longPressMs, easing = LinearEasing))
+                    // Only once the finger has stayed still for a moment: a swipe starts moving
+                    // well before this, so swiping a card never shows the glow or the sink.
+                    kotlinx.coroutines.delay(CHARGE_DELAY_MS)
+                    charge.animateTo(
+                        1f,
+                        tween((longPressMs - CHARGE_DELAY_MS.toInt()).coerceAtLeast(120), easing = LinearEasing),
+                    )
                 } else {
                     charge.animateTo(0f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium))
                 }
@@ -1956,6 +1989,7 @@ private fun TriagePlacesSheet(
     currentLeft: Int,
     visited: Set<String>,
     leftIn: Map<String, Int>,
+    hereFeeds: List<FeedLeft> = emptyList(),
     isFeeds: Boolean,
     title: String?,
     skipTarget: TriageNext?,
@@ -1982,7 +2016,8 @@ private fun TriagePlacesSheet(
                 modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                items(places, key = { it.id }) { place ->
+                places.forEach { place ->
+                item(key = place.id) {
                     val here = place.id == currentId
                     // A group you moved on from with cards still unread can be opened again.
                     val leftBehind = if (here) 0 else leftIn[place.id] ?: 0
@@ -2042,7 +2077,8 @@ private fun TriagePlacesSheet(
                             Text(
                                 text =
                                     when {
-                                        here -> stringResource(R.string.triage_place_here, currentLeft)
+                                        // The highlight already says it's the one you're in.
+                                        here -> pluralStringResource(R.plurals.triage_left, currentLeft, currentLeft)
                                         doneHere -> stringResource(R.string.triage_place_done)
                                         leftBehind > 0 -> pluralStringResource(R.plurals.triage_left, leftBehind, leftBehind)
                                         else -> place.unread.toString()
@@ -2054,6 +2090,35 @@ private fun TriagePlacesSheet(
                             )
                         }
                     }
+                }
+                // The feeds of the group you're in, and what's left in each (just to see; the
+                // group is where you jump). Lined up with the group rows, no indent.
+                if (place.id == currentId) {
+                    items(hereFeeds, key = { "feed:" + it.id }) { feed ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            FeedIcon(feedName = feed.name, iconUrl = feed.icon, size = 26.dp)
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = feed.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text =
+                                    if (feed.left > 0) feed.left.toString()
+                                    else stringResource(R.string.triage_place_done),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -2076,36 +2141,76 @@ private fun TriagePlacesSheet(
 }
 
 /**
- * The whole run once a group (or feed) is done: one piece per group in the Feeds page order, as
- * wide as the cards it had (or has left, for those still to come). Finished ones fill in.
+ * The bar under the header. While you swipe it is this group's wavy bar. When the group is done it
+ * becomes the whole run, one piece per group in the Feeds page order (as wide as the cards it had,
+ * or has left for those still to come; done ones filled): the bar, by then full and straight,
+ * shrinks into this group's piece while the others fade in around it. Starting the next group does
+ * the reverse: its empty piece grows to the full width while the others fade out, and the wave
+ * comes back as you swipe.
  */
 @Composable
-private fun RunBar(runPlaces: List<TriageNext>, sizes: Map<String, Int>, visited: Set<String>) {
-    val fill = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { fill.animateTo(1f, tween(600, easing = FastOutSlowInEasing)) }
-    val doneColor = MaterialTheme.colorScheme.primary
-    val todoColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 14.dp)) {
-        Row(modifier = Modifier.fillMaxWidth().height(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            runPlaces.forEach { place ->
-                val isDone = place.id in visited
-                Box(
-                    modifier =
-                        Modifier.weight((sizes[place.id] ?: place.unread).coerceAtLeast(1).toFloat())
-                            .fillMaxHeight()
-                            .clip(CircleShape)
-                            .background(todoColor)
-                            .drawBehind {
-                                if (isDone) {
-                                    drawRoundRect(
-                                        color = doneColor,
-                                        size = Size(size.width * fill.value, size.height),
-                                        cornerRadius = CornerRadius(size.height / 2),
-                                    )
-                                }
-                            }
-                )
+private fun TriageBar(
+    groupProgress: () -> Float,
+    showRun: Boolean,
+    runPlaces: List<TriageNext>,
+    sizes: Map<String, Int>,
+    visited: Set<String>,
+    hereId: String?,
+) {
+    // 0: this group's bar, 1: the whole run.
+    val morph = remember { Animatable(if (showRun) 1f else 0f) }
+    // The piece the bar shrinks into (or grows out of).
+    var focusId by remember { mutableStateOf(hereId) }
+    val spec = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
+    LaunchedEffect(showRun) {
+        focusId = hereId
+        if (showRun) {
+            // Let the group's bar fill up (and its wave calm down) first.
+            kotlinx.coroutines.delay(300)
+            morph.animateTo(1f, spec)
+        } else {
+            morph.animateTo(0f, spec)
+        }
+    }
+    val doneColor = WavyProgressIndicatorDefaults.indicatorColor
+    val todoColor = WavyProgressIndicatorDefaults.trackColor
+    val modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
+    if (morph.value == 0f || runPlaces.size < 2) {
+        LinearWavyProgressIndicator(progress = groupProgress, modifier = modifier.padding(vertical = 12.dp))
+        return
+    }
+    Canvas(modifier = modifier.height(34.dp)) {
+        val t = morph.value
+        val gap = 4.dp.toPx()
+        val thickness = lerp(4.dp.toPx(), 6.dp.toPx(), t)
+        val y = (size.height - thickness) / 2
+        val radius = CornerRadius(thickness / 2)
+        val weights = runPlaces.map { (sizes[it.id] ?: it.unread).coerceAtLeast(1).toFloat() }
+        val available = size.width - gap * (runPlaces.size - 1)
+        val sum = weights.sum()
+        var x = 0f
+        val focus = runPlaces.indexOfFirst { it.id == focusId }
+        runPlaces.forEachIndexed { k, place ->
+            val w = available * weights[k] / sum
+            if (k == focus) {
+                // The group's own bar: from the full width to its piece, filled as far as it got.
+                val left = lerp(0f, x, t)
+                val width = lerp(size.width, w, t)
+                drawRoundRect(todoColor, Offset(left, y), Size(width, thickness), radius)
+                val fill = groupProgress().coerceIn(0f, 1f)
+                if (fill > 0f) {
+                    drawRoundRect(doneColor, Offset(left, y), Size(width * fill, thickness), radius)
+                }
+            } else {
+                // The other groups fade in (or out) at their places.
+                val color = if (place.id in visited) doneColor else todoColor
+                drawRoundRect(color.copy(alpha = color.alpha * t), Offset(x, y), Size(w, thickness), radius)
             }
+            x += w + gap
+        }
+        // No piece for this group (it isn't in the run's list): the run just fades in.
+        if (focus < 0) {
+            drawRoundRect(todoColor.copy(alpha = todoColor.alpha * (1f - t)), Offset(0f, y), Size(size.width, thickness), radius)
         }
     }
 }

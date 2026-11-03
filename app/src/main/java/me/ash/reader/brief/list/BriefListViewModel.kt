@@ -96,6 +96,14 @@ constructor(
         }
     }
 
+    /** The feeds of a group, in the Feeds page order (for Triage's groups sheet). */
+    fun feedOrder(groupId: String): List<String> =
+        groupWithFeedsListUseCase.groupWithFeedListFlow.value
+            .firstOrNull { it.group.id == groupId }
+            ?.feeds
+            ?.map { it.id }
+            .orEmpty()
+
     /**
      * Everything unread when a Triage run starts, for its progress ring: the unread articles in all
      * groups (or, for a run started from a feed, all feeds), and how many of them have any.
