@@ -1,4 +1,7 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(
+    androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class,
+    androidx.compose.foundation.layout.ExperimentalLayoutApi::class,
+)
 
 package me.ash.reader.brief.triage
 
@@ -142,6 +145,13 @@ import me.ash.reader.ui.component.base.SIZE_1000
 import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.brief.feeds.rememberFeedAccent
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily // Brief You
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 /** What a card can be swiped to. */
 internal enum class TriageAction {
     /** Mark as read and move on. */
@@ -174,6 +184,8 @@ data class TriageNext(
     val unread: Int,
     /** True for a feed (when triage was started from a feed), false for a group. */
     val isFeed: Boolean = false,
+    /** The feed's icon, shown instead of a generic one (feeds only). */
+    val icon: String? = null,
 )
 
 /** The unread articles left elsewhere once a group or feed is done, and in how many places. */
@@ -218,6 +230,10 @@ class TriageSession(
     var visited by mutableStateOf(setOfNotNull(groupId, feedId))
         private set
 
+    /** How many cards each group (or feed) of the run had when it was started, for the run's bar. */
+    var placeSizes by mutableStateOf(listOfNotNull(feedId ?: groupId).associateWith { articles.size })
+        private set
+
     var index by mutableIntStateOf(0)
     internal val history = mutableStateListOf<TriageStep>()
 
@@ -233,6 +249,12 @@ class TriageSession(
     /** Cards skipped in the groups (or feeds) done before this one, and in how many of them. */
     var skippedBefore = 0
         private set
+
+    /** Cards read (or opened) and saved in the groups (or feeds) done before this one. */
+    var readBefore = 0
+        private set
+    var savedBefore = 0
+        private set
     var placesWithSkips = 0
         private set
 
@@ -241,12 +263,84 @@ class TriageSession(
         startPlaces = places
     }
 
+    /**
+     * Cards left unread in each group (or feed) you moved on from: skipped, or not reached yet when
+     * you jumped away from the header. Those groups can be opened again from the header's sheet.
+     */
+    var leftIn by mutableStateOf(mapOf<String, Int>())
+        private set
+
+    /** Everything about the group (or feed) you just left, so Undo can step back into it. */
+    private class Saved(
+        val articles: List<ArticleWithFeed>,
+        val groupId: String?,
+        val feedId: String?,
+        val title: String?,
+        val visited: Set<String>,
+        val placeSizes: Map<String, Int>,
+        val index: Int,
+        val history: List<TriageStep>,
+        val skippedBefore: Int,
+        val readBefore: Int,
+        val savedBefore: Int,
+        val placesWithSkips: Int,
+        val leftIn: Map<String, Int>,
+    )
+
+    private val previous = ArrayDeque<Saved>()
+
+    /** Undo on the first card of a group (or feed) can go back into the one before it. */
+    val canGoBack: Boolean
+        get() = previous.isNotEmpty()
+
+    /**
+     * Steps back into the group (or feed) you were in before this one, exactly as you left it, so
+     * Undo can then take back its last card. Only when nothing was done here yet.
+     */
+    fun goBack(): Boolean {
+        if (history.isNotEmpty()) return false
+        val saved = previous.removeLastOrNull() ?: return false
+        articles = saved.articles
+        groupId = saved.groupId
+        feedId = saved.feedId
+        title = saved.title
+        visited = saved.visited
+        placeSizes = saved.placeSizes
+        index = saved.index
+        history.clear()
+        history.addAll(saved.history)
+        skippedBefore = saved.skippedBefore
+        readBefore = saved.readBefore
+        savedBefore = saved.savedBefore
+        placesWithSkips = saved.placesWithSkips
+        leftIn = saved.leftIn
+        return true
+    }
+
     fun startNext(next: TriageNext, cards: List<ArticleWithFeed>) {
-        // Skipped cards stay unread: they still count as left when the ring is worked out.
-        val skipped = history.count { it.action == TriageAction.Skip }
+        previous.addLast(
+            Saved(
+                articles, groupId, feedId, title, visited, placeSizes, index, history.toList(),
+                skippedBefore, readBefore, savedBefore, placesWithSkips, leftIn,
+            )
+        )
+        // Skipped cards stay unread: they still count as left when the ring is worked out. So do
+        // the cards not reached yet when you jump to another group (or feed) from the header.
+        val skipped = history.count { it.action == TriageAction.Skip } + (articles.size - index).coerceAtLeast(0)
         skippedBefore += skipped
         if (skipped > 0) placesWithSkips++
+        (feedId ?: groupId)?.let { here -> leftIn = leftIn + (here to skipped) }
+        // Going back to a group left with cards unread: they're dealt with again here, so they no
+        // longer count as skipped before.
+        leftIn[next.id]?.let { before ->
+            skippedBefore -= before
+            if (before > 0) placesWithSkips--
+            leftIn = leftIn - next.id
+        }
+        readBefore += history.count { it.action == TriageAction.Read || it.action == TriageAction.Open }
+        savedBefore += history.count { it.action == TriageAction.Save }
         visited = visited + next.id
+        if (next.id !in placeSizes) placeSizes = placeSizes + (next.id to cards.size)
         groupId = if (next.isFeed) null else next.id
         feedId = if (next.isFeed) next.id else null
         title = next.name
@@ -271,6 +365,7 @@ fun TriageScreen(
     findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
+    listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext> = { _, _ -> emptyList() },
 ) {
     val scope = rememberCoroutineScope()
     val enter = remember { Animatable(0f) }
@@ -398,6 +493,7 @@ fun TriageScreen(
             findNext,
             findLeft,
             loadNext,
+            listPlaces,
         )
     }
     }
@@ -449,6 +545,7 @@ private fun TriageContent(
     findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
+    listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext>,
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -536,6 +633,9 @@ private fun TriageContent(
     var returning by remember { mutableStateOf<TriageStep?>(null) }
 
     fun undo() {
+        // On the first card of a group (or feed): back into the one before, then take back its
+        // last card as usual.
+        if (history.isEmpty() && !session.goBack()) return
         val step = history.removeLastOrNull() ?: return
         if (step.action != TriageAction.Skip) ReadingStats.triaged(context, -1) // Reading stats
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -550,6 +650,38 @@ private fun TriageContent(
             else -> {}
         }
         session.index = (session.index - 1).coerceAtLeast(0)
+    }
+
+    // The run's groups (or feeds), for the header's sheet and the end screen's choices. Only for a
+    // run started from a group or a feed (Triage on everything has nowhere else to go).
+    val isFeeds = session.feedId != null
+    val hasPlaces = session.groupId != null || session.feedId != null
+    var sheetOpen by remember { mutableStateOf(false) }
+    val hereId = session.feedId ?: session.groupId
+    val runPlaces =
+        remember(session.visited, hereId, done) {
+            if (hasPlaces) listPlaces(isFeeds, session.visited) else emptyList()
+        }
+    // Where this group (or feed) is in the run, in the Feeds page order: "2 of 5".
+    val position = runPlaces.indexOfFirst { it.id == hereId } + 1
+    // Carries on with [target]: the end screen floats away (or the cards drop out of the way when
+    // jumping from the middle of a group), then the new stack swipes up from the bottom.
+    fun goTo(target: TriageNext) {
+        if (loadingNext) return
+        loadingNext = true
+        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+        scope.launch {
+            // Load the cards while the current screen moves out of the way.
+            val loading = async { runCatching { loadNext(target) }.getOrDefault(emptyList()) }
+            if (done) doneExit.animateTo(1f, tween(180))
+            else stackRise.animateTo(1f, tween(200, easing = FastOutLinearInEasing))
+            val cards = loading.await()
+            stackRise.snapTo(1f)
+            session.startNext(target, cards)
+            doneExit.snapTo(0f)
+            stackRise.animateTo(0f, riseSpec)
+            loadingNext = false
+        }
     }
 
     // A confirming tap when the last card is dealt with.
@@ -569,20 +701,72 @@ private fun TriageContent(
             IconButton(onClick = onClose) {
                 Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close))
             }
+            // "Triage", with a small chip for where you are in the run right after it (it never
+            // moves, as "Triage" doesn't change), and the group (or feed) with the cards left in
+            // small text underneath. Tap the chip to see the run's groups and jump or skip.
+            val canJump = hasPlaces && position > 0
             Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-                Text(
-                    text = stringResource(R.string.triage),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontFamily = GoogleSansWideFontFamily,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                if (current != null) {
-                    val left =
-                        pluralStringResource(R.plurals.triage_left, total - index, total - index)
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = session.title?.takeIf { it.isNotBlank() }?.let { "$it · $left" } ?: left,
+                        text = stringResource(R.string.triage),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontFamily = GoogleSansWideFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                    )
+                    if (canJump) {
+                        Spacer(Modifier.width(8.dp))
+                        // Without this the chip would take the 48dp minimum touch height and push
+                        // the group name down, away from "Triage".
+                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                        Surface(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                sheetOpen = true
+                            },
+                            enabled = !loadingNext,
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(start = 7.dp, end = 9.dp, top = 3.dp, bottom = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                // A plain symbol: the feed's own icon is already on every card.
+                                Icon(
+                                    if (isFeeds) Icons.Rounded.RssFeed else Icons.Rounded.Folder,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text =
+                                        stringResource(
+                                            R.string.triage_place_of,
+                                            position,
+                                            runPlaces.size,
+                                        ),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                )
+                            }
+                        }
+                        }
+                    }
+                }
+                val leftText =
+                    if (current != null) pluralStringResource(R.plurals.triage_left, total - index, total - index)
+                    else null
+                val sub =
+                    listOfNotNull(session.title?.takeIf { it.isNotBlank() }, leftText).joinToString(" · ")
+                if (sub.isNotEmpty()) {
+                    Text(
+                        text = sub,
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -603,7 +787,7 @@ private fun TriageContent(
                 },
             )
             Spacer(Modifier.width(4.dp))
-            FilledTonalIconButton(onClick = { undo() }, enabled = history.isNotEmpty()) {
+            FilledTonalIconButton(onClick = { undo() }, enabled = history.isNotEmpty() || session.canGoBack) {
                 Icon(
                     Icons.AutoMirrored.Rounded.Undo,
                     contentDescription = stringResource(R.string.triage_undo),
@@ -611,17 +795,23 @@ private fun TriageContent(
             }
         }
 
-        // Slides to the next step instead of jumping.
-        val shownProgress by
-            animateFloatAsState(
-                targetValue = if (total == 0) 1f else index.toFloat() / total,
-                animationSpec = tween(durationMillis = 450),
-                label = "triage progress",
+        if (done && runPlaces.size > 1) {
+            // A group (or feed) is done: the bar becomes the whole run, one piece per group, sized
+            // by how many cards it had. Done ones are filled, the ones to come are empty.
+            RunBar(runPlaces = runPlaces, sizes = session.placeSizes, visited = session.visited)
+        } else {
+            // This group's cards; slides to the next step instead of jumping.
+            val shownProgress by
+                animateFloatAsState(
+                    targetValue = if (total == 0) 1f else index.toFloat() / total,
+                    animationSpec = tween(durationMillis = 450),
+                    label = "triage progress",
+                )
+            LinearWavyProgressIndicator(
+                progress = { shownProgress },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
             )
-        LinearWavyProgressIndicator(
-            progress = { shownProgress },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-        )
+        }
 
         if (current == null) {
             TriageDone(
@@ -630,41 +820,27 @@ private fun TriageContent(
                         alpha = 1f - doneExit.value
                         translationY = -doneExit.value * 56.dp.toPx()
                     },
-                read = history.count { it.action == TriageAction.Read || it.action == TriageAction.Open },
-                saved = history.count { it.action == TriageAction.Save },
-                skipped = skippedCount,
+                // All caught up: the whole run, every group (or feed) of it; otherwise this one.
+                read =
+                    history.count { it.action == TriageAction.Read || it.action == TriageAction.Open } +
+                        (if (allRead) session.readBefore else 0),
+                saved =
+                    history.count { it.action == TriageAction.Save } +
+                        (if (allRead) session.savedBefore else 0),
+                skipped = skippedCount + (if (allRead) session.skippedBefore else 0),
                 nothingToDo = total == 0,
                 allRead = allRead,
                 progress = progress,
                 // With auto-advance running, the next group starts by itself after the delay; the
                 // countdown shows in the play button's ring at the top, as on the cards.
-                autoSeconds = if (session.autoRunning) autoSeconds else 0,
+                // Paused while the groups sheet is open.
+                autoSeconds = if (session.autoRunning && !sheetOpen) autoSeconds else 0,
                 onCountdown = { autoProgress.floatValue = it },
                 title = session.title,
                 left = left,
                 next = next,
                 loadingNext = loadingNext,
-                onNext = {
-                    val target = next
-                    if (target != null && !loadingNext) {
-                        loadingNext = true
-                        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        scope.launch {
-                            // Load the cards while the "All caught up" screen floats away.
-                            val loading = async {
-                                runCatching { loadNext(target) }.getOrDefault(emptyList())
-                            }
-                            doneExit.animateTo(1f, tween(180))
-                            val cards = loading.await()
-                            // The new cards start below the screen and swipe up into place.
-                            stackRise.snapTo(1f)
-                            session.startNext(target, cards)
-                            doneExit.snapTo(0f)
-                            stackRise.animateTo(0f, riseSpec)
-                            loadingNext = false
-                        }
-                    }
-                },
+                onNext = { next?.let { goTo(it) } },
                 onClose = onClose,
             )
         } else {
@@ -675,7 +851,7 @@ private fun TriageContent(
                     },
                 current = current,
                 next = articles.getOrNull(index + 1),
-                autoSeconds = if (session.autoRunning && !loadingNext) autoSeconds else 0,
+                autoSeconds = if (session.autoRunning && !loadingNext && !sheetOpen) autoSeconds else 0,
                 onAutoProgress = { autoProgress.floatValue = it },
                 onDecide = { decide(it) },
                 onHeldChange = { autoHeld = it },
@@ -683,6 +859,24 @@ private fun TriageContent(
                 onReturned = { returning = null },
             )
         }
+    }
+
+    if (sheetOpen) {
+        TriagePlacesSheet(
+            places = remember(session.visited) { listPlaces(isFeeds, session.visited) },
+            currentId = session.feedId ?: session.groupId,
+            currentLeft = (total - index).coerceAtLeast(0),
+            visited = session.visited,
+            leftIn = session.leftIn,
+            isFeeds = isFeeds,
+            title = session.title,
+            skipTarget = remember(session.visited) { findNext(session.groupId, session.feedId, session.visited) },
+            onPick = {
+                sheetOpen = false
+                goTo(it)
+            },
+            onDismiss = { sheetOpen = false },
+        )
     }
 }
 
@@ -1466,11 +1660,14 @@ private fun ProgressRing(fraction: Float) {
     val shown = remember { Animatable(0f) }
     LaunchedEffect(fraction) { shown.animateTo(fraction, tween(900, easing = FastOutSlowInEasing)) }
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(128.dp)) {
+        // A softer wave than the default: a bit lower and longer, between calm and lively.
         CircularWavyProgressIndicator(
             progress = { shown.value },
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.primary,
             trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+            amplitude = { p -> if (p <= 0.05f || p >= 0.97f) 0f else 0.7f },
+            wavelength = 22.dp,
         )
         Text(
             text = stringResource(R.string.triage_percent, (shown.value * 100).roundToInt()),
@@ -1541,9 +1738,13 @@ private fun NextCard(
                         modifier = Modifier.size(32.dp),
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
+                } else if (next.isFeed) {
+                    // The feed's icon fills the whole cookie shape: it is round and as big as the
+                    // shape, so the shape's clip cuts it into the cookie.
+                    FeedIcon(feedName = next.name, iconUrl = next.icon, size = 52.dp)
                 } else {
                     Icon(
-                        if (next.isFeed) Icons.Rounded.RssFeed else Icons.Rounded.Folder,
+                        Icons.Rounded.Folder,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(26.dp),
@@ -1716,6 +1917,173 @@ private fun AutoAdvanceButton(
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The groups (or feeds) of this Triage run, opened from the header: done ones are ticked, the one
+ * you're in is highlighted with the cards left, the rest show their unread count. Tap one to go
+ * there now (the cards left here stay unread), or skip to the next.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun TriagePlacesSheet(
+    places: List<TriageNext>,
+    currentId: String?,
+    currentLeft: Int,
+    visited: Set<String>,
+    leftIn: Map<String, Int>,
+    isFeeds: Boolean,
+    title: String?,
+    skipTarget: TriageNext?,
+    onPick: (TriageNext) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
+            Text(
+                text = stringResource(if (isFeeds) R.string.triage_places_feeds else R.string.triage_places_groups),
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = GoogleSansWideFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+            Text(
+                text = stringResource(R.string.triage_jump_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 12.dp),
+            )
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(places, key = { it.id }) { place ->
+                    val here = place.id == currentId
+                    // A group you moved on from with cards still unread can be opened again.
+                    val leftBehind = if (here) 0 else leftIn[place.id] ?: 0
+                    val doneHere = !here && place.id in visited && leftBehind == 0
+                    Surface(
+                        onClick = { onPick(place) },
+                        enabled = !here && !doneHere,
+                        shape = RoundedCornerShape(if (here) 20.dp else 16.dp),
+                        color =
+                            if (here) MaterialTheme.colorScheme.secondaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor =
+                            if (here) MaterialTheme.colorScheme.onSecondaryContainer
+                            else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (isFeeds && !doneHere) {
+                                // The feed's own icon; done ones get the tick like groups.
+                                FeedIcon(feedName = place.name, iconUrl = place.icon, size = 26.dp)
+                            } else {
+                                Box(
+                                    modifier =
+                                        Modifier.size(26.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (here || doneHere) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.surfaceContainerHighest
+                                            ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        if (doneHere) Icons.Rounded.Check else Icons.Rounded.Folder,
+                                        contentDescription = null,
+                                        tint =
+                                            if (here || doneHere) MaterialTheme.colorScheme.onPrimary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(15.dp),
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = place.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = if (here) FontWeight.SemiBold else FontWeight.Normal,
+                                color =
+                                    if (doneHere) MaterialTheme.colorScheme.onSurfaceVariant
+                                    else androidx.compose.ui.graphics.Color.Unspecified,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text =
+                                    when {
+                                        here -> stringResource(R.string.triage_place_here, currentLeft)
+                                        doneHere -> stringResource(R.string.triage_place_done)
+                                        leftBehind > 0 -> pluralStringResource(R.plurals.triage_left, leftBehind, leftBehind)
+                                        else -> place.unread.toString()
+                                    },
+                                style = MaterialTheme.typography.labelLarge,
+                                color =
+                                    if (here) MaterialTheme.colorScheme.onSecondaryContainer
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (skipTarget != null) {
+                    FilledTonalButton(onClick = { onPick(skipTarget) }, modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.triage_skip_place, title ?: ""),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.triage_keep_going))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The whole run once a group (or feed) is done: one piece per group in the Feeds page order, as
+ * wide as the cards it had (or has left, for those still to come). Finished ones fill in.
+ */
+@Composable
+private fun RunBar(runPlaces: List<TriageNext>, sizes: Map<String, Int>, visited: Set<String>) {
+    val fill = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { fill.animateTo(1f, tween(600, easing = FastOutSlowInEasing)) }
+    val doneColor = MaterialTheme.colorScheme.primary
+    val todoColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 14.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().height(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            runPlaces.forEach { place ->
+                val isDone = place.id in visited
+                Box(
+                    modifier =
+                        Modifier.weight((sizes[place.id] ?: place.unread).coerceAtLeast(1).toFloat())
+                            .fillMaxHeight()
+                            .clip(CircleShape)
+                            .background(todoColor)
+                            .drawBehind {
+                                if (isDone) {
+                                    drawRoundRect(
+                                        color = doneColor,
+                                        size = Size(size.width * fill.value, size.height),
+                                        cornerRadius = CornerRadius(size.height / 2),
+                                    )
+                                }
+                            }
                 )
             }
         }
