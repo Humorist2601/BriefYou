@@ -146,6 +146,8 @@ import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.brief.feeds.rememberFeedAccent
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily // Brief You
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilledTonalButton
@@ -642,6 +644,9 @@ private fun TriageContent(
                     if (canJump) {
                         val places = maxOf(session.startPlaces, session.visited.size)
                         Spacer(Modifier.width(8.dp))
+                        // Without this the chip would take the 48dp minimum touch height and push
+                        // the group name down, away from "Triage".
+                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                         Surface(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -673,6 +678,7 @@ private fun TriageContent(
                                     maxLines = 1,
                                 )
                             }
+                        }
                         }
                     }
                 }
