@@ -35,6 +35,10 @@ These are the owner's standing preferences. A new assistant should follow them.
 2. **Ask questions before building a feature**, and show a **preview/mock-up for anything
    visual** before building it. Keep it if they like it; remove it cleanly if they don't.
 3. **Keep the README updated** with every user-visible change, in the same commit.
+   The README's hero, feature cards, section headers and feature tables (`TABLES` in the script) are pictures (light and dark) in
+   `.github/assets/readme/`, drawn by `.github/readme/make_assets.py` (Google Sans Flex outlines,
+   Material Symbols in `.github/readme/icons/`). To change their text or add one, edit the lists in
+   the script and run `python3 .github/readme/make_assets.py` from the repository root.
 4. **Watch every build to the end.** After a push, follow the GitHub Actions run until it
    finishes; read failures, fix them, push again, and report the result (and the release name).
 5. **Plain language** in replies: what changed and what the owner will notice, not jargon.
