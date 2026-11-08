@@ -57,6 +57,8 @@ data class FiltersBackup(
     val log: List<FilterLogEntry> = emptyList(),
     /** Articles brought back with Undo, which the filters skip. */
     val undone: List<String> = emptyList(),
+    /** Watched words (added later; older backups don't have them). */
+    val watchedWords: List<String> = emptyList(),
 )
 
 /** A starred article, in full, so it can be brought back even after it left its feed. */
@@ -131,6 +133,7 @@ constructor(
     private val summarizer: GemmaSummarizer,
     private val workManager: WorkManager,
     private val tts: dagger.Lazy<TextToSpeechManager>,
+    private val readLater: me.ash.reader.brief.readlater.ReadLater,
     @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
     private val json = Json {
@@ -163,6 +166,7 @@ constructor(
                 FiltersBackup(
                     mutedKeywords = filters.mutedKeywords.value,
                     hideDuplicates = filters.hideDuplicates.value,
+                    watchedWords = me.ash.reader.brief.filters.WatchedWords.words,
                     log = log,
                     undone = undone,
                 )
@@ -261,6 +265,7 @@ constructor(
                                 val f = json.decodeFromString<FiltersBackup>(String(data))
                                 f.mutedKeywords.forEach { filters.addKeyword(it) }
                                 filters.setHideDuplicates(f.hideDuplicates)
+                                f.watchedWords.forEach { me.ash.reader.brief.filters.WatchedWords.add(context, it) }
                                 filters.importState(f.log, f.undone)
                             }
                             Part.Subscriptions -> {
@@ -297,7 +302,8 @@ constructor(
     /**
      * Stars the backup's articles in the current account: an article the feed still has is
      * starred, and one it no longer has is added back. Articles whose feed isn't subscribed are
-     * skipped.
+     * skipped. Pages saved with Read later go back into the Saved Articles feed (made if needed;
+     * local accounts only), since that feed isn't in the subscriptions list.
      */
     private suspend fun restoreStarred(items: List<StarredArticleBackup>) {
         if (items.isEmpty()) return
@@ -306,7 +312,9 @@ constructor(
         for (item in items) {
             val feed =
                 feeds.getOrPut(item.feedUrl) {
-                    feedDao.queryByLink(accountId, item.feedUrl).firstOrNull()
+                    if (item.feedUrl == me.ash.reader.brief.readlater.ReadLater.SAVED_FEED_URL) {
+                        if (readLater.canSave()) readLater.savedFeedFor(accountId) else null
+                    } else feedDao.queryByLink(accountId, item.feedUrl).firstOrNull()
                 } ?: continue
             val existing =
                 articleDao.queryArticlesByLinks(listOf(item.link), feed.id, accountId).firstOrNull()

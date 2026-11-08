@@ -171,6 +171,7 @@ constructor(
                 .orEmpty()
                 .filter { diffMapHolder.checkIfUnread(it) }
                 .distinctBy { it.article.id }
+                .let { list -> me.ash.reader.brief.filters.WatchedWords.watchedFirst(list) { it.article.title } } // watched first
                 .onEach {
                     it.article.dateString =
                         androidStringsHelper.formatAsString(

@@ -1517,6 +1517,8 @@ private fun TriageCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    // A watched word in the title, like in the lists.
+                    me.ash.reader.brief.filters.WatchedChip(item.title, unread = true, modifier = Modifier.padding(end = 8.dp))
                     Text(
                         text =
                             listOfNotNull(
@@ -1538,7 +1540,8 @@ private fun TriageCard(
                         modifier =
                             Modifier.size(34.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                // A neutral grey like Skip's, one step stronger so it shows on the card.
+                                .background(MaterialTheme.colorScheme.outlineVariant)
                                 .combinedClickable(
                                     onClickLabel = stringResource(R.string.share),
                                     onLongClickLabel = stringResource(R.string.triage_share_picture),
@@ -1553,7 +1556,7 @@ private fun TriageCard(
                         Icon(
                             Icons.Outlined.Share,
                             contentDescription = stringResource(R.string.share),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(18.dp),
                         )
                     }

@@ -26,7 +26,8 @@ constructor(
         try {
             return block()
         } finally {
-            notificationHelper.syncFinished()
+            // Also when the sync was cancelled: otherwise the digest would wait for it forever.
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { notificationHelper.syncFinished() }
         }
     }
 

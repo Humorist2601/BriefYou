@@ -204,7 +204,10 @@ fun BriefFlowOverlays(
                                 ?.filterIsInstance<ArticleFlowItem.Article>()
                                 ?.map { it.articleWithFeed }
                                 ?.filter { viewModel.diffMapHolder.checkIfUnread(it) }
-                                ?.distinctBy { it.article.id } ?: emptyList(),
+                                ?.distinctBy { it.article.id }
+                                // Watched words first.
+                                ?.let { list -> me.ash.reader.brief.filters.WatchedWords.watchedFirst(list) { it.article.title } }
+                                ?: emptyList(),
                         // A feed wins over its group: after a feed comes the next feed.
                         groupId = if (filterUiState.feed == null) filterUiState.group?.id else null,
                         feedId = filterUiState.feed?.id,

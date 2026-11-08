@@ -73,6 +73,7 @@ fun GroupItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            me.ash.reader.brief.filters.WatchedCount(me.ash.reader.brief.filters.WatchedWords.groupCounts[group.id] ?: 0) // Brief You: watched words
             if (count > 0) { // Brief You: the group's count, in the same badge as each feed's
                 Badge(
                     modifier = Modifier.padding(end = 10.dp),

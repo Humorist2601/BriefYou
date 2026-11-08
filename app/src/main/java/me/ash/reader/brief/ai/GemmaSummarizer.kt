@@ -443,7 +443,13 @@ constructor(
             }
     }
 
-    private suspend fun unload(force: Boolean = false) =
+    private suspend fun unload(force: Boolean = false) {
+        // Forced (a new model, or deleting it): wait for an answer being written to finish first,
+        // so the engine isn't closed under it.
+        if (force) generationLock.withLock { closeEngine(force = true) } else closeEngine(force = false)
+    }
+
+    private suspend fun closeEngine(force: Boolean) =
         engineLock.withLock {
             // Kept while the app is open; unloaded a few minutes after you leave it.
             if (!force && (activeUses.get() > 0 || inForeground)) return@withLock

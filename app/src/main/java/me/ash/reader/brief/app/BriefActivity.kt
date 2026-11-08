@@ -18,7 +18,11 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.ash.reader.brief.notifications.NotificationHelper
@@ -42,6 +46,10 @@ object BriefActivity {
         fun readLater(): me.ash.reader.brief.readlater.ReadLater
 
         fun summarizer(): me.ash.reader.brief.ai.GemmaSummarizer
+
+        fun briefArticleDao(): me.ash.reader.brief.data.BriefArticleDao
+
+        fun accountService(): me.ash.reader.domain.service.AccountService
     }
 
     /**
@@ -49,6 +57,7 @@ object BriefActivity {
      * when the activity is recreated). Its first frame is the system splash's (the straight card),
      * so the system splash is removed at once and BriefSplash tips the card and carries on.
      */
+    @OptIn(kotlinx.coroutines.FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun onCreate(activity: ComponentActivity, savedInstanceState: Bundle?): Boolean {
         val playSplash = savedInstanceState == null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && playSplash) {
@@ -65,6 +74,18 @@ object BriefActivity {
             EntryPointAccessors.fromApplication(appContext, Dependencies::class.java)
                 .readLater()
                 .refreshSavedFeed()
+        }
+        // Watched words, read once for lists and Triage, and counted per feed and group for home.
+        me.ash.reader.brief.filters.WatchedWords.load(appContext)
+        activity.lifecycleScope.launch {
+            val deps = EntryPointAccessors.fromApplication(appContext, Dependencies::class.java)
+            deps.accountService().currentAccountIdFlow
+                .filterNotNull()
+                .distinctUntilChanged()
+                .flatMapLatest { deps.briefArticleDao().unreadTitles(it) }
+                .combine(androidx.compose.runtime.snapshotFlow { me.ash.reader.brief.filters.WatchedWords.words }) { titles, _ -> titles }
+                .debounce(300)
+                .collect { me.ash.reader.brief.filters.WatchedWords.count(it) }
         }
         // A web view made ahead of time, so the first article opens without a stutter; freed
         // with the screen.

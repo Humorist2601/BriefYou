@@ -98,7 +98,20 @@ interface BriefArticleDao {
         starredOnly: Boolean,
         limit: Int,
     ): List<ArticleWithFeed>
+
+    /** Every unread article's title with its feed and group, as they change (watched counts at home). */
+    @Query(
+        """
+        SELECT a.feedId AS feedId, f.groupId AS groupId, a.title AS title FROM article AS a
+        LEFT JOIN feed AS f ON a.feedId = f.id
+        WHERE a.accountId = :accountId AND a.isUnread = 1
+        """
+    )
+    fun unreadTitles(accountId: Int): kotlinx.coroutines.flow.Flow<List<UnreadTitle>>
 }
+
+/** An unread article's title and where it is. */
+data class UnreadTitle(val feedId: String, val groupId: String?, val title: String)
 
 @Module
 @InstallIn(SingletonComponent::class)

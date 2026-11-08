@@ -84,6 +84,7 @@ private fun FeedItemImpl(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            me.ash.reader.brief.filters.WatchedCount(me.ash.reader.brief.filters.WatchedWords.feedCounts[feed.id] ?: 0) // Brief You: watched words
             if (feed.important != 0) {
                 Badge(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,

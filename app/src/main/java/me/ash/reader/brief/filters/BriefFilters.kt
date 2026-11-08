@@ -79,6 +79,10 @@ constructor(
     private val json = Json { ignoreUnknownKeys = true }
     private val lock = Mutex()
 
+    init {
+        WatchedWords.load(context)
+    }
+
     private val _mutedKeywords =
         MutableStateFlow(prefs.getStringSet(KEY_MUTED, emptySet()).orEmpty().sorted())
     val mutedKeywords: StateFlow<List<String>> = _mutedKeywords.asStateFlow()
@@ -120,7 +124,7 @@ constructor(
             lock.withLock {
                 val keywords = _mutedKeywords.value
                 val dedupe = _hideDuplicates.value
-                if (keywords.isEmpty() && !dedupe) return@withLock 0
+                if (keywords.isEmpty() && !dedupe && WatchedWords.words.isEmpty()) return@withLock 0
 
                 val exempt = prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty()
                 val since = Date(System.currentTimeMillis() - WINDOW_MS)
@@ -130,10 +134,21 @@ constructor(
                 val now = System.currentTimeMillis()
                 val found = LinkedHashMap<String, FilterLogEntry>()
 
+                // Recently watched: unread articles with a watched word in their title.
+                WatchedWords.record(
+                    recent.mapNotNull { a ->
+                        if (!a.article.isUnread) return@mapNotNull null
+                        val word = WatchedWords.match(a.article.title) ?: return@mapNotNull null
+                        WatchedEntry(a.article.id, a.article.title, a.feed.name, word, a.article.date.time.coerceAtMost(now))
+                    }
+                )
+
                 if (keywords.isNotEmpty()) {
                     val patterns = keywords.map { it to keywordRegex(it) }
                     for (a in recent) {
                         if (!a.article.isUnread || a.article.id in exempt) continue
+                        // A watched word wins over a muted one: never hide what you asked for.
+                        if (WatchedWords.match(a.article.title) != null) continue
                         val text = a.article.title + "\n" + a.article.shortDescription
                         val hit = patterns.firstOrNull { it.second.containsMatchIn(text) } ?: continue
                         found[a.article.id] =
@@ -197,6 +212,7 @@ constructor(
         withContext(Dispatchers.IO) {
             if (articleIds.isEmpty()) return@withContext
             val gone = articleIds.toHashSet()
+            WatchedWords.forget(gone)
             lock.withLock {
                 val exempt = prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty()
                 if (exempt.any { it in gone }) {
@@ -216,9 +232,10 @@ constructor(
             if (pruned) return@withContext
             pruned = true
             val exempt = prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty()
-            if (_log.value.isEmpty() && exempt.isEmpty()) return@withContext
+            val watched = WatchedWords.log.map { it.articleId }
+            if (_log.value.isEmpty() && exempt.isEmpty() && watched.isEmpty()) return@withContext
             val live = articleDao.queryAllIds().toHashSet()
-            forget((_log.value.map { it.articleId } + exempt).filterNot { it in live })
+            forget((_log.value.map { it.articleId } + exempt + watched).filterNot { it in live })
         }
 
     /** The recently filtered list and the undone articles, for a backup. */
