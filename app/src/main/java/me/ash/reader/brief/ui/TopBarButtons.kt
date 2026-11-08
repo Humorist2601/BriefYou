@@ -112,7 +112,9 @@ fun TopBarButtonGroup(
     leadingCorner: Dp = OuterCorner,
 ) {
     if (actions.isEmpty()) return
-    if (actions.size == 1) {
+    // One action alone is a circle, unless something is joined on before it (then it's the end
+    // of that pill).
+    if (actions.size == 1 && leadingCorner == OuterCorner) {
         val a = actions.first()
         TonalCircleButton(icon = a.icon, description = a.description, modifier = modifier, onClick = a.onClick)
         return

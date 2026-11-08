@@ -107,7 +107,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Card stack** | Swipe right: read · left: save · up: open · down: skip. Undo takes back your last choice. |
 | **Summary on the card** | Long-press a card: it sinks a little and its border starts to glow in Google's AI colours, then the on-device AI writes 3 key points right on it. Tap the card to switch between the summary and the article's own description. Auto-advance pauses while the summary shows. |
 | **Auto-advance** | Skips each card after a few seconds, with a wavy ring counting down. |
-| **Next group** | When a group (or feed) is done: the bar at the top shrinks into its piece of the run, one piece per group (sized by its cards, finished ones filled and kept), and the next group's bar grows back over them, a ring with how much of all your unread is cleared ("3 of 4 groups clear"), what's left, and the next group, which starts by itself after a countdown while auto-advance is on. *All caught up* only when nothing is unread anywhere, with the read, saved and skipped totals of the whole run. |
+| **Next group** | When a group (or feed) is done: the bar at the top shrinks into its piece of the run, one piece per group (sized by its cards, filled as far as you got: all of a finished group, part of one you jumped away from), and the next group's bar grows back over them, a ring with how much of all your unread is cleared ("3 of 4 groups clear"), what's left, and the next group, which starts by itself after a countdown while auto-advance is on. *All caught up* only when nothing is unread anywhere, including cards you skipped or left behind in this run, with the read, saved and skipped totals of the whole run (skipped = swiped down; cards left behind by jumping to another group aren't skipped, just not reached). |
 | **Jump between groups** | Under "Triage", the group (or feed) you're in is a small button, followed by the cards left. Tap it for every group in the run: jump to any of them, or skip this one. The cards you leave stay unread. |
 | **Buttons** | Top right, the same quiet joined pill as the other screens: Auto-advance and Undo. While auto-advance runs it leaves the pill as a circle with its countdown ring. Each card has a small Share button next to its time. The four buttons at the bottom squeeze into a rounded square when pressed and spring back; the Next up card squeezes the same way and its badge turns. |
 | **Inbox zero** | A little celebration when you're all caught up. |
@@ -121,6 +121,8 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 - Undo on the first card of a group goes back into the group before it and takes back its last card.
 - When a group is done, its bar shrinks into its piece of the run while the other groups' pieces fade in; starting the next group, its piece grows back into the bar.
 - The long-press glow only starts once your finger has stayed still for a moment, so swiping never shows it.
+- When no untouched group is left but you left cards in one (jumped away, or skipped some), the end screen offers *Back to* that group with how many are left; it never starts by itself.
+- Big groups are loaded in full: as a group starts (and near its end) Triage adds any unread cards the stack doesn't have yet.
 - Next groups follow your Feeds order. The back gesture turns Triage into a card that follows your finger and is tossed aside.
 - Inbox zero also plays when you swipe up to mark everything read on the Unread list.
 
