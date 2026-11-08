@@ -147,6 +147,11 @@ import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.brief.feeds.rememberFeedAccent
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily // Brief You
 import me.ash.reader.brief.ui.TonalCircleButton
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -1452,9 +1457,27 @@ private fun TriageCard(
     val feed = article.feed
     val item = article.article
     val minutes = remember(item.id) { estimateReadingMinutes(item.rawDescription) }
+    // Hold Share to share the card as a picture: what it shows (its summary, when it shows one),
+    // drawn from the card itself, without the Share button.
+    val context = LocalContext.current
+    val cardLayer = rememberGraphicsLayer()
+    var capturing by remember { mutableStateOf(false) }
+    LaunchedEffect(capturing) {
+        if (!capturing) return@LaunchedEffect
+        // Two frames, so the card is drawn again without the Share button before it's taken.
+        withFrameNanos {}
+        withFrameNanos {}
+        val picture = runCatching { cardLayer.toImageBitmap() }.getOrNull()
+        capturing = false
+        if (picture != null) shareCardPicture(context, picture, item.link)
+    }
 
     Surface(
-        modifier = modifier,
+        modifier =
+            modifier.drawWithContent {
+                cardLayer.record { this@drawWithContent.drawContent() }
+                drawLayer(cardLayer)
+            },
         shape = RoundedCornerShape(CARD_CORNER),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 2.dp,
@@ -1465,7 +1488,9 @@ private fun TriageCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     FeedIcon(feedName = feed.name, iconUrl = feed.icon, size = 24.dp)
                     Text(
-                        modifier = Modifier.weight(1f).padding(start = 10.dp),
+                        // A gap before the time, so a long feed name ends in "…" instead of
+                        // running into it.
+                        modifier = Modifier.weight(1f).padding(start = 10.dp, end = 10.dp),
                         text = feed.name,
                         style = MaterialTheme.typography.labelLarge,
                         // The same per-website accent the article list uses.
@@ -1484,28 +1509,36 @@ private fun TriageCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
-                    // Share this article, right on its card (it follows the app's setting: the
-                    // link only, or the title and link). Kept small so the row stays as tall.
-                    val context = LocalContext.current
+                    // Share this article, right on its card: tap for the link (the app's setting:
+                    // the link only, or the title and link), hold for the card as a picture. A
+                    // tonal button, so it stands out from the card like the buttons below; hidden
+                    // while the picture is taken.
                     val sharedContent = LocalSharedContent.current
+                    val haptic = LocalHapticFeedback.current
                     Spacer(Modifier.width(8.dp))
-                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                        // A tonal button, so it stands out from the card like the buttons below.
-                        Surface(
-                            onClick = { sharedContent.share(context, item.title, item.link) },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(34.dp),
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    Icons.Outlined.Share,
-                                    contentDescription = stringResource(R.string.share),
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        }
+                    Box(
+                        modifier =
+                            Modifier.size(34.dp)
+                                .graphicsLayer { alpha = if (capturing) 0f else 1f }
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                .combinedClickable(
+                                    onClickLabel = stringResource(R.string.share),
+                                    onLongClickLabel = stringResource(R.string.triage_share_picture),
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        capturing = true
+                                    },
+                                    onClick = { sharedContent.share(context, item.title, item.link) },
+                                ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Share,
+                            contentDescription = stringResource(R.string.share),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
                 }
 
@@ -2402,5 +2435,28 @@ private fun TriageBar(
         if (focus < 0) {
             drawRoundRect(todoColor.copy(alpha = todoColor.alpha * (1f - others)), Offset(0f, y), Size(size.width, thickness), radius)
         }
+    }
+}
+
+/**
+ * Shares a Triage card's picture (a PNG in the app's cache, through its file provider), with the
+ * article's link as text for apps that take both.
+ */
+private fun shareCardPicture(context: android.content.Context, picture: androidx.compose.ui.graphics.ImageBitmap, link: String?) {
+    runCatching {
+        val dir = java.io.File(context.cacheDir, "shared").apply { mkdirs() }
+        val file = java.io.File(dir, "triage-card.png")
+        file.outputStream().use { picture.asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+        val send =
+            android.content.Intent(android.content.Intent.ACTION_SEND)
+                .setType("image/png")
+                .putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                .apply { link?.takeIf { it.isNotBlank() }?.let { putExtra(android.content.Intent.EXTRA_TEXT, it) } }
+                .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        send.clipData = android.content.ClipData.newRawUri(null, uri)
+        context.startActivity(
+            android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
     }
 }
