@@ -129,8 +129,8 @@ or `assembleGithubNightly`.)
 
 | Workflow | When | What |
 | --- | --- | --- |
-| `build.yaml` "Build" | push to `main` (not when a push only changes `.md` documents) | Builds `githubRelease` and publishes a **GitHub release "Brief You 0.16.2.N"**, marked latest. N = this workflow's run number (also the versionCode). Release notes = the **last commit message on main** (so a merge commit with a full changelog becomes the release notes). |
-| `test.yaml` "Test build" | push to **any other branch** (not `read-you-sync`; not documents-only pushes) | Reuses build.yaml with `nightly: true`: builds **Brief You Nightly** and replaces the single **"nightly" prerelease** (its notes = that commit's message). |
+| `build.yaml` "Build" | push to `main` (not when a push only changes documents: `.md` files, the README's pictures in `.github/assets` and `.github/readme`, issue templates, FUNDING or LICENSE) | Builds `githubRelease` and publishes a **GitHub release "Brief You 0.16.2.N"**, marked latest. N = this workflow's run number (also the versionCode). Release notes = the **last commit message on main** (so a merge commit with a full changelog becomes the release notes). |
+| `test.yaml` "Test build" | push to **any other branch** (not `read-you-sync`; not documents-only pushes, same list as build.yaml) | Reuses build.yaml with `nightly: true`: builds **Brief You Nightly** and replaces the single **"nightly" prerelease** (its notes = that commit's message). |
 | `sync.yaml` | daily | Read You update pull request (see §3). |
 | `clean.yaml` | by hand only | Keeps only the latest of everything: the newest release (and the Nightly), the newest run of each workflow (none of removed workflows), the kept releases' tags, and branches with work not yet in main (merged branches are deleted; never `main` or `read-you-sync`). Starts as a dry run. |
 

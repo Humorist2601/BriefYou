@@ -10,9 +10,15 @@ on:
         branches-ignore:
             - main
             - read-you-sync
-        # A commit that only changes documents makes no Nightly.
+        # A commit that only changes documents, the README's pictures or the repository's GitHub
+        # pages makes no Nightly.
         paths-ignore:
             - "**.md"
+            - ".github/assets/**"
+            - ".github/readme/**"
+            - ".github/ISSUE_TEMPLATE/**"
+            - ".github/FUNDING.yml"
+            - "LICENSE"
 
 jobs:
     build:
