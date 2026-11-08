@@ -1,8 +1,5 @@
 <div align="center">
-<img width="160" height="160" alt="Brief You" src=".github/assets/icon-round.png">
-<h1>Brief You</h1>
-<p><b>A calm, private RSS reader for Android, with AI that runs on your phone.</b><br/>
-A fork of <a href="https://github.com/ReadYouApp/ReadYou">Read You</a>.</p>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/hero-dark.svg"><img alt="Brief You: a calm, private RSS reader for Android, with AI that runs on your phone. A fork of Read You." src=".github/assets/readme/hero-light.svg" width="100%"></picture>
 <p>
 <a href="../../releases/latest"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/download-dark.svg"><img alt="Download APK" src=".github/assets/badges/download-light.svg" height="56"></picture></a>
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/Humorist2601/BriefYou"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/obtainium-dark.svg"><img alt="Get it on Obtainium" src=".github/assets/badges/obtainium-light.svg" height="56"></picture></a>
@@ -15,38 +12,30 @@ A fork of <a href="https://github.com/ReadYouApp/ReadYou">Read You</a>.</p>
 </p>
 </div>
 
-<table>
-<tr>
-<td align="center" width="33%">✨<br/><b>On-device AI</b><br/><sub>Summaries, group gists and Ask, all private</sub></td>
-<td align="center" width="33%">🃏<br/><b>Triage</b><br/><sub>Swipe through a backlog, card by card</sub></td>
-<td align="center" width="33%">🔊<br/><b>Read aloud</b><br/><sub>Like a music app, with speed and progress</sub></td>
-</tr>
-<tr>
-<td align="center">🔕<br/><b>Calmer feeds</b><br/><sub>One digest, muted words, no duplicates</sub></td>
-<td align="center">🎨<br/><b>Material 3 Expressive</b><br/><sub>Wavy, shaped, colourful, smooth</sub></td>
-<td align="center">💾<br/><b>Full backup</b><br/><sub>Everything in one file</sub></td>
-</tr>
-</table>
+<p align="center">
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-ai-dark.svg"><img alt="On-device AI: summaries, group gists and Ask, all private" src=".github/assets/readme/card-ai-light.svg" width="32%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-triage-dark.svg"><img alt="Triage: swipe through a backlog, card by card" src=".github/assets/readme/card-triage-light.svg" width="32%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-listen-dark.svg"><img alt="Read aloud: like a music app, with speed and progress" src=".github/assets/readme/card-listen-light.svg" width="32%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-calm-dark.svg"><img alt="Calmer feeds: one digest, muted words, no duplicates" src=".github/assets/readme/card-calm-light.svg" width="32%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-stats-dark.svg"><img alt="Reading stats: your week, streaks and a monthly recap" src=".github/assets/readme/card-stats-light.svg" width="32%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-backup-dark.svg"><img alt="Full backup: everything in one file" src=".github/assets/readme/card-backup-light.svg" width="32%"></picture>
+</p>
 
-Brief You keeps everything that makes Read You great (Material You design, Reeder-style reading, FreshRSS, Miniflux, Fever, Google Reader API and more) and adds AI that runs **entirely on your phone**: articles and questions never leave it. It installs **next to** Read You (app ID `com.ay.briefyou`); move your feeds over with OPML.
+Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It keeps everything that makes Read You great (Material You design, Reeder-style reading, FreshRSS, Miniflux, Fever, Google Reader API and more) and adds AI that runs **entirely on your phone**: articles and questions never leave it. It installs **next to** Read You (app ID `com.ay.briefyou`); move your feeds over with OPML.
 
-<p align="center"><img alt="Brief You screenshots: feeds, Unread, reading, Triage, AI gist, Reading stats, filters, AI model and settings" src=".github/assets/screenshots.png"></p>
+<p align="center"><img alt="Brief You screenshots: feeds, reading, Triage, AI gist and Reading stats" src=".github/assets/screenshots.png" width="100%"></p>
 
 ## What's different from Read You
 
-### ✨ On-device AI
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-ai-dark.svg"><img alt="On-device AI" src=".github/assets/readme/h-ai-light.svg" width="100%"></picture></p>
 
-| Feature | What it does |
-| --- | --- |
-| **Summaries** | Tap ✨ in an article: 3–5 key points and why it matters. |
-| **Group gists** | A briefing of the newest 40 unread articles in a group, feed or everything, grouped by story. |
-| **Ask** | Ask questions about an article or a gist. |
-| **Read aloud** | Any summary or gist can be read aloud. |
-| **Your instructions** | Edit exactly what the model is told for article summaries, gists and Triage card summaries, in *Settings → AI model*. |
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-ai-dark.svg"><img alt="Summaries: Tap the sparkle in an article: 3–5 key points and why it matters. Group gists: A briefing of your newest unread, grouped by story. Ask: Ask questions about an article or a gist. Read aloud: Any summary or gist, read aloud. Your instructions: Edit what the model is told, in Settings, AI model." src=".github/assets/readme/t-ai-light.svg" width="100%"></picture></p>
 
 <details>
 <summary>More details</summary>
 
+- Gists cover the newest 40 unread articles in a group, feed or everything.
+- Your instructions cover article summaries, gists and Triage card summaries.
 - Runs Google's Gemma model through [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM). Nothing is sent to a server, and summaries are never saved.
 - The model loads in the background a moment after you open the app (Google's advice for LiteRT-LM, whose loading can take up to 10 seconds), so AI answers without waiting; it stays loaded while the app is open and unloads 3 minutes after you leave it. It only loads ahead when the phone can afford it: not in battery saver, with battery to spare or charging, and enough free memory; otherwise it loads on first use. If your phone's GPU can't run it (Pixels' Tensor chips can't), the app remembers and goes straight to the CPU, trying the GPU again after a month.
 - Summaries open in a sheet at 70% of the screen. Each key point slides in as a card as it's written, and "Why it matters" gets its own accent card.
@@ -56,23 +45,17 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 
 </details>
 
-### 📖 Reading
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-reading-dark.svg"><img alt="Reading" src=".github/assets/readme/h-reading-light.svg" width="100%"></picture></p>
 
-| Feature | What it does |
-| --- | --- |
-| **Colours from the picture** | The reading page takes its colours from the article's picture, like music apps with album art. |
-| **Floating toolbar** | Star, AI, next article, read aloud and full content, in a pill that hides while you scroll. |
-| **Toolbar long presses** | Star: read or unread · AI: settings · Next: previous article · Full content: open in browser. |
-| **Quick text sheet** | Size, line height, margins, font and justify, changed live. |
-| **Steady pictures** | Pictures in the text get a box of their own size with the same shape-changing loading indicator as the rest of the app, and fade in, so the text never jumps. |
-| **Next article card** | At the end of an article, or "You're all caught up". |
-| **Reading time** | `4 min` in the list and on the page. |
-| **Read later** | Share a link from any app to *Read Later* (or to *Add Feed* to subscribe to its feed): the page is saved with its full text as a starred article (in a *Saved Articles* feed with a bookmark icon), so it reads offline. A small sheet confirms it and closes by itself. Local accounts only. |
-| **Tidier articles** | No share buttons, "Read more" links, "appeared first on" lines or tracking pixels. |
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-reading-dark.svg"><img alt="Colours from the picture: The page takes its colours from the article’s picture. Floating toolbar: Star, AI, next, read aloud and full content; hides as you scroll. Quick text sheet: Size, spacing, margins and font, changed live. Steady pictures: Pictures load in place, so the text never jumps. Next article card: At the end of an article, or &quot;You’re all caught up&quot;. Reading time: 4 min in the list and on the page. Read later: Share a link from any app to save the full page, offline. Tidier articles: No share buttons, &quot;Read more&quot; links or tracking pixels." src=".github/assets/readme/t-reading-light.svg" width="100%"></picture></p>
 
 <details>
 <summary>More details</summary>
 
+- Toolbar long presses: Star marks read or unread, AI opens its settings, Next goes to the previous article, Full content opens the browser.
+- Pictures in the text get a box of their own size with the app's shape-changing loading indicator, and fade in.
+- Read later: share a link to *Read Later* (or to *Add Feed* to subscribe to its feed). The page is saved with its full text as a starred article in a *Saved Articles* feed; a small sheet confirms it and closes by itself. Local accounts only.
+- Tidier articles also drop "appeared first on" lines.
 - Large header picture; feed, date and reading time as chips; title, time left and a wavy progress bar in the top bar once you scroll.
 - Pictures: drag one away to close it; Save and Share in its menu; slightly dimmed in dark mode.
 - Selected text and its handles use your accent colour.
@@ -81,14 +64,9 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 
 </details>
 
-### 🔊 Read aloud
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-listen-dark.svg"><img alt="Read aloud" src=".github/assets/readme/h-listen-light.svg" width="100%"></picture></p>
 
-| Feature | What it does |
-| --- | --- |
-| **Media controls** | In the system media notification, lock screen and Quick Settings, in the page's colour. |
-| **Progress** | A wavy ring on the read aloud buttons follows the words being spoken. |
-| **Speed** | 0.8× to 2× in steps of 0.2; the last speed is kept. |
-| **Pause and stop** | Tap to pause or play; long press while paused to stop. |
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-listen-dark.svg"><img alt="Media controls: In the notification, lock screen and Quick Settings. Progress: A wavy ring follows the words being spoken. Speed: 0.8× to 2×; the last speed is kept. Pause and stop: Tap to pause; long press while paused to stop." src=".github/assets/readme/t-listen-light.svg" width="100%"></picture></p>
 
 <details>
 <summary>More details</summary>
@@ -100,22 +78,21 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 
 </details>
 
-### 🃏 Triage
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-triage-dark.svg"><img alt="Triage" src=".github/assets/readme/h-triage-light.svg" width="100%"></picture></p>
 
-| Feature | What it does |
-| --- | --- |
-| **Card stack** | Swipe right: read · left: save · up: open · down: skip. Undo takes back your last choice. |
-| **Summary on the card** | Long-press a card: it sinks a little and its border starts to glow in Google's AI colours, then the on-device AI writes 3 key points right on it. Tap the card to switch between the summary and the article's own description. Auto-advance pauses while the summary shows. |
-| **Auto-advance** | Skips each card after a few seconds, with a wavy ring counting down. |
-| **Next group** | When a group (or feed) is done: the bar at the top shrinks into its piece of the run, one piece per group (sized by its cards, filled as far as you got: all of a finished group, part of one you jumped away from), and the next group's bar grows back over them, a ring with how much of all your unread is cleared ("3 of 4 groups clear"), what's left, and the next group, which starts by itself after a countdown while auto-advance is on. *All caught up* only when nothing is unread anywhere, including cards you skipped or left behind in this run, with the read, saved and skipped totals of the whole run (skipped = swiped down; cards left behind by jumping to another group aren't skipped, just not reached). |
-| **Jump between groups** | Under "Triage", the group (or feed) you're in is a small button, followed by the cards left. Tap it for every group in the run: jump to any of them, or skip this one. The cards you leave stay unread. |
-| **Buttons** | Top right, the same quiet joined pill as the other screens: Auto-advance and Undo. While auto-advance runs it leaves the pill as a circle with its countdown ring. Each card has a Share button next to its time: tap to share the link, hold to share the card as a picture: drawn just for sharing, as tall as its content, on a soft backdrop in your colours, with the feed and date, the picture, title and a few lines (or the summary's points, when it shows one), and a footer with the site and a small Brief You mark. The four buttons at the bottom squeeze into a rounded square when pressed and spring back; the Next up card squeezes the same way and its badge turns. |
-| **Inbox zero** | A little celebration when you're all caught up. |
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-triage-dark.svg"><img alt="Card stack: Swipe right: read · left: save · up: open · down: skip. Summary on the card: Long-press a card for 3 key points from the on-device AI. Auto-advance: Skips each card after a few seconds, with a wavy countdown ring. Next group: When a group is done, the next one follows; a bar shows the whole run. Jump between groups: Tap the group name under &quot;Triage&quot; to pick another. Share: Tap Share for the link; hold it to share the card as a picture. Inbox zero: A little celebration when you’re all caught up." src=".github/assets/readme/t-triage-light.svg" width="100%"></picture></p>
 
 <details>
 <summary>More details</summary>
 
-- Open it with **Triage** in the floating button at the bottom of an *Unread* list.
+- Open it with **Triage** in the floating button at the bottom of an *Unread* list. Undo takes back your last choice.
+- Summary: the card sinks a little and its border glows in Google's AI colours while the 3 key points are written. Tap the card to switch between the summary and the article's description.
+- The run bar has one piece per group, sized by its cards and filled as far as you got. When a group is done you see a ring with how much of your unread is cleared ("3 of 4 groups clear"), what's left and the next group, which starts by itself after a countdown while auto-advance is on.
+- *All caught up* only when nothing is unread anywhere, including cards you skipped or left behind, with the run's read, saved and skipped totals (skipped = swiped down; cards left behind by jumping aren't skipped).
+- The groups sheet lists every group in the run: jump to any of them, or skip this one. Cards you leave stay unread.
+- Top right, Auto-advance and Undo share one joined pill, like the other screens; while auto-advance runs it becomes a circle with its countdown ring.
+- The shared picture is drawn just for sharing: the feed and date, the picture, title and a few lines (or the summary's points), the site and the Brief You icon, on a soft backdrop in your colours.
+- The four buttons at the bottom and the Next up card squeeze when pressed and spring back.
 - Auto-advance pauses while you hold a card, while a card shows its summary and while the groups sheet is open: the button turns grey and its ring stops where it was, then carries on. Long press the button (in the pill or as the circle) to choose the delay (3–30 s, 5 by default).
 - Haptics mark the swipe threshold, each choice, Undo and finishing the stack.
 - Undo on the first card of a group goes back into the group before it and takes back its last card.
@@ -128,19 +105,16 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 
 </details>
 
-### 🔕 Calmer feeds
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-calm-dark.svg"><img alt="Calmer feeds" src=".github/assets/readme/h-calm-light.svg" width="100%"></picture></p>
 
-| Feature | What it does |
-| --- | --- |
-| **One digest notification** | "12 new articles · Variety, Kotaku, Kagi News +2", once per sync, instead of one per article, with **Mark all read** and **Triage** buttons. |
-| **Muted keywords** | Unread articles mentioning them are marked read after each sync. |
-| **Duplicate stories** | When the same story is published again (by another feed, or twice by the same feed), only the first stays unread. Filters lists the hidden copies under the story they repeat. |
-| **Recently filtered** | Today's hidden articles and why (for duplicates, which copy was kept unread and which were hidden), with Undo; earlier days grouped by reason (*Duplicate stories*, then each muted keyword) with a count, each opening with an animation to show 5 articles at a time. |
-| **Sort feeds and groups** | By name, unread count or the order you added them. |
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-calm-dark.svg"><img alt="One digest notification: One per sync instead of one per article, with Mark all read and Triage. Muted keywords: Articles mentioning them are marked read after each sync. Duplicate stories: When a story is published again, only the first stays unread. Recently filtered: What was hidden and why, with Undo. Sort feeds and groups: By name, unread count or the order you added them." src=".github/assets/readme/t-calm-light.svg" width="100%"></picture></p>
 
 <details>
 <summary>More details</summary>
 
+- The digest reads like "12 new articles · Variety, Kotaku, Kagi News +2".
+- Duplicates: another feed, or the same feed twice. Filters lists the hidden copies under the story they repeat, and which copy was kept unread.
+- Recently filtered shows today in full; earlier days are grouped by reason (*Duplicate stories*, then each muted keyword) with a count, and open to show 5 articles at a time.
 - The digest lists one line per feed, so busy feeds never push the others out. Android shows at most 6 lines, so with more than 6 feeds it shows 5 and a line naming the rest ("+3 more: XKCD, Reddit Comics, Wikipedia").
 - A copy is a very similar title from another feed within 48 hours, so repeating headlines like weekly roundups aren't caught.
 - Undone articles aren't filtered again; *Reset undone articles* lets the filters catch them.
@@ -149,24 +123,19 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 
 </details>
 
-### 🎨 Look and feel
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-look-dark.svg"><img alt="Look and feel" src=".github/assets/readme/h-look-light.svg" width="100%"></picture></p>
 
-| Feature | What it does |
-| --- | --- |
-| **Material 3 Expressive** | Shape-morphing buttons, shaped icons, Expressive loading and pull-to-refresh, wavy progress. Back buttons (lists, Settings and its pages) and Triage's close button are the same tonal circle. In Feeds and Settings, the big title moves into the top bar in small text as you scroll, like the article list. |
-| **Google Sans Flex** | Rounded throughout, with wide headings. Reading fonts: Google Sans Flex, Literata, system, or your own. |
-| **Material You, the current way** | Uses the system's own wallpaper colours; preset colours use Google's latest colour spec. |
-| **Feed colours and icons** | Feed names take a colour from their icon (a pale or grey icon gets a steady colour of its own); set an emoji or your own image as a feed's icon. Icons are kept in the image cache and loaded at the size they're shown; a site without an icon is searched again once a week, not on every sync. |
-| **App shortcuts** | Long-press the icon for Triage, AI gist, Unread or Sync now. |
-| **Reading stats** | This week Monday to Sunday (a bar per day), articles read, your streak, top feeds, and this month compared with last month, in *Settings → Reading stats*. |
-| **Monthly recap** | For the first week of a month, last month's recap sits at the top of Reading stats: the articles you read (and the change from the month before), a row of daily bars and four highlights. Tap it and the bars slide into a calendar (tap a day for its numbers) with every highlight: busiest day, top feed, longest streak, reading time, Triage and what the filters hid. Days before your stats started are barely shown. Share it as a picture of the card as it is (bars, or the open calendar), or hide it with ✕. A slim version shows above your feeds on home (off with *Monthly recap on home*), and *Past months* keeps about a year of recaps. |
-| **Swipe between Starred, Unread and All** | Each with its own list and scroll position. |
-| **Predictive back** | Android's own back animation, in screens and dialogs, with a gentler dim on the screen behind so it never flashes dark. |
-| **New icon and animated splash** | A fanned stack of cards that grows into the app. |
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-look-dark.svg"><img alt="Material 3 Expressive: Shape-morphing buttons, shaped icons, wavy progress. Google Sans Flex: Rounded throughout, with wide headings. Material You, the current way: The system’s wallpaper colours and Google’s latest colour spec. Feed colours and icons: Names coloured from their icon; set an emoji or image as an icon. App shortcuts: Long-press the icon for Triage, AI gist, Unread or Sync now. Reading stats: Your week, streak, top feeds and this month vs last. Monthly recap: Last month as a calendar and highlights, to view or share. Swipe between Starred, Unread and All: Each with its own list and scroll position. Predictive back: Android’s own back animation, in screens and dialogs. New icon and animated splash: A fanned stack of cards that grows into the app." src=".github/assets/readme/t-look-light.svg" width="100%"></picture></p>
 
 <details>
 <summary>More details</summary>
 
+- Expressive loading and pull-to-refresh. Back buttons and Triage's close button are the same tonal circle. In Feeds and Settings, the big title moves into the top bar as you scroll.
+- Reading fonts: Google Sans Flex, Literata, system, or your own.
+- A pale or grey feed icon gets a steady colour of its own. Icons are cached and loaded at the size they're shown; a site without an icon is searched again once a week.
+- Reading stats are in *Settings → Reading stats*: this week Monday to Sunday (a bar per day), articles read, your streak, top feeds, and this month compared with last.
+- Monthly recap: for the first week of a month it sits at the top of Reading stats with the articles you read (and the change from the month before), a row of daily bars and four highlights. Tap it and the bars slide into a calendar (tap a day for its numbers) with every highlight: busiest day, top feed, longest streak, reading time, Triage and what the filters hid. Share it as a picture of the card as it is, or hide it with ✕. A slim version shows above your feeds on home (off with *Monthly recap on home*), and *Past months* keeps about a year of recaps.
+- Predictive back uses a gentler dim on the screen behind, so it never flashes dark.
 - Wide headings use Google Sans Flex at its widest; long names shrink or wrap to fit.
 - AMOLED black still works on top of any colours.
 - Custom feed icons survive syncs and are saved in OPML exports (with additional info) and the backup.
@@ -175,19 +144,15 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 
 </details>
 
-### 💾 Backup and updates
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-backup-dark.svg"><img alt="Backup and updates" src=".github/assets/readme/h-backup-light.svg" width="100%"></picture></p>
 
-| Feature | What it does |
-| --- | --- |
-| **Full backup and restore** | One file with subscriptions, starred articles, filters, sync and app settings, AI instructions and more. |
-| **Own updates** | The app checks Brief You's releases, never Read You's. |
-| **Signed releases** | Every push to `main` is built and published as **Brief You 0.16.2.N**. |
-| **Brief You Nightly** | Every other branch is built as **Brief You Nightly**, its own app with a night-sky icon that installs next to Brief You, published as the one *Nightly* prerelease. |
-| **Reviewed Read You updates** | Read You's changes arrive daily as a pull request, released only once you merge it. |
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-backup-dark.svg"><img alt="Full backup and restore: Feeds, starred articles, filters and settings in one file. Own updates: The app checks Brief You’s releases, never Read You’s. Signed releases: Every push to main is built and published as Brief You 0.16.2.N. Brief You Nightly: Test builds as their own app, next to Brief You. Reviewed Read You updates: Read You’s changes arrive as a pull request to review." src=".github/assets/readme/t-backup-light.svg" width="100%"></picture></p>
 
 <details>
 <summary>More details</summary>
 
+- The backup also has sync settings and AI instructions.
+- Every other branch is built as **Brief You Nightly**, with a night-sky icon, published as the one *Nightly* prerelease.
 - Back up in *Account → Advanced → Back up everything*. It also includes custom feed icons, feed and group order, the Triage delay and the read-aloud speed.
 - Restore adds everything back on any phone: feeds you already have are kept, feeds go into your existing groups, and starred articles come back even if their feed dropped them. Server logins and the AI model aren't included.
 - Release names are Read You's version plus a rising build number, so each APK installs as an update (works with Obtainium). The notes say which Read You version a build is based on.
@@ -222,4 +187,4 @@ Open the project in [Android Studio](https://developer.android.com/studio) and r
 
 Brief You is built on [**Read You**](https://github.com/ReadYouApp/ReadYou) by [Ashinch](https://github.com/Ashinch) and its contributors. All credit for the original app goes to them, and Brief You picks up its updates. If you like the app, consider [supporting Read You](https://ash7.io/sponsor).
 
-Free software under the [**GNU GPL 3.0**](LICENSE). Gemma is provided under Google's Gemma terms; Brief You doesn't include the model, you download it yourself.
+Free software under the [**GNU GPL 3.0**](LICENSE). Gemma is provided under Google's Gemma terms; Brief You doesn't include the model, you download it yourself. The README's pictures use [Material Symbols](https://github.com/google/material-design-icons) (Apache 2.0) and Google Sans Flex.
