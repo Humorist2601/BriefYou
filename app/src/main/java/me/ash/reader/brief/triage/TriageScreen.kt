@@ -147,6 +147,19 @@ import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.brief.feeds.rememberFeedAccent
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily // Brief You
 import me.ash.reader.brief.ui.TonalCircleButton
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import me.ash.reader.brief.ui.TopBarButtonGroup
+import me.ash.reader.brief.ui.TopBarAction
+import androidx.compose.material.icons.outlined.Share
+import me.ash.reader.infrastructure.preference.LocalSharedContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.foundation.layout.offset
@@ -398,6 +411,9 @@ fun TriageScreen(
     suspend fun playExit() {
         if (closing) return
         closing = true
+        // Always tells the list Triage is gone, even if the animation is cut short: otherwise
+        // Triage would stay open but invisible, hiding the bottom bar and swallowing back gestures.
+        try {
         if (slideDirection != 0f) {
             // A back gesture: throw the whole screen off to the side, springing like the cards do.
             haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -412,13 +428,17 @@ fun TriageScreen(
                 launch { animate(0f, 1f, animationSpec = spec) { v, _ -> exit = v } }
             }
         }
-        onClose()
+        } finally {
+            onClose()
+        }
     }
 
     // Predictive back: while you swipe, the screen shrinks and its corners morph into a rounded
     // card, it tilts a little and follows your finger. Let go to throw it away; drag back to cancel
     // and it springs back.
-    PredictiveBackHandler(enabled = true) { progress ->
+    // Off once Triage is closing: a second quick back gesture then goes to the list instead of
+    // cutting Triage's exit short.
+    PredictiveBackHandler(enabled = !closing) { progress ->
         try {
             progress.collect { event ->
                 if (touchStartY.isNaN()) touchStartY = event.touchY
@@ -426,7 +446,8 @@ fun TriageScreen(
                 slideDirection = if (event.swipeEdge == BackEventCompat.EDGE_LEFT) 1f else -1f
                 touchDy = ((event.touchY - touchStartY) * 0.4f).coerceIn(-maxFollowY, maxFollowY)
             }
-            playExit()
+            // Its own coroutine: a new gesture can't cancel the exit halfway.
+            scope.launch { playExit() }
         } catch (e: CancellationException) {
             if (!closing) {
                 scope.launch {
@@ -568,6 +589,8 @@ private fun TriageContent(
     // play button.
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("triage", android.content.Context.MODE_PRIVATE) }
+    // Share uses the app's setting (link only, or title and link).
+    val sharedContent = LocalSharedContent.current
     var autoSeconds by remember { mutableIntStateOf(prefs.getInt("auto_seconds", 5)) }
     val autoProgress = remember { mutableFloatStateOf(0f) }
     // A finger on the card pauses auto-advance; the button at the top shows it.
@@ -713,98 +736,152 @@ private fun TriageContent(
                 modifier = Modifier.offset(x = (-4).dp),
                 onClick = onClose,
             )
-            // "Triage", with a small chip for where you are in the run right after it (it never
-            // moves, as "Triage" doesn't change), and the group (or feed) with the cards left in
-            // small text underneath. Tap the chip to see the run's groups and jump or skip.
+            // "Triage", and under it the group (or feed) you're in as a small tonal button, then the
+            // cards left. Tap the button to see the run's groups and jump or skip. The count comes
+            // after it, so the button only changes when the group does.
             val canJump = hasPlaces && position > 0
+            val title = session.title?.takeIf { it.isNotBlank() }
+            val leftText =
+                if (current != null) pluralStringResource(R.plurals.triage_left, total - index, total - index)
+                else null
             Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = stringResource(R.string.triage),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontFamily = GoogleSansWideFontFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                    )
-                    if (canJump) {
-                        Spacer(Modifier.width(8.dp))
-                        // Without this the chip would take the 48dp minimum touch height and push
-                        // the group name down, away from "Triage".
+                Text(
+                    text = stringResource(R.string.triage),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontFamily = GoogleSansWideFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+                if (canJump && title != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Without this the button would take the 48dp minimum touch height and
+                        // push this line away from "Triage".
                         CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                        Surface(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                sheetOpen = true
-                            },
-                            enabled = !loadingNext,
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(start = 7.dp, end = 9.dp, top = 3.dp, bottom = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                            Surface(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    sheetOpen = true
+                                },
+                                enabled = !loadingNext,
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.weight(1f, fill = false),
                             ) {
-                                // A plain symbol: the feed's own icon is already on every card.
-                                Icon(
-                                    if (isFeeds) Icons.Rounded.RssFeed else Icons.Rounded.Folder,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    text =
-                                        stringResource(
-                                            R.string.triage_place_of,
-                                            position,
-                                            runPlaces.size,
-                                        ),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    maxLines = 1,
-                                )
+                                Row(
+                                    modifier = Modifier.padding(start = 7.dp, end = 9.dp, top = 2.dp, bottom = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    // A plain symbol: the feed's own icon is already on every card.
+                                    Icon(
+                                        if (isFeeds) Icons.Rounded.RssFeed else Icons.Rounded.Folder,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = title,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
                         }
+                        if (leftText != null) {
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = leftText,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
                         }
                     }
-                }
-                val leftText =
-                    if (current != null) pluralStringResource(R.plurals.triage_left, total - index, total - index)
-                    else null
-                val sub =
-                    listOfNotNull(session.title?.takeIf { it.isNotBlank() }, leftText).joinToString(" · ")
-                if (sub.isNotEmpty()) {
-                    Text(
-                        text = sub,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                } else {
+                    val sub = listOfNotNull(title, leftText).joinToString(" · ")
+                    if (sub.isNotEmpty()) {
+                        Text(
+                            text = sub,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
-            AutoAdvanceButton(
-                running = session.autoRunning,
-                // The same pause for a finger on the card, a card showing its summary, and the
-                // groups sheet open.
-                paused = (autoHeld && current != null) || sheetOpen,
-                seconds = autoSeconds,
-                // On a card: the countdown to the next card. On the end screen: the countdown to the
-                // next group (none on "All caught up", where there is nothing to go on to).
-                progress = { autoProgress.floatValue },
-                onToggle = {
-                    session.autoRunning = !session.autoRunning
-                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                },
-                onSeconds = {
-                    autoSeconds = it
-                    prefs.edit { putInt("auto_seconds", it) }
-                },
-            )
-            Spacer(Modifier.width(4.dp))
-            FilledTonalIconButton(onClick = { undo() }, enabled = history.isNotEmpty() || session.canGoBack) {
-                Icon(
-                    Icons.AutoMirrored.Rounded.Undo,
-                    contentDescription = stringResource(R.string.triage_undo),
+            // The same quiet joined pill as the other screens: Auto-advance, Share, Undo. While
+            // auto-advance runs it leaves the pill as its own circle with the countdown ring, and
+            // goes back in when it's turned off. Long press it (either way) to choose the delay.
+            val toggleAuto = {
+                session.autoRunning = !session.autoRunning
+                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+            }
+            var delayMenuOpen by remember { mutableStateOf(false) }
+            Box {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AnimatedVisibility(
+                        visible = session.autoRunning,
+                        enter = expandHorizontally(clip = false) + fadeIn() + scaleIn(initialScale = 0.6f),
+                        exit = shrinkHorizontally(clip = false) + fadeOut() + scaleOut(targetScale = 0.6f),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AutoAdvanceButton(
+                                // The same pause for a finger on the card, a card showing its
+                                // summary, and the groups sheet open.
+                                paused = (autoHeld && current != null) || sheetOpen,
+                                // On a card: the countdown to the next card. On the end screen: the
+                                // countdown to the next group (none on "All caught up").
+                                progress = { autoProgress.floatValue },
+                                onToggle = toggleAuto,
+                                onLongPress = { delayMenuOpen = true },
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        }
+                    }
+                    val shareArticle = current?.article
+                    TopBarButtonGroup(
+                        buildList {
+                            if (!session.autoRunning) {
+                                add(
+                                    TopBarAction(
+                                        Icons.Rounded.PlayArrow,
+                                        stringResource(R.string.triage_auto_start),
+                                        onLongClick = { delayMenuOpen = true },
+                                        onClick = toggleAuto,
+                                    )
+                                )
+                            }
+                            add(
+                                TopBarAction(
+                                    Icons.Outlined.Share,
+                                    stringResource(R.string.share),
+                                    enabled = shareArticle != null,
+                                ) {
+                                    shareArticle?.let { sharedContent.share(context, it.title, it.link) }
+                                }
+                            )
+                            add(
+                                TopBarAction(
+                                    Icons.AutoMirrored.Rounded.Undo,
+                                    stringResource(R.string.triage_undo),
+                                    enabled = history.isNotEmpty() || session.canGoBack,
+                                ) {
+                                    undo()
+                                }
+                            )
+                        }
+                    )
+                }
+                AutoDelayMenu(
+                    expanded = delayMenuOpen,
+                    seconds = autoSeconds,
+                    onSeconds = {
+                        autoSeconds = it
+                        prefs.edit { putInt("auto_seconds", it) }
+                    },
+                    onDismiss = { delayMenuOpen = false },
                 )
             }
         }
@@ -1249,10 +1326,26 @@ private fun ActionButton(
     big: Boolean = false,
     onClick: () -> Unit,
 ) {
+    // Pressed, the circle squeezes into a rounded square and springs back, a little past round,
+    // when let go: the same Expressive press as the back and top-bar buttons.
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val size = if (big) 68.dp else 56.dp
+    val bounce = spring<Float>(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow)
+    val roundness by animateFloatAsState(if (pressed) 0.55f else 1f, bounce, label = "press shape")
+    val squeeze by animateFloatAsState(if (pressed) 0.94f else 1f, bounce, label = "press size")
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         FilledIconButton(
             onClick = onClick,
-            modifier = Modifier.size(if (big) 68.dp else 56.dp),
+            interactionSource = interaction,
+            // Corner as a share of half the size: 1 is a circle, lower is a squarer shape. The
+            // spring lets it overshoot a little on the way back.
+            shape = RoundedCornerShape(size / 2 * roundness.coerceIn(0.3f, 1f)),
+            modifier =
+                Modifier.size(size).graphicsLayer {
+                    scaleX = squeeze
+                    scaleY = squeeze
+                },
             colors =
                 IconButtonDefaults.filledIconButtonColors(
                     containerColor = container,
@@ -1749,22 +1842,38 @@ private fun NextCard(
     loading: Boolean,
     onClick: () -> Unit,
 ) {
+    // The same press as the four buttons: the card squeezes a little, its corners tighten, and it
+    // springs back a little past its size when let go. The cookie turns by one of its bumps.
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val bounce = spring<Float>(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow)
+    val squeeze by animateFloatAsState(if (pressed) 0.96f else 1f, bounce, label = "next press size")
+    val corner by animateDpAsState(if (pressed) 18.dp else 28.dp, spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow), label = "next press corner")
+    val turn by animateFloatAsState(if (pressed) 360f / 7 else 0f, bounce, label = "next press turn")
     Surface(
         onClick = onClick,
         enabled = !loading,
+        interactionSource = interaction,
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = RoundedCornerShape(28.dp),
-        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(corner),
+        modifier =
+            Modifier.fillMaxWidth().graphicsLayer {
+                scaleX = squeeze
+                scaleY = squeeze
+            },
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier =
                     Modifier.size(52.dp)
+                        .graphicsLayer { rotationZ = turn }
                         .clip(MaterialShapes.Cookie7Sided.toShape())
                         .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center,
             ) {
+                // Turned back the other way, so only the shape turns and the icon stays upright.
+                Box(Modifier.graphicsLayer { rotationZ = -turn }, contentAlignment = Alignment.Center) {
                 if (loading) {
                     LoadingIndicator(
                         modifier = Modifier.size(32.dp),
@@ -1781,6 +1890,7 @@ private fun NextCard(
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(26.dp),
                     )
+                }
                 }
             }
             Spacer(Modifier.width(14.dp))
@@ -1821,102 +1931,78 @@ private fun NextCard(
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AutoAdvanceButton(
-    running: Boolean,
     paused: Boolean = false,
-    seconds: Int,
     progress: () -> Float,
     onToggle: () -> Unit,
-    onSeconds: (Int) -> Unit,
+    onLongPress: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    var menuOpen by remember { mutableStateOf(false) }
-    // Where the button is on screen: the popup is centered on it, but kept inside the screen edges.
-    val density = LocalDensity.current
-    val screenWidth = with(density) { LocalConfiguration.current.screenWidthDp.dp.roundToPx() }
-    val halfMenu = with(density) { 120.dp.roundToPx() }
-    val edge = with(density) { 8.dp.roundToPx() }
-    var anchorX by remember { mutableIntStateOf(0) }
-    // Always 48dp, the same touch area as the undo button, so nothing around it moves.
-    Box(
-        modifier =
-            Modifier.size(48.dp).onGloballyPositioned {
-                anchorX = it.boundsInWindow().center.x.roundToInt()
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        // As big as the undo button (40dp). While the countdown runs, the ring takes that size
-        // and the button shrinks inside it, with room for the waves, so the two together are
-        // still as big as the undo button.
-        val buttonSize by
-            animateDpAsState(if (running) 26.dp else 40.dp, animationSpec = tween(250), label = "auto button")
+    // A circle as tall as the pill beside it, with the countdown ring around a smaller button.
+    Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
         Box(
             modifier =
-                Modifier.size(buttonSize)
+                Modifier.size(26.dp)
                     .clip(CircleShape)
                     .background(
-                        if (running && !paused) MaterialTheme.colorScheme.primary
+                        if (!paused) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.secondaryContainer
                     )
                     .combinedClickable(
                         onClick = onToggle,
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            menuOpen = true
+                            onLongPress()
                         },
                     ),
             contentAlignment = Alignment.Center,
         ) {
-            // While a finger holds the card, the button shows the pause sign on a quieter color,
-            // and the ring stops where it was.
+            // While paused (a finger on the card, a summary shown, the sheet open), the pause sign
+            // on a quieter colour, and the ring stops where it was.
             Icon(
-                if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                Icons.Rounded.Pause,
                 contentDescription =
-                    stringResource(
-                        when {
-                            paused -> R.string.triage_auto_paused
-                            running -> R.string.triage_auto_stop
-                            else -> R.string.triage_auto_start
-                        }
-                    ),
+                    stringResource(if (paused) R.string.triage_auto_paused else R.string.triage_auto_stop),
                 tint =
-                    if (running && !paused) MaterialTheme.colorScheme.onPrimary
+                    if (!paused) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(if (running) 18.dp else 24.dp),
+                modifier = Modifier.size(18.dp),
             )
         }
-        if (running) {
-            // The same Expressive ring as read aloud: wavy while it counts down, still while a
-            // finger holds the card, over a faint track.
-            val ringColor =
-                if (paused) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
-            if (paused) {
-                CircularProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier.size(40.dp),
-                    strokeWidth = 4.dp,
-                    color = ringColor,
-                    trackColor = ringColor.copy(alpha = 0.2f),
-                )
-            } else {
-                CircularWavyProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier.size(40.dp),
-                    color = ringColor,
-                    trackColor = ringColor.copy(alpha = 0.2f),
-                )
-            }
+        val ringColor = if (paused) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
+        if (paused) {
+            CircularProgressIndicator(
+                progress = progress,
+                modifier = Modifier.size(40.dp),
+                strokeWidth = 4.dp,
+                color = ringColor,
+                trackColor = ringColor.copy(alpha = 0.2f),
+            )
+        } else {
+            CircularWavyProgressIndicator(
+                progress = progress,
+                modifier = Modifier.size(40.dp),
+                color = ringColor,
+                trackColor = ringColor.copy(alpha = 0.2f),
+            )
         }
-        // The same popup as the one on an article's long-press: same component, shape and item style.
-        AnimatedDropdownMenu(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            expanded = menuOpen,
-            onDismissRequest = { menuOpen = false },
-            offset =
-                IntOffset(
-                    anchorX.coerceIn(halfMenu + edge, (screenWidth - halfMenu - edge).coerceAtLeast(halfMenu + edge)),
-                    0,
-                ),
-        ) {
+    }
+}
+
+/** The auto-advance delay, from a long press on its button: the same popup as an article's long-press. */
+@Composable
+private fun AutoDelayMenu(
+    expanded: Boolean,
+    seconds: Int,
+    onSeconds: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AnimatedDropdownMenu(
+        modifier = Modifier.padding(horizontal = 12.dp),
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        // Under the buttons, lined up with their right edge.
+        alignToAnchorEnd = true,
+    ) {
             Text(
                 text = stringResource(R.string.triage_auto_delay),
                 style = MaterialTheme.typography.labelLarge,
@@ -1937,7 +2023,7 @@ private fun AutoAdvanceButton(
                     },
                     onClick = {
                         onSeconds(option)
-                        menuOpen = false
+                        onDismiss()
                     },
                     leadingIcon = {
                         Icon(
@@ -1951,7 +2037,6 @@ private fun AutoAdvanceButton(
                     },
                 )
             }
-        }
     }
 }
 
@@ -1975,6 +2060,11 @@ private fun TriagePlacesSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetScope = rememberCoroutineScope()
+    // Buttons slide the sheet down first, like a swipe down does, instead of it vanishing.
+    fun close(then: () -> Unit) {
+        sheetScope.launch { sheetState.hide() }.invokeOnCompletion { then() }
+    }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
             Text(
@@ -2000,7 +2090,7 @@ private fun TriagePlacesSheet(
                     val leftBehind = if (here) 0 else leftIn[place.id] ?: 0
                     val doneHere = !here && place.id in visited && leftBehind == 0
                     Surface(
-                        onClick = { onPick(place) },
+                        onClick = { close { onPick(place) } },
                         enabled = !here && !doneHere,
                         shape = RoundedCornerShape(if (here) 20.dp else 16.dp),
                         color =
@@ -2057,7 +2147,8 @@ private fun TriagePlacesSheet(
                                         // The highlight already says it's the one you're in.
                                         here -> pluralStringResource(R.plurals.triage_left, currentLeft, currentLeft)
                                         doneHere -> stringResource(R.string.triage_place_done)
-                                        leftBehind > 0 -> pluralStringResource(R.plurals.triage_left, leftBehind, leftBehind)
+                                        // Only the group you're in says "N left"; the others just show a count.
+                                        leftBehind > 0 -> leftBehind.toString()
                                         else -> place.unread.toString()
                                     },
                                 style = MaterialTheme.typography.labelLarge,
@@ -2072,16 +2163,13 @@ private fun TriagePlacesSheet(
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (skipTarget != null) {
-                    FilledTonalButton(onClick = { onPick(skipTarget) }, modifier = Modifier.weight(1f)) {
+                    FilledTonalButton(onClick = { close { onPick(skipTarget) } }, modifier = Modifier.weight(1f)) {
                         Text(
                             stringResource(R.string.triage_skip_place, title ?: ""),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                }
-                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.triage_keep_going))
                 }
             }
         }
@@ -2107,15 +2195,16 @@ private fun TriageBar(
 ) {
     // 0: this group's bar, 1: the whole run.
     val morph = remember { Animatable(if (showRun) 1f else 0f) }
-    // The piece the bar shrinks into (or grows out of).
-    var focusId by remember { mutableStateOf(hereId) }
+    // The piece the bar shrinks into (or grows out of) is always the group you're in. It used to be
+    // updated a moment late, so for a frame or two the group you just finished took the new
+    // group's (empty) progress and its piece flashed empty.
+    val focusId = hereId
     // Linear here: each of the two steps below gets its own smooth in-and-out curve.
     val spec = tween<Float>(durationMillis = 800, easing = LinearEasing)
     // The wave calms down before the bar turns into the run (and comes back after the reverse),
     // so it never jumps from wavy to straight.
     var calm by remember { mutableStateOf(showRun) }
     LaunchedEffect(showRun) {
-        focusId = hereId
         if (showRun) {
             calm = true
             // The group's bar fills up and its wave flattens out first.
@@ -2134,6 +2223,8 @@ private fun TriageBar(
             progress = groupProgress,
             modifier = modifier.padding(vertical = 12.dp),
             // Flat while calm: the indicator eases its wave in and out by itself.
+            // Material's own wave, which calms down near the start and the end on purpose (the
+            // bar eases into a straight line as it finishes); flat while the run is shown.
             amplitude = { p -> if (calm) 0f else WavyProgressIndicatorDefaults.indicatorAmplitude(p) },
         )
         return
@@ -2146,7 +2237,8 @@ private fun TriageBar(
         val shrink = FastOutSlowInEasing.transform((t / 0.6f).coerceIn(0f, 1f))
         val others = FastOutSlowInEasing.transform(((t - 0.4f) / 0.6f).coerceIn(0f, 1f))
         val gap = 4.dp.toPx()
-        val thickness = lerp(4.dp.toPx(), 6.dp.toPx(), shrink)
+        // As thick as the wavy bar's line, so the pieces don't look heavier than it.
+        val thickness = 4.dp.toPx()
         val y = (size.height - thickness) / 2
         val radius = CornerRadius(thickness / 2)
         val weights = runPlaces.map { (sizes[it.id] ?: it.unread).coerceAtLeast(1).toFloat() }

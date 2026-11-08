@@ -7,6 +7,8 @@ import android.view.SoundEffectConstants
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +47,10 @@ data class TopBarAction(
     val icon: ImageVector,
     val description: String,
     val selected: Boolean = false,
+    /** Greyed out and not tappable when false (Triage's Undo with nothing to undo). */
+    val enabled: Boolean = true,
+    /** A long press (Triage's Auto-advance: choose the delay). */
+    val onLongClick: (() -> Unit)? = null,
     val onClick: () -> Unit,
 )
 
@@ -177,11 +183,19 @@ private fun Segment(
     ) {
         Box(
             modifier =
-                Modifier.fillMaxSize().clickable(
+                Modifier.fillMaxSize().combinedClickable(
                     interactionSource = interaction,
                     indication = ripple(),
+                    enabled = action.enabled,
                     role = Role.Button,
                     onClickLabel = action.description,
+                    onLongClick =
+                        action.onLongClick?.let { long ->
+                            {
+                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                long()
+                            }
+                        },
                 ) {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     view.playSoundEffect(SoundEffectConstants.CLICK)
@@ -192,7 +206,7 @@ private fun Segment(
             Icon(
                 imageVector = action.icon,
                 contentDescription = action.description,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(22.dp).alpha(if (action.enabled) 1f else 0.38f),
             )
         }
     }

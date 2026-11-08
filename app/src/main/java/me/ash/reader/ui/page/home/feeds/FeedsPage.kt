@@ -1,6 +1,7 @@
 package me.ash.reader.ui.page.home.feeds
 
 // Brief You
+import me.ash.reader.brief.ui.CollapsedTitle // Brief You
 import android.os.Build
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.FilterAlt
@@ -214,7 +215,7 @@ fun FeedsPage(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() },
                     ),
-                title = {},
+                title = { CollapsedTitle() }, // Brief You: the account name moves up here as you scroll
                 // Brief You: Material 3 Expressive tonal buttons, the actions connected into one
                 // pill, with Sort and Filters added.
                 navigationIcon = {

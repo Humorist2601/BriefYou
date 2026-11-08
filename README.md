@@ -108,14 +108,15 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Summary on the card** | Long-press a card: it sinks a little and its border starts to glow in Google's AI colours, then the on-device AI writes 3 key points right on it. Tap the card to switch between the summary and the article's own description. Auto-advance pauses while the summary shows. |
 | **Auto-advance** | Skips each card after a few seconds, with a wavy ring counting down. |
 | **Next group** | When a group (or feed) is done: the bar at the top splits into one piece per group of the run (sized by its cards, done ones filled), a ring with how much of all your unread is cleared ("3 of 4 groups clear"), what's left, and the next group, which starts by itself after a countdown while auto-advance is on. *All caught up* only when nothing is unread anywhere, with the read, saved and skipped totals of the whole run. |
-| **Jump between groups** | The header keeps "Triage" with a small "2 of 5" chip after it, and the group and cards left underneath. Tap the chip for every group in the run: jump to any of them, or skip this one. The cards you leave stay unread. |
+| **Jump between groups** | Under "Triage", the group (or feed) you're in is a small button, followed by the cards left. Tap it for every group in the run: jump to any of them, or skip this one. The cards you leave stay unread. |
+| **Buttons** | Top right, the same quiet joined pill as the other screens: Auto-advance, Share (the card's article) and Undo. While auto-advance runs it leaves the pill as a circle with its countdown ring. The four buttons at the bottom squeeze into a rounded square when pressed and spring back; the Next up card squeezes the same way and its badge turns. |
 | **Inbox zero** | A little celebration when you're all caught up. |
 
 <details>
 <summary>More details</summary>
 
 - Open it with **Triage** in the floating button at the bottom of an *Unread* list.
-- Auto-advance pauses while you hold a card, while a card shows its summary and while the groups sheet is open: the button turns grey and its ring stops where it was, then carries on. Long press the button to choose the delay (3–30 s, 5 by default).
+- Auto-advance pauses while you hold a card, while a card shows its summary and while the groups sheet is open: the button turns grey and its ring stops where it was, then carries on. Long press the button (in the pill or as the circle) to choose the delay (3–30 s, 5 by default).
 - Haptics mark the swipe threshold, each choice, Undo and finishing the stack.
 - Undo on the first card of a group goes back into the group before it and takes back its last card.
 - When a group is done, its bar shrinks into its piece of the run while the other groups' pieces fade in; starting the next group, its piece grows back into the bar.
@@ -150,7 +151,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 
 | Feature | What it does |
 | --- | --- |
-| **Material 3 Expressive** | Shape-morphing buttons, shaped icons, Expressive loading and pull-to-refresh, wavy progress. Back buttons (lists, Settings and its pages) and Triage's close button are the same tonal circle. |
+| **Material 3 Expressive** | Shape-morphing buttons, shaped icons, Expressive loading and pull-to-refresh, wavy progress. Back buttons (lists, Settings and its pages) and Triage's close button are the same tonal circle. In Feeds and Settings, the big title moves into the top bar in small text as you scroll, like the article list. |
 | **Google Sans Flex** | Rounded throughout, with wide headings. Reading fonts: Google Sans Flex, Literata, system, or your own. |
 | **Material You, the current way** | Uses the system's own wallpaper colours; preset colours use Google's latest colour spec. |
 | **Feed colours and icons** | Feed names take a colour from their icon (a pale or grey icon gets a steady colour of its own); set an emoji or your own image as a feed's icon. Icons are kept in the image cache and loaded at the size they're shown; a site without an icon is searched again once a week, not on every sync. |

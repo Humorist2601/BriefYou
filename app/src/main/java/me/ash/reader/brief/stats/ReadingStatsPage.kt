@@ -570,28 +570,32 @@ private fun WeekChart(week: List<LocalDate>, today: LocalDate, values: List<Long
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Bottom,
                 ) {
-                    if (isToday) {
-                        Box(
-                            modifier =
-                                Modifier.size(34.dp)
-                                    .clip(MaterialShapes.Cookie7Sided.toShape())
-                                    .background(MaterialTheme.colorScheme.tertiary),
-                            contentAlignment = Alignment.Center,
-                        ) {
+                    // Every day gets the same slot for its number, centred: today's cookie and the
+                    // other numbers sit on one line, and all bars below share the same height scale.
+                    Box(modifier = Modifier.height(34.dp), contentAlignment = Alignment.Center) {
+                        if (isToday) {
+                            Box(
+                                modifier =
+                                    Modifier.size(34.dp)
+                                        .clip(MaterialShapes.Cookie7Sided.toShape())
+                                        .background(MaterialTheme.colorScheme.tertiary),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = value.toString(),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiary,
+                                    maxLines = 1,
+                                )
+                            }
+                        } else {
                             Text(
-                                text = value.toString(),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onTertiary,
-                                maxLines = 1,
+                                text = if (value > 0) value.toString() else "",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                    } else {
-                        Text(
-                            text = if (value > 0) value.toString() else "",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                     Spacer(Modifier.height(6.dp))
                     Box(
