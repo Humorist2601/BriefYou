@@ -291,6 +291,9 @@
     <string name="recap_share">Share</string>
     <string name="recap_teaser">%1$d articles</string>
     <string name="recap_past">Past months</string>
+    <string name="recap_best_month">Best month</string>
+    <string name="recap_tile_best_month">best month</string>
+    <string name="recap_year_row">The whole of %1$d</string>
     <string name="recap_on_home">Monthly recap on home</string>
     <string name="recap_on_home_desc">Last month\'s recap above your feeds for the first week of a month</string>
     <string name="stats_footer">Reading stats stay on this phone, and are included in "Back up everything". An article counts as read when you open it; time counts while it\'s on screen.</string>

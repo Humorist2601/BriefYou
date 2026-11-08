@@ -279,7 +279,7 @@ TABLES = {
         ('Feed colours and icons', 'Names coloured from their icon; set an emoji or image as an icon.'),
         ('App shortcuts', 'Long-press the icon for Triage, AI gist, Unread or Sync now.'),
         ('Reading stats', 'Your week, streak, top feeds and this month vs last.'),
-        ('Monthly recap', 'Last month as a calendar and highlights, to view or share.'),
+        ('Monthly recap', 'Last month as calendar and highlights; last year each January.'),
         ('Swipe between Starred, Unread and All', 'Each with its own list and scroll position.'),
         ('Predictive back', 'Android’s own back animation, in screens and dialogs.'),
         ('New icon and animated splash', 'A fanned stack of cards that grows into the app.'),
