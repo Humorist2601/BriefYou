@@ -267,6 +267,7 @@ TABLES = {
     "calm": [
         ('One digest notification', 'One per sync instead of one per article, with Mark all read and Triage.'),
         ('Muted keywords', 'Articles mentioning them are marked read after each sync.'),
+        ('Watched words', 'Words you care about stand out and come first.'),
         ('Duplicate stories', 'When a story is published again, only the first stays unread.'),
         ('Recently filtered', 'What was hidden and why, with Undo.'),
         ('Sort feeds and groups', 'By name, unread count or the order you added them.'),

@@ -105,7 +105,7 @@ class ReadLaterActivity : ComponentActivity() {
             lifecycleScope.launch {
                 state =
                     try {
-                        State.Saved(readLater.save(url))
+                        State.Saved(readLater.save(url, intent?.getStringExtra(Intent.EXTRA_SUBJECT)))
                     } catch (_: ReadLater.NotLocalAccount) {
                         State.Failed(R.string.read_later_not_local)
                     } catch (e: Exception) {
@@ -266,7 +266,7 @@ class ReadLaterActivity : ComponentActivity() {
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = stringResource(R.string.read_later_where),
+                    text = stringResource(if (saved.fetched) R.string.read_later_where else R.string.read_later_link_only),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

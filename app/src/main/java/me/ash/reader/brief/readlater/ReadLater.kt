@@ -52,6 +52,8 @@ constructor(
         val image: String?,
         val minutes: Int?,
         val alreadySaved: Boolean,
+        /** False when the page couldn't be loaded now and only the link was saved. */
+        val fetched: Boolean = true,
     )
 
     class NotLocalAccount : Exception()
@@ -60,8 +62,12 @@ constructor(
     suspend fun canSave(): Boolean =
         withContext(ioDispatcher) { accountService.getCurrentAccount().type.id == AccountType.Local.id }
 
-    /** Saves the page at [url] (fetched now, with its full text) as a starred article. */
-    suspend fun save(url: String): Saved =
+    /**
+     * Saves the page at [url] (fetched now, with its full text) as a starred article. When the
+     * page can't be loaded (offline, blocked, or not a web page, like a PDF), the link is saved
+     * anyway, titled [sharedTitle] when the sharing app gave one, so nothing shared is lost.
+     */
+    suspend fun save(url: String, sharedTitle: String? = null): Saved =
         withContext(ioDispatcher) {
             val account = accountService.getCurrentAccount()
             if (account.type.id != AccountType.Local.id) throw NotLocalAccount()
@@ -82,8 +88,21 @@ constructor(
                 )
             }
 
-            val response = okHttpClient.newCall(Request.Builder().url(url).build()).executeAsync()
-            val html = response.use { if (it.isSuccessful) it.body.string() else throw IOException(it.message) }
+            // A web page, read up to a size limit (a shared link to a big file can't run the app
+            // out of memory); anything else saves the link only.
+            val html =
+                runCatching {
+                        okHttpClient.newCall(Request.Builder().url(url).build()).executeAsync().use {
+                            if (!it.isSuccessful) throw IOException(it.message)
+                            val type = it.body.contentType()
+                            if (type != null && type.subtype != "html" && type.subtype != "xhtml+xml") {
+                                throw IOException("Not a web page: $type")
+                            }
+                            it.peekBody(MAX_PAGE_BYTES).string()
+                        }
+                    }
+                    .getOrNull()
+                    ?: return@withContext saveLinkOnly(url, sharedTitle, accountId, feed)
             val page = Jsoup.parse(html, url)
             val title = meta(page, "og:title") ?: page.title().takeIf { it.isNotBlank() } ?: url
             val description = meta(page, "og:description") ?: meta(page, "description")
@@ -123,6 +142,43 @@ constructor(
                 alreadySaved = false,
             )
         }
+
+    /** Saves only the link (the page couldn't be loaded): open it later to read it. */
+    private suspend fun saveLinkOnly(url: String, sharedTitle: String?, accountId: Int, feed: Feed): Saved {
+        val title =
+            sharedTitle?.trim()?.takeIf { it.isNotEmpty() && it != url }
+                ?: runCatching { java.net.URI(url).let { it.host.removePrefix("www.") + it.path.trimEnd('/') } }.getOrNull()
+                ?: url
+        val now = Date()
+        val article =
+            Article(
+                id = accountId.spacerDollar(UUID.randomUUID().toString()),
+                accountId = accountId,
+                feedId = feed.id,
+                date = now,
+                title = title,
+                rawDescription = "<p><a href=\"$url\">$url</a></p>",
+                shortDescription = url,
+                link = url,
+                isUnread = true,
+                isStarred = true,
+                updateAt = now,
+            )
+        articleDao.insert(article)
+        return Saved(
+            articleId = article.id,
+            feedId = feed.id,
+            title = title,
+            site = siteName(null, url),
+            image = null,
+            minutes = null,
+            alreadySaved = false,
+            fetched = false,
+        )
+    }
+
+    /** The "Saved Articles" feed of [accountId], for restoring a backup's saved pages. */
+    suspend fun savedFeedFor(accountId: Int): Feed = withContext(ioDispatcher) { savedFeed(accountId) }
 
     /** The "Saved Articles" feed of [accountId], made the first time something is saved. */
     private suspend fun savedFeed(accountId: Int): Feed {
@@ -172,6 +228,8 @@ constructor(
 
     companion object {
         private const val SAVED_FEED = "brief_you_saved_for_later"
+        /** Pages are read up to this size. */
+        private const val MAX_PAGE_BYTES = 5L * 1024 * 1024
         private const val SAVED_FEED_NAME = "Saved Articles"
         /** A bookmark icon, drawn by FeedIcon. */
         private const val SAVED_FEED_ICON = me.ash.reader.ui.component.SAVED_ARTICLES_ICON

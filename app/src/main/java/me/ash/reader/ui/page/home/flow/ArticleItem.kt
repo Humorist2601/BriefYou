@@ -206,6 +206,7 @@ fun ArticleItem(
                             style = MaterialTheme.typography.labelMedium,
                         )
                     }
+                    me.ash.reader.brief.filters.WatchedChip(title, isUnread) // Brief You: watched words
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -227,6 +228,7 @@ fun ArticleItem(
                             StarredIcon()
                         }
                     }
+                    me.ash.reader.brief.filters.WatchedChip(title, isUnread) // Brief You: watched words
                 }
             }
 

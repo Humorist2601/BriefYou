@@ -88,9 +88,14 @@ constructor(
                 val lines =
                     (newLines + prefs.getString(KEY_LINES, null).splitLines()).take(MAX_STORED)
 
+                // Every article's id, not only the lines kept for showing, so Mark all read covers
+                // a big first sync too.
+                val ids =
+                    (articles.map { it.id } + prefs.getString(KEY_IDS, null).splitLines()).distinct().take(MAX_IDS)
                 prefs.edit {
                     putInt(KEY_COUNT, total)
                     putString(KEY_LINES, lines.joinToString(LINE_SEP))
+                    putString(KEY_IDS, ids.joinToString(LINE_SEP))
                 }
 
                 if (runningSyncs > 0) {
@@ -151,9 +156,11 @@ constructor(
     /** The ids of the articles in the digest (for Mark all read). */
     suspend fun digestArticleIds(): Set<String> =
         mutex.withLock {
-            prefs.getString(KEY_LINES, null).splitLines().mapNotNull { line ->
-                line.split(FIELD_SEP).getOrNull(2)
-            }.toSet()
+            (prefs.getString(KEY_IDS, null).splitLines() +
+                    prefs.getString(KEY_LINES, null).splitLines().mapNotNull { line ->
+                        line.split(FIELD_SEP).getOrNull(2)
+                    })
+                .toSet()
         }
 
     private fun postStored() {
@@ -173,12 +180,28 @@ constructor(
             entries.groupBy { it.feed }.values.sortedByDescending { g -> g.maxOf { it.date } }
         val feedNames = groups.map { it.first().feed }
         val title = context.resources.getQuantityString(R.plurals.digest_title, total, total)
+        // Articles with a watched word: named first ("2 about Pixel, Gemma") and listed first.
+        me.ash.reader.brief.filters.WatchedWords.load(context)
+        val watched = entries.mapNotNull { e -> me.ash.reader.brief.filters.WatchedWords.match(e.title)?.let { e to it } }
+        val watchedLine =
+            watched.takeIf { it.isNotEmpty() }?.let { w ->
+                context.resources.getQuantityString(
+                    R.plurals.digest_watched,
+                    w.size,
+                    w.size,
+                    w.map { it.second }.distinctBy { it.lowercase() }.joinToString(", "),
+                )
+            }
         // Collapsed: which feeds, not just how many.
         val collapsed =
-            feedNames.take(COLLAPSED_FEEDS).joinToString(", ") +
-                if (feedNames.size > COLLAPSED_FEEDS) " +${feedNames.size - COLLAPSED_FEEDS}" else ""
+            listOfNotNull(
+                    watchedLine,
+                    feedNames.take(COLLAPSED_FEEDS).joinToString(", ") +
+                        if (feedNames.size > COLLAPSED_FEEDS) " +${feedNames.size - COLLAPSED_FEEDS}" else "",
+                )
+                .joinToString(" · ")
 
-        val style = listStyle(title, groups, feedNames)
+        val style = listStyle(title, groups, feedNames, watched.map { it.first }, watchedLine)
 
         // A single new article opens directly; otherwise open the app's article list.
         val openIntent =
@@ -247,9 +270,16 @@ constructor(
         title: String,
         groups: List<List<Entry>>,
         feedNames: List<String>,
+        watched: List<Entry> = emptyList(),
+        watchedLine: String? = null,
     ): NotificationCompat.Style {
         val inbox = NotificationCompat.InboxStyle().setBigContentTitle(title)
-        val shown = if (groups.size > MAX_LINES) groups.take(MAX_LINES - 1) else groups
+        // Watched articles first (two at most), each with its feed; the feeds take the rest.
+        val watchedShown = watched.take(MAX_WATCHED_LINES)
+        watchedShown.forEach { inbox.addLine(it.feed + " · " + it.title) }
+        watchedLine?.let { inbox.setSummaryText(it) }
+        val lines = MAX_LINES - watchedShown.size
+        val shown = if (groups.size > lines) groups.take(lines - 1) else groups
         shown.forEach { g ->
             val latest = g.maxBy { it.date }
             inbox.addLine(
@@ -283,8 +313,13 @@ constructor(
         const val PREFS = "notification_digest"
         const val KEY_COUNT = "count"
         const val KEY_LINES = "lines"
+        const val KEY_IDS = "ids"
+        /** Article ids kept for Mark all read (a few thousand: a big first sync). */
+        const val MAX_IDS = 5000
         /** Lines in the expanded digest: Android 16 shows 6 at most (feeds, or 5 and "+N more"). */
         const val MAX_LINES = 6
+        /** Watched articles listed by name at the top of the digest. */
+        const val MAX_WATCHED_LINES = 2
         /** Feeds named in the collapsed digest. */
         const val COLLAPSED_FEEDS = 4
         const val MAX_STORED = 300

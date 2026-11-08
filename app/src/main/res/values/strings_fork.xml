@@ -328,10 +328,32 @@
     <string name="read_later_saved">Saved for later</string>
     <string name="read_later_already">Already saved</string>
     <string name="read_later_where">In Starred · works offline</string>
+    <string name="read_later_link_only">In Starred · the page couldn\'t be loaded now, so the link was saved</string>
     <string name="read_later_read_now">Read now</string>
     <string name="read_later_done">Done</string>
     <string name="read_later_closes">Closes by itself in %1$d s</string>
     <string name="read_later_failed">Couldn\'t save this page</string>
     <string name="read_later_no_link">There\'s no web address in what was shared.</string>
     <string name="read_later_not_local">Read later works with local accounts only, because a sync service would remove the saved pages at its next sync.</string>
+    <!-- Watched words -->
+    <plurals name="digest_watched">
+        <item quantity="one">%1$d about %2$s</item>
+        <item quantity="other">%1$d about %2$s</item>
+    </plurals>
+    <string name="filters_watched">Watched words</string>
+    <string name="filters_watched_desc">Unread articles with these words in their title get a highlight, come first in Triage and the digest, are counted at home, and are never muted.</string>
+    <string name="filters_watched_none">No watched words yet</string>
+    <string name="filters_add_watched">Watch a word</string>
+    <string name="filters_watched_log">Recently watched</string>
+    <string name="filters_tab_watched">Watched</string>
+    <string name="filters_tab_muted">Muted</string>
+    <plurals name="filters_watched_found">
+        <item quantity="one">%1$d found</item>
+        <item quantity="other">%1$d found</item>
+    </plurals>
+    <string name="filters_reason_watched">Watched “%1$s”</string>
+    <plurals name="filters_stat_watched">
+        <item quantity="one">watched</item>
+        <item quantity="other">watched</item>
+    </plurals>
 </resources>

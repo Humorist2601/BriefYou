@@ -54,7 +54,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 
 - Toolbar long presses: Star marks read or unread, AI opens its settings, Next goes to the previous article, Full content opens the browser.
 - Pictures in the text get a box of their own size with the app's shape-changing loading indicator, and fade in.
-- Read later: share a link to *Read Later* (or to *Add Feed* to subscribe to its feed). The page is saved with its full text as a starred article in a *Saved Articles* feed; a small sheet confirms it and closes by itself. Local accounts only.
+- Read later: share a link to *Read Later* (or to *Add Feed* to subscribe to its feed). The page is saved with its full text as a starred article in a *Saved Articles* feed; a small sheet confirms it and closes by itself. If the page can't be loaded (offline, blocked, or a file like a PDF), the link is saved instead. Local accounts only.
 - Tidier articles also drop "appeared first on" lines.
 - Large header picture; feed, date and reading time as chips; title, time left and a wavy progress bar in the top bar once you scroll.
 - Pictures: drag one away to close it; Save and Share in its menu; slightly dimmed in dark mode.
@@ -107,11 +107,12 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 
 <p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-calm-dark.svg"><img alt="Calmer feeds" src=".github/assets/readme/h-calm-light.svg" width="100%"></picture></p>
 
-<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-calm-dark.svg"><img alt="One digest notification: One per sync instead of one per article, with Mark all read and Triage. Muted keywords: Articles mentioning them are marked read after each sync. Duplicate stories: When a story is published again, only the first stays unread. Recently filtered: What was hidden and why, with Undo. Sort feeds and groups: By name, unread count or the order you added them." src=".github/assets/readme/t-calm-light.svg" width="100%"></picture></p>
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-calm-dark.svg"><img alt="One digest notification: One per sync instead of one per article, with Mark all read and Triage. Muted keywords: Articles mentioning them are marked read after each sync. Watched words: Words you care about stand out and come first. Duplicate stories: When a story is published again, only the first stays unread. Recently filtered: What was hidden and why, with Undo. Sort feeds and groups: By name, unread count or the order you added them." src=".github/assets/readme/t-calm-light.svg" width="100%"></picture></p>
 
 <details>
 <summary>More details</summary>
 
+- Watched words, the opposite of muted keywords (on the Filters page): an unread article with one in its title gets a small chip with the word in lists and on its Triage card, comes first in Triage and in the digest ("2 about Pixel, Gemma"), and is counted on its feed and group at home. A watched article is never muted. Tap a watched word to stop watching it. The Filters page has two tabs you can tap or swipe, *Watched* on the left and *Muted* (with Hide duplicate stories) on the right, under tiles counting what was watched, muted and merged. Adding a word checks the last 3 days straight away ("hid 3", "2 found"). Each tab has its words, Apply now and a recent list laid out the same way: today in full, earlier days grouped by word. Recently watched keeps 30 days.
 - The digest reads like "12 new articles · Variety, Kotaku, Kagi News +2".
 - Duplicates: another feed, or the same feed twice. Filters lists the hidden copies under the story they repeat, and which copy was kept unread.
 - Recently filtered shows today in full; earlier days are grouped by reason (*Duplicate stories*, then each muted keyword) with a count, and open to show 5 articles at a time.
