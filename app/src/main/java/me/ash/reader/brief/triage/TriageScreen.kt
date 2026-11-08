@@ -249,6 +249,22 @@ class TriageSession(
 
     /** How many cards each group (or feed) of the run had when it was started, for the run's bar. */
     var placeSizes by mutableStateOf(listOfNotNull(feedId ?: groupId).associateWith { articles.size })
+
+    /**
+     * Every group (or feed) this run has included, in the Feeds page order. The Feeds page drops a
+     * group once nothing in it is unread, so without this the groups you finish would vanish from
+     * the run bar and the groups sheet.
+     */
+    internal var knownPlaces: List<TriageNext> = emptyList()
+
+    /** [live] (the Feeds page's groups with unread now) merged into [knownPlaces], order kept. */
+    internal fun mergePlaces(live: List<TriageNext>): List<TriageNext> {
+        val byId = live.associateBy { it.id }
+        val known = knownPlaces.map { byId[it.id] ?: it.copy(unread = 0) }
+        val added = live.filter { l -> knownPlaces.none { it.id == l.id } }
+        knownPlaces = known + added
+        return knownPlaces
+    }
         private set
 
     var index by mutableIntStateOf(0)
@@ -585,8 +601,6 @@ private fun TriageContent(
     // play button.
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("triage", android.content.Context.MODE_PRIVATE) }
-    // Share uses the app's setting (link only, or title and link).
-    val sharedContent = LocalSharedContent.current
     var autoSeconds by remember { mutableIntStateOf(prefs.getInt("auto_seconds", 5)) }
     val autoProgress = remember { mutableFloatStateOf(0f) }
     // A finger on the card pauses auto-advance; the button at the top shows it.
@@ -687,7 +701,7 @@ private fun TriageContent(
     val hereId = session.feedId ?: session.groupId
     val runPlaces =
         remember(session.visited, hereId, done) {
-            if (hasPlaces) listPlaces(isFeeds, session.visited) else emptyList()
+            if (hasPlaces) session.mergePlaces(listPlaces(isFeeds, session.visited)) else emptyList()
         }
     // Where this group (or feed) is in the run, in the Feeds page order: "2 of 5".
     val position = runPlaces.indexOfFirst { it.id == hereId } + 1
@@ -754,7 +768,9 @@ private fun TriageContent(
             val leftText =
                 if (current != null) pluralStringResource(R.plurals.triage_left, total - index, total - index)
                 else null
-            Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
+            // A gap before the buttons, so a long group name shortens instead of pushing the count
+            // against them.
+            Column(modifier = Modifier.weight(1f).padding(start = 4.dp, end = 12.dp)) {
                 Text(
                     text = stringResource(R.string.triage),
                     style = MaterialTheme.typography.titleLarge,
@@ -835,7 +851,6 @@ private fun TriageContent(
             }
             var delayMenuOpen by remember { mutableStateOf(false) }
             Box {
-                val shareArticle = current?.article
                 TriageTopButtons(
                     running = session.autoRunning,
                     // The same pause for a finger on the card, a card showing its summary, and
@@ -846,15 +861,9 @@ private fun TriageContent(
                     progress = { autoProgress.floatValue },
                     onToggle = toggleAuto,
                     onLongPress = { delayMenuOpen = true },
+                    // Share is on the card itself, so the top keeps just Play and Undo.
                     others =
                         listOf(
-                            TopBarAction(
-                                Icons.Outlined.Share,
-                                stringResource(R.string.share),
-                                enabled = shareArticle != null,
-                            ) {
-                                shareArticle?.let { sharedContent.share(context, it.title, it.link) }
-                            },
                             TopBarAction(
                                 Icons.AutoMirrored.Rounded.Undo,
                                 stringResource(R.string.triage_undo),
@@ -946,7 +955,8 @@ private fun TriageContent(
 
     if (sheetOpen) {
         TriagePlacesSheet(
-            places = remember(session.visited) { listPlaces(isFeeds, session.visited) },
+            // The run's groups, finished ones included (ticked "Done").
+            places = runPlaces,
             currentId = session.feedId ?: session.groupId,
             currentLeft = (total - index).coerceAtLeast(0),
             visited = session.visited,
@@ -1398,6 +1408,28 @@ private fun TriageCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
+                    // Share this article, right on its card (it follows the app's setting: the
+                    // link only, or the title and link). Kept small so the row stays as tall.
+                    val context = LocalContext.current
+                    val sharedContent = LocalSharedContent.current
+                    Spacer(Modifier.width(8.dp))
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                        Surface(
+                            onClick = { sharedContent.share(context, item.title, item.link) },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Outlined.Share,
+                                    contentDescription = stringResource(R.string.share),
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // The picture folds away to make room for a summary.
