@@ -249,6 +249,7 @@ class TriageSession(
 
     /** How many cards each group (or feed) of the run had when it was started, for the run's bar. */
     var placeSizes by mutableStateOf(listOfNotNull(feedId ?: groupId).associateWith { articles.size })
+        private set
 
     /**
      * Every group (or feed) this run has included, in the Feeds page order. The Feeds page drops a
@@ -265,7 +266,6 @@ class TriageSession(
         knownPlaces = known + added
         return knownPlaces
     }
-        private set
 
     var index by mutableIntStateOf(0)
     internal val history = mutableStateListOf<TriageStep>()
