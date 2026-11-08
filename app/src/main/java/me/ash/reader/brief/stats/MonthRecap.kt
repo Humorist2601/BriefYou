@@ -107,7 +107,10 @@ data class MonthRecap(
     val filtered: Int,
     /** When the stats started partway through this month: the day they started. */
     val since: LocalDate?,
-)
+) {
+    /** Whether [day] (0 is the 1st) came before the stats started, so there's nothing to show. */
+    fun untracked(day: Int): Boolean = since != null && day < since.dayOfMonth - 1
+}
 
 /** [month]'s recap, or null when nothing was read that month. */
 fun monthRecap(data: ReadingStatsData, month: YearMonth): MonthRecap? {
@@ -178,8 +181,13 @@ private fun vsText(recap: MonthRecap): String? {
 }
 
 /** A day's square or bar: brighter the more you read that day ([most] is the month's busiest). */
-private fun dayColor(n: Int, most: Int, accent: Color, empty: Color): Color =
-    if (n == 0) empty else accent.copy(alpha = 0.35f + 0.65f * n / most.coerceAtLeast(1))
+private fun dayColor(n: Int, most: Int, accent: Color, empty: Color, untracked: Boolean = false): Color =
+    when {
+        // Before the stats started: barely there, so it doesn't read as a day without reading.
+        untracked -> empty.copy(alpha = empty.alpha * 0.3f)
+        n == 0 -> empty
+        else -> accent.copy(alpha = 0.35f + 0.65f * n / most.coerceAtLeast(1))
+    }
 
 /**
  * The monthly recap, on the theme's primary container (light text on it, like the week card).
@@ -187,18 +195,17 @@ private fun dayColor(n: Int, most: Int, accent: Color, empty: Color): Color =
  * row of daily bars and four highlight tiles. Tap it and it opens in place: each day's bar slides
  * to its spot in the calendar (Monday first) and becomes its square, and the tiles give way to
  * every highlight; tap a day for its numbers, tap the card again to fold it back. ✕ hides it
- * ([onHide]); Share makes a picture of the open card. [startOpen] for Past months' sheet.
+ * ([onHide]); Share makes a picture of the open card.
  */
 @Composable
 fun RecapCard(
     recap: MonthRecap,
     modifier: Modifier = Modifier,
     onHide: (() -> Unit)? = null,
-    startOpen: Boolean = false,
 ) {
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
-    var open by rememberSaveable(recap.month.toString()) { mutableStateOf(startOpen) }
+    var open by rememberSaveable(recap.month.toString()) { mutableStateOf(false) }
     var picked by rememberSaveable(recap.month.toString()) { mutableStateOf(-1) }
     var capturing by remember { mutableStateOf(false) }
     val t by
@@ -270,7 +277,7 @@ fun RecapCard(
                     if (picture != null) sharePicture(context, picture, "month-recap")
                 },
             ) {
-                RecapPicture(recap)
+                RecapPicture(recap, open)
             }
         }
     }
@@ -361,14 +368,13 @@ private fun DayDetail(recap: MonthRecap, day: Int) {
     )
 }
 
-/** Bar height while closed, and the largest calendar square while open. */
+/** Bar height while closed, and the gap between calendar squares while open. */
 private val BarsHeight = 40.dp
-private val MaxSquare = 30.dp
-private val SquareGap = 4.dp
+private val SquareGap = 5.dp
 
 /**
  * The month's days, drawn between two layouts as [t] goes from 0 to 1: a row of thin bars (one per
- * day, as tall as its reading) and the calendar (Monday first, centred). Each day moves, grows and
+ * day, as tall as its reading) and the calendar (Monday first, across the card). Each day moves, grows and
  * rounds from its bar into its square. While open ([onPick]), tapping a square picks that day.
  */
 @Composable
@@ -388,7 +394,7 @@ private fun CalendarMorph(
         val density = androidx.compose.ui.platform.LocalDensity.current
         val width = constraints.maxWidth.toFloat()
         val gap = with(density) { SquareGap.toPx() }
-        val square = minOf((width - gap * 6) / 7, with(density) { MaxSquare.toPx() })
+        val square = (width - gap * 6) / 7 // the calendar spans the card
         val calWidth = square * 7 + gap * 6
         val calHeight = square * weeks + gap * (weeks - 1)
         val barsHeight = with(density) { BarsHeight.toPx() }
@@ -407,7 +413,7 @@ private fun CalendarMorph(
             if (onPick != null)
                 Modifier.pointerInput(recap.month, width) {
                     detectTapGestures { at ->
-                        recap.perDay.indices.firstOrNull { squareAt(it).contains(at) }?.let(onPick)
+                        recap.perDay.indices.firstOrNull { !recap.untracked(it) && squareAt(it).contains(at) }?.let(onPick)
                     }
                 }
             else Modifier
@@ -423,7 +429,7 @@ private fun CalendarMorph(
                 val barRadius = minOf(barWidth / 2, minBar)
                 val radius = barRadius + (square * 0.22f - barRadius) * t
                 drawRoundRect(
-                    color = dayColor(count, most, accent, empty),
+                    color = dayColor(count, most, accent, empty, recap.untracked(day)),
                     topLeft = rect.topLeft,
                     size = rect.size,
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius),
@@ -571,11 +577,12 @@ private fun HighlightRows(recap: MonthRecap, tint: Color, modifier: Modifier = M
 }
 
 /**
- * The shared picture: always the open card (calendar and every highlight) on a soft backdrop,
- * with a small Brief You mark, like the Triage card's picture. Nothing to tap, no buttons.
+ * The shared picture: the card as it is on screen ([open]: calendar and every highlight; closed:
+ * bars and the four tiles) on a soft backdrop, with a small Brief You mark, like the Triage card's
+ * picture. Nothing to tap, no buttons.
  */
 @Composable
-private fun RecapPicture(recap: MonthRecap) {
+private fun RecapPicture(recap: MonthRecap, open: Boolean) {
     val scheme = MaterialTheme.colorScheme
     Box(
         modifier =
@@ -594,7 +601,7 @@ private fun RecapPicture(recap: MonthRecap) {
             Spacer(Modifier.height(14.dp))
             CalendarMorph(
                 recap = recap,
-                t = 1f,
+                t = if (open) 1f else 0f,
                 picked = -1,
                 accent = scheme.primary,
                 empty = scheme.onSurface.copy(alpha = 0.1f),
@@ -602,7 +609,7 @@ private fun RecapPicture(recap: MonthRecap) {
                 onPick = null,
             )
             Spacer(Modifier.height(14.dp))
-            HighlightRows(recap, scheme.onSurface)
+            if (open) HighlightRows(recap, scheme.onSurface) else HighlightTiles(recap, scheme.onSurface)
             Spacer(Modifier.height(14.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Spacer(Modifier.weight(1f))
@@ -709,7 +716,6 @@ fun PastMonths(data: ReadingStatsData, modifier: Modifier = Modifier) {
         ) {
             RecapCard(
                 recap = chosen,
-                startOpen = true,
                 modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
             )
         }
@@ -799,7 +805,7 @@ private fun MiniCalendar(recap: MonthRecap) {
                             .clip(RoundedCornerShape(1.5.dp))
                             .background(
                                 if (n == null) Color.Transparent
-                                else dayColor(n, most, scheme.primary, scheme.onPrimaryContainer.copy(alpha = 0.13f))
+                                else dayColor(n, most, scheme.primary, scheme.onPrimaryContainer.copy(alpha = 0.13f), recap.untracked(day))
                             )
                     )
                 }
