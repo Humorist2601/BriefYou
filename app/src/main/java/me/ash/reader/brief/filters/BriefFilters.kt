@@ -70,7 +70,7 @@ data class FilterLogEntry(
 class BriefFilters
 @Inject
 constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     private val articleDao: BriefArticleDao,
     private val rssService: RssService,
 ) {
@@ -170,6 +170,7 @@ constructor(
                     rssService.get().batchMarkAsRead(articleIds = found.keys, isUnread = false)
                     val known = found.keys
                     writeLog(found.values.toList() + _log.value.filterNot { it.articleId in known })
+                    me.ash.reader.brief.stats.ReadingStats.filtered(context, found.size)
                 }
                 found.size
             }
@@ -183,6 +184,7 @@ constructor(
                 val exempt = prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty() + entry.articleId
                 saveExempt(exempt)
                 writeLog(_log.value.filterNot { it.articleId == entry.articleId })
+                me.ash.reader.brief.stats.ReadingStats.filtered(context, -1)
             }
         }
 

@@ -147,9 +147,11 @@ import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.brief.feeds.rememberFeedAccent
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily // Brief You
 import me.ash.reader.brief.ui.TonalCircleButton
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.material3.LocalContentColor
@@ -309,6 +311,10 @@ class TriageSession(
     var notReachedIn by mutableStateOf(mapOf<String, Int>())
         private set
 
+    /** Cards already dealt with in a group you came back to, so its bar piece starts from there. */
+    var doneBeforeIn by mutableStateOf(mapOf<String, Int>())
+        private set
+
     fun setStart(unread: Int, places: Int) {
         startUnread = unread
         startPlaces = places
@@ -338,13 +344,17 @@ class TriageSession(
         val leftIn: Map<String, Int>,
         val swipedSkipsBefore: Int,
         val notReachedIn: Map<String, Int>,
+        val doneBeforeIn: Map<String, Int>,
     )
 
     private val previous = ArrayDeque<Saved>()
 
+    /** Kept as state, so Undo greys out as soon as there's no group left to step back into. */
+    private var previousCount by mutableIntStateOf(0)
+
     /** Undo on the first card of a group (or feed) can go back into the one before it. */
     val canGoBack: Boolean
-        get() = previous.isNotEmpty()
+        get() = previousCount > 0
 
     /**
      * Steps back into the group (or feed) you were in before this one, exactly as you left it, so
@@ -369,6 +379,8 @@ class TriageSession(
         leftIn = saved.leftIn
         swipedSkipsBefore = saved.swipedSkipsBefore
         notReachedIn = saved.notReachedIn
+        doneBeforeIn = saved.doneBeforeIn
+        previousCount = previous.size
         return true
     }
 
@@ -387,9 +399,10 @@ class TriageSession(
             Saved(
                 articles, groupId, feedId, title, visited, placeSizes, index, history.toList(),
                 skippedBefore, readBefore, savedBefore, placesWithSkips, leftIn,
-                swipedSkipsBefore, notReachedIn,
+                swipedSkipsBefore, notReachedIn, doneBeforeIn,
             )
         )
+        previousCount = previous.size
         // Skipped cards stay unread: they still count as left when the ring is worked out. So do
         // the cards not reached yet when you jump to another group (or feed) from the header.
         val swiped = history.count { it.action == TriageAction.Skip }
@@ -401,6 +414,8 @@ class TriageSession(
         (feedId ?: groupId)?.let { here ->
             leftIn = leftIn + (here to skipped)
             notReachedIn = if (notReached > 0) notReachedIn + (here to notReached) else notReachedIn - here
+            // Leaving again: what's left is counted from this visit (notReachedIn) from now on.
+            doneBeforeIn = doneBeforeIn - here
         }
         // Going back to a group left with cards unread: they're dealt with again here, so they no
         // longer count as skipped before.
@@ -409,7 +424,12 @@ class TriageSession(
             if (before > 0) placesWithSkips--
             leftIn = leftIn - next.id
         }
-        // Back in a group you jumped away from: its piece fills again as you go.
+        // Back in a group you jumped away from: its piece starts from what you'd already done
+        // there and fills on as you go.
+        notReachedIn[next.id]?.let { notReached ->
+            val size = placeSizes[next.id] ?: 0
+            doneBeforeIn = doneBeforeIn + (next.id to (size - notReached).coerceAtLeast(0))
+        }
         notReachedIn = notReachedIn - next.id
         readBefore += history.count { it.action == TriageAction.Read || it.action == TriageAction.Open }
         savedBefore += history.count { it.action == TriageAction.Save }
@@ -928,7 +948,8 @@ private fun TriageContent(
                     running = session.autoRunning,
                     // The same pause for a finger on the card, a card showing its summary, and
                     // the groups sheet open.
-                    paused = (autoHeld && current != null) || sheetOpen,
+                    // Also on an end screen offering "Back to", which never starts by itself.
+                    paused = (autoHeld && current != null) || sheetOpen || (done && backTo != null),
                     // On a card: the countdown to the next card. On the end screen: the countdown
                     // to the next group (none on "All caught up").
                     progress = { autoProgress.floatValue },
@@ -974,6 +995,7 @@ private fun TriageContent(
             sizes = session.placeSizes,
             visited = session.visited,
             notReached = session.notReachedIn,
+            doneBefore = session.doneBeforeIn,
             hereId = hereId,
         )
 
@@ -1457,27 +1479,24 @@ private fun TriageCard(
     val feed = article.feed
     val item = article.article
     val minutes = remember(item.id) { estimateReadingMinutes(item.rawDescription) }
-    // Hold Share to share the card as a picture: what it shows (its summary, when it shows one),
-    // drawn from the card itself, without the Share button.
+    // Hold Share to share the card as a picture: a card drawn just for sharing (see SharePicture),
+    // off screen at this card's width, then taken as an image.
     val context = LocalContext.current
-    val cardLayer = rememberGraphicsLayer()
+    val shareLayer = rememberGraphicsLayer()
     var capturing by remember { mutableStateOf(false) }
     LaunchedEffect(capturing) {
         if (!capturing) return@LaunchedEffect
-        // Two frames, so the card is drawn again without the Share button before it's taken.
+        // A moment for its picture to load (usually already in memory), then take it.
         withFrameNanos {}
+        kotlinx.coroutines.delay(350)
         withFrameNanos {}
-        val picture = runCatching { cardLayer.toImageBitmap() }.getOrNull()
+        val picture = runCatching { shareLayer.toImageBitmap() }.getOrNull()
         capturing = false
-        if (picture != null) shareCardPicture(context, picture, item.link)
+        if (picture != null) me.ash.reader.brief.ui.sharePicture(context, picture, "triage-card", item.link)
     }
 
     Surface(
-        modifier =
-            modifier.drawWithContent {
-                cardLayer.record { this@drawWithContent.drawContent() }
-                drawLayer(cardLayer)
-            },
+        modifier = modifier,
         shape = RoundedCornerShape(CARD_CORNER),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 2.dp,
@@ -1511,15 +1530,13 @@ private fun TriageCard(
                     )
                     // Share this article, right on its card: tap for the link (the app's setting:
                     // the link only, or the title and link), hold for the card as a picture. A
-                    // tonal button, so it stands out from the card like the buttons below; hidden
-                    // while the picture is taken.
+                    // tonal button, so it stands out from the card like the buttons below.
                     val sharedContent = LocalSharedContent.current
                     val haptic = LocalHapticFeedback.current
                     Spacer(Modifier.width(8.dp))
                     Box(
                         modifier =
                             Modifier.size(34.dp)
-                                .graphicsLayer { alpha = if (capturing) 0f else 1f }
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.secondaryContainer)
                                 .combinedClickable(
@@ -1586,6 +1603,27 @@ private fun TriageCard(
                         maxLines = 8,
                         overflow = TextOverflow.Ellipsis,
                     )
+                }
+            }
+
+            // While sharing as a picture: the picture card, laid out at this card's width but
+            // taking no space and drawn only into [shareLayer], never on screen.
+            if (capturing) {
+                val shared = summary?.takeIf { it.done && it.points.isNotEmpty() }
+                Layout(
+                    content = {
+                        SharePicture(
+                            article = article,
+                            summary = shared,
+                            modifier = Modifier.drawWithContent { shareLayer.record { this@drawWithContent.drawContent() } },
+                        )
+                    }
+                ) { measurables, constraints ->
+                    val placeable =
+                        measurables.first().measure(
+                            androidx.compose.ui.unit.Constraints(minWidth = constraints.maxWidth, maxWidth = constraints.maxWidth)
+                        )
+                    layout(0, 0) { placeable.place(0, 0) }
                 }
             }
 
@@ -2114,11 +2152,7 @@ private fun TriageTopButtons(
         ) {
             if (t > 0.01f) {
                 CompositionLocalProvider(LocalContentColor provides ringColor) {
-                    me.ash.reader.brief.readaloud.ReadAloudRing(
-                        progress = progress(),
-                        playing = running && !paused,
-                        modifier = Modifier.size(40.dp).graphicsLayer { alpha = t },
-                    )
+                    AutoRing(progress = progress, playing = running && !paused, alpha = { t })
                 }
             }
             Icon(
@@ -2144,6 +2178,19 @@ private fun TriageTopButtons(
             buttonWidth = if (others.size == 1) androidx.compose.ui.unit.lerp(48.dp, 40.dp, t) else 48.dp,
         )
     }
+}
+
+/**
+ * Read aloud's ring for auto-advance. Its own small composable, so the countdown (read here, every
+ * frame) redraws only the ring, not the whole top bar.
+ */
+@Composable
+private fun AutoRing(progress: () -> Float, playing: Boolean, alpha: () -> Float) {
+    me.ash.reader.brief.readaloud.ReadAloudRing(
+        progress = progress(),
+        playing = playing,
+        modifier = Modifier.size(40.dp).graphicsLayer { this.alpha = alpha() },
+    )
 }
 
 /** The auto-advance delay, from a long press on its button: the same popup as an article's long-press. */
@@ -2350,6 +2397,7 @@ private fun TriageBar(
     sizes: Map<String, Int>,
     visited: Set<String>,
     notReached: Map<String, Int> = emptyMap(),
+    doneBefore: Map<String, Int> = emptyMap(),
     hereId: String?,
 ) {
     // 0: this group's bar, 1: the whole run.
@@ -2434,7 +2482,10 @@ private fun TriageBar(
             val left = lerp(0f, starts[focus], shrink)
             val width = lerp(size.width, widths[focus], shrink)
             drawRoundRect(todoColor, Offset(left, y), Size(width, thickness), radius)
-            val fill = groupProgress().coerceIn(0f, 1f)
+            // A group you came back to starts from what you'd already done there.
+            val size = (sizes[runPlaces[focus].id] ?: runPlaces[focus].unread).coerceAtLeast(1)
+            val before = (doneBefore[runPlaces[focus].id] ?: 0).coerceIn(0, size)
+            val fill = ((before + groupProgress().coerceIn(0f, 1f) * (size - before)) / size).coerceIn(0f, 1f)
             if (fill > 0f) drawRoundRect(doneColor, Offset(left, y), Size(width * fill, thickness), radius)
         }
         // No piece for this group (it isn't in the run's list): the run just fades in.
@@ -2445,24 +2496,127 @@ private fun TriageBar(
 }
 
 /**
- * Shares a Triage card's picture (a PNG in the app's cache, through its file provider), with the
- * article's link as text for apps that take both.
+ * The picture shared from a Triage card: drawn just for sharing, as tall as its content, on a soft
+ * backdrop in the theme's colours. The feed with its icon and the date (no reading time), then
+ * the picture, title and a few lines of the article, or the title and the summary's points when
+ * the card shows its summary. A footer with the site it's from and a small Brief You mark.
  */
-private fun shareCardPicture(context: android.content.Context, picture: androidx.compose.ui.graphics.ImageBitmap, link: String?) {
-    runCatching {
-        val dir = java.io.File(context.cacheDir, "shared").apply { mkdirs() }
-        val file = java.io.File(dir, "triage-card.png")
-        file.outputStream().use { picture.asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
-        val uri = androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
-        val send =
-            android.content.Intent(android.content.Intent.ACTION_SEND)
-                .setType("image/png")
-                .putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                .apply { link?.takeIf { it.isNotBlank() }?.let { putExtra(android.content.Intent.EXTRA_TEXT, it) } }
-                .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        send.clipData = android.content.ClipData.newRawUri(null, uri)
-        context.startActivity(
-            android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-        )
+@Composable
+private fun SharePicture(article: ArticleWithFeed, summary: CardSummary?, modifier: Modifier = Modifier) {
+    val feed = article.feed
+    val item = article.article
+    val scheme = MaterialTheme.colorScheme
+    val site = remember(item.link) { runCatching { android.net.Uri.parse(item.link).host?.removePrefix("www.") }.getOrNull() }
+    Box(
+        modifier =
+            modifier
+                .background(
+                    Brush.linearGradient(
+                        listOf(scheme.primaryContainer.copy(alpha = 0.75f), scheme.surface, scheme.surface)
+                    )
+                )
+                .padding(22.dp)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = scheme.surfaceContainerHigh,
+            tonalElevation = 2.dp,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FeedIcon(feedName = feed.name, iconUrl = feed.icon, size = 22.dp)
+                    Text(
+                        text = feed.name,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = rememberFeedAccent(feed.icon) ?: scheme.tertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
+                    )
+                    item.dateString?.takeIf { it.isNotBlank() }?.let {
+                        Text(text = it, style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant, maxLines = 1)
+                    }
+                }
+                if (summary == null && item.img != null) {
+                    Spacer(Modifier.height(14.dp))
+                    RYAsyncImage(
+                        modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(20.dp)),
+                        data = FeedContent.listImage(item.img, item.link),
+                        scale = Scale.FILL,
+                        precision = Precision.INEXACT,
+                        size = SIZE_1000,
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onSurface,
+                    maxLines = 5,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (summary != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(16.dp))
+                        Text(
+                            text = stringResource(R.string.triage_summary_done),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = scheme.primary,
+                            modifier = Modifier.padding(start = 6.dp),
+                        )
+                    }
+                    summary.points.take(4).forEach { point ->
+                        Row(modifier = Modifier.padding(top = 8.dp)) {
+                            Box(
+                                modifier =
+                                    Modifier.padding(top = 9.dp)
+                                        .size(7.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(Brush.linearGradient(listOf(Color(0xFF4285F4), Color(0xFFD96570))))
+                            )
+                            Text(
+                                text = point,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = scheme.onSurface,
+                                modifier = Modifier.padding(start = 10.dp),
+                            )
+                        }
+                    }
+                } else if (item.shortDescription.isNotBlank()) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        text = item.shortDescription,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = scheme.onSurfaceVariant,
+                        maxLines = 6,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+                androidx.compose.material3.HorizontalDivider(color = scheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = site.orEmpty(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = scheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Box(Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).background(scheme.primary))
+                    Text(
+                        text = stringResource(R.string.triage_share_brand),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = scheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 6.dp),
+                    )
+                }
+            }
+        }
     }
 }

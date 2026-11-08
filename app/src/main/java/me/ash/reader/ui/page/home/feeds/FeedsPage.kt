@@ -267,6 +267,7 @@ fun FeedsPage(
                             navigationToFlow()
                         }
                     }
+                    item { me.ash.reader.brief.stats.HomeRecapTeaser() } // Brief You: last month's recap (first week)
 
                     item {
                         Spacer(modifier = Modifier.height(24.dp))

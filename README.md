@@ -109,7 +109,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Auto-advance** | Skips each card after a few seconds, with a wavy ring counting down. |
 | **Next group** | When a group (or feed) is done: the bar at the top shrinks into its piece of the run, one piece per group (sized by its cards, filled as far as you got: all of a finished group, part of one you jumped away from), and the next group's bar grows back over them, a ring with how much of all your unread is cleared ("3 of 4 groups clear"), what's left, and the next group, which starts by itself after a countdown while auto-advance is on. *All caught up* only when nothing is unread anywhere, including cards you skipped or left behind in this run, with the read, saved and skipped totals of the whole run (skipped = swiped down; cards left behind by jumping to another group aren't skipped, just not reached). |
 | **Jump between groups** | Under "Triage", the group (or feed) you're in is a small button, followed by the cards left. Tap it for every group in the run: jump to any of them, or skip this one. The cards you leave stay unread. |
-| **Buttons** | Top right, the same quiet joined pill as the other screens: Auto-advance and Undo. While auto-advance runs it leaves the pill as a circle with its countdown ring. Each card has a Share button next to its time: tap to share the link, hold to share the card as a picture (its summary, when it shows one). The four buttons at the bottom squeeze into a rounded square when pressed and spring back; the Next up card squeezes the same way and its badge turns. |
+| **Buttons** | Top right, the same quiet joined pill as the other screens: Auto-advance and Undo. While auto-advance runs it leaves the pill as a circle with its countdown ring. Each card has a Share button next to its time: tap to share the link, hold to share the card as a picture: drawn just for sharing, as tall as its content, on a soft backdrop in your colours, with the feed and date, the picture, title and a few lines (or the summary's points, when it shows one), and a footer with the site and a small Brief You mark. The four buttons at the bottom squeeze into a rounded square when pressed and spring back; the Next up card squeezes the same way and its badge turns. |
 | **Inbox zero** | A little celebration when you're all caught up. |
 
 <details>
@@ -135,7 +135,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **One digest notification** | "12 new articles · Variety, Kotaku, Kagi News +2", once per sync, instead of one per article, with **Mark all read** and **Triage** buttons. |
 | **Muted keywords** | Unread articles mentioning them are marked read after each sync. |
 | **Duplicate stories** | When the same story is published again (by another feed, or twice by the same feed), only the first stays unread. Filters lists the hidden copies under the story they repeat. |
-| **Recently filtered** | Today's hidden articles and why (for duplicates, which copy was kept unread and which were hidden), with Undo; earlier days under *Earlier*. |
+| **Recently filtered** | Today's hidden articles and why (for duplicates, which copy was kept unread and which were hidden), with Undo; earlier days grouped by reason (*Duplicate stories*, then each muted keyword) with a count, each opening with an animation to show 5 articles at a time. |
 | **Sort feeds and groups** | By name, unread count or the order you added them. |
 
 <details>
@@ -159,6 +159,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Feed colours and icons** | Feed names take a colour from their icon (a pale or grey icon gets a steady colour of its own); set an emoji or your own image as a feed's icon. Icons are kept in the image cache and loaded at the size they're shown; a site without an icon is searched again once a week, not on every sync. |
 | **App shortcuts** | Long-press the icon for Triage, AI gist, Unread or Sync now. |
 | **Reading stats** | This week Monday to Sunday (a bar per day), articles read, your streak, top feeds, and this month compared with last month, in *Settings → Reading stats*. |
+| **Monthly recap** | For the first week of a month, last month's recap sits at the top of Reading stats: the articles you read (and the change from the month before), the month as a calendar (tap a day for its numbers), your busiest day, top feed, longest streak, reading time, Triage and what the filters hid. Share it as a picture, or Hide it. A slim version shows above your feeds on home (off with *Monthly recap on home*), and *Past months* keeps about a year of recaps. |
 | **Swipe between Starred, Unread and All** | Each with its own list and scroll position. |
 | **Predictive back** | Android's own back animation, in screens and dialogs, with a gentler dim on the screen behind so it never flashes dark. |
 | **New icon and animated splash** | A fanned stack of cards that grows into the app. |
