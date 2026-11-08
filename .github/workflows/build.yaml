@@ -7,9 +7,15 @@ on:
     push:
         branches:
             - main
-        # A commit that only changes documents (README, HANDOVER…) makes no release.
+        # A commit that only changes documents (README, HANDOVER…), the README's pictures or the
+        # repository's GitHub pages makes no release.
         paths-ignore:
             - "**.md"
+            - ".github/assets/**"
+            - ".github/readme/**"
+            - ".github/ISSUE_TEMPLATE/**"
+            - ".github/FUNDING.yml"
+            - "LICENSE"
     workflow_dispatch:
     workflow_call:
         inputs:
