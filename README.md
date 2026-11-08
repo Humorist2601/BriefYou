@@ -107,19 +107,22 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 | **Card stack** | Swipe right: read · left: save · up: open · down: skip. Undo takes back your last choice. |
 | **Summary on the card** | Long-press a card: it sinks a little and its border starts to glow in Google's AI colours, then the on-device AI writes 3 key points right on it. Tap the card to switch between the summary and the article's own description. Auto-advance pauses while the summary shows. |
 | **Auto-advance** | Skips each card after a few seconds, with a wavy ring counting down. |
-| **Next group** | When a group (or feed) is done: the bar at the top splits into one piece per group of the run (sized by its cards, done ones filled), a ring with how much of all your unread is cleared ("3 of 4 groups clear"), what's left, and the next group, which starts by itself after a countdown while auto-advance is on. *All caught up* only when nothing is unread anywhere, with the read, saved and skipped totals of the whole run. |
-| **Jump between groups** | The header keeps "Triage" with a small "2 of 5" chip after it, and the group and cards left underneath. Tap the chip for every group in the run: jump to any of them, or skip this one. The cards you leave stay unread. |
+| **Next group** | When a group (or feed) is done: the bar at the top shrinks into its piece of the run, one piece per group (sized by its cards, filled as far as you got: all of a finished group, part of one you jumped away from), and the next group's bar grows back over them, a ring with how much of all your unread is cleared ("3 of 4 groups clear"), what's left, and the next group, which starts by itself after a countdown while auto-advance is on. *All caught up* only when nothing is unread anywhere, including cards you skipped or left behind in this run, with the read, saved and skipped totals of the whole run (skipped = swiped down; cards left behind by jumping to another group aren't skipped, just not reached). |
+| **Jump between groups** | Under "Triage", the group (or feed) you're in is a small button, followed by the cards left. Tap it for every group in the run: jump to any of them, or skip this one. The cards you leave stay unread. |
+| **Buttons** | Top right, the same quiet joined pill as the other screens: Auto-advance and Undo. While auto-advance runs it leaves the pill as a circle with its countdown ring. Each card has a Share button next to its time: tap to share the link, hold to share the card as a picture (its summary, when it shows one). The four buttons at the bottom squeeze into a rounded square when pressed and spring back; the Next up card squeezes the same way and its badge turns. |
 | **Inbox zero** | A little celebration when you're all caught up. |
 
 <details>
 <summary>More details</summary>
 
 - Open it with **Triage** in the floating button at the bottom of an *Unread* list.
-- Auto-advance pauses while you hold a card, while a card shows its summary and while the groups sheet is open: the button turns grey and its ring stops where it was, then carries on. Long press the button to choose the delay (3–30 s, 5 by default).
+- Auto-advance pauses while you hold a card, while a card shows its summary and while the groups sheet is open: the button turns grey and its ring stops where it was, then carries on. Long press the button (in the pill or as the circle) to choose the delay (3–30 s, 5 by default).
 - Haptics mark the swipe threshold, each choice, Undo and finishing the stack.
 - Undo on the first card of a group goes back into the group before it and takes back its last card.
 - When a group is done, its bar shrinks into its piece of the run while the other groups' pieces fade in; starting the next group, its piece grows back into the bar.
 - The long-press glow only starts once your finger has stayed still for a moment, so swiping never shows it.
+- When no untouched group is left but you left cards in one (jumped away, or skipped some), the end screen offers *Back to* that group with how many are left; it never starts by itself.
+- Big groups are loaded in full: as a group starts (and near its end) Triage adds any unread cards the stack doesn't have yet.
 - Next groups follow your Feeds order. The back gesture turns Triage into a card that follows your finger and is tossed aside.
 - Inbox zero also plays when you swipe up to mark everything read on the Unread list.
 
@@ -150,7 +153,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 
 | Feature | What it does |
 | --- | --- |
-| **Material 3 Expressive** | Shape-morphing buttons, shaped icons, Expressive loading and pull-to-refresh, wavy progress. Back buttons (lists, Settings and its pages) and Triage's close button are the same tonal circle. |
+| **Material 3 Expressive** | Shape-morphing buttons, shaped icons, Expressive loading and pull-to-refresh, wavy progress. Back buttons (lists, Settings and its pages) and Triage's close button are the same tonal circle. In Feeds and Settings, the big title moves into the top bar in small text as you scroll, like the article list. |
 | **Google Sans Flex** | Rounded throughout, with wide headings. Reading fonts: Google Sans Flex, Literata, system, or your own. |
 | **Material You, the current way** | Uses the system's own wallpaper colours; preset colours use Google's latest colour spec. |
 | **Feed colours and icons** | Feed names take a colour from their icon (a pale or grey icon gets a steady colour of its own); set an emoji or your own image as a feed's icon. Icons are kept in the image cache and loaded at the size they're shown; a site without an icon is searched again once a week, not on every sync. |
@@ -191,7 +194,7 @@ Brief You keeps everything that makes Read You great (Material You design, Reede
 - Builds are signed with Brief You's own key when the repository has the `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` and `KEY_ALIAS` secrets.
 - Read You updates: a daily workflow merges Read You's new commits into a `read-you-sync` branch and opens (or updates) a pull request called *Read You update*. Nothing is built or signed until you merge it. For the pull request to open by itself, allow it in *Settings → Actions → General → Allow GitHub Actions to create and approve pull requests*.
 - Brief You Nightly (app ID `com.ay.briefyou.nightly`) has its own data and its own build numbers, so test builds never use up release numbers. Each test build replaces the *Nightly* prerelease, and it doesn't offer Brief You's releases as updates.
-- To tidy up, run **Actions → Clean up old releases, tags and runs** by hand. It keeps the newest 5 releases (never the Nightly one) and 10 runs per workflow, deletes release tags no kept release uses, and starts as a dry run that only lists what it would delete.
+- To tidy up, run **Actions → Clean up old releases, tags and runs** by hand. It keeps only the latest of everything: the newest release (and the Nightly), the newest run of each workflow, the kept releases' tags, and branches with work not yet in main (merged branches are deleted). It starts as a dry run that only lists what it would delete.
 
 </details>
 

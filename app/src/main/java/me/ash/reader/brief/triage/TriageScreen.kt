@@ -147,6 +147,21 @@ import me.ash.reader.ui.component.menu.AnimatedDropdownMenu
 import me.ash.reader.brief.feeds.rememberFeedAccent
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily // Brief You
 import me.ash.reader.brief.ui.TonalCircleButton
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.ui.layout.layout
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import me.ash.reader.brief.ui.TopBarButtonGroup
+import me.ash.reader.brief.ui.TopBarAction
+import androidx.compose.material.icons.outlined.Share
+import me.ash.reader.infrastructure.preference.LocalSharedContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.foundation.layout.offset
@@ -242,6 +257,22 @@ class TriageSession(
     var placeSizes by mutableStateOf(listOfNotNull(feedId ?: groupId).associateWith { articles.size })
         private set
 
+    /**
+     * Every group (or feed) this run has included, in the Feeds page order. The Feeds page drops a
+     * group once nothing in it is unread, so without this the groups you finish would vanish from
+     * the run bar and the groups sheet.
+     */
+    internal var knownPlaces: List<TriageNext> = emptyList()
+
+    /** [live] (the Feeds page's groups with unread now) merged into [knownPlaces], order kept. */
+    internal fun mergePlaces(live: List<TriageNext>): List<TriageNext> {
+        val byId = live.associateBy { it.id }
+        val known = knownPlaces.map { byId[it.id] ?: it.copy(unread = 0) }
+        val added = live.filter { l -> knownPlaces.none { it.id == l.id } }
+        knownPlaces = known + added
+        return knownPlaces
+    }
+
     var index by mutableIntStateOf(0)
     internal val history = mutableStateListOf<TriageStep>()
 
@@ -264,6 +295,18 @@ class TriageSession(
     var savedBefore = 0
         private set
     var placesWithSkips = 0
+        private set
+
+    /**
+     * Cards skipped with a swipe in the groups before this one, for the totals. Cards not reached
+     * because you jumped to another group aren't skipped, just not reached. It counts what you did,
+     * so it isn't taken back when you return to a group and read the cards you skipped there.
+     */
+    var swipedSkipsBefore = 0
+        private set
+
+    /** Cards not reached in each group you jumped away from (its bar piece fills only as far as you got). */
+    var notReachedIn by mutableStateOf(mapOf<String, Int>())
         private set
 
     fun setStart(unread: Int, places: Int) {
@@ -293,6 +336,8 @@ class TriageSession(
         val savedBefore: Int,
         val placesWithSkips: Int,
         val leftIn: Map<String, Int>,
+        val swipedSkipsBefore: Int,
+        val notReachedIn: Map<String, Int>,
     )
 
     private val previous = ArrayDeque<Saved>()
@@ -322,7 +367,19 @@ class TriageSession(
         savedBefore = saved.savedBefore
         placesWithSkips = saved.placesWithSkips
         leftIn = saved.leftIn
+        swipedSkipsBefore = saved.swipedSkipsBefore
+        notReachedIn = saved.notReachedIn
         return true
+    }
+
+    /**
+     * More cards of the group (or feed) you're in, added behind the ones left: the first group
+     * starts from what the list had loaded, and a group loads at most 200 cards at a time.
+     */
+    fun appendCards(more: List<ArticleWithFeed>) {
+        if (more.isEmpty()) return
+        articles = articles + more
+        (feedId ?: groupId)?.let { here -> placeSizes = placeSizes + (here to ((placeSizes[here] ?: 0) + more.size)) }
     }
 
     fun startNext(next: TriageNext, cards: List<ArticleWithFeed>) {
@@ -330,14 +387,21 @@ class TriageSession(
             Saved(
                 articles, groupId, feedId, title, visited, placeSizes, index, history.toList(),
                 skippedBefore, readBefore, savedBefore, placesWithSkips, leftIn,
+                swipedSkipsBefore, notReachedIn,
             )
         )
         // Skipped cards stay unread: they still count as left when the ring is worked out. So do
         // the cards not reached yet when you jump to another group (or feed) from the header.
-        val skipped = history.count { it.action == TriageAction.Skip } + (articles.size - index).coerceAtLeast(0)
+        val swiped = history.count { it.action == TriageAction.Skip }
+        val notReached = (articles.size - index).coerceAtLeast(0)
+        val skipped = swiped + notReached
         skippedBefore += skipped
         if (skipped > 0) placesWithSkips++
-        (feedId ?: groupId)?.let { here -> leftIn = leftIn + (here to skipped) }
+        swipedSkipsBefore += swiped
+        (feedId ?: groupId)?.let { here ->
+            leftIn = leftIn + (here to skipped)
+            notReachedIn = if (notReached > 0) notReachedIn + (here to notReached) else notReachedIn - here
+        }
         // Going back to a group left with cards unread: they're dealt with again here, so they no
         // longer count as skipped before.
         leftIn[next.id]?.let { before ->
@@ -345,6 +409,8 @@ class TriageSession(
             if (before > 0) placesWithSkips--
             leftIn = leftIn - next.id
         }
+        // Back in a group you jumped away from: its piece fills again as you go.
+        notReachedIn = notReachedIn - next.id
         readBefore += history.count { it.action == TriageAction.Read || it.action == TriageAction.Open }
         savedBefore += history.count { it.action == TriageAction.Save }
         visited = visited + next.id
@@ -398,6 +464,9 @@ fun TriageScreen(
     suspend fun playExit() {
         if (closing) return
         closing = true
+        // Always tells the list Triage is gone, even if the animation is cut short: otherwise
+        // Triage would stay open but invisible, hiding the bottom bar and swallowing back gestures.
+        try {
         if (slideDirection != 0f) {
             // A back gesture: throw the whole screen off to the side, springing like the cards do.
             haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -412,13 +481,17 @@ fun TriageScreen(
                 launch { animate(0f, 1f, animationSpec = spec) { v, _ -> exit = v } }
             }
         }
-        onClose()
+        } finally {
+            onClose()
+        }
     }
 
     // Predictive back: while you swipe, the screen shrinks and its corners morph into a rounded
     // card, it tilts a little and follows your finger. Let go to throw it away; drag back to cancel
     // and it springs back.
-    PredictiveBackHandler(enabled = true) { progress ->
+    // Off once Triage is closing: a second quick back gesture then goes to the list instead of
+    // cutting Triage's exit short.
+    PredictiveBackHandler(enabled = !closing) { progress ->
         try {
             progress.collect { event ->
                 if (touchStartY.isNaN()) touchStartY = event.touchY
@@ -426,7 +499,8 @@ fun TriageScreen(
                 slideDirection = if (event.swipeEdge == BackEventCompat.EDGE_LEFT) 1f else -1f
                 touchDy = ((event.touchY - touchStartY) * 0.4f).coerceIn(-maxFollowY, maxFollowY)
             }
-            playExit()
+            // Its own coroutine: a new gesture can't cancel the exit halfway.
+            scope.launch { playExit() }
         } catch (e: CancellationException) {
             if (!closing) {
                 scope.launch {
@@ -581,7 +655,7 @@ private fun TriageContent(
     // When this group or feed is finished: the next one (in the Feeds page order) with unread
     // articles. After a group it is the next group; after a feed, the next feed.
     val done = current == null
-    val next =
+    val nextNew =
         remember(session.groupId, session.feedId, session.visited, done) {
             if (done) findNext(session.groupId, session.feedId, session.visited) else null
         }
@@ -592,7 +666,13 @@ private fun TriageContent(
     val skippedCount = history.count { it.action == TriageAction.Skip }
     // "All caught up" (and an inbox zero in Reading stats) only when nothing is unread anywhere:
     // nothing left in other groups or feeds, and no card skipped here.
-    val allRead = done && total > 0 && next == null && (left?.unread ?: 0) == 0 && skippedCount == 0
+    // Also nothing left behind in the groups of this run: cards skipped by swiping and cards not
+    // reached when you jumped to another group are still unread.
+    val allRead =
+        // (A group you came back to may turn out empty, read in the list meanwhile: that's still
+        // the end of the run, not "nothing to do".)
+        done && (total > 0 || session.canGoBack) && nextNew == null && (left?.unread ?: 0) == 0 &&
+            skippedCount == 0 && session.skippedBefore == 0
     // The last card's countdown doesn't stay in the ring on the end screen.
     LaunchedEffect(done) { if (done) autoProgress.floatValue = 0f }
     // The ring: how much of everything unread at the start is cleared now (what's left: the
@@ -668,10 +748,36 @@ private fun TriageContent(
     val hereId = session.feedId ?: session.groupId
     val runPlaces =
         remember(session.visited, hereId, done) {
-            if (hasPlaces) listPlaces(isFeeds, session.visited) else emptyList()
+            if (hasPlaces) session.mergePlaces(listPlaces(isFeeds, session.visited)) else emptyList()
         }
     // Where this group (or feed) is in the run, in the Feeds page order: "2 of 5".
     val position = runPlaces.indexOfFirst { it.id == hereId } + 1
+    // As a group starts, and a few cards before its end, check it for more unread cards than the
+    // stack holds
+    // (the first group starts from what the list had loaded; a group loads at most 200 at a time)
+    // and add them behind, so a big group is never taken as finished early. Cards already in the
+    // stack (read, skipped or still to come) are left out.
+    val wantMore = current != null && (index == 0 || total - index <= 3)
+    LaunchedEffect(hereId, wantMore, total) {
+        val here = hereId
+        if (!wantMore || !hasPlaces || here == null) return@LaunchedEffect
+        val seen = session.articles.mapTo(HashSet()) { it.article.id }
+        val more =
+            runCatching { loadNext(TriageNext(here, session.title.orEmpty(), 0, isFeed = isFeeds)) }
+                .getOrDefault(emptyList())
+                .filter { it.article.id !in seen }
+        // Still in the same group (not moved on while loading).
+        if ((session.feedId ?: session.groupId) == here) session.appendCards(more)
+    }
+    // When no group of the run is still untouched: back to one you left cards in (jumped away
+    // from, or skipped some), in the Feeds order, with how many are left there.
+    val backTo =
+        if (done && nextNew == null && hasPlaces)
+            runPlaces
+                .firstOrNull { it.id != hereId && (session.leftIn[it.id] ?: 0) > 0 }
+                ?.let { it.copy(unread = session.leftIn.getValue(it.id)) }
+        else null
+    val next = nextNew ?: backTo
     // Carries on with [target]: the end screen floats away (or the cards drop out of the way when
     // jumping from the middle of a group), then the new stack swipes up from the bottom.
     fun goTo(target: TriageNext) {
@@ -701,110 +807,153 @@ private fun TriageContent(
     }
 
     Column(modifier = Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 16.dp)) {
-        // Top bar: close, title and counter, undo
+        // Top bar: close, title and counter, the buttons. 12dp wider on each side than the cards,
+        // so the buttons sit exactly where the other screens' top-bar buttons do (12dp from the
+        // screen edges, like a top app bar's 4dp inset plus the buttons' own 8dp).
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .layout { measurable, constraints ->
+                        val extra = 24.dp.roundToPx()
+                        val placeable =
+                            measurable.measure(
+                                constraints.copy(
+                                    minWidth = constraints.minWidth + extra,
+                                    maxWidth = constraints.maxWidth + extra,
+                                )
+                            )
+                        layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
+                    }
+                    .padding(top = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // The same tonal circle as the article list's back button.
             TonalCircleButton(
                 icon = Icons.Rounded.Close,
                 description = stringResource(R.string.close),
-                modifier = Modifier.offset(x = (-4).dp),
                 onClick = onClose,
             )
-            // "Triage", with a small chip for where you are in the run right after it (it never
-            // moves, as "Triage" doesn't change), and the group (or feed) with the cards left in
-            // small text underneath. Tap the chip to see the run's groups and jump or skip.
+            // "Triage", and under it the group (or feed) you're in as a small tonal button, then the
+            // cards left. Tap the button to see the run's groups and jump or skip. The count comes
+            // after it, so the button only changes when the group does.
             val canJump = hasPlaces && position > 0
-            Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = stringResource(R.string.triage),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontFamily = GoogleSansWideFontFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                    )
-                    if (canJump) {
-                        Spacer(Modifier.width(8.dp))
-                        // Without this the chip would take the 48dp minimum touch height and push
-                        // the group name down, away from "Triage".
+            val title = session.title?.takeIf { it.isNotBlank() }
+            val leftText =
+                if (current != null) pluralStringResource(R.plurals.triage_left, total - index, total - index)
+                else null
+            // A gap before the buttons, so a long group name shortens instead of pushing the count
+            // against them.
+            Column(modifier = Modifier.weight(1f).padding(start = 4.dp, end = 12.dp)) {
+                Text(
+                    text = stringResource(R.string.triage),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontFamily = GoogleSansWideFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+                if (canJump && title != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Without this the button would take the 48dp minimum touch height and
+                        // push this line away from "Triage".
                         CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                        Surface(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                sheetOpen = true
-                            },
-                            enabled = !loadingNext,
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(start = 7.dp, end = 9.dp, top = 3.dp, bottom = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                            Surface(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    sheetOpen = true
+                                },
+                                enabled = !loadingNext,
+                                // Quiet, like the top-right pill: the same barely-there tone, a
+                                // little apart from "Triage", in normal weight.
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(top = 4.dp).weight(1f, fill = false),
                             ) {
-                                // A plain symbol: the feed's own icon is already on every card.
-                                Icon(
-                                    if (isFeeds) Icons.Rounded.RssFeed else Icons.Rounded.Folder,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    text =
-                                        stringResource(
-                                            R.string.triage_place_of,
-                                            position,
-                                            runPlaces.size,
-                                        ),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    maxLines = 1,
-                                )
+                                Row(
+                                    modifier = Modifier.padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    // A plain symbol: the feed's own icon is already on every card.
+                                    Icon(
+                                        if (isFeeds) Icons.Rounded.RssFeed else Icons.Rounded.Folder,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = title,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Normal,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
                         }
+                        if (leftText != null) {
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = leftText,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                // Lined up with the button, which sits a little lower.
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
                         }
                     }
-                }
-                val leftText =
-                    if (current != null) pluralStringResource(R.plurals.triage_left, total - index, total - index)
-                    else null
-                val sub =
-                    listOfNotNull(session.title?.takeIf { it.isNotBlank() }, leftText).joinToString(" · ")
-                if (sub.isNotEmpty()) {
-                    Text(
-                        text = sub,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                } else {
+                    val sub = listOfNotNull(title, leftText).joinToString(" · ")
+                    if (sub.isNotEmpty()) {
+                        Text(
+                            text = sub,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
-            AutoAdvanceButton(
-                running = session.autoRunning,
-                // The same pause for a finger on the card, a card showing its summary, and the
-                // groups sheet open.
-                paused = (autoHeld && current != null) || sheetOpen,
-                seconds = autoSeconds,
-                // On a card: the countdown to the next card. On the end screen: the countdown to the
-                // next group (none on "All caught up", where there is nothing to go on to).
-                progress = { autoProgress.floatValue },
-                onToggle = {
-                    session.autoRunning = !session.autoRunning
-                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                },
-                onSeconds = {
-                    autoSeconds = it
-                    prefs.edit { putInt("auto_seconds", it) }
-                },
-            )
-            Spacer(Modifier.width(4.dp))
-            FilledTonalIconButton(onClick = { undo() }, enabled = history.isNotEmpty() || session.canGoBack) {
-                Icon(
-                    Icons.AutoMirrored.Rounded.Undo,
-                    contentDescription = stringResource(R.string.triage_undo),
+            // The same quiet joined pill as the other screens: Auto-advance, Share, Undo. While
+            // auto-advance runs it leaves the pill as its own circle with the countdown ring, and
+            // goes back in when it's turned off. Long press it (either way) to choose the delay.
+            val toggleAuto = {
+                session.autoRunning = !session.autoRunning
+                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+            }
+            var delayMenuOpen by remember { mutableStateOf(false) }
+            Box {
+                TriageTopButtons(
+                    running = session.autoRunning,
+                    // The same pause for a finger on the card, a card showing its summary, and
+                    // the groups sheet open.
+                    paused = (autoHeld && current != null) || sheetOpen,
+                    // On a card: the countdown to the next card. On the end screen: the countdown
+                    // to the next group (none on "All caught up").
+                    progress = { autoProgress.floatValue },
+                    onToggle = toggleAuto,
+                    onLongPress = { delayMenuOpen = true },
+                    // Share is on the card itself, so the top keeps just Play and Undo.
+                    others =
+                        listOf(
+                            TopBarAction(
+                                Icons.AutoMirrored.Rounded.Undo,
+                                stringResource(R.string.triage_undo),
+                                enabled = history.isNotEmpty() || session.canGoBack,
+                            ) {
+                                undo()
+                            },
+                        ),
+                )
+                AutoDelayMenu(
+                    expanded = delayMenuOpen,
+                    seconds = autoSeconds,
+                    onSeconds = {
+                        autoSeconds = it
+                        prefs.edit { putInt("auto_seconds", it) }
+                    },
+                    onDismiss = { delayMenuOpen = false },
                 )
             }
         }
@@ -824,6 +973,7 @@ private fun TriageContent(
             runPlaces = runPlaces,
             sizes = session.placeSizes,
             visited = session.visited,
+            notReached = session.notReachedIn,
             hereId = hereId,
         )
 
@@ -841,14 +991,21 @@ private fun TriageContent(
                 saved =
                     history.count { it.action == TriageAction.Save } +
                         (if (allRead) session.savedBefore else 0),
-                skipped = skippedCount + (if (allRead) session.skippedBefore else 0),
-                nothingToDo = total == 0,
+                // Only cards skipped with a swipe: those left behind by jumping to another group
+                // aren't skipped, just not reached.
+                skipped = skippedCount + (if (allRead) session.swipedSkipsBefore else 0),
+                // Only a run that started empty; a group you came back to that turned out empty
+                // shows the run's end screen instead.
+                nothingToDo = total == 0 && !session.canGoBack,
+                returning = backTo != null,
                 allRead = allRead,
                 progress = progress,
                 // With auto-advance running, the next group starts by itself after the delay; the
                 // countdown shows in the play button's ring at the top, as on the cards.
                 // Paused while the groups sheet is open.
-                autoSeconds = if (session.autoRunning) autoSeconds else 0,
+                // "Back to" a group you left cards in never starts by itself: auto-advance would
+                // skip the same cards again and go round in circles.
+                autoSeconds = if (session.autoRunning && backTo == null) autoSeconds else 0,
                 paused = sheetOpen,
                 onCountdown = { autoProgress.floatValue = it },
                 title = session.title,
@@ -879,7 +1036,8 @@ private fun TriageContent(
 
     if (sheetOpen) {
         TriagePlacesSheet(
-            places = remember(session.visited) { listPlaces(isFeeds, session.visited) },
+            // The run's groups, finished ones included (ticked "Done").
+            places = runPlaces,
             currentId = session.feedId ?: session.groupId,
             currentLeft = (total - index).coerceAtLeast(0),
             visited = session.visited,
@@ -1249,10 +1407,26 @@ private fun ActionButton(
     big: Boolean = false,
     onClick: () -> Unit,
 ) {
+    // Pressed, the circle squeezes into a rounded square and springs back, a little past round,
+    // when let go: the same Expressive press as the back and top-bar buttons.
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val size = if (big) 68.dp else 56.dp
+    val bounce = spring<Float>(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow)
+    val roundness by animateFloatAsState(if (pressed) 0.55f else 1f, bounce, label = "press shape")
+    val squeeze by animateFloatAsState(if (pressed) 0.94f else 1f, bounce, label = "press size")
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         FilledIconButton(
             onClick = onClick,
-            modifier = Modifier.size(if (big) 68.dp else 56.dp),
+            interactionSource = interaction,
+            // Corner as a share of half the size: 1 is a circle, lower is a squarer shape. The
+            // spring lets it overshoot a little on the way back.
+            shape = RoundedCornerShape(size / 2 * roundness.coerceIn(0.3f, 1f)),
+            modifier =
+                Modifier.size(size).graphicsLayer {
+                    scaleX = squeeze
+                    scaleY = squeeze
+                },
             colors =
                 IconButtonDefaults.filledIconButtonColors(
                     containerColor = container,
@@ -1283,9 +1457,27 @@ private fun TriageCard(
     val feed = article.feed
     val item = article.article
     val minutes = remember(item.id) { estimateReadingMinutes(item.rawDescription) }
+    // Hold Share to share the card as a picture: what it shows (its summary, when it shows one),
+    // drawn from the card itself, without the Share button.
+    val context = LocalContext.current
+    val cardLayer = rememberGraphicsLayer()
+    var capturing by remember { mutableStateOf(false) }
+    LaunchedEffect(capturing) {
+        if (!capturing) return@LaunchedEffect
+        // Two frames, so the card is drawn again without the Share button before it's taken.
+        withFrameNanos {}
+        withFrameNanos {}
+        val picture = runCatching { cardLayer.toImageBitmap() }.getOrNull()
+        capturing = false
+        if (picture != null) shareCardPicture(context, picture, item.link)
+    }
 
     Surface(
-        modifier = modifier,
+        modifier =
+            modifier.drawWithContent {
+                cardLayer.record { this@drawWithContent.drawContent() }
+                drawLayer(cardLayer)
+            },
         shape = RoundedCornerShape(CARD_CORNER),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 2.dp,
@@ -1296,7 +1488,9 @@ private fun TriageCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     FeedIcon(feedName = feed.name, iconUrl = feed.icon, size = 24.dp)
                     Text(
-                        modifier = Modifier.weight(1f).padding(start = 10.dp),
+                        // A gap before the time, so a long feed name ends in "…" instead of
+                        // running into it.
+                        modifier = Modifier.weight(1f).padding(start = 10.dp, end = 10.dp),
                         text = feed.name,
                         style = MaterialTheme.typography.labelLarge,
                         // The same per-website accent the article list uses.
@@ -1315,6 +1509,37 @@ private fun TriageCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
+                    // Share this article, right on its card: tap for the link (the app's setting:
+                    // the link only, or the title and link), hold for the card as a picture. A
+                    // tonal button, so it stands out from the card like the buttons below; hidden
+                    // while the picture is taken.
+                    val sharedContent = LocalSharedContent.current
+                    val haptic = LocalHapticFeedback.current
+                    Spacer(Modifier.width(8.dp))
+                    Box(
+                        modifier =
+                            Modifier.size(34.dp)
+                                .graphicsLayer { alpha = if (capturing) 0f else 1f }
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                .combinedClickable(
+                                    onClickLabel = stringResource(R.string.share),
+                                    onLongClickLabel = stringResource(R.string.triage_share_picture),
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        capturing = true
+                                    },
+                                    onClick = { sharedContent.share(context, item.title, item.link) },
+                                ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Share,
+                            contentDescription = stringResource(R.string.share),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
 
                 // The picture folds away to make room for a summary.
@@ -1478,6 +1703,8 @@ private fun TriageDone(
     saved: Int,
     skipped: Int,
     nothingToDo: Boolean,
+    /** [next] is a group of this run you left cards in ("Back to"), not a new one. */
+    returning: Boolean = false,
     allRead: Boolean,
     progress: TriageProgress?,
     autoSeconds: Int,
@@ -1673,7 +1900,7 @@ private fun TriageDone(
                 showCountdown(0f)
                 continueNow()
             }
-            NextCard(next = next, loading = loadingNext, onClick = onNext)
+            NextCard(next = next, loading = loadingNext, returning = returning, onClick = onNext)
             Spacer(Modifier.height(8.dp))
             TextButton(onClick = onClose) { Text(stringResource(R.string.triage_back_to_list)) }
         } else {
@@ -1747,24 +1974,41 @@ private fun SessionTile(
 private fun NextCard(
     next: TriageNext,
     loading: Boolean,
+    returning: Boolean = false,
     onClick: () -> Unit,
 ) {
+    // The same press as the four buttons: the card squeezes a little, its corners tighten, and it
+    // springs back a little past its size when let go. The cookie turns by one of its bumps.
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val bounce = spring<Float>(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow)
+    val squeeze by animateFloatAsState(if (pressed) 0.96f else 1f, bounce, label = "next press size")
+    val corner by animateDpAsState(if (pressed) 18.dp else 28.dp, spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow), label = "next press corner")
+    val turn by animateFloatAsState(if (pressed) 360f / 7 else 0f, bounce, label = "next press turn")
     Surface(
         onClick = onClick,
         enabled = !loading,
+        interactionSource = interaction,
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = RoundedCornerShape(28.dp),
-        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(corner),
+        modifier =
+            Modifier.fillMaxWidth().graphicsLayer {
+                scaleX = squeeze
+                scaleY = squeeze
+            },
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier =
                     Modifier.size(52.dp)
+                        .graphicsLayer { rotationZ = turn }
                         .clip(MaterialShapes.Cookie7Sided.toShape())
                         .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center,
             ) {
+                // Turned back the other way, so only the shape turns and the icon stays upright.
+                Box(Modifier.graphicsLayer { rotationZ = -turn }, contentAlignment = Alignment.Center) {
                 if (loading) {
                     LoadingIndicator(
                         modifier = Modifier.size(32.dp),
@@ -1782,11 +2026,12 @@ private fun NextCard(
                         modifier = Modifier.size(26.dp),
                     )
                 }
+                }
             }
             Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.triage_next_up),
+                    text = stringResource(if (returning) R.string.triage_back_to else R.string.triage_next_up),
                     style = MaterialTheme.typography.labelLarge,
                 )
                 Text(
@@ -1797,7 +2042,9 @@ private fun NextCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = stringResource(R.string.triage_next_unread, next.unread),
+                    text =
+                        if (returning) pluralStringResource(R.plurals.triage_left, next.unread, next.unread)
+                        else stringResource(R.string.triage_next_unread, next.unread),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -1819,55 +2066,61 @@ private fun NextCard(
  * skip. A long press opens the delay picker.
  */
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
+/**
+ * Auto-advance joined to the quiet pill of Share and Undo, like the buttons on the other screens.
+ * Turned on, its segment moves away from the pill and becomes a circle with the countdown ring
+ * (the pill's first edge rounding off at the same time); turned off, it goes back. One shape that
+ * moves, so the row never jumps.
+ */
 @Composable
-private fun AutoAdvanceButton(
+private fun TriageTopButtons(
     running: Boolean,
-    paused: Boolean = false,
-    seconds: Int,
+    paused: Boolean,
     progress: () -> Float,
     onToggle: () -> Unit,
-    onSeconds: (Int) -> Unit,
+    onLongPress: () -> Unit,
+    others: List<TopBarAction>,
 ) {
     val haptic = LocalHapticFeedback.current
-    var menuOpen by remember { mutableStateOf(false) }
-    // Where the button is on screen: the popup is centered on it, but kept inside the screen edges.
-    val density = LocalDensity.current
-    val screenWidth = with(density) { LocalConfiguration.current.screenWidthDp.dp.roundToPx() }
-    val halfMenu = with(density) { 120.dp.roundToPx() }
-    val edge = with(density) { 8.dp.roundToPx() }
-    var anchorX by remember { mutableIntStateOf(0) }
-    // Always 48dp, the same touch area as the undo button, so nothing around it moves.
-    Box(
-        modifier =
-            Modifier.size(48.dp).onGloballyPositioned {
-                anchorX = it.boundsInWindow().center.x.roundToInt()
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        // As big as the undo button (40dp). While the countdown runs, the ring takes that size
-        // and the button shrinks inside it, with room for the waves, so the two together are
-        // still as big as the undo button.
-        val buttonSize by
-            animateDpAsState(if (running) 26.dp else 40.dp, animationSpec = tween(250), label = "auto button")
+    // 0: a segment of the pill, 1: its own circle.
+    val detach by animateFloatAsState(
+        if (running) 1f else 0f,
+        MaterialTheme.motionScheme.defaultSpatialSpec(),
+        label = "auto detach",
+    )
+    val t = detach.coerceIn(0f, 1f)
+    // While running it looks and moves like read aloud's button: the same wavy ring (still while
+    // paused) with the pause sign inside, no filled button. Off, it's a segment of the pill.
+    val ringColor = if (paused) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
+    val container = lerp(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0f), t)
+    val content = lerp(MaterialTheme.colorScheme.onSurface, ringColor, t)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // From a pill segment (48 x 40, round outer edge, flat inner one) to a 40dp circle.
+        val lead = androidx.compose.ui.unit.lerp(20.dp, 20.dp, t)
+        val trail = androidx.compose.ui.unit.lerp(6.dp, 20.dp, t)
         Box(
             modifier =
-                Modifier.size(buttonSize)
-                    .clip(CircleShape)
-                    .background(
-                        if (running && !paused) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.secondaryContainer
-                    )
+                Modifier.size(width = androidx.compose.ui.unit.lerp(48.dp, 40.dp, t), height = 40.dp)
+                    .clip(RoundedCornerShape(topStart = lead, bottomStart = lead, topEnd = trail, bottomEnd = trail))
+                    .background(container)
                     .combinedClickable(
                         onClick = onToggle,
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            menuOpen = true
+                            onLongPress()
                         },
                     ),
             contentAlignment = Alignment.Center,
         ) {
-            // While a finger holds the card, the button shows the pause sign on a quieter color,
-            // and the ring stops where it was.
+            if (t > 0.01f) {
+                CompositionLocalProvider(LocalContentColor provides ringColor) {
+                    me.ash.reader.brief.readaloud.ReadAloudRing(
+                        progress = progress(),
+                        playing = running && !paused,
+                        modifier = Modifier.size(40.dp).graphicsLayer { alpha = t },
+                    )
+                }
+            }
             Icon(
                 if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 contentDescription =
@@ -1878,45 +2131,36 @@ private fun AutoAdvanceButton(
                             else -> R.string.triage_auto_start
                         }
                     ),
-                tint =
-                    if (running && !paused) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(if (running) 18.dp else 24.dp),
+                tint = content,
+                modifier = Modifier.size(androidx.compose.ui.unit.lerp(22.dp, 20.dp, t)),
             )
         }
-        if (running) {
-            // The same Expressive ring as read aloud: wavy while it counts down, still while a
-            // finger holds the card, over a faint track.
-            val ringColor =
-                if (paused) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
-            if (paused) {
-                CircularProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier.size(40.dp),
-                    strokeWidth = 4.dp,
-                    color = ringColor,
-                    trackColor = ringColor.copy(alpha = 0.2f),
-                )
-            } else {
-                CircularWavyProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier.size(40.dp),
-                    color = ringColor,
-                    trackColor = ringColor.copy(alpha = 0.2f),
-                )
-            }
-        }
-        // The same popup as the one on an article's long-press: same component, shape and item style.
-        AnimatedDropdownMenu(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            expanded = menuOpen,
-            onDismissRequest = { menuOpen = false },
-            offset =
-                IntOffset(
-                    anchorX.coerceIn(halfMenu + edge, (screenWidth - halfMenu - edge).coerceAtLeast(halfMenu + edge)),
-                    0,
-                ),
-        ) {
+        Spacer(Modifier.width(androidx.compose.ui.unit.lerp(2.dp, 6.dp, t)))
+        // Undo stays a segment the whole way (so it keeps its greyed-out look when there's
+        // nothing to undo): its inner edge rounds off and it narrows into a 40dp circle.
+        TopBarButtonGroup(
+            others,
+            leadingCorner = androidx.compose.ui.unit.lerp(6.dp, 20.dp, t),
+            buttonWidth = if (others.size == 1) androidx.compose.ui.unit.lerp(48.dp, 40.dp, t) else 48.dp,
+        )
+    }
+}
+
+/** The auto-advance delay, from a long press on its button: the same popup as an article's long-press. */
+@Composable
+private fun AutoDelayMenu(
+    expanded: Boolean,
+    seconds: Int,
+    onSeconds: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AnimatedDropdownMenu(
+        modifier = Modifier.padding(horizontal = 12.dp),
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        // Under the buttons, lined up with their right edge.
+        alignToAnchorEnd = true,
+    ) {
             Text(
                 text = stringResource(R.string.triage_auto_delay),
                 style = MaterialTheme.typography.labelLarge,
@@ -1937,7 +2181,7 @@ private fun AutoAdvanceButton(
                     },
                     onClick = {
                         onSeconds(option)
-                        menuOpen = false
+                        onDismiss()
                     },
                     leadingIcon = {
                         Icon(
@@ -1951,7 +2195,6 @@ private fun AutoAdvanceButton(
                     },
                 )
             }
-        }
     }
 }
 
@@ -1975,6 +2218,11 @@ private fun TriagePlacesSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetScope = rememberCoroutineScope()
+    // Buttons slide the sheet down first, like a swipe down does, instead of it vanishing.
+    fun close(then: () -> Unit) {
+        sheetScope.launch { sheetState.hide() }.invokeOnCompletion { then() }
+    }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
             Text(
@@ -2000,7 +2248,7 @@ private fun TriagePlacesSheet(
                     val leftBehind = if (here) 0 else leftIn[place.id] ?: 0
                     val doneHere = !here && place.id in visited && leftBehind == 0
                     Surface(
-                        onClick = { onPick(place) },
+                        onClick = { close { onPick(place) } },
                         enabled = !here && !doneHere,
                         shape = RoundedCornerShape(if (here) 20.dp else 16.dp),
                         color =
@@ -2057,7 +2305,8 @@ private fun TriagePlacesSheet(
                                         // The highlight already says it's the one you're in.
                                         here -> pluralStringResource(R.plurals.triage_left, currentLeft, currentLeft)
                                         doneHere -> stringResource(R.string.triage_place_done)
-                                        leftBehind > 0 -> pluralStringResource(R.plurals.triage_left, leftBehind, leftBehind)
+                                        // Only the group you're in says "N left"; the others just show a count.
+                                        leftBehind > 0 -> leftBehind.toString()
                                         else -> place.unread.toString()
                                     },
                                 style = MaterialTheme.typography.labelLarge,
@@ -2072,16 +2321,13 @@ private fun TriagePlacesSheet(
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (skipTarget != null) {
-                    FilledTonalButton(onClick = { onPick(skipTarget) }, modifier = Modifier.weight(1f)) {
+                    FilledTonalButton(onClick = { close { onPick(skipTarget) } }, modifier = Modifier.weight(1f)) {
                         Text(
                             stringResource(R.string.triage_skip_place, title ?: ""),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                }
-                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.triage_keep_going))
                 }
             }
         }
@@ -2103,19 +2349,21 @@ private fun TriageBar(
     runPlaces: List<TriageNext>,
     sizes: Map<String, Int>,
     visited: Set<String>,
+    notReached: Map<String, Int> = emptyMap(),
     hereId: String?,
 ) {
     // 0: this group's bar, 1: the whole run.
     val morph = remember { Animatable(if (showRun) 1f else 0f) }
-    // The piece the bar shrinks into (or grows out of).
-    var focusId by remember { mutableStateOf(hereId) }
+    // The piece the bar shrinks into (or grows out of) is always the group you're in. It used to be
+    // updated a moment late, so for a frame or two the group you just finished took the new
+    // group's (empty) progress and its piece flashed empty.
+    val focusId = hereId
     // Linear here: each of the two steps below gets its own smooth in-and-out curve.
     val spec = tween<Float>(durationMillis = 800, easing = LinearEasing)
     // The wave calms down before the bar turns into the run (and comes back after the reverse),
     // so it never jumps from wavy to straight.
     var calm by remember { mutableStateOf(showRun) }
     LaunchedEffect(showRun) {
-        focusId = hereId
         if (showRun) {
             calm = true
             // The group's bar fills up and its wave flattens out first.
@@ -2134,19 +2382,23 @@ private fun TriageBar(
             progress = groupProgress,
             modifier = modifier.padding(vertical = 12.dp),
             // Flat while calm: the indicator eases its wave in and out by itself.
+            // Material's own wave, which calms down near the start and the end on purpose (the
+            // bar eases into a straight line as it finishes); flat while the run is shown.
             amplitude = { p -> if (calm) 0f else WavyProgressIndicatorDefaults.indicatorAmplitude(p) },
         )
         return
     }
     Canvas(modifier = modifier.height(34.dp)) {
         val t = morph.value
-        // One step after the other, the same both ways. Finishing a group: the bar shrinks into
-        // its piece (first 60%), then the other pieces fade in (from 40%). Going back: the other
-        // pieces fade out first, then the bar grows back to the full width.
-        val shrink = FastOutSlowInEasing.transform((t / 0.6f).coerceIn(0f, 1f))
-        val others = FastOutSlowInEasing.transform(((t - 0.4f) / 0.6f).coerceIn(0f, 1f))
+        // The other groups' pieces never fade: this group's bar moves over them. Finishing a
+        // group, the full bar shrinks into its piece and uncovers the run, done ones filled.
+        // Starting the next one, its piece grows over the others until it fills the width, so
+        // the finished groups stay in view until they're covered.
+        val shrink = FastOutSlowInEasing.transform(t)
+        val others = 1f
         val gap = 4.dp.toPx()
-        val thickness = lerp(4.dp.toPx(), 6.dp.toPx(), shrink)
+        // As thick as the wavy bar's line, so the pieces don't look heavier than it.
+        val thickness = 4.dp.toPx()
         val y = (size.height - thickness) / 2
         val radius = CornerRadius(thickness / 2)
         val weights = runPlaces.map { (sizes[it.id] ?: it.unread).coerceAtLeast(1).toFloat() }
@@ -2165,8 +2417,16 @@ private fun TriageBar(
         // The other groups first, fading in (or out) at their places...
         runPlaces.forEachIndexed { k, place ->
             if (k == focus) return@forEachIndexed
-            val color = if (place.id in visited) doneColor else todoColor
-            drawRoundRect(color.copy(alpha = color.alpha * others), Offset(starts[k], y), Size(widths[k], thickness), radius)
+            // Filled as far as you got: all of a finished group, part of one you jumped away from
+            // (its cards not reached stay unread), none of one still to come.
+            val size = (sizes[place.id] ?: place.unread).coerceAtLeast(1)
+            val got =
+                if (place.id !in visited) 0f
+                else (1f - (notReached[place.id] ?: 0).toFloat() / size).coerceIn(0f, 1f)
+            drawRoundRect(todoColor.copy(alpha = todoColor.alpha * others), Offset(starts[k], y), Size(widths[k], thickness), radius)
+            if (got > 0f) {
+                drawRoundRect(doneColor.copy(alpha = doneColor.alpha * others), Offset(starts[k], y), Size(widths[k] * got, thickness), radius)
+            }
         }
         // ...then this group's own bar on top: from the full width to its piece, filled as far as
         // it got. Drawn last, so the others never show through it while it moves.
@@ -2181,5 +2441,28 @@ private fun TriageBar(
         if (focus < 0) {
             drawRoundRect(todoColor.copy(alpha = todoColor.alpha * (1f - others)), Offset(0f, y), Size(size.width, thickness), radius)
         }
+    }
+}
+
+/**
+ * Shares a Triage card's picture (a PNG in the app's cache, through its file provider), with the
+ * article's link as text for apps that take both.
+ */
+private fun shareCardPicture(context: android.content.Context, picture: androidx.compose.ui.graphics.ImageBitmap, link: String?) {
+    runCatching {
+        val dir = java.io.File(context.cacheDir, "shared").apply { mkdirs() }
+        val file = java.io.File(dir, "triage-card.png")
+        file.outputStream().use { picture.asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+        val send =
+            android.content.Intent(android.content.Intent.ACTION_SEND)
+                .setType("image/png")
+                .putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                .apply { link?.takeIf { it.isNotBlank() }?.let { putExtra(android.content.Intent.EXTRA_TEXT, it) } }
+                .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        send.clipData = android.content.ClipData.newRawUri(null, uri)
+        context.startActivity(
+            android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
     }
 }

@@ -264,13 +264,13 @@
     <string name="triage_tile_saved">saved</string>
     <string name="triage_tile_skipped">skipped</string>
     <string name="triage_next_up">Next up</string>
+    <string name="triage_back_to">Back to</string>
+    <string name="triage_share_picture">Share the card as a picture</string>
     <string name="triage_next_unread">%1$d unread</string>
-    <string name="triage_place_of">%1$d of %2$d</string>
     <string name="triage_places_groups">Groups in this run</string>
     <string name="triage_places_feeds">Feeds in this run</string>
     <string name="triage_place_done">Done</string>
     <string name="triage_skip_place">Skip %1$s</string>
-    <string name="triage_keep_going">Keep going</string>
     <string name="triage_jump_hint">The cards you leave here stay unread.</string>
     <string name="triage_summary_working">Summarising…</string>
     <string name="triage_summary_done">Summary · tap for the article</string>

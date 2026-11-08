@@ -87,6 +87,9 @@ data class CardSummary(
         get() = !done && !noModel && !failed
 }
 
+/** How often the card shows the summary text that has arrived so far, while it is written. */
+private const val TEXT_EVERY_MS = 120L
+
 /** The summaries of this Triage run, by article. */
 @Stable
 class CardSummaries internal constructor(private val summarizer: GemmaSummarizer) {
@@ -123,9 +126,22 @@ class CardSummaries internal constructor(private val summarizer: GemmaSummarizer
         job =
             scope.launch {
                 try {
+                    // The model sends many small pieces a second; showing each one redraws the whole
+                    // card and makes the glow stutter. So the text is shown at most every
+                    // [TEXT_EVERY_MS], and the last piece once it's done.
+                    var shownAt = 0L
+                    var latest: String? = null
                     summarizer
                         .summarizeForCard(article.article.title, article.article.rawDescription)
-                        .collect { summaries[id] = CardSummary(text = it) }
+                        .collect { text ->
+                            latest = text
+                            val now = android.os.SystemClock.uptimeMillis()
+                            if (now - shownAt >= TEXT_EVERY_MS) {
+                                summaries[id] = CardSummary(text = text)
+                                shownAt = now
+                            }
+                        }
+                    latest?.let { summaries[id] = CardSummary(text = it) }
                     summaries[id] = (summaries[id] ?: CardSummary()).copy(done = true)
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     // Swiped away (or another card asked): forget the half-written summary.
@@ -312,8 +328,10 @@ private fun ShimmerLines() {
         )
     val base = MaterialTheme.colorScheme.surfaceContainerHighest
     val light = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+    // Three full lines and a shorter last one, like a paragraph. The shine is measured against
+    // the full width on every line, so it sweeps across all of them together at one speed.
     Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-        listOf(1f, 0.86f, 0.93f, 0.6f).forEach { fraction ->
+        listOf(1f, 1f, 1f, 0.6f).forEach { fraction ->
             Box(
                 modifier =
                     Modifier.fillMaxWidth(fraction)
@@ -321,7 +339,7 @@ private fun ShimmerLines() {
                         .clip(RoundedCornerShape(6.dp))
                         .graphicsLayer {}
                         .drawWithContent {
-                            val w = size.width
+                            val w = size.width / fraction
                             drawRect(
                                 Brush.linearGradient(
                                     colors = listOf(base, light, base),

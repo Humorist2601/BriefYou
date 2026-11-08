@@ -7,6 +7,8 @@ import android.view.SoundEffectConstants
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +47,10 @@ data class TopBarAction(
     val icon: ImageVector,
     val description: String,
     val selected: Boolean = false,
+    /** Greyed out and not tappable when false (Triage's Undo with nothing to undo). */
+    val enabled: Boolean = true,
+    /** A long press (Triage's Auto-advance: choose the delay). */
+    val onLongClick: (() -> Unit)? = null,
     val onClick: () -> Unit,
 )
 
@@ -99,9 +105,21 @@ fun TonalCircleButton(
  * [TonalCircleButton].
  */
 @Composable
-fun TopBarButtonGroup(actions: List<TopBarAction>, modifier: Modifier = Modifier) {
+fun TopBarButtonGroup(
+    actions: List<TopBarAction>,
+    modifier: Modifier = Modifier,
+    /**
+     * The first button's outer corner, when something is joined on before it (Triage's Play). Set,
+     * the buttons are always drawn as pill segments, even a single one.
+     */
+    leadingCorner: Dp? = null,
+    /** Each button's width, instead of the usual 48dp (Triage's Undo narrowing into a circle). */
+    buttonWidth: Dp = ButtonWidth,
+) {
     if (actions.isEmpty()) return
-    if (actions.size == 1) {
+    // One action alone is a circle, unless something is joined on before it (then it's the end
+    // of that pill).
+    if (actions.size == 1 && leadingCorner == null) {
         val a = actions.first()
         TonalCircleButton(icon = a.icon, description = a.description, modifier = modifier, onClick = a.onClick)
         return
@@ -118,9 +136,11 @@ fun TopBarButtonGroup(actions: List<TopBarAction>, modifier: Modifier = Modifier
         actions.forEachIndexed { index, action ->
             val target =
                 when {
-                    pressedIndex < 0 -> ButtonWidth
-                    index == pressedIndex -> ButtonWidth + PressedExtraWidth
-                    else -> ButtonWidth - PressedExtraWidth / (actions.size - 1)
+                    pressedIndex < 0 -> buttonWidth
+                    // A single segment doesn't widen when pressed (nothing to squeeze).
+                    actions.size == 1 -> buttonWidth
+                    index == pressedIndex -> buttonWidth + PressedExtraWidth
+                    else -> buttonWidth - PressedExtraWidth / (actions.size - 1)
                 }
             val width by animateDpAsState(target, spatial, label = "width")
             Segment(
@@ -128,7 +148,7 @@ fun TopBarButtonGroup(actions: List<TopBarAction>, modifier: Modifier = Modifier
                 interaction = interactions[index],
                 width = width,
                 height = ButtonHeight,
-                leadingCorner = if (index == 0) OuterCorner else InnerCorner,
+                leadingCorner = if (index == 0) leadingCorner ?: OuterCorner else InnerCorner,
                 trailingCorner = if (index == actions.lastIndex) OuterCorner else InnerCorner,
             )
         }
@@ -177,11 +197,19 @@ private fun Segment(
     ) {
         Box(
             modifier =
-                Modifier.fillMaxSize().clickable(
+                Modifier.fillMaxSize().combinedClickable(
                     interactionSource = interaction,
                     indication = ripple(),
+                    enabled = action.enabled,
                     role = Role.Button,
                     onClickLabel = action.description,
+                    onLongClick =
+                        action.onLongClick?.let { long ->
+                            {
+                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                long()
+                            }
+                        },
                 ) {
                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     view.playSoundEffect(SoundEffectConstants.CLICK)
@@ -192,7 +220,7 @@ private fun Segment(
             Icon(
                 imageVector = action.icon,
                 contentDescription = action.description,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(22.dp).alpha(if (action.enabled) 1f else 0.38f),
             )
         }
     }

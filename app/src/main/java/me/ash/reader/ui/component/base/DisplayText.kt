@@ -1,5 +1,6 @@
 package me.ash.reader.ui.component.base
 
+import me.ash.reader.brief.ui.reportsCollapsingTitle // Brief You
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -38,7 +39,7 @@ fun DisplayText(
             )
         val color = MaterialTheme.colorScheme.onSurface
         BasicText(
-            modifier = Modifier,
+            modifier = Modifier.reportsCollapsingTitle(text), // Brief You: moves into the top bar as you scroll
             text = text,
             style = style,
             color = { color },

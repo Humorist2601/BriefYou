@@ -1,5 +1,12 @@
 package me.ash.reader.ui.component.base
 
+import androidx.compose.foundation.layout.Box // Brief You
+import androidx.compose.runtime.CompositionLocalProvider // Brief You
+import androidx.compose.runtime.remember // Brief You
+import me.ash.reader.brief.ui.CollapsedTitle // Brief You
+import me.ash.reader.brief.ui.CollapsingTitle // Brief You
+import me.ash.reader.brief.ui.LocalCollapsingTitle // Brief You
+import me.ash.reader.brief.ui.measuresTitleBar // Brief You
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
@@ -34,6 +41,9 @@ fun RYScaffold(
     floatingActionButton: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit = {},
 ) {
+    // Brief You: the page's big title moves into the top bar as you scroll (like the article list).
+    val collapsingTitle = remember { CollapsingTitle() } // Brief You
+    CompositionLocalProvider(LocalCollapsingTitle provides collapsingTitle) { // Brief You
     Scaffold(
         modifier =
             modifier.background(
@@ -48,10 +58,11 @@ fun RYScaffold(
                 color = containerColor,
             ) onDark MaterialTheme.colorScheme.surface,
         topBar = {
+            Box(Modifier.measuresTitleBar(collapsingTitle)) { // Brief You
             if (topBar != null) topBar()
             else if (navigationIcon != null || actions != null) {
                 TopAppBar(
-                    title = {},
+                    title = { CollapsedTitle() }, // Brief You
                     navigationIcon = { navigationIcon?.invoke() },
                     actions = { actions?.invoke(this) },
                     colors =
@@ -63,6 +74,7 @@ fun RYScaffold(
                         ),
                 )
             }
+            } // Brief You
         },
         content = {
             val layoutDirection = LocalLayoutDirection.current
@@ -81,4 +93,5 @@ fun RYScaffold(
         floatingActionButton = { floatingActionButton?.invoke() },
         floatingActionButtonPosition = floatingActionButtonPosition,
     )
+    } // Brief You
 }
