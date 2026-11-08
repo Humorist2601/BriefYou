@@ -78,8 +78,6 @@ data class YearRecap(
     val year: Int,
     val articles: Int,
     val minutes: Long,
-    /** Articles more (or fewer) than the year before; null when there's nothing to compare. */
-    val vsLast: Int?,
     /** Articles opened on each day, month by month (index 0 is January, then the day's index). */
     val perDay: List<List<Int>>,
     /** Minutes read on each day, month by month. */
@@ -112,18 +110,6 @@ fun yearRecap(data: ReadingStatsData, year: Int): YearRecap? {
     val started =
         data.since.takeIf { it > 0 }?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
     val since = started?.takeIf { it.year == year && it.dayOfYear > 1 }
-    // Comparing makes sense only between two whole years of stats.
-    val lastWhole = started == null || !started.isAfter(LocalDate.of(year - 1, 1, 1))
-    val lastArticles =
-        if (lastWhole) {
-            var d = LocalDate.of(year - 1, 1, 1)
-            var sum = 0
-            while (d.year == year - 1) {
-                sum += data.days[d.toString()]?.articles ?: 0
-                d = d.plusDays(1)
-            }
-            sum
-        } else 0
     var longest = 0
     var run = 0
     all.forEach {
@@ -147,7 +133,6 @@ fun yearRecap(data: ReadingStatsData, year: Int): YearRecap? {
         year = year,
         articles = articles,
         minutes = all.sumOf { it.seconds } / 60,
-        vsLast = if (since == null && lastWhole && lastArticles > 0) articles - lastArticles else null,
         perDay = days.map { list -> list.map { it.articles } },
         minutesPerDay = days.map { list -> list.map { it.seconds / 60 } },
         bestMonth = perMonth.indices.maxByOrNull { perMonth[it] }?.let { months[it] },
@@ -178,17 +163,9 @@ fun yearRecapWeek(data: ReadingStatsData, today: LocalDate = LocalDate.now()): B
 
 private fun shortMonth(month: Int) = Month.of(month + 1).getDisplayName(TextStyle.SHORT_STANDALONE, Locale.getDefault())
 
-@Composable
-internal fun yearVsText(recap: YearRecap): String? {
-    val diff = recap.vsLast ?: return null
-    val last = (recap.year - 1).toString()
-    return if (diff == 0) stringResource(R.string.stats_same_as_last_month, last)
-    else stringResource(R.string.stats_vs_last_month, if (diff > 0) "+$diff" else "−${-diff}", last)
-}
-
 /**
  * The year in review, on the primary container like the monthly recap. Closed: the year's
- * articles, twelve month bars and four tiles. Tap it and it opens in place: each month's bar
+ * articles (no comparison with the year before: stats keep about 400 days), twelve month bars and four tiles. Tap it and it opens in place: each month's bar
  * breaks into its days, which fly to that month's little calendar (three across, Monday first),
  * and the tiles give way to every highlight; tap a day for its numbers. ✕ hides it ([onHide]);
  * Share makes a picture of the card as it is.
@@ -285,7 +262,9 @@ private fun YearHeader(recap: YearRecap, tint: Color) {
         title = stringResource(R.string.recap_title, recap.year.toString()),
         since = recap.since,
         articles = recap.articles,
-        vs = yearVsText(recap),
+        // No "vs last year": stats keep about 400 days, so most of the year before is gone by
+        // January and the comparison would be wrong.
+        vs = null,
         tint = tint,
     )
 }

@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -735,9 +736,12 @@ fun PastMonths(data: ReadingStatsData, modifier: Modifier = Modifier) {
             onDismissRequest = { open = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         ) {
-            val sheetModifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 24.dp)
-            if (chosen != null) RecapCard(recap = chosen, modifier = sheetModifier)
-            else lastYear?.let { YearRecapCard(recap = it, modifier = sheetModifier) }
+            // Scrolls: an open card (the year's above all) can be taller than the screen.
+            Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+                val sheetModifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 24.dp)
+                if (chosen != null) RecapCard(recap = chosen, modifier = sheetModifier)
+                else lastYear?.let { YearRecapCard(recap = it, modifier = sheetModifier) }
+            }
         }
     }
 }
@@ -831,7 +835,7 @@ fun HomeRecapTeaser(modifier: Modifier = Modifier) {
                     )
                     Text(
                         text =
-                            if (y != null) listOfNotNull(stringResource(R.string.recap_teaser, y.articles), yearVsText(y)).joinToString(" · ")
+                            if (y != null) stringResource(R.string.recap_teaser, y.articles)
                             else listOfNotNull(stringResource(R.string.recap_teaser, r!!.articles), vsText(r)).joinToString(" · "),
                         style = MaterialTheme.typography.labelMedium,
                         color = scheme.onPrimaryContainer.copy(alpha = 0.8f),
