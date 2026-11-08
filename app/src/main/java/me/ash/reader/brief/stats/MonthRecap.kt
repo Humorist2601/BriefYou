@@ -776,11 +776,22 @@ fun HomeRecapTeaser(modifier: Modifier = Modifier) {
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                // ✕ in a small circle, like the count badge on each feed (a full-size touch area).
                 IconButton(onClick = { ReadingStats.hideRecap(context, r.month.toString()) }) {
-                    Icon(
-                        Icons.Rounded.Close,
-                        contentDescription = stringResource(R.string.recap_hide),
-                    )
+                    Box(
+                        modifier =
+                            Modifier.size(22.dp)
+                                .clip(CircleShape)
+                                .background(scheme.onPrimaryContainer.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.recap_hide),
+                            tint = scheme.onPrimaryContainer.copy(alpha = 0.8f),
+                            modifier = Modifier.size(12.dp),
+                        )
+                    }
                 }
             }
         }
