@@ -10,7 +10,9 @@ import kotlinx.serialization.json.Json
 
 /**
  * One day of reading: seconds spent with an article open, how many articles were opened, and the
- * day's inbox zeros and Triage cards (counted per day since the monthly stats came in).
+ * day's inbox zeros and Triage cards (counted per day since the monthly stats came in), and,
+ * for the monthly recap, articles opened per feed and articles the filters hid (counted per day
+ * since the recap came in).
  */
 @Serializable
 data class StatsDay(
@@ -18,6 +20,8 @@ data class StatsDay(
     val articles: Int = 0,
     val inboxZero: Int = 0,
     val triaged: Int = 0,
+    val feeds: Map<String, Int> = emptyMap(),
+    val filtered: Int = 0,
 )
 
 /** Everything Reading stats keeps. Days are ISO dates ("2026-10-18"). */
@@ -42,6 +46,8 @@ data class ReadingStatsData(
 object ReadingStats {
     private const val PREFS = "reading_stats"
     private const val KEY = "data"
+    private const val KEY_RECAP_HIDDEN = "recap_hidden"
+    private const val KEY_RECAP_HOME = "recap_on_home"
     /** Days kept: a bit over a year, so the file stays small. */
     private const val KEEP_DAYS = 400L
     /** Time is written every this many seconds while reading, and when the article closes. */
@@ -82,8 +88,11 @@ object ReadingStats {
         if (!countedToday.add(articleId)) return
         update(context) { d ->
             val day = d.days[today] ?: StatsDay()
+            val dayFeeds =
+                if (feedName.isBlank()) day.feeds
+                else day.feeds + (feedName to (day.feeds[feedName] ?: 0) + 1)
             d.copy(
-                days = d.days + (today to day.copy(articles = day.articles + 1)),
+                days = d.days + (today to day.copy(articles = day.articles + 1, feeds = dayFeeds)),
                 feeds =
                     if (feedName.isBlank()) d.feeds
                     else d.feeds + (feedName to (d.feeds[feedName] ?: 0) + 1),
@@ -127,6 +136,46 @@ object ReadingStats {
         }
     }
 
+    /** The filters hid [delta] articles today, or one came back with Undo ([delta] -1). */
+    @Synchronized
+    fun filtered(context: Context, delta: Int) {
+        if (delta == 0) return
+        val today = today()
+        update(context) { d ->
+            val day = d.days[today] ?: StatsDay()
+            d.copy(days = d.days + (today to day.copy(filtered = (day.filtered + delta).coerceAtLeast(0))))
+        }
+    }
+
+    /** The month whose recap was hidden ("2026-10"), so it stays hidden everywhere. */
+    var recapHidden by mutableStateOf("")
+        private set
+
+    /** Whether last month's recap is shown on the home screen too (a setting on Reading stats). */
+    var recapOnHome by mutableStateOf(true)
+        private set
+
+    private var recapLoaded = false
+
+    /** Reads the recap's two settings (once). */
+    fun loadRecap(context: Context) {
+        if (recapLoaded) return
+        val p = prefs(context)
+        recapHidden = p.getString(KEY_RECAP_HIDDEN, "").orEmpty()
+        recapOnHome = p.getBoolean(KEY_RECAP_HOME, true)
+        recapLoaded = true
+    }
+
+    fun hideRecap(context: Context, month: String) {
+        recapHidden = month
+        prefs(context).edit().putString(KEY_RECAP_HIDDEN, month).apply()
+    }
+
+    fun setRecapOnHome(context: Context, show: Boolean) {
+        recapOnHome = show
+        prefs(context).edit().putBoolean(KEY_RECAP_HOME, show).apply()
+    }
+
     /** Starts over (from the Reading stats page). */
     @Synchronized
     fun reset(context: Context) {
@@ -153,6 +202,11 @@ object ReadingStats {
                     articles = maxOf(a?.articles ?: 0, b?.articles ?: 0),
                     inboxZero = maxOf(a?.inboxZero ?: 0, b?.inboxZero ?: 0),
                     triaged = maxOf(a?.triaged ?: 0, b?.triaged ?: 0),
+                    feeds =
+                        ((a?.feeds?.keys ?: emptySet()) + (b?.feeds?.keys ?: emptySet())).associateWith {
+                            maxOf(a?.feeds?.get(it) ?: 0, b?.feeds?.get(it) ?: 0)
+                        },
+                    filtered = maxOf(a?.filtered ?: 0, b?.filtered ?: 0),
                 )
             }
             val feeds = (d.feeds.keys + incoming.feeds.keys).associateWith { key ->

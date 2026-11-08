@@ -32,6 +32,8 @@ import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -55,7 +57,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -137,8 +138,10 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
     val context = LocalContext.current
 
     var addDialogVisible by rememberSaveable { mutableStateOf(false) }
-    // Older days are tucked into one "Earlier" row; today's are always shown.
-    var earlierOpen by rememberSaveable { mutableStateOf(false) }
+    // Older days are grouped by reason (duplicate stories, then each keyword), each group closed
+    // until tapped; an open group shows a few articles at a time. Today's are always shown.
+    var openGroups by rememberSaveable { mutableStateOf(setOf<String>()) }
+    var shownInGroup by remember { mutableStateOf(mapOf<String, Int>()) }
     val mutedCount = log.count { it.reason == FilterReason.MutedKeyword }
     val duplicateCount = log.count { it.reason == FilterReason.Duplicate }
     // The filtered articles, newest first, under Today / Yesterday / a date.
@@ -395,6 +398,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         }
                     }
                     itemsIndexed(entries, key = { _, it -> it.key }) { index, row ->
+                        Box(Modifier.animateItem()) {
                         when (row) {
                             is LogRow.Single ->
                                 FilterLogCard(
@@ -410,6 +414,80 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                                     onOpen = open,
                                     onUndo = { viewModel.undo(it) },
                                 )
+                        }
+                        }
+                    }
+                }
+                // An earlier day: one closed row per reason, with its count. Opening one shows its
+                // first few articles and "Show more"; rows slide and fade in and out.
+                fun reasonGroups(day: Long, entries: List<LogRow>) {
+                    item(key = "day-$day") {
+                        Text(
+                            text = dayLabel(day),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.animateItem().padding(start = 24.dp, top = 12.dp, bottom = 8.dp),
+                        )
+                    }
+                    val groups = buildList {
+                        val dupes = entries.filterIsInstance<LogRow.Duplicates>()
+                        if (dupes.isNotEmpty()) add(Triple("$day-dupes", null as String?, dupes as List<LogRow>))
+                        entries
+                            .filterIsInstance<LogRow.Single>()
+                            .groupBy { it.entry.detail }
+                            .forEach { (word, rows) -> add(Triple("$day-kw-$word", word, rows as List<LogRow>)) }
+                    }
+                    groups.forEach { (key, word, rows) ->
+                        val isOpen = key in openGroups
+                        val count = rows.sumOf { if (it is LogRow.Duplicates) it.copies.size else 1 }
+                        item(key = "group-$key") {
+                            ReasonGroupRow(
+                                title =
+                                    if (word == null) stringResource(R.string.filters_group_duplicates)
+                                    else stringResource(R.string.filters_group_keyword, word),
+                                count = count,
+                                open = isOpen,
+                                modifier = Modifier.animateItem(),
+                                onClick = {
+                                    openGroups = if (isOpen) openGroups - key else openGroups + key
+                                    if (isOpen) shownInGroup = shownInGroup - key
+                                },
+                            )
+                        }
+                        if (isOpen) {
+                            val shown = rows.take(shownInGroup[key] ?: GROUP_PAGE)
+                            itemsIndexed(shown, key = { _, it -> "$key-" + it.key }) { index, row ->
+                                Box(Modifier.animateItem()) {
+                                    val shape = groupShape(index, shown.size)
+                                    when (row) {
+                                        is LogRow.Single ->
+                                            FilterLogCard(
+                                                entry = row.entry,
+                                                shape = shape,
+                                                onOpen = { open(row.entry.articleId) },
+                                                onUndo = { viewModel.undo(row.entry) },
+                                            )
+                                        is LogRow.Duplicates ->
+                                            DuplicateGroupCard(
+                                                group = row,
+                                                shape = shape,
+                                                onOpen = open,
+                                                onUndo = { viewModel.undo(it) },
+                                            )
+                                    }
+                                }
+                            }
+                            val more = rows.size - shown.size
+                            if (more > 0) {
+                                item(key = "more-$key") {
+                                    TextButton(
+                                        onClick = { shownInGroup = shownInGroup + (key to shown.size + GROUP_PAGE * 4) },
+                                        modifier = Modifier.animateItem().fillMaxWidth().padding(horizontal = 16.dp),
+                                    ) {
+                                        Text(stringResource(R.string.filters_show_more, more))
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -428,17 +506,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         )
                     }
                 }
-                if (earlier.isNotEmpty()) {
-                    val earlierCount = log.count { dayOf(it.at) != today }
-                    item(key = "earlier") {
-                        EarlierRow(
-                            count = earlierCount,
-                            open = earlierOpen,
-                            onClick = { earlierOpen = !earlierOpen },
-                        )
-                    }
-                    if (earlierOpen) earlier.forEach { (day, entries) -> dayRows(day, entries, header = true) }
-                }
+                earlier.forEach { (day, entries) -> reasonGroups(day, entries) }
                 item {
                     Spacer(Modifier.height(8.dp))
                     Surface(
@@ -779,31 +847,44 @@ private fun DuplicateGroupCard(
 }
 
 /** "Earlier (12)": opens and closes the filtered articles of the days before today. */
+/** A reason's filtered articles on an earlier day, closed: its name, how many, and an arrow. */
 @Composable
-private fun EarlierRow(count: Int, open: Boolean, onClick: () -> Unit) {
+private fun ReasonGroupRow(title: String, count: Int, open: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val turn by animateFloatAsState(if (open) 180f else 0f, label = "group arrow")
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = if (open) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = if (open) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
         shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp),
+        modifier = modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 6.dp),
     ) {
         Row(
             modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(R.string.filters_earlier, count),
+                text = title,
                 style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
             Icon(
-                if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                Icons.Rounded.ExpandMore,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.graphicsLayer { rotationZ = turn },
             )
         }
     }
 }
+
+/** How many articles an opened group shows at first ("Show more" adds more). */
+private const val GROUP_PAGE = 5
 
 /** An icon on a small Expressive shape, for the cards on this page. */
 @Composable

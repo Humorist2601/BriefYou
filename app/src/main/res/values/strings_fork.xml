@@ -128,7 +128,9 @@
     <string name="filters_kept_unread_from">Kept unread · %1$s</string>
     <string name="filters_kept_unread">Kept unread</string>
     <string name="filters_hidden_from">Hidden · %1$s</string>
-    <string name="filters_earlier">Earlier (%1$d)</string>
+    <string name="filters_group_duplicates">Duplicate stories</string>
+    <string name="filters_group_keyword">“%1$s”</string>
+    <string name="filters_show_more">Show %1$d more</string>
     <string name="filters_nothing_today">Nothing filtered today</string>
     <string name="filters_from_feed">from %1$s</string>
     <string name="filters_original_story">Original: %1$s</string>
@@ -252,6 +254,45 @@
     <string name="stats_reset">Reset stats</string>
     <string name="stats_reset_confirm">Your reading stats will start again from zero. This can\'t be undone.</string>
     <string name="stats_reset_action">Reset</string>
+    <string name="recap_title">%1$s in reading</string>
+    <string name="recap_since">Since %1$s</string>
+    <string name="recap_articles">articles</string>
+    <string name="recap_busiest">Busiest day</string>
+    <string name="recap_busiest_value">%1$s · %2$d</string>
+    <string name="recap_top_feed">Top feed</string>
+    <string name="recap_top_feed_value">%1$s · %2$d</string>
+    <string name="recap_streak">Longest streak</string>
+    <plurals name="recap_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="recap_time">Reading time</string>
+    <string name="recap_hours">%1$d h %2$d min</string>
+    <string name="recap_minutes">%1$d min</string>
+    <string name="recap_triage">Triage</string>
+    <plurals name="recap_triage_value">
+        <item quantity="one">%1$d · %2$d inbox zero</item>
+        <item quantity="other">%1$d · %2$d inbox zeros</item>
+    </plurals>
+    <string name="recap_filtered">Filters hid</string>
+    <plurals name="recap_day_detail">
+        <item quantity="one">%1$s · %2$d article · %3$s</item>
+        <item quantity="other">%1$s · %2$d articles · %3$s</item>
+    </plurals>
+    <string name="recap_tile_busiest">busiest day</string>
+    <string name="recap_tile_streak">longest streak</string>
+    <string name="recap_tile_time">reading</string>
+    <string name="recap_tile_top_feed">top feed</string>
+    <plurals name="recap_tile_triage">
+        <item quantity="one">triaged · %1$d inbox zero</item>
+        <item quantity="other">triaged · %1$d inbox zeros</item>
+    </plurals>
+    <string name="recap_hide">Hide</string>
+    <string name="recap_share">Share</string>
+    <string name="recap_teaser">%1$d articles</string>
+    <string name="recap_past">Past months</string>
+    <string name="recap_on_home">Monthly recap on home</string>
+    <string name="recap_on_home_desc">Last month\'s recap above your feeds for the first week of a month</string>
     <string name="stats_footer">Reading stats stay on this phone, and are included in "Back up everything". An article counts as read when you open it; time counts while it\'s on screen.</string>
     <!-- App shortcuts (long-press the app icon) -->
     <string name="shortcut_triage">Triage</string>
@@ -266,6 +307,7 @@
     <string name="triage_next_up">Next up</string>
     <string name="triage_back_to">Back to</string>
     <string name="triage_share_picture">Share the card as a picture</string>
+    <string name="triage_share_brand" translatable="false">Brief You</string>
     <string name="triage_next_unread">%1$d unread</string>
     <string name="triage_places_groups">Groups in this run</string>
     <string name="triage_places_feeds">Feeds in this run</string>

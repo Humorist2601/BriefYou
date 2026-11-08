@@ -6,6 +6,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.toShape
@@ -118,7 +120,10 @@ fun ReadingStatsSettingsItem() {
 @Composable
 fun ReadingStatsPage(onBack: () -> Unit) {
     val context = LocalContext.current
-    LaunchedEffect(Unit) { ReadingStats.load(context) }
+    LaunchedEffect(Unit) {
+        ReadingStats.load(context)
+        ReadingStats.loadRecap(context)
+    }
     val data = ReadingStats.data
     var confirmReset by rememberSaveable { mutableStateOf(false) }
     // Which stat the weekly chart shows: tap a tile to choose (it turns tertiary, like the bars).
@@ -189,6 +194,8 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                 item {
                     DisplayText(text = stringResource(R.string.stats_title), desc = "")
                     Spacer(Modifier.height(8.dp))
+                    // Last month's recap, for the first week of a month.
+                    RecapAtTop()
                     HeroCard(minutes = weekMinutes, daysRead = daysRead)
                     Spacer(Modifier.height(12.dp))
                     // All three as tall as the tallest (a label may take two lines).
@@ -324,6 +331,32 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                                 compareToLast(thisMonth.triaged, lastMonth.triaged, lastMonthName),
                             )
                         }
+                    }
+                    Spacer(Modifier.height(28.dp))
+                    PastMonths(data)
+                    // Last month's recap on home too (the first week of a month).
+                    Row(
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .clickable { ReadingStats.setRecapOnHome(context, !ReadingStats.recapOnHome) }
+                                .padding(horizontal = 24.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f).padding(end = 16.dp)) {
+                            Text(
+                                text = stringResource(R.string.recap_on_home),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Text(
+                                text = stringResource(R.string.recap_on_home_desc),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = ReadingStats.recapOnHome,
+                            onCheckedChange = { ReadingStats.setRecapOnHome(context, it) },
+                        )
                     }
                     Text(
                         text = stringResource(R.string.stats_footer),
