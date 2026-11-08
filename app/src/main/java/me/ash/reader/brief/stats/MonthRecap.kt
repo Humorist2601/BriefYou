@@ -613,13 +613,7 @@ private fun RecapPicture(recap: MonthRecap, open: Boolean) {
             Spacer(Modifier.height(14.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Spacer(Modifier.weight(1f))
-                Box(Modifier.size(12.dp).clip(RoundedCornerShape(4.dp)).background(scheme.primary))
-                Text(
-                    text = stringResource(R.string.triage_share_brand),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = scheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 6.dp),
-                )
+                me.ash.reader.brief.ui.BriefYouMark(scheme.onSurfaceVariant)
             }
         }
     }

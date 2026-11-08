@@ -8,7 +8,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.rememberGraphicsLayer
@@ -70,5 +76,36 @@ fun OffscreenPicture(capturing: Boolean, onPicture: (ImageBitmap?) -> Unit, cont
         val placeable =
             measurables.first().measure(Constraints(minWidth = constraints.maxWidth, maxWidth = constraints.maxWidth))
         layout(0, 0) { placeable.place(0, 0) }
+    }
+}
+
+/**
+ * The Brief You mark for shared pictures: the app's own icon (its foreground on its background
+ * colour, in a circle, as a launcher shows it; the Nightly's icon in Nightly builds) and the name.
+ */
+@androidx.compose.runtime.Composable
+fun BriefYouMark(color: androidx.compose.ui.graphics.Color) {
+    androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        androidx.compose.foundation.layout.Box(
+            modifier =
+                Modifier.size(18.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(androidx.compose.ui.res.colorResource(me.ash.reader.R.color.ic_launcher_background)),
+            contentAlignment = androidx.compose.ui.Alignment.Center,
+        ) {
+            // The foreground is drawn on 108 units with the icon in the middle 72, so it's drawn
+            // half as big again as the circle and cropped to it.
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(me.ash.reader.R.drawable.ic_launcher_foreground),
+                contentDescription = null,
+                modifier = Modifier.requiredSize(27.dp),
+            )
+        }
+        androidx.compose.material3.Text(
+            text = androidx.compose.ui.res.stringResource(me.ash.reader.R.string.triage_share_brand),
+            style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+            color = color,
+            modifier = Modifier.padding(start = 6.dp),
+        )
     }
 }
