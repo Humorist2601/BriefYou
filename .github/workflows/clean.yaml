@@ -1,20 +1,18 @@
 name: "Clean up old releases, tags and runs"
 
 # Run by hand only (Actions → "Clean up old releases, tags and runs" → Run workflow). Nothing here
-# runs on a schedule or on push. Starts as a dry run: it lists what it would delete, and deletes
-# only when "Dry run" is unticked.
+# runs on a schedule or on push. Keeps only the latest of everything:
+# - the newest release (and the single Nightly prerelease, which each test build replaces),
+# - the newest run of each workflow, and no runs of workflows that were removed,
+# - the release tags of the kept releases only,
+# - branches with work not yet in main (fully merged ones are deleted; never main or
+#   read-you-sync).
+# Gradle caches are left alone: GitHub removes the ones unused for 7 days by itself.
+# Starts as a dry run: it lists what it would delete, and deletes only when "Dry run" is unticked.
 
 on:
     workflow_dispatch:
         inputs:
-            keep_releases:
-                description: "Releases to keep (the newest ones; older releases and their tags are deleted)"
-                type: number
-                default: 5
-            keep_runs:
-                description: "Workflow runs to keep per workflow (the newest ones; older runs and their logs are deleted)"
-                type: number
-                default: 10
             dry_run:
                 description: "Dry run: only list what would be deleted"
                 type: boolean
@@ -24,23 +22,21 @@ jobs:
     cleanup:
         runs-on: ubuntu-latest
         permissions:
-            contents: write # releases and tags
+            contents: write # releases, tags and branches
             actions: write # workflow runs
         env:
             GH_TOKEN: ${{ github.token }}
             REPO: ${{ github.repository }}
-            KEEP_RELEASES: ${{ inputs.keep_releases }}
-            KEEP_RUNS: ${{ inputs.keep_runs }}
             DRY_RUN: ${{ inputs.dry_run }}
         steps:
             - name: Old releases
               run: |
-                  # Newest first by date (not by tag name), so the latest builds are the ones kept.
-                  # The Nightly prerelease is never counted or deleted here.
+                  # Newest first by date (not by tag name). The Nightly prerelease is never
+                  # counted or deleted here: there is only ever one.
                   gh api "repos/$REPO/releases?per_page=100" --paginate \
                       -q '.[] | select(.prerelease | not) | [.created_at, .tag_name] | @tsv' \
-                    | sort -r | tail -n +$((KEEP_RELEASES + 1)) | cut -f2 > old_releases.txt
-                  echo "Keeping the newest $KEEP_RELEASES releases; $(wc -l < old_releases.txt) older ones:"
+                    | sort -r | tail -n +2 | cut -f2 > old_releases.txt
+                  echo "Keeping the newest release; $(wc -l < old_releases.txt) older ones:"
                   while read -r tag; do
                       [ -z "$tag" ] && continue
                       if [ "$DRY_RUN" = "true" ]; then
@@ -50,11 +46,11 @@ jobs:
                           gh release delete "$tag" --repo "$REPO" --cleanup-tag --yes || echo "  failed: $tag"
                       fi
                   done < old_releases.txt
-                  echo "- Releases: $(wc -l < old_releases.txt) older than the newest $KEEP_RELEASES $([ "$DRY_RUN" = "true" ] && echo 'would be' || echo 'were') deleted" >> "$GITHUB_STEP_SUMMARY"
+                  echo "- Releases: $(wc -l < old_releases.txt) older than the newest $([ "$DRY_RUN" = "true" ] && echo 'would be' || echo 'were') deleted" >> "$GITHUB_STEP_SUMMARY"
 
             - name: Leftover tags
-              # Release tags (0.16.2.7) that no kept release uses any more, such as tags left
-              # behind by releases deleted by hand. Other tags are never touched.
+              # Release tags (0.16.2.7) that no kept release uses, such as tags left behind by
+              # releases deleted by hand. Other tags are never touched.
               run: |
                   gh api "repos/$REPO/releases?per_page=100" --paginate -q '.[].tag_name' \
                     | grep -vxF -f old_releases.txt > kept_tags.txt || true
@@ -62,7 +58,7 @@ jobs:
                     | sed 's#^refs/tags/##' \
                     | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' \
                     | grep -vxF -f kept_tags.txt > old_tags.txt || true
-                  echo "Keeping the tags of the releases kept; $(wc -l < old_tags.txt) leftover tags:"
+                  echo "Keeping the tags of the kept releases; $(wc -l < old_tags.txt) leftover tags:"
                   while read -r tag; do
                       [ -z "$tag" ] && continue
                       if [ "$DRY_RUN" = "true" ]; then
@@ -77,15 +73,23 @@ jobs:
             - name: Old workflow runs
               run: |
                   total=0
-                  for wf in $(gh api "repos/$REPO/actions/workflows" -q '.workflows[].id'); do
-                      name=$(gh api "repos/$REPO/actions/workflows/$wf" -q .name)
-                      # Newest first; finished runs only (never this run or one in progress).
+                  gh api "repos/$REPO/actions/workflows?per_page=100" \
+                      -q '.workflows[] | [.id, .path, .name] | @tsv' > workflows.txt
+                  while IFS=$'\t' read -r wf path name; do
+                      # The newest finished run of a workflow that still exists; none of one whose
+                      # file was removed (GitHub keeps listing it while it has runs). Never this
+                      # run or one still in progress.
+                      if gh api "repos/$REPO/contents/$path?ref=main" --silent 2>/dev/null; then
+                          keep=1; state="exists"
+                      else
+                          keep=0; state="removed"
+                      fi
                       gh api "repos/$REPO/actions/workflows/$wf/runs?per_page=100" --paginate \
                           -q '.workflow_runs[] | select(.status == "completed") | .id' \
-                        | tail -n +$((KEEP_RUNS + 1)) > old_runs.txt
+                        | tail -n +$((keep + 1)) > old_runs.txt
                       n=$(wc -l < old_runs.txt)
                       total=$((total + n))
-                      echo "$name: keeping the newest $KEEP_RUNS runs; $n older ones"
+                      echo "$name ($state): keeping $keep, $n to delete"
                       while read -r run; do
                           [ -z "$run" ] && continue
                           if [ "$DRY_RUN" = "true" ]; then
@@ -94,5 +98,28 @@ jobs:
                               gh api -X DELETE "repos/$REPO/actions/runs/$run" >/dev/null || echo "  failed: $run"
                           fi
                       done < old_runs.txt
-                  done
-                  echo "- Workflow runs: $total older than the newest $KEEP_RUNS per workflow $([ "$DRY_RUN" = "true" ] && echo 'would be' || echo 'were') deleted" >> "$GITHUB_STEP_SUMMARY"
+                  done < workflows.txt
+                  echo "- Workflow runs: $total $([ "$DRY_RUN" = "true" ] && echo 'would be' || echo 'were') deleted (the newest of each workflow kept)" >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Merged branches
+              # A branch with nothing that isn't already in main (its work was merged) is
+              # deleted. Branches with unmerged work stay; main and read-you-sync are never touched.
+              run: |
+                  gh api "repos/$REPO/branches?per_page=100" --paginate -q '.[].name' > branches.txt
+                  : > old_branches.txt
+                  while read -r branch; do
+                      case "$branch" in main|read-you-sync|"") continue ;; esac
+                      ahead=$(gh api "repos/$REPO/compare/main...$branch" -q .ahead_by 2>/dev/null || echo "?")
+                      if [ "$ahead" = "0" ]; then echo "$branch" >> old_branches.txt
+                      else echo "keeping $branch ($ahead commits not in main)"; fi
+                  done < branches.txt
+                  while read -r branch; do
+                      [ -z "$branch" ] && continue
+                      if [ "$DRY_RUN" = "true" ]; then
+                          echo "would delete merged branch $branch"
+                      else
+                          echo "deleting merged branch $branch"
+                          gh api -X DELETE "repos/$REPO/git/refs/heads/$branch" >/dev/null || echo "  failed: $branch"
+                      fi
+                  done < old_branches.txt
+                  echo "- Branches: $(wc -l < old_branches.txt) merged into main $([ "$DRY_RUN" = "true" ] && echo 'would be' || echo 'were') deleted" >> "$GITHUB_STEP_SUMMARY"

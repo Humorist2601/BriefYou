@@ -105,7 +105,12 @@ fun TonalCircleButton(
  * [TonalCircleButton].
  */
 @Composable
-fun TopBarButtonGroup(actions: List<TopBarAction>, modifier: Modifier = Modifier) {
+fun TopBarButtonGroup(
+    actions: List<TopBarAction>,
+    modifier: Modifier = Modifier,
+    /** The first button's outer corner, when something is joined on before it (Triage's Play). */
+    leadingCorner: Dp = OuterCorner,
+) {
     if (actions.isEmpty()) return
     if (actions.size == 1) {
         val a = actions.first()
@@ -134,7 +139,7 @@ fun TopBarButtonGroup(actions: List<TopBarAction>, modifier: Modifier = Modifier
                 interaction = interactions[index],
                 width = width,
                 height = ButtonHeight,
-                leadingCorner = if (index == 0) OuterCorner else InnerCorner,
+                leadingCorner = if (index == 0) leadingCorner else InnerCorner,
                 trailingCorner = if (index == actions.lastIndex) OuterCorner else InnerCorner,
             )
         }

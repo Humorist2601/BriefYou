@@ -96,7 +96,7 @@ create and approve pull requests*.
 | `feeds/` | Swipeable Starred/Unread/All pages on Feeds (`BriefFeeds.kt`, `FilterFeedLists.kt` — lists stay live with `SharingStarted.Eagerly` so returning never shows stale groups), feed/group sort (`FeedOrdering`, `FeedSort`), feed accent colours from icons (`FeedAccent`), custom feed icons (`FeedIconOverrides`, `FeedIconDialog`), weekly retry for missing site icons (`IconLookups`). |
 | `filters/` | Muted keywords and duplicate stories (`BriefFilters.kt`), the Filters screen with the "recently filtered" log and Undo. |
 | `list/` | Article list additions: `BriefFlow.kt` (Triage/gist state), `FlowFab.kt` (AI gist / Triage pill), `InboxZero.kt`. |
-| `notifications/` | **The digest** (`NotificationHelper.kt`): one notification per sync, stored in SharedPreferences, posted once after the sync. InboxStyle list, one line per feed ("Variety (5) · newest title"); **Android 16 shows at most 6 lines and ignores bold**, so >6 feeds = 5 lines + "+N more: …". Buttons: Mark all read (`DigestActionReceiver`) and Triage. `DigestPreviewReceiver` posts a sample digest (Nightly only). |
+| `notifications/` | **The digest** (`NotificationHelper.kt`): one notification per sync, stored in SharedPreferences, posted once after the sync. InboxStyle list, one line per feed ("Variety (5) · newest title"); **Android 16 shows at most 6 lines and ignores bold**, so >6 feeds = 5 lines + "+N more: …". Buttons: Mark all read (`DigestActionReceiver`) and Triage. |
 | `readaloud/` | Text-to-speech by sentences with a media notification/lock-screen controls (`ReadAloudService`), progress ring buttons. |
 | `reading/` | The reading page: colours from the article picture (`BriefReading.kt`), header, top bar, floating reading bar, next-article card, image viewer, reading time (`ReadingTime.kt`, one-pass counter), **`FeedContent.kt`** (tidies every article's HTML: complete URLs, removes share junk, lead-picture split; cached with `prepared()`, done off the main thread with `forReaderInBackground()`), screen transitions (`PaneTransitions.kt`). |
 | `readlater/` | **Read Later**: `ReadLaterActivity` (Share menu entry "Read Later": fetches the page, saves it starred+unread with full text into a never-synced **Saved Articles** feed, shows a sheet that closes after 3 s). `ReadLater.kt` does the saving. Local accounts only. The saved feed has URL `briefyou://saved-for-later`; `LocalRssService` and OPML export skip it. Its icon is `icon:bookmark`, drawn by `FeedIcon.kt`. |
@@ -128,9 +128,9 @@ or `assembleGithubNightly`.)
 | `build.yaml` "Build" | push to `main` (not when a push only changes `.md` documents) | Builds `githubRelease` and publishes a **GitHub release "Brief You 0.16.2.N"**, marked latest. N = this workflow's run number (also the versionCode). Release notes = the **last commit message on main** (so a merge commit with a full changelog becomes the release notes). |
 | `test.yaml` "Test build" | push to **any other branch** (not `read-you-sync`; not documents-only pushes) | Reuses build.yaml with `nightly: true`: builds **Brief You Nightly** and replaces the single **"nightly" prerelease** (its notes = that commit's message). |
 | `sync.yaml` | daily | Read You update pull request (see §3). |
-| `clean.yaml` | by hand only | Deletes old releases (keeps newest 5, never the Nightly), leftover tags and old workflow runs. Starts as a dry run. |
-| `notification-preview.yml` | by hand, or push to a branch named `notif-preview` | Builds Nightly, boots a **stock Android 16 emulator**, posts the sample digest, screenshots the notification shade in light and dark → artifact `notification-shots`. Use it before releasing any notification change. Script: `.github/scripts/notification-shots.sh`. |
-| `build_pull_request.yaml`, `testing.yml` | pull requests | Read You's own checks, left as they are. |
+| `clean.yaml` | by hand only | Keeps only the latest of everything: the newest release (and the Nightly), the newest run of each workflow (none of removed workflows), the kept releases' tags, and branches with work not yet in main (merged branches are deleted; never `main` or `read-you-sync`). Starts as a dry run. |
+
+Removed (Nov 2026): Read You's `build_pull_request.yaml` and `testing.yml` (they never ran: Read You update pull requests are opened by a workflow, which doesn't trigger others, and other branches are built by `test.yaml`), and `notification-preview.yml` with its script and the Nightly-only `DigestPreviewReceiver` (a one-off for the digest screenshots; in the git history if notifications change again).
 
 **Version names:** Read You's version + build number: `0.16.2.9` = Read You 0.16.2, build 9.
 Each build installs as an update (Obtainium works with the releases).
@@ -177,7 +177,7 @@ You's warnings are left alone on purpose).
   E.g. the Haze blur library 2.x/1.7.3 needed newer Compose; 1.6.10 was the compatible one.
   (Blur was tried and dropped at the owner's request.)
 - **Notifications on Android 16:** InboxStyle shows **6 lines max** and **drops bold spans**;
-  MessagingStyle shows only ~3 messages without bold. Check with `notification-preview.yml`.
+  MessagingStyle shows only ~3 messages without bold. (A stock-emulator screenshot workflow, `notification-preview.yml`, was used for this; it's in the git history.)
 - **Things the owner rejected (don't re-propose without reason):** predictive "card" back
   animation for closing an article (caused issues — closing an article uses the 0.16.2.6
   behaviour), a blurred top/bottom bar, AI preloading, a ranked "daily briefing", stories mode,
@@ -200,7 +200,7 @@ You's warnings are left alone on purpose).
   stale data swapping in after returning to a screen, a list scroll jump after closing an article.
 - **Speed of pure code** (no phone needed): copy the Kotlin file into a small JVM Gradle project
   and time old vs new (done for reading time, FeedContent, the picture-loader CSS).
-- **Notifications:** `notification-preview.yml` on a stock emulator (see §5).
+- **Notifications:** the removed `notification-preview.yml` (git history) ran a stock emulator and took screenshots.
 - **Visual previews for the owner:** small HTML mock-ups rendered to PNG with Playwright/Chromium,
   or Claude's design canvas.
 

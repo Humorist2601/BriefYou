@@ -167,31 +167,6 @@ constructor(
         post(total, entries)
     }
 
-    /**
-     * Posts a made-up digest (8 feeds, 21 articles), to see how it looks; Brief You Nightly only
-     * (see DigestPreviewReceiver).
-     */
-    fun postSample() {
-        val now = System.currentTimeMillis()
-        val sample =
-            listOf(
-                "Variety" to "Godzilla Minus Zero cast got a standing ovation at the Tokyo festival",
-                "Kagi News" to "World leaders open the climate summit as talks stall on funding",
-                "Kotaku" to "Valve's cancelled Portal prequel F-Stop has leaked",
-                "Daily Briefs" to "Daily Hacker News for 2026-10-31",
-                "Rock Paper Shotgun" to "The Sunday Papers",
-                "Wikipedia" to "November 1 Wikipedia featured article",
-                "XKCD" to "Earth Sized Planets",
-                "Reddit Comics" to "Happy Halloween 2026",
-            )
-        val counts = listOf(5, 6, 3, 2, 1, 1, 1, 2)
-        val entries =
-            sample.flatMapIndexed { i, (feed, title) ->
-                List(counts[i]) { n -> Entry(feed, title, "sample-$i-$n", now - i * 60_000L - n) }
-            }
-        post(entries.size, entries)
-    }
-
     private fun post(total: Int, entries: List<Entry>) {
         // One line per feed, most recently updated feed first.
         val groups =
