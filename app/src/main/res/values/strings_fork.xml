@@ -279,6 +279,14 @@
         <item quantity="one">%1$s · %2$d article · %3$s</item>
         <item quantity="other">%1$s · %2$d articles · %3$s</item>
     </plurals>
+    <string name="recap_tile_busiest">busiest day</string>
+    <string name="recap_tile_streak">longest streak</string>
+    <string name="recap_tile_time">reading</string>
+    <string name="recap_tile_top_feed">top feed</string>
+    <plurals name="recap_tile_triage">
+        <item quantity="one">triaged · %1$d inbox zero</item>
+        <item quantity="other">triaged · %1$d inbox zeros</item>
+    </plurals>
     <string name="recap_hide">Hide</string>
     <string name="recap_share">Share</string>
     <string name="recap_teaser">%1$d articles</string>

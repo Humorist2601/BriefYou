@@ -3,21 +3,30 @@
 package me.ash.reader.brief.stats
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,10 +38,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -170,138 +177,342 @@ private fun vsText(recap: MonthRecap): String? {
     else stringResource(R.string.stats_vs_last_month, if (diff > 0) "+$diff" else "−${-diff}", last)
 }
 
-/** The recap card's soft backdrop: the theme's primary container fading into the card colour. */
-@Composable
-private fun recapBrush(): Brush {
-    val scheme = MaterialTheme.colorScheme
-    return Brush.linearGradient(
-        listOf(scheme.primaryContainer, scheme.surfaceContainerHigh, scheme.surfaceContainerHigh)
-    )
-}
+/** A day's square or bar: brighter the more you read that day ([most] is the month's busiest). */
+private fun dayColor(n: Int, most: Int, accent: Color, empty: Color): Color =
+    if (n == 0) empty else accent.copy(alpha = 0.35f + 0.65f * n / most.coerceAtLeast(1))
 
 /**
- * The monthly recap: the month's articles in big wide type (and the change from the month
- * before), the month as a calendar (Monday first; brighter squares are days you read more; tap
- * one for its numbers), then the month's highlights as one connected group. [onHide] and
- * [showShare] add the buttons at the bottom; Share makes a picture of the card.
+ * The monthly recap, on the theme's primary container (light text on it, like the week card).
+ * Closed: the month's articles in big wide type (and the change from the month before), a slim
+ * row of daily bars and four highlight tiles. Tap it and it opens in place: each day's bar slides
+ * to its spot in the calendar (Monday first) and becomes its square, and the tiles give way to
+ * every highlight; tap a day for its numbers, tap the card again to fold it back. ✕ hides it
+ * ([onHide]); Share makes a picture of the open card. [startOpen] for Past months' sheet.
  */
 @Composable
 fun RecapCard(
     recap: MonthRecap,
     modifier: Modifier = Modifier,
     onHide: (() -> Unit)? = null,
-    showShare: Boolean = true,
-    interactive: Boolean = true,
+    startOpen: Boolean = false,
 ) {
     val context = LocalContext.current
+    val scheme = MaterialTheme.colorScheme
+    var open by rememberSaveable(recap.month.toString()) { mutableStateOf(startOpen) }
+    var picked by rememberSaveable(recap.month.toString()) { mutableStateOf(-1) }
     var capturing by remember { mutableStateOf(false) }
-    Box(modifier = modifier.clip(RoundedCornerShape(28.dp)).background(recapBrush())) {
-        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-            RecapContent(recap, interactive)
-            if (onHide != null || showShare) {
-                Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val t by
+        animateFloatAsState(
+            if (open) 1f else 0f,
+            animationSpec = tween(550, easing = FastOutSlowInEasing),
+            label = "recap open",
+        )
+    Surface(
+        onClick = {
+            open = !open
+            if (!open) picked = -1
+        },
+        color = scheme.primaryContainer,
+        contentColor = scheme.onPrimaryContainer,
+        shape = RoundedCornerShape(28.dp),
+        modifier = modifier,
+    ) {
+        Box {
+            Column(modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 16.dp, bottom = 8.dp)) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Column(Modifier.weight(1f).padding(top = 4.dp)) { RecapHeader(recap, scheme.onPrimaryContainer) }
                     if (onHide != null) {
-                        FilledTonalButton(onClick = onHide, modifier = Modifier.weight(1f)) {
-                            Text(stringResource(R.string.recap_hide))
+                        RoundIcon(Icons.Rounded.Close, stringResource(R.string.recap_hide), onHide)
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    RoundIcon(Icons.Rounded.Share, stringResource(R.string.recap_share)) { capturing = true }
+                }
+                Column(Modifier.padding(end = 8.dp)) {
+                    Spacer(Modifier.height(12.dp))
+                    CalendarMorph(
+                        recap = recap,
+                        t = t,
+                        picked = picked,
+                        accent = scheme.primary,
+                        empty = scheme.onPrimaryContainer.copy(alpha = 0.13f),
+                        outline = scheme.onPrimaryContainer,
+                        onPick = if (open) ({ day: Int -> picked = if (picked == day) -1 else day }) else null,
+                    )
+                    // The tapped day's numbers, sliding in under the calendar.
+                    Box(Modifier.animateContentSize()) {
+                        if (open && picked >= 0) DayDetail(recap, picked)
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    // Tiles while closed, every highlight while open: one fades into the other as
+                    // the card grows or shrinks.
+                    Box(Modifier.animateContentSize(tween(550, easing = FastOutSlowInEasing))) {
+                        if (open) {
+                            HighlightRows(recap, scheme.onPrimaryContainer, Modifier.graphicsLayer { alpha = ((t - 0.4f) / 0.6f).coerceIn(0f, 1f) })
+                        } else {
+                            HighlightTiles(recap, scheme.onPrimaryContainer, Modifier.graphicsLayer { alpha = (1f - t / 0.6f).coerceIn(0f, 1f) })
                         }
                     }
-                    if (showShare) {
-                        Button(onClick = { capturing = true }, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.recap_share))
-                        }
-                    }
+                    Icon(
+                        Icons.Rounded.ExpandMore,
+                        contentDescription = null,
+                        modifier =
+                            Modifier.align(Alignment.CenterHorizontally)
+                                .padding(top = 2.dp)
+                                .size(20.dp)
+                                .graphicsLayer { rotationZ = 180f * t; alpha = 0.7f },
+                    )
                 }
             }
-        }
-        OffscreenPicture(
-            capturing = capturing,
-            onPicture = { picture ->
-                capturing = false
-                if (picture != null) sharePicture(context, picture, "month-recap")
-            },
-        ) {
-            RecapPicture(recap)
+            OffscreenPicture(
+                capturing = capturing,
+                onPicture = { picture ->
+                    capturing = false
+                    if (picture != null) sharePicture(context, picture, "month-recap")
+                },
+            ) {
+                RecapPicture(recap)
+            }
         }
     }
 }
 
-/** The card's top part: title, big number, calendar and highlights. */
+/** A small round button on the card (✕ and Share). */
 @Composable
-private fun RecapContent(recap: MonthRecap, interactive: Boolean) {
-    val scheme = MaterialTheme.colorScheme
-    var picked by rememberSaveable(recap.month.toString()) { mutableStateOf(-1) }
+private fun RoundIcon(icon: ImageVector, description: String, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = LocalContentColor.current.copy(alpha = 0.12f),
+        contentColor = LocalContentColor.current,
+        modifier = Modifier.size(40.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = description, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+/** The month's name, "since" when the stats started partway through, and the big number. */
+@Composable
+private fun RecapHeader(recap: MonthRecap, tint: Color) {
     Text(
         text = stringResource(R.string.recap_title, monthName(recap.month)).uppercase(),
         style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 1.2.sp),
-        fontWeight = FontWeight.SemiBold,
-        color = scheme.primary,
+        fontWeight = FontWeight.Bold,
+        color = tint,
     )
     recap.since?.let {
         Text(
             text = stringResource(R.string.recap_since, it.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))),
             style = MaterialTheme.typography.labelMedium,
-            color = scheme.onSurfaceVariant,
+            color = tint.copy(alpha = 0.8f),
         )
     }
-    Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 6.dp)) {
+    Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 4.dp)) {
         Text(
             text = recap.articles.toString(),
             style =
-                MaterialTheme.typography.displayLarge.copy(
+                MaterialTheme.typography.displayMedium.copy(
                     fontFamily = GoogleSansWideFontFamily,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 56.sp,
-                    lineHeight = 56.sp,
+                    fontSize = 44.sp,
+                    lineHeight = 44.sp,
                 ),
-            color = scheme.onSurface,
+            color = tint,
         )
         Text(
             text = stringResource(R.string.recap_articles),
-            style = MaterialTheme.typography.titleMedium,
-            color = scheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp).weight(1f),
+            style = MaterialTheme.typography.titleSmall,
+            color = tint.copy(alpha = 0.85f),
+            modifier = Modifier.padding(start = 6.dp, bottom = 5.dp),
         )
         vsText(recap)?.let {
             Text(
                 text = it,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = scheme.primary,
+                color = tint,
+                maxLines = 1,
                 modifier =
-                    Modifier.padding(bottom = 8.dp)
+                    Modifier.padding(start = 8.dp, bottom = 6.dp)
                         .clip(CircleShape)
-                        .background(scheme.primary.copy(alpha = 0.14f))
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                        .background(tint.copy(alpha = 0.14f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
             )
         }
     }
-    Spacer(Modifier.height(14.dp))
-    val pick: ((Int) -> Unit)? =
-        if (interactive) ({ day: Int -> picked = if (picked == day) -1 else day }) else null
-    RecapCalendar(recap, picked, pick)
-    // The tapped day's numbers, sliding in under the calendar.
-    Box(Modifier.animateContentSize()) {
-        if (picked >= 0) {
-            val date = recap.month.atDay(picked + 1)
-            Text(
-                text =
-                    pluralStringResource(
-                        R.plurals.recap_day_detail,
-                        recap.perDay[picked],
-                        date.format(DateTimeFormatter.ofPattern("EEE d", Locale.getDefault())),
-                        recap.perDay[picked],
-                        readingTime(recap.minutesPerDay[picked]),
-                    ),
-                style = MaterialTheme.typography.labelLarge,
-                color = scheme.onSurface,
-                modifier = Modifier.padding(top = 10.dp, start = 4.dp),
-            )
+}
+
+/** "Sun 8 · 22 articles · 6 min" for the tapped day. */
+@Composable
+private fun DayDetail(recap: MonthRecap, day: Int) {
+    val date = recap.month.atDay(day + 1)
+    Text(
+        text =
+            pluralStringResource(
+                R.plurals.recap_day_detail,
+                recap.perDay[day],
+                date.format(DateTimeFormatter.ofPattern("EEE d", Locale.getDefault())),
+                recap.perDay[day],
+                readingTime(recap.minutesPerDay[day]),
+            ),
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier.padding(top = 10.dp, start = 2.dp),
+    )
+}
+
+/** Bar height while closed, and the largest calendar square while open. */
+private val BarsHeight = 40.dp
+private val MaxSquare = 30.dp
+private val SquareGap = 4.dp
+
+/**
+ * The month's days, drawn between two layouts as [t] goes from 0 to 1: a row of thin bars (one per
+ * day, as tall as its reading) and the calendar (Monday first, centred). Each day moves, grows and
+ * rounds from its bar into its square. While open ([onPick]), tapping a square picks that day.
+ */
+@Composable
+private fun CalendarMorph(
+    recap: MonthRecap,
+    t: Float,
+    picked: Int,
+    accent: Color,
+    empty: Color,
+    outline: Color,
+    onPick: ((Int) -> Unit)?,
+) {
+    val most = (recap.perDay.maxOrNull() ?: 0).coerceAtLeast(1)
+    val offset = recap.month.atDay(1).dayOfWeek.value - 1
+    val weeks = (offset + recap.perDay.size + 6) / 7
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val width = constraints.maxWidth.toFloat()
+        val gap = with(density) { SquareGap.toPx() }
+        val square = minOf((width - gap * 6) / 7, with(density) { MaxSquare.toPx() })
+        val calWidth = square * 7 + gap * 6
+        val calHeight = square * weeks + gap * (weeks - 1)
+        val barsHeight = with(density) { BarsHeight.toPx() }
+        val n = recap.perDay.size
+        val barGap = with(density) { 2.dp.toPx() }
+        val barWidth = (width - barGap * (n - 1)) / n
+        val minBar = with(density) { 3.dp.toPx() }
+        val height = barsHeight + (calHeight - barsHeight) * t
+        fun squareAt(day: Int): androidx.compose.ui.geometry.Rect {
+            val k = day + offset
+            val left = (width - calWidth) / 2 + (k % 7) * (square + gap)
+            val top = (k / 7) * (square + gap)
+            return androidx.compose.ui.geometry.Rect(left, top, left + square, top + square)
+        }
+        val pick =
+            if (onPick != null)
+                Modifier.pointerInput(recap.month, width) {
+                    detectTapGestures { at ->
+                        recap.perDay.indices.firstOrNull { squareAt(it).contains(at) }?.let(onPick)
+                    }
+                }
+            else Modifier
+        Canvas(Modifier.fillMaxWidth().height(with(density) { height.toDp() }).then(pick)) {
+            recap.perDay.forEachIndexed { day, count ->
+                val barH = maxOf(minBar, count.toFloat() / most * barsHeight)
+                val bar =
+                    androidx.compose.ui.geometry.Rect(
+                        day * (barWidth + barGap), barsHeight - barH, day * (barWidth + barGap) + barWidth, barsHeight
+                    )
+                val sq = squareAt(day)
+                val rect = androidx.compose.ui.geometry.lerp(bar, sq, t)
+                val barRadius = minOf(barWidth / 2, minBar)
+                val radius = barRadius + (square * 0.22f - barRadius) * t
+                drawRoundRect(
+                    color = dayColor(count, most, accent, empty),
+                    topLeft = rect.topLeft,
+                    size = rect.size,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius),
+                )
+                if (day == picked && t > 0.99f) {
+                    drawRoundRect(
+                        color = outline,
+                        topLeft = rect.topLeft,
+                        size = rect.size,
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()),
+                    )
+                }
+            }
         }
     }
-    Spacer(Modifier.height(14.dp))
+}
+
+/** The closed card's highlights: two by two, rounded at the group's outer corners. */
+@Composable
+private fun HighlightTiles(recap: MonthRecap, tint: Color, modifier: Modifier = Modifier) {
+    val tiles = buildList {
+        recap.busiest?.let { day ->
+            add(
+                stringResource(
+                    R.string.recap_busiest_value,
+                    day.format(DateTimeFormatter.ofPattern("EEE d", Locale.getDefault())),
+                    recap.perDay[day.dayOfMonth - 1],
+                ) to stringResource(R.string.recap_tile_busiest)
+            )
+        }
+        add(pluralStringResource(R.plurals.recap_days, recap.longestStreak, recap.longestStreak) to stringResource(R.string.recap_tile_streak))
+        add(readingTime(recap.minutes) to stringResource(R.string.recap_tile_time))
+        if (recap.triaged > 0) {
+            add(recap.triaged.toString() to pluralStringResource(R.plurals.recap_tile_triage, recap.inboxZero, recap.inboxZero))
+        } else {
+            recap.topFeed?.let { (name, _) -> add(name to stringResource(R.string.recap_tile_top_feed)) }
+        }
+    }
+    val rows = tiles.chunked(2)
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        rows.forEachIndexed { r, row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
+                row.forEachIndexed { c, (value, label) ->
+                    val big = 16.dp
+                    val small = 4.dp
+                    val firstRow = r == 0
+                    val lastRow = r == rows.lastIndex
+                    val left = c == 0
+                    val right = c == row.lastIndex
+                    Column(
+                        modifier =
+                            Modifier.weight(1f)
+                                .fillMaxHeight()
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = if (firstRow && left) big else small,
+                                        topEnd = if (firstRow && right) big else small,
+                                        bottomStart = if (lastRow && left) big else small,
+                                        bottomEnd = if (lastRow && right) big else small,
+                                    )
+                                )
+                                .background(tint.copy(alpha = 0.1f))
+                                .padding(horizontal = 12.dp, vertical = 9.dp)
+                    ) {
+                        Text(
+                            text = value,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = tint.copy(alpha = 0.8f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Every highlight as one connected list (the open card and the shared picture). */
+@Composable
+private fun HighlightRows(recap: MonthRecap, tint: Color, modifier: Modifier = Modifier) {
     val rows = buildList {
         recap.busiest?.let { day ->
             add(
@@ -316,10 +527,7 @@ private fun RecapContent(recap: MonthRecap, interactive: Boolean) {
         recap.topFeed?.let { (name, n) ->
             add(stringResource(R.string.recap_top_feed) to stringResource(R.string.recap_top_feed_value, name, n))
         }
-        add(
-            stringResource(R.string.recap_streak) to
-                pluralStringResource(R.plurals.recap_days, recap.longestStreak, recap.longestStreak)
-        )
+        add(stringResource(R.string.recap_streak) to pluralStringResource(R.plurals.recap_days, recap.longestStreak, recap.longestStreak))
         add(stringResource(R.string.recap_time) to readingTime(recap.minutes))
         if (recap.triaged > 0 || recap.inboxZero > 0) {
             add(
@@ -329,7 +537,7 @@ private fun RecapContent(recap: MonthRecap, interactive: Boolean) {
         }
         if (recap.filtered > 0) add(stringResource(R.string.recap_filtered) to recap.filtered.toString())
     }
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         rows.forEachIndexed { i, (label, value) ->
             val top = if (i == 0) 16.dp else 4.dp
             val bottom = if (i == rows.lastIndex) 16.dp else 4.dp
@@ -337,24 +545,24 @@ private fun RecapContent(recap: MonthRecap, interactive: Boolean) {
                 modifier =
                     Modifier.fillMaxWidth()
                         .clip(RoundedCornerShape(top, top, bottom, bottom))
-                        .background(scheme.surfaceContainerHighest.copy(alpha = 0.7f))
-                        .padding(horizontal = 14.dp, vertical = 11.dp),
+                        .background(tint.copy(alpha = 0.1f))
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = scheme.onSurfaceVariant,
+                    color = tint.copy(alpha = 0.8f),
                     modifier = Modifier.padding(end = 12.dp),
                 )
                 Text(
                     text = value,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = scheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                    color = tint,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                    textAlign = TextAlign.End,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -362,49 +570,9 @@ private fun RecapContent(recap: MonthRecap, interactive: Boolean) {
     }
 }
 
-/** The month as weeks, Monday first: each day a square, brighter the more you read that day. */
-@Composable
-private fun RecapCalendar(recap: MonthRecap, picked: Int, onPick: ((Int) -> Unit)?) {
-    val scheme = MaterialTheme.colorScheme
-    val most = (recap.perDay.maxOrNull() ?: 0).coerceAtLeast(1)
-    val offset = recap.month.atDay(1).dayOfWeek.value - 1
-    val cells = offset + recap.perDay.size
-    val weeks = (cells + 6) / 7
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        repeat(weeks) { week ->
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                repeat(7) { col ->
-                    val day = week * 7 + col - offset
-                    Box(Modifier.weight(1f).aspectRatio(1f)) {
-                        if (day in recap.perDay.indices) {
-                            val n = recap.perDay[day]
-                            val color by
-                                animateColorAsState(
-                                    if (n == 0) scheme.surfaceContainerHighest
-                                    else scheme.primary.copy(alpha = 0.25f + 0.75f * n / most),
-                                    label = "recap day",
-                                )
-                            Box(
-                                Modifier.matchParentSize()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(color)
-                                    .then(
-                                        if (day == picked) Modifier.border(2.dp, scheme.onSurface, RoundedCornerShape(8.dp))
-                                        else Modifier
-                                    )
-                                    .then(if (onPick != null) Modifier.clickable { onPick(day) } else Modifier)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 /**
- * The shared picture: the card on a soft backdrop (no buttons, nothing to tap), with a small
- * Brief You mark, like the Triage card's picture.
+ * The shared picture: always the open card (calendar and every highlight) on a soft backdrop,
+ * with a small Brief You mark, like the Triage card's picture. Nothing to tap, no buttons.
  */
 @Composable
 private fun RecapPicture(recap: MonthRecap) {
@@ -422,7 +590,19 @@ private fun RecapPicture(recap: MonthRecap) {
                     .background(scheme.surfaceContainerHigh)
                     .padding(20.dp)
         ) {
-            RecapContent(recap, interactive = false)
+            RecapHeader(recap, scheme.onSurface)
+            Spacer(Modifier.height(14.dp))
+            CalendarMorph(
+                recap = recap,
+                t = 1f,
+                picked = -1,
+                accent = scheme.primary,
+                empty = scheme.onSurface.copy(alpha = 0.1f),
+                outline = scheme.onSurface,
+                onPick = null,
+            )
+            Spacer(Modifier.height(14.dp))
+            HighlightRows(recap, scheme.onSurface)
             Spacer(Modifier.height(14.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Spacer(Modifier.weight(1f))
@@ -529,6 +709,7 @@ fun PastMonths(data: ReadingStatsData, modifier: Modifier = Modifier) {
         ) {
             RecapCard(
                 recap = chosen,
+                startOpen = true,
                 modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
             )
         }
@@ -566,12 +747,13 @@ fun HomeRecapTeaser(modifier: Modifier = Modifier) {
                 @Suppress("UNCHECKED_CAST")
                 (backStack as? MutableList<Any>)?.add(Route.ReadingStats)
             },
-            color = Color.Transparent,
+            color = scheme.primaryContainer,
+            contentColor = scheme.onPrimaryContainer,
             shape = RoundedCornerShape(24.dp),
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().background(recapBrush()).padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 MiniCalendar(r)
@@ -579,12 +761,11 @@ fun HomeRecapTeaser(modifier: Modifier = Modifier) {
                     Text(
                         text = stringResource(R.string.recap_title, monthName(r.month)),
                         style = MaterialTheme.typography.titleSmall,
-                        color = scheme.onSurface,
                     )
                     Text(
                         text = listOfNotNull(stringResource(R.string.recap_teaser, r.articles), vsText(r)).joinToString(" · "),
                         style = MaterialTheme.typography.labelMedium,
-                        color = scheme.onSurfaceVariant,
+                        color = scheme.onPrimaryContainer.copy(alpha = 0.8f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -593,7 +774,6 @@ fun HomeRecapTeaser(modifier: Modifier = Modifier) {
                     Icon(
                         Icons.Rounded.Close,
                         contentDescription = stringResource(R.string.recap_hide),
-                        tint = scheme.onSurfaceVariant,
                     )
                 }
             }
@@ -618,11 +798,8 @@ private fun MiniCalendar(recap: MonthRecap) {
                         Modifier.size(5.dp)
                             .clip(RoundedCornerShape(1.5.dp))
                             .background(
-                                when {
-                                    n == null -> Color.Transparent
-                                    n == 0 -> scheme.onSurface.copy(alpha = 0.1f)
-                                    else -> scheme.primary.copy(alpha = 0.3f + 0.7f * n / most)
-                                }
+                                if (n == null) Color.Transparent
+                                else dayColor(n, most, scheme.primary, scheme.onPrimaryContainer.copy(alpha = 0.13f))
                             )
                     )
                 }
