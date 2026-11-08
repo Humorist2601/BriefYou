@@ -108,13 +108,18 @@ fun TonalCircleButton(
 fun TopBarButtonGroup(
     actions: List<TopBarAction>,
     modifier: Modifier = Modifier,
-    /** The first button's outer corner, when something is joined on before it (Triage's Play). */
-    leadingCorner: Dp = OuterCorner,
+    /**
+     * The first button's outer corner, when something is joined on before it (Triage's Play). Set,
+     * the buttons are always drawn as pill segments, even a single one.
+     */
+    leadingCorner: Dp? = null,
+    /** Each button's width, instead of the usual 48dp (Triage's Undo narrowing into a circle). */
+    buttonWidth: Dp = ButtonWidth,
 ) {
     if (actions.isEmpty()) return
     // One action alone is a circle, unless something is joined on before it (then it's the end
     // of that pill).
-    if (actions.size == 1 && leadingCorner == OuterCorner) {
+    if (actions.size == 1 && leadingCorner == null) {
         val a = actions.first()
         TonalCircleButton(icon = a.icon, description = a.description, modifier = modifier, onClick = a.onClick)
         return
@@ -131,9 +136,11 @@ fun TopBarButtonGroup(
         actions.forEachIndexed { index, action ->
             val target =
                 when {
-                    pressedIndex < 0 -> ButtonWidth
-                    index == pressedIndex -> ButtonWidth + PressedExtraWidth
-                    else -> ButtonWidth - PressedExtraWidth / (actions.size - 1)
+                    pressedIndex < 0 -> buttonWidth
+                    // A single segment doesn't widen when pressed (nothing to squeeze).
+                    actions.size == 1 -> buttonWidth
+                    index == pressedIndex -> buttonWidth + PressedExtraWidth
+                    else -> buttonWidth - PressedExtraWidth / (actions.size - 1)
                 }
             val width by animateDpAsState(target, spatial, label = "width")
             Segment(
@@ -141,7 +148,7 @@ fun TopBarButtonGroup(
                 interaction = interactions[index],
                 width = width,
                 height = ButtonHeight,
-                leadingCorner = if (index == 0) leadingCorner else InnerCorner,
+                leadingCorner = if (index == 0) leadingCorner ?: OuterCorner else InnerCorner,
                 trailingCorner = if (index == actions.lastIndex) OuterCorner else InnerCorner,
             )
         }

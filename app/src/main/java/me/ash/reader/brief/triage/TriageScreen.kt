@@ -2136,7 +2136,13 @@ private fun TriageTopButtons(
             )
         }
         Spacer(Modifier.width(androidx.compose.ui.unit.lerp(2.dp, 6.dp, t)))
-        TopBarButtonGroup(others, leadingCorner = androidx.compose.ui.unit.lerp(6.dp, 20.dp, t))
+        // Undo stays a segment the whole way (so it keeps its greyed-out look when there's
+        // nothing to undo): its inner edge rounds off and it narrows into a 40dp circle.
+        TopBarButtonGroup(
+            others,
+            leadingCorner = androidx.compose.ui.unit.lerp(6.dp, 20.dp, t),
+            buttonWidth = if (others.size == 1) androidx.compose.ui.unit.lerp(48.dp, 40.dp, t) else 48.dp,
+        )
     }
 }
 
