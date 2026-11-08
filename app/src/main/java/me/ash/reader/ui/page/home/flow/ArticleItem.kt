@@ -181,8 +181,10 @@ fun ArticleItem(
                     FeedIcon(feedName = feedName, iconUrl = feedIconUrl, size = 16.dp)
                     Spacer(modifier = Modifier.width(6.dp))
                 }
+                // Brief You: the feed name, then a watched word's chip right after it.
+                Row(modifier = Modifier.weight(1f).padding(end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    modifier = Modifier.weight(1f).padding(end = 10.dp),
+                    modifier = Modifier.weight(1f, fill = false),
                     text = feedName,
                     // Brief You: a muted accent taken from the feed's icon.
                     color = rememberFeedAccent(feedIconUrl) ?: MaterialTheme.colorScheme.tertiary,
@@ -190,6 +192,8 @@ fun ArticleItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                me.ash.reader.brief.filters.WatchedChip(title, isUnread) // Brief You: watched words
+                } // Brief You
 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier) {
                     // Starred
@@ -206,7 +210,6 @@ fun ArticleItem(
                             style = MaterialTheme.typography.labelMedium,
                         )
                     }
-                    me.ash.reader.brief.filters.WatchedChip(title, isUnread) // Brief You: watched words
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {

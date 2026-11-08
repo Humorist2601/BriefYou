@@ -57,30 +57,23 @@ fun WatchedChip(title: String, unread: Boolean, modifier: Modifier = Modifier) {
     }
 }
 
-/** How many watched unread articles a feed or group has, as a small tertiary pill (home). */
+/**
+ * How many watched unread articles a feed or group has (home), the size of the unread count
+ * badge next to it: a small tertiary badge with an eye.
+ */
 @Composable
 fun WatchedCount(count: Int, modifier: Modifier = Modifier) {
     if (count <= 0) return
-    Row(
-        modifier =
-            modifier.clip(CircleShape)
-                .background(MaterialTheme.colorScheme.tertiaryContainer)
-                .padding(start = 6.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    androidx.compose.material3.Badge(
+        modifier = modifier.padding(end = 6.dp),
+        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
     ) {
-        Icon(
-            Icons.Rounded.Visibility,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onTertiaryContainer,
-            modifier = Modifier.size(12.dp),
-        )
+        Icon(Icons.Rounded.Visibility, contentDescription = null, modifier = Modifier.size(10.dp))
         Text(
             text = count.toString(),
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
-            modifier = Modifier.padding(start = 3.dp),
+            modifier = Modifier.padding(start = 2.dp),
         )
     }
-    Spacer(Modifier.width(6.dp))
 }

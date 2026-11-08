@@ -3,8 +3,6 @@
 package me.ash.reader.brief.filters
 
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.pager.HorizontalPager
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.HorizontalDivider
@@ -157,8 +155,8 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
 
     var addDialogVisible by rememberSaveable { mutableStateOf(false) }
     var addWatchedVisible by rememberSaveable { mutableStateOf(false) }
-    val pager = rememberPagerState(pageCount = { 2 })
-    val scope = rememberCoroutineScope()
+    // Watched (0) or Muted (1).
+    var tab by rememberSaveable { mutableStateOf(0) }
     val watched = WatchedWords.words
     val watchedLog = WatchedWords.log
     val watchedFound = viewModel.watchedFound.collectAsStateValue()
@@ -190,8 +188,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
             )
         },
         content = {
-            // Two pages, watched and muted, each with the same header (title, tiles, tabs).
-            HorizontalPager(state = pager, verticalAlignment = Alignment.Top) { page ->
+            // One list: the header (title, tiles, tabs), then the chosen tab's part.
             LazyColumn {
                 item {
                     DisplayText(text = stringResource(R.string.filters_settings), desc = "")
@@ -204,21 +201,21 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         StatTile(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.Visibility,
-                            onClick = { scope.launch { pager.animateScrollToPage(0) } },
+                            onClick = { tab = 0 },
                             count = watchedLog.size,
                             label = pluralStringResource(R.plurals.filters_stat_watched, watchedLog.size),
                         )
                         StatTile(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.NotificationsOff,
-                            onClick = { scope.launch { pager.animateScrollToPage(1) } },
+                            onClick = { tab = 1 },
                             count = mutedCount,
                             label = pluralStringResource(R.plurals.filters_stat_muted, mutedCount),
                         )
                         StatTile(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.ContentCopy,
-                            onClick = { scope.launch { pager.animateScrollToPage(1) } },
+                            onClick = { tab = 1 },
                             count = duplicateCount,
                             label =
                                 pluralStringResource(R.plurals.filters_stat_duplicates, duplicateCount),
@@ -226,10 +223,10 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                     }
                     Spacer(Modifier.height(16.dp))
                     // Watched on the left, muted on the right: tap or swipe.
-                    FilterTabs(page = pager.currentPage) { scope.launch { pager.animateScrollToPage(it) } }
+                    FilterTabs(page = tab) { tab = it }
                     Spacer(Modifier.height(8.dp))
                 }
-                if (page == 0) {
+                if (tab == 0) {
                 item {
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
@@ -779,7 +776,6 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                     Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                 }
                 }
-            }
             }
         },
     )
