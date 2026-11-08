@@ -8,8 +8,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.graphics.graphicsLayer
@@ -67,6 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.Instant
+import kotlin.math.roundToInt
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -211,7 +210,7 @@ fun RecapCard(
     val t by
         animateFloatAsState(
             if (open) 1f else 0f,
-            animationSpec = tween(550, easing = FastOutSlowInEasing),
+            animationSpec = tween(650, easing = FastOutSlowInEasing),
             label = "recap open",
         )
     Surface(
@@ -250,15 +249,9 @@ fun RecapCard(
                         if (open && picked >= 0) DayDetail(recap, picked)
                     }
                     Spacer(Modifier.height(12.dp))
-                    // Tiles while closed, every highlight while open: one fades into the other as
-                    // the card grows or shrinks.
-                    Box(Modifier.animateContentSize(tween(550, easing = FastOutSlowInEasing))) {
-                        if (open) {
-                            HighlightRows(recap, scheme.onPrimaryContainer, Modifier.graphicsLayer { alpha = ((t - 0.4f) / 0.6f).coerceIn(0f, 1f) })
-                        } else {
-                            HighlightTiles(recap, scheme.onPrimaryContainer, Modifier.graphicsLayer { alpha = (1f - t / 0.6f).coerceIn(0f, 1f) })
-                        }
-                    }
+                    // Tiles while closed, every highlight while open: each tile slides and stretches
+                    // into its row, together with the calendar.
+                    HighlightMorph(recap, t, scheme.onPrimaryContainer)
                     Icon(
                         Icons.Rounded.ExpandMore,
                         contentDescription = null,
@@ -448,129 +441,213 @@ private fun CalendarMorph(
     }
 }
 
-/** The closed card's highlights: two by two, rounded at the group's outer corners. */
+/** One highlight: its row (label, value) and, for the four shown closed, its tile. */
+private class Highlight(
+    val label: String,
+    val value: String,
+    val tileValue: String? = null,
+    val tileLabel: String? = null,
+)
+
+/** Every highlight in list order; the busiest day, streak, time and Triage (or top feed) are tiles. */
 @Composable
-private fun HighlightTiles(recap: MonthRecap, tint: Color, modifier: Modifier = Modifier) {
-    val tiles = buildList {
+private fun highlights(recap: MonthRecap): List<Highlight> {
+    val busiest =
         recap.busiest?.let { day ->
-            add(
-                stringResource(
-                    R.string.recap_busiest_value,
-                    day.format(DateTimeFormatter.ofPattern("EEE d", Locale.getDefault())),
-                    recap.perDay[day.dayOfMonth - 1],
-                ) to stringResource(R.string.recap_tile_busiest)
+            stringResource(
+                R.string.recap_busiest_value,
+                day.format(DateTimeFormatter.ofPattern("EEE d", Locale.getDefault())),
+                recap.perDay[day.dayOfMonth - 1],
             )
         }
-        add(pluralStringResource(R.plurals.recap_days, recap.longestStreak, recap.longestStreak) to stringResource(R.string.recap_tile_streak))
-        add(readingTime(recap.minutes) to stringResource(R.string.recap_tile_time))
-        if (recap.triaged > 0) {
-            add(recap.triaged.toString() to pluralStringResource(R.plurals.recap_tile_triage, recap.inboxZero, recap.inboxZero))
-        } else {
-            recap.topFeed?.let { (name, _) -> add(name to stringResource(R.string.recap_tile_top_feed)) }
+    val streak = pluralStringResource(R.plurals.recap_days, recap.longestStreak, recap.longestStreak)
+    val time = readingTime(recap.minutes)
+    val triageTile = recap.triaged > 0
+    return buildList {
+        busiest?.let { add(Highlight(stringResource(R.string.recap_busiest), it, it, stringResource(R.string.recap_tile_busiest))) }
+        recap.topFeed?.let { (name, n) ->
+            add(
+                Highlight(
+                    stringResource(R.string.recap_top_feed),
+                    stringResource(R.string.recap_top_feed_value, name, n),
+                    if (triageTile) null else name,
+                    if (triageTile) null else stringResource(R.string.recap_tile_top_feed),
+                )
+            )
         }
+        add(Highlight(stringResource(R.string.recap_streak), streak, streak, stringResource(R.string.recap_tile_streak)))
+        add(Highlight(stringResource(R.string.recap_time), time, time, stringResource(R.string.recap_tile_time)))
+        if (recap.triaged > 0 || recap.inboxZero > 0) {
+            add(
+                Highlight(
+                    stringResource(R.string.recap_triage),
+                    pluralStringResource(R.plurals.recap_triage_value, recap.inboxZero, recap.triaged, recap.inboxZero),
+                    if (triageTile) recap.triaged.toString() else null,
+                    if (triageTile) pluralStringResource(R.plurals.recap_tile_triage, recap.inboxZero, recap.inboxZero) else null,
+                )
+            )
+        }
+        if (recap.filtered > 0) add(Highlight(stringResource(R.string.recap_filtered), recap.filtered.toString()))
     }
-    val rows = tiles.chunked(2)
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        rows.forEachIndexed { r, row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
-                row.forEachIndexed { c, (value, label) ->
-                    val big = 16.dp
-                    val small = 4.dp
-                    val firstRow = r == 0
-                    val lastRow = r == rows.lastIndex
-                    val left = c == 0
-                    val right = c == row.lastIndex
-                    Column(
+}
+
+private val TileHeight = 58.dp
+private val RowHeight = 42.dp
+private val BoxGap = 3.dp
+
+private fun ease(x: Float): Float = x.coerceIn(0f, 1f).let { it * it * (3 - 2 * it) }
+
+/**
+ * The highlights between their two layouts as [t] goes from 0 (closed) to 1 (open): the four
+ * tiles in a 2×2 grid, and every highlight as one connected list. The tiles go one after another
+ * (busiest first, so they don't pile onto each other), each sliding to its row and stretching to
+ * full width while its corners reshape and its text swaps from "value over label" to "label …
+ * value". Rows without a tile (top feed, filters) grow open in their gaps near the end.
+ */
+@Composable
+private fun HighlightMorph(recap: MonthRecap, t: Float, tint: Color) {
+    val items = highlights(recap)
+    val tiles = items.withIndex().filter { it.value.tileValue != null }.map { it.index }
+    // How far along each box is: tiles staggered, the other rows at the end.
+    val progress =
+        items.indices.map { i ->
+            val k = tiles.indexOf(i)
+            if (k >= 0) ease((t - k * 0.12f) / 0.64f) else ease((t - 0.55f) / 0.45f)
+        }
+    val big = 16.dp
+    val small = 4.dp
+    fun lerpDp(a: androidx.compose.ui.unit.Dp, b: androidx.compose.ui.unit.Dp, f: Float) = a + (b - a) * f
+    androidx.compose.ui.layout.Layout(
+        content = {
+            items.forEachIndexed { i, item ->
+                val p = progress[i]
+                val k = tiles.indexOf(i)
+                // Tile corners: big at the grid's outer corners (a lone last tile spans the row).
+                val col = if (k >= 0) k % 2 else 0
+                val row = if (k >= 0) k / 2 else 0
+                val lastRow = (tiles.size - 1) / 2
+                val spans = k == tiles.size - 1 && tiles.size % 2 == 1
+                val tTopStart = if (row == 0 && col == 0) big else small
+                val tTopEnd = if (row == 0 && (col == 1 || spans)) big else small
+                val tBottomStart = if (row == lastRow && col == 0) big else small
+                val tBottomEnd = if (row == lastRow && (col == 1 || spans)) big else small
+                val rTop = if (i == 0) big else small
+                val rBottom = if (i == items.lastIndex) big else small
+                val shape =
+                    if (k >= 0)
+                        RoundedCornerShape(
+                            topStart = lerpDp(tTopStart, rTop, p),
+                            topEnd = lerpDp(tTopEnd, rTop, p),
+                            bottomStart = lerpDp(tBottomStart, rBottom, p),
+                            bottomEnd = lerpDp(tBottomEnd, rBottom, p),
+                        )
+                    else RoundedCornerShape(rTop, rTop, rBottom, rBottom)
+                Box(
+                    Modifier.clip(shape)
+                        .background(tint.copy(alpha = 0.1f))
+                        .graphicsLayer { alpha = if (k >= 0) 1f else p }
+                ) {
+                    if (k >= 0) {
+                        Column(
+                            Modifier.padding(horizontal = 12.dp, vertical = 9.dp)
+                                .graphicsLayer { alpha = (1f - 2.5f * p).coerceIn(0f, 1f) }
+                        ) {
+                            Text(
+                                text = item.tileValue.orEmpty(),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = tint,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = item.tileLabel.orEmpty(),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = tint.copy(alpha = 0.8f),
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    Row(
                         modifier =
-                            Modifier.weight(1f)
-                                .fillMaxHeight()
-                                .clip(
-                                    RoundedCornerShape(
-                                        topStart = if (firstRow && left) big else small,
-                                        topEnd = if (firstRow && right) big else small,
-                                        bottomStart = if (lastRow && left) big else small,
-                                        bottomEnd = if (lastRow && right) big else small,
-                                    )
-                                )
-                                .background(tint.copy(alpha = 0.1f))
-                                .padding(horizontal = 12.dp, vertical = 9.dp)
+                            Modifier.fillMaxWidth()
+                                .height(RowHeight)
+                                .align(Alignment.Center)
+                                .padding(horizontal = 14.dp)
+                                .graphicsLayer {
+                                    alpha = if (k >= 0) (2.5f * p - 1.5f).coerceIn(0f, 1f) else p
+                                },
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = value,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelMedium,
+                            text = item.label,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = tint.copy(alpha = 0.8f),
                             maxLines = 1,
+                            modifier = Modifier.padding(end = 12.dp),
+                        )
+                        Text(
+                            text = item.value,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = tint,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
             }
-        }
-    }
-}
-
-/** Every highlight as one connected list (the open card and the shared picture). */
-@Composable
-private fun HighlightRows(recap: MonthRecap, tint: Color, modifier: Modifier = Modifier) {
-    val rows = buildList {
-        recap.busiest?.let { day ->
-            add(
-                stringResource(R.string.recap_busiest) to
-                    stringResource(
-                        R.string.recap_busiest_value,
-                        day.format(DateTimeFormatter.ofPattern("EEE d", Locale.getDefault())),
-                        recap.perDay[day.dayOfMonth - 1],
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) { measurables, constraints ->
+        val width = constraints.maxWidth.toFloat()
+        val gap = BoxGap.toPx()
+        val tileW = (width - gap) / 2
+        val tileH = TileHeight.toPx()
+        val rowH = RowHeight.toPx()
+        val rects =
+            items.indices.map { i ->
+                val p = progress[i]
+                val rowY = i * (rowH + gap)
+                val k = tiles.indexOf(i)
+                if (k >= 0) {
+                    val spans = k == tiles.size - 1 && tiles.size % 2 == 1
+                    val tx = if (spans) 0f else (k % 2) * (tileW + gap)
+                    val ty = (k / 2) * (tileH + gap)
+                    val tw = if (spans) width else tileW
+                    androidx.compose.ui.geometry.Rect(
+                        tx + (0f - tx) * p,
+                        ty + (rowY - ty) * p,
+                        tx + (0f - tx) * p + tw + (width - tw) * p,
+                        ty + (rowY - ty) * p + tileH + (rowH - tileH) * p,
                     )
-            )
-        }
-        recap.topFeed?.let { (name, n) ->
-            add(stringResource(R.string.recap_top_feed) to stringResource(R.string.recap_top_feed_value, name, n))
-        }
-        add(stringResource(R.string.recap_streak) to pluralStringResource(R.plurals.recap_days, recap.longestStreak, recap.longestStreak))
-        add(stringResource(R.string.recap_time) to readingTime(recap.minutes))
-        if (recap.triaged > 0 || recap.inboxZero > 0) {
-            add(
-                stringResource(R.string.recap_triage) to
-                    pluralStringResource(R.plurals.recap_triage_value, recap.inboxZero, recap.triaged, recap.inboxZero)
-            )
-        }
-        if (recap.filtered > 0) add(stringResource(R.string.recap_filtered) to recap.filtered.toString())
-    }
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        rows.forEachIndexed { i, (label, value) ->
-            val top = if (i == 0) 16.dp else 4.dp
-            val bottom = if (i == rows.lastIndex) 16.dp else 4.dp
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .clip(RoundedCornerShape(top, top, bottom, bottom))
-                        .background(tint.copy(alpha = 0.1f))
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = tint.copy(alpha = 0.8f),
-                    modifier = Modifier.padding(end = 12.dp),
+                } else {
+                    // Grows open from the middle of its slot.
+                    val h = rowH * p
+                    androidx.compose.ui.geometry.Rect(0f, rowY + (rowH - h) / 2, width, rowY + (rowH + h) / 2)
+                }
+            }
+        val placeables =
+            measurables.mapIndexed { i, m ->
+                val r = rects[i]
+                m.measure(
+                    androidx.compose.ui.unit.Constraints.fixed(
+                        r.width.roundToInt().coerceAtLeast(0),
+                        r.height.roundToInt().coerceAtLeast(0),
+                    )
                 )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = tint,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.weight(1f),
-                )
+            }
+        val height = rects.maxOfOrNull { it.bottom }?.roundToInt() ?: 0
+        layout(constraints.maxWidth, height) {
+            // Earlier tiles on top while they cross the later ones.
+            placeables.forEachIndexed { i, pl ->
+                val k = tiles.indexOf(i)
+                pl.place(rects[i].left.roundToInt(), rects[i].top.roundToInt(), zIndex = if (k >= 0) (tiles.size - k).toFloat() else 0f)
             }
         }
     }
@@ -609,7 +686,7 @@ private fun RecapPicture(recap: MonthRecap, open: Boolean) {
                 onPick = null,
             )
             Spacer(Modifier.height(14.dp))
-            if (open) HighlightRows(recap, scheme.onSurface) else HighlightTiles(recap, scheme.onSurface)
+            HighlightMorph(recap, if (open) 1f else 0f, scheme.onSurface)
             Spacer(Modifier.height(14.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Spacer(Modifier.weight(1f))
