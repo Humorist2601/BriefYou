@@ -135,8 +135,8 @@
     <string name="filters_from_feed">from %1$s</string>
     <string name="filters_original_story">Original: %1$s</string>
     <plurals name="filters_caught">
-        <item quantity="one">Caught %1$d</item>
-        <item quantity="other">Caught %1$d</item>
+        <item quantity="one">%1$d hidden</item>
+        <item quantity="other">%1$d hidden</item>
     </plurals>
 
     <!-- Custom feed icons -->

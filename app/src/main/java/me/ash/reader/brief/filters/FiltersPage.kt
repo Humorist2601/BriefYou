@@ -137,11 +137,6 @@ constructor(val filters: BriefFilters, private val accountService: AccountServic
         }
     }
 
-    /** Looks for a newly watched word in recent articles (the filters' usual run). */
-    fun refreshWatched() {
-        viewModelScope.launch { runCatching { filters.apply(accountService.getCurrentAccountId()) } }
-    }
-
     fun applyNow() {
         _applied.value = null
         viewModelScope.launch {
@@ -800,10 +795,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
             confirmText = stringResource(R.string.filters_add),
             onDismissRequest = { addWatchedVisible = false },
             onConfirm = { word ->
-                if (word.isNotBlank()) {
-                    WatchedWords.add(context, word.trim())
-                    viewModel.watchNow()
-                }
+                if (word.isNotBlank()) WatchedWords.add(context, word.trim())
                 addWatchedVisible = false
             },
         )
@@ -820,11 +812,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
             confirmText = stringResource(R.string.filters_add),
             onDismissRequest = { addDialogVisible = false },
             onConfirm = { word ->
-                if (word.isNotBlank()) {
-                    viewModel.filters.addKeyword(word.trim())
-                    // Check right away, like a watched word: "hid 3" by Apply now, with Undo.
-                    viewModel.applyNow()
-                }
+                if (word.isNotBlank()) viewModel.filters.addKeyword(word.trim())
                 addDialogVisible = false
             },
         )
