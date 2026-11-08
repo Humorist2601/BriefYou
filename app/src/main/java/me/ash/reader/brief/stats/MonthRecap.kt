@@ -155,6 +155,8 @@ fun monthRecap(data: ReadingStatsData, month: YearMonth): MonthRecap? {
 /** Last month's recap during the first week of a month, unless it was hidden or nothing was read. */
 fun currentRecap(data: ReadingStatsData, hidden: String, today: LocalDate = LocalDate.now()): MonthRecap? {
     if (today.dayOfMonth > RECAP_DAYS) return null
+    // January's first week belongs to last year's recap (December stays under Past months).
+    if (yearRecapWeek(data, today)) return null
     val month = YearMonth.from(today).minusMonths(1)
     if (hidden == month.toString()) return null
     return monthRecap(data, month)
@@ -164,11 +166,11 @@ fun currentRecap(data: ReadingStatsData, hidden: String, today: LocalDate = Loca
 fun pastRecaps(data: ReadingStatsData, today: LocalDate = LocalDate.now()): List<MonthRecap> =
     (1..PAST_MONTHS).mapNotNull { monthRecap(data, YearMonth.from(today).minusMonths(it.toLong())) }
 
-private fun monthName(month: YearMonth, style: TextStyle = TextStyle.FULL_STANDALONE) =
+internal fun monthName(month: YearMonth, style: TextStyle = TextStyle.FULL_STANDALONE) =
     month.month.getDisplayName(style, Locale.getDefault())
 
 @Composable
-private fun readingTime(minutes: Long): String =
+internal fun readingTime(minutes: Long): String =
     if (minutes >= 60) stringResource(R.string.recap_hours, (minutes / 60).toInt(), (minutes % 60).toInt())
     else stringResource(R.string.recap_minutes, minutes.toInt())
 
@@ -181,7 +183,7 @@ private fun vsText(recap: MonthRecap): String? {
 }
 
 /** A day's square or bar: brighter the more you read that day ([most] is the month's busiest). */
-private fun dayColor(n: Int, most: Int, accent: Color, empty: Color, untracked: Boolean = false): Color =
+internal fun dayColor(n: Int, most: Int, accent: Color, empty: Color, untracked: Boolean = false): Color =
     when {
         // Before the stats started: barely there, so it doesn't read as a day without reading.
         untracked -> empty.copy(alpha = empty.alpha * 0.3f)
@@ -285,7 +287,7 @@ fun RecapCard(
 
 /** A small round button on the card (✕ and Share). */
 @Composable
-private fun RoundIcon(icon: ImageVector, description: String, onClick: () -> Unit) {
+internal fun RoundIcon(icon: ImageVector, description: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = CircleShape,
@@ -302,13 +304,25 @@ private fun RoundIcon(icon: ImageVector, description: String, onClick: () -> Uni
 /** The month's name, "since" when the stats started partway through, and the big number. */
 @Composable
 private fun RecapHeader(recap: MonthRecap, tint: Color) {
+    RecapHeading(
+        title = stringResource(R.string.recap_title, monthName(recap.month)),
+        since = recap.since,
+        articles = recap.articles,
+        vs = vsText(recap),
+        tint = tint,
+    )
+}
+
+/** A recap's title, "since" when the stats started partway through, and the big number. */
+@Composable
+internal fun RecapHeading(title: String, since: LocalDate?, articles: Int, vs: String?, tint: Color) {
     Text(
-        text = stringResource(R.string.recap_title, monthName(recap.month)).uppercase(),
+        text = title.uppercase(),
         style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 1.2.sp),
         fontWeight = FontWeight.Bold,
         color = tint,
     )
-    recap.since?.let {
+    since?.let {
         Text(
             text = stringResource(R.string.recap_since, it.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))),
             style = MaterialTheme.typography.labelMedium,
@@ -317,7 +331,7 @@ private fun RecapHeader(recap: MonthRecap, tint: Color) {
     }
     Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 4.dp)) {
         Text(
-            text = recap.articles.toString(),
+            text = articles.toString(),
             style =
                 MaterialTheme.typography.displayMedium.copy(
                     fontFamily = GoogleSansWideFontFamily,
@@ -333,7 +347,7 @@ private fun RecapHeader(recap: MonthRecap, tint: Color) {
             color = tint.copy(alpha = 0.85f),
             modifier = Modifier.padding(start = 6.dp, bottom = 5.dp),
         )
-        vsText(recap)?.let {
+        vs?.let {
             Text(
                 text = it,
                 style = MaterialTheme.typography.labelMedium,
@@ -469,6 +483,12 @@ private fun HighlightTiles(recap: MonthRecap, tint: Color, modifier: Modifier = 
             recap.topFeed?.let { (name, _) -> add(name to stringResource(R.string.recap_tile_top_feed)) }
         }
     }
+    TileGrid(tiles, tint, modifier)
+}
+
+/** Highlight tiles (value over label), two by two, rounded at the group's outer corners. */
+@Composable
+internal fun TileGrid(tiles: List<Pair<String, String>>, tint: Color, modifier: Modifier = Modifier) {
     val rows = tiles.chunked(2)
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         rows.forEachIndexed { r, row ->
@@ -543,6 +563,12 @@ private fun HighlightRows(recap: MonthRecap, tint: Color, modifier: Modifier = M
         }
         if (recap.filtered > 0) add(stringResource(R.string.recap_filtered) to recap.filtered.toString())
     }
+    RowList(rows, tint, modifier)
+}
+
+/** Highlights (label, value) as one connected list. */
+@Composable
+internal fun RowList(rows: List<Pair<String, String>>, tint: Color, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         rows.forEachIndexed { i, (label, value) ->
             val top = if (i == 0) 16.dp else 4.dp
@@ -630,19 +656,31 @@ fun RecapAtTop(modifier: Modifier = Modifier) {
     val data = ReadingStats.data
     val hidden = ReadingStats.recapHidden
     val recap = remember(data, hidden) { currentRecap(data, hidden) }
+    val year = remember(data, hidden) { currentYearRecap(data, hidden) }
     // Kept while it animates away after Hide.
     var shown by remember { mutableStateOf(recap) }
+    var shownYear by remember { mutableStateOf(year) }
     if (recap != null) shown = recap
+    if (year != null) shownYear = year
     AnimatedVisibility(
-        visible = recap != null,
+        visible = recap != null || year != null,
         enter = fadeIn() + expandVertically(),
         exit = fadeOut() + shrinkVertically(),
         modifier = modifier,
     ) {
-        shown?.let { r ->
+        val cardModifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+        val y = shownYear
+        val r = shown
+        if (y != null) {
+            YearRecapCard(
+                recap = y,
+                modifier = cardModifier,
+                onHide = { ReadingStats.hideRecap(context, y.year.toString()) },
+            )
+        } else if (r != null) {
             RecapCard(
                 recap = r,
-                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                modifier = cardModifier,
                 onHide = { ReadingStats.hideRecap(context, r.month.toString()) },
             )
         }
@@ -656,9 +694,11 @@ fun RecapAtTop(modifier: Modifier = Modifier) {
 @Composable
 fun PastMonths(data: ReadingStatsData, modifier: Modifier = Modifier) {
     val past = remember(data) { pastRecaps(data) }
-    if (past.isEmpty()) return
+    // Last year's recap, kept here once January's week is over.
+    val lastYear = remember(data) { yearRecap(data, LocalDate.now().year - 1) }
+    if (past.isEmpty() && lastYear == null) return
+    val rows = past.size + if (lastYear != null) 1 else 0
     var open by rememberSaveable { mutableStateOf<String?>(null) }
-    val scheme = MaterialTheme.colorScheme
     Column(modifier = modifier) {
         me.ash.reader.ui.component.base.Subtitle(
             modifier = Modifier.padding(horizontal = 24.dp),
@@ -668,49 +708,69 @@ fun PastMonths(data: ReadingStatsData, modifier: Modifier = Modifier) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            past.forEachIndexed { i, recap ->
+            if (lastYear != null) {
+                PastRow(
+                    title = stringResource(R.string.recap_year_row, lastYear.year),
+                    articles = lastYear.articles,
+                    shape = RoundedCornerShape(24.dp, 24.dp, if (rows == 1) 24.dp else 6.dp, if (rows == 1) 24.dp else 6.dp),
+                    onClick = { open = "year" },
+                )
+            }
+            past.forEachIndexed { index, recap ->
+                val i = index + if (lastYear != null) 1 else 0
                 val top = if (i == 0) 24.dp else 6.dp
-                val bottom = if (i == past.lastIndex) 24.dp else 6.dp
-                Surface(
-                    onClick = { open = recap.month.toString() },
-                    color = scheme.surfaceContainerHigh,
+                val bottom = if (i == rows - 1) 24.dp else 6.dp
+                PastRow(
+                    title = "${monthName(recap.month)} ${recap.month.year}",
+                    articles = recap.articles,
                     shape = RoundedCornerShape(top, top, bottom, bottom),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "${monthName(recap.month)} ${recap.month.year}",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            text = stringResource(R.string.recap_teaser, recap.articles),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = scheme.onSurfaceVariant,
-                        )
-                        Icon(
-                            Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = scheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 4.dp),
-                        )
-                    }
-                }
+                    onClick = { open = recap.month.toString() },
+                )
             }
         }
     }
     val chosen = past.firstOrNull { it.month.toString() == open }
-    if (chosen != null) {
+    if (chosen != null || (open == "year" && lastYear != null)) {
         ModalBottomSheet(
             onDismissRequest = { open = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         ) {
-            RecapCard(
-                recap = chosen,
-                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
+            val sheetModifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 24.dp)
+            if (chosen != null) RecapCard(recap = chosen, modifier = sheetModifier)
+            else lastYear?.let { YearRecapCard(recap = it, modifier = sheetModifier) }
+        }
+    }
+}
+
+/** One row under Past months: the month (or year), its articles and an arrow. */
+@Composable
+private fun PastRow(title: String, articles: Int, shape: androidx.compose.ui.graphics.Shape, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        color = scheme.surfaceContainerHigh,
+        shape = shape,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = stringResource(R.string.recap_teaser, articles),
+                style = MaterialTheme.typography.labelLarge,
+                color = scheme.onSurfaceVariant,
+            )
+            Icon(
+                Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = scheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp),
             )
         }
     }
@@ -731,16 +791,21 @@ fun HomeRecapTeaser(modifier: Modifier = Modifier) {
     val data = ReadingStats.data
     val hidden = ReadingStats.recapHidden
     val recap = remember(data, hidden) { currentRecap(data, hidden) }
+    val year = remember(data, hidden) { currentYearRecap(data, hidden) }
     var shown by remember { mutableStateOf(recap) }
+    var shownYear by remember { mutableStateOf(year) }
     if (recap != null) shown = recap
+    if (year != null) shownYear = year
     val backStack = LocalBackStack.current
     AnimatedVisibility(
-        visible = recap != null && ReadingStats.recapOnHome,
+        visible = (recap != null || year != null) && ReadingStats.recapOnHome,
         enter = fadeIn() + expandVertically(),
         exit = fadeOut() + shrinkVertically(),
         modifier = modifier,
     ) {
-        val r = shown ?: return@AnimatedVisibility
+        val y = shownYear
+        val r = shown
+        if (y == null && r == null) return@AnimatedVisibility
         val scheme = MaterialTheme.colorScheme
         Surface(
             onClick = {
@@ -756,14 +821,18 @@ fun HomeRecapTeaser(modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MiniCalendar(r)
+                if (y != null) MiniYear(y) else if (r != null) MiniCalendar(r)
                 Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
                     Text(
-                        text = stringResource(R.string.recap_title, monthName(r.month)),
+                        text =
+                            if (y != null) stringResource(R.string.recap_title, y.year.toString())
+                            else stringResource(R.string.recap_title, monthName(r!!.month)),
                         style = MaterialTheme.typography.titleSmall,
                     )
                     Text(
-                        text = listOfNotNull(stringResource(R.string.recap_teaser, r.articles), vsText(r)).joinToString(" · "),
+                        text =
+                            if (y != null) listOfNotNull(stringResource(R.string.recap_teaser, y.articles), yearVsText(y)).joinToString(" · ")
+                            else listOfNotNull(stringResource(R.string.recap_teaser, r!!.articles), vsText(r)).joinToString(" · "),
                         style = MaterialTheme.typography.labelMedium,
                         color = scheme.onPrimaryContainer.copy(alpha = 0.8f),
                         maxLines = 1,
@@ -771,7 +840,7 @@ fun HomeRecapTeaser(modifier: Modifier = Modifier) {
                     )
                 }
                 // ✕ in a small circle, like the count badge on each feed (a full-size touch area).
-                IconButton(onClick = { ReadingStats.hideRecap(context, r.month.toString()) }) {
+                IconButton(onClick = { ReadingStats.hideRecap(context, y?.year?.toString() ?: r!!.month.toString()) }) {
                     Box(
                         modifier =
                             Modifier.size(22.dp)

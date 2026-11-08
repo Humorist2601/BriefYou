@@ -1540,8 +1540,8 @@ private fun TriageCard(
                         modifier =
                             Modifier.size(34.dp)
                                 .clip(CircleShape)
-                                // A neutral grey like Skip's, one step stronger so it shows on the card.
-                                .background(MaterialTheme.colorScheme.outlineVariant)
+                                // The same neutral grey as Skip.
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                                 .combinedClickable(
                                     onClickLabel = stringResource(R.string.share),
                                     onLongClickLabel = stringResource(R.string.triage_share_picture),
@@ -1556,7 +1556,7 @@ private fun TriageCard(
                         Icon(
                             Icons.Outlined.Share,
                             contentDescription = stringResource(R.string.share),
-                            tint = MaterialTheme.colorScheme.onSurface,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp),
                         )
                     }
