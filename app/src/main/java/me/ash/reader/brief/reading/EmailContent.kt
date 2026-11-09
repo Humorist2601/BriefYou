@@ -37,7 +37,7 @@ object EmailContent {
         body.select(".mobile_hide").remove()
         body.select(".desktop_hide").forEach { it.removeAttr("style") }
         // Hidden parts: the preview text shown only in the inbox list, tracking images.
-        body.select("[style]").filter { isHidden(it.attr("style")) }.forEach { it.remove() }
+        body.select("[style]").filter { isHidden(it.attr("style")) }.forEach { it.drop() }
         body.select("[class*=preheader], [class*=preview-text], [hidden]").remove()
         for (img in body.select("img")) {
             val w = img.attr("width").toFloatOrNull()
@@ -47,7 +47,7 @@ object EmailContent {
             // Tracking pixels and spacers, social icons and tiny badges.
             if ((w != null && w <= 40) || (h != null && h <= 40) || src.isBlank() || social) {
                 val link = img.parent()?.takeIf { it.tagName() == "a" && it.text().isBlank() }
-                (link ?: img).remove()
+                (link ?: img).drop()
             }
         }
         removeFooters(body)
@@ -58,8 +58,8 @@ object EmailContent {
         // Layout tables become plain blocks, so the text flows down the page.
         for (table in body.select("table").reversed()) {
             if (isDataTable(table)) continue
-            table.select("td, th").filter { it.closest("table") == table }.forEach { it.tagName("div") }
-            table.select("tbody, thead, tfoot, tr").filter { it.closest("table") == table }.forEach { it.unwrap() }
+            table.select("td, th").filter { owningTable(it) == table }.forEach { it.tagName("div") }
+            table.select("tbody, thead, tfoot, tr").filter { owningTable(it) == table }.forEach { it.unwrap() }
             table.tagName("div")
         }
         // The reader's own style: no fixed sizes, colours, fonts or alignment.
@@ -140,17 +140,17 @@ object EmailContent {
     /** "Follow us" links (Instagram, LinkedIn, X…), with what's left of their line. */
     private fun removeSocialLinks(body: Element) {
         for (a in body.select("a[href]")) {
-            if (a.parent() == null) continue
+            if (body !in a.parents()) continue
             val host = runCatching { URI(a.attr("href")).host }.getOrNull()?.removePrefix("www.").orEmpty()
             // By address, or by name (links in emails often go through the sender's click counter).
             val social = SOCIAL_HOSTS.any { host == it || host.endsWith(".$it") } || SOCIAL.matches(a.text().trim())
             if (!social || a.text().length > 40) continue
             val parent = a.parent()
-            a.remove()
+            a.drop()
             if (parent != null && parent != body && parent.text().replace(SEPARATORS, "").length < 25 &&
                 parent.select("img").isEmpty()
             ) {
-                parent.remove()
+                parent.drop()
             }
         }
     }
@@ -164,7 +164,7 @@ object EmailContent {
         for (el in body.allElements) {
             if (el.tagName() == "img") {
                 val w = el.attr("width").toFloatOrNull()
-                if (w != null && w < 400) (el.parent()?.takeIf { it.tagName() == "a" && it.text().isBlank() } ?: el).remove()
+                if (w != null && w < 400) (el.parent()?.takeIf { it.tagName() == "a" && it.text().isBlank() } ?: el).drop()
                 return
             }
             text += el.ownText().replace(BLANK, "").length
@@ -180,7 +180,7 @@ object EmailContent {
         while (true) {
             val last = lastLeaf(body) ?: return
             if (last.select("img").isNotEmpty() || last.text().length >= 90) return
-            last.remove()
+            last.drop()
             removeEmpty(body, fold = false)
         }
     }
@@ -198,6 +198,17 @@ object EmailContent {
             el = child
         }
     }
+
+    /**
+     * Removes this from the page if it's still on it. An older jsoup (the one in the app) throws
+     * when removing something already taken out with a bigger part around it.
+     */
+    private fun Node.drop() {
+        if (parentNode() != null) remove()
+    }
+
+    /** The table [el] belongs to (the nearest one around it). */
+    private fun owningTable(el: Element): Element? = el.parents().firstOrNull { it.tagName() == "table" }
 
     private fun removeComments(node: Node) {
         for (child in node.childNodes().toList()) {
@@ -224,7 +235,8 @@ object EmailContent {
                 block = up
                 if (block.tagName() in setOf("p", "td", "tr")) break
             }
-            block.remove()
+            // Only if it's still on the page (it may sit in a footer already removed).
+            if (block.parent() != null) block.drop()
         }
     }
 
@@ -260,7 +272,7 @@ object EmailContent {
         if (table.select("table").any { it != table }) return false
         if (table.select("th").isNotEmpty()) return true
         // Rows with two or more filled cells (a row with one, beside spacer cells, is layout).
-        val rows = table.select("tr").filter { it.closest("table") == table }
+        val rows = table.select("tr").filter { owningTable(it) == table }
         val filled = rows.count { r -> r.children().count { it.tagName() == "td" && it.text().replace(BLANK, "").isNotEmpty() } >= 2 }
         return rows.size >= 2 && filled * 2 >= rows.size && table.select("img, p, div").isEmpty()
     }
@@ -272,7 +284,7 @@ object EmailContent {
             for (el in body.select("div, p, a, h2, h3, li, ul, ol, strong, b, em, i, table").reversed()) {
                 if (el.parent() == null) continue
                 if (el.select("img, br, hr").isEmpty() && el.text().replace(BLANK, "").isEmpty()) {
-                    el.remove()
+                    el.drop()
                     changed = true
                 }
             }
