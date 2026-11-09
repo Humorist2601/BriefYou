@@ -212,7 +212,7 @@ object EmailContent {
 
     private fun removeComments(node: Node) {
         for (child in node.childNodes().toList()) {
-            if (child is Comment) child.remove() else removeComments(child)
+            if (child is Comment) child.remove() else if (child is Element) removeComments(child)
         }
     }
 
