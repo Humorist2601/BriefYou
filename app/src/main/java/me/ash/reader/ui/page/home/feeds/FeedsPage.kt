@@ -303,14 +303,15 @@ fun FeedsPage(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    itemsIndexed(groupWithFeedList) { _, (group, feeds) ->
-                        GroupWithFeedsContainer {
+                    itemsIndexed(groupWithFeedList) { index, (group, feeds) -> // Brief You: index, for the joined list
+                        GroupWithFeedsContainer(shape = me.ash.reader.brief.ui.groupShape(index, groupWithFeedList.size), top = me.ash.reader.brief.ui.Group.Gap) { // Brief You: the groups as one joined list
                             GroupItem(
                                 isExpanded = {
                                     groupsVisible.getOrPut(group.id, groupListExpand::value)
                                 },
                                 group = group,
                                 count = feeds.sumOf { it.important }, // Brief You
+                                iconFeed = feeds.firstOrNull { it.icon != null } ?: feeds.firstOrNull(), // Brief You
                                 onExpanded = {
                                     groupsVisible[group.id] =
                                         groupsVisible

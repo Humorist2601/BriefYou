@@ -48,6 +48,7 @@ fun DarkThemePage(
                     DisplayText(text = stringResource(R.string.dark_theme), desc = "")
                 }
                 item {
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the choices as one joined card
                     DarkThemePreference.values.map {
                         SettingItem(
                             title = it.toDesc(context),
@@ -60,10 +61,12 @@ fun DarkThemePage(
                             })
                         }
                     }
+                    } // Brief You
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.other),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.amoled_dark_theme),
                         onClick = {
@@ -74,6 +77,7 @@ fun DarkThemePage(
                             (!amoledDarkTheme).put(context, scope)
                         }
                     }
+                    } // Brief You
                 }
                 item {
                     Spacer(modifier = Modifier.height(24.dp))

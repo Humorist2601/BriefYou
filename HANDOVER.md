@@ -64,7 +64,17 @@ These are the owner's standing preferences. A new assistant should follow them.
    icon. Labels: pills (`RoundedCornerShape(50)`), Label Medium, 10 × 4 dp padding; tertiary for
    what's yours or watched, neutral for plain info. Tiles, cards, banners (Read You's `Banner`: the Starred / Unread / All
    openers and the Settings banners; their icon sits on a turning cookie, `BannerCookie`, and the openers' arrow
-   nudges right, `pressNudge`) and the tour's buttons press with `PressFeel`. Number tiles (Filters, Reading stats) are one `StatTile` (`brief/ui/StatTile.kt`):
+   nudges right, `pressNudge`) and the tour's buttons press with `PressFeel`.
+   Corners come from one scale, `Corner` in `Groups.kt` (6 / 16 / 24 / 28 / 32, pills full).
+   Settings sections are `SettingGroup` cards (`brief/ui/SettingGroup.kt`): Read You's `SettingItem`
+   and `SelectableSettingGroupItem` draw no background and pad themselves for the card when inside
+   one; every row's title is 16 sp. Banners are `bannerContainer()`: Read You's lavender in light
+   mode, the tinted primary container in dark mode.
+   Article lists: `brief/list/ListCard.kt` (`LocalListCard` set per row by Read You's `ArticleList`
+   from its neighbours: each day one joined card; `LocalSingleFeedList` hides the feed name on a
+   feed's own list). Feeds page: groups joined via `GroupWithFeedsContainer(shape, top)`, with
+   `GroupIconTile` and `CountPill` (`brief/feeds/GroupTile.kt`). Empty lists: `EmptyListState`
+   (`brief/list/EmptyState.kt`, shown from `BriefFlowOverlays`). Card colour: surfaceContainerHigh. Number tiles (Filters, Reading stats) are one `StatTile` (`brief/ui/StatTile.kt`):
    icon on a cookie, wide number, left-aligned.
 
 ---

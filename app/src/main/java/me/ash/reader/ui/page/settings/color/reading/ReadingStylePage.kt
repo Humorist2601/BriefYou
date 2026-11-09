@@ -161,6 +161,7 @@ fun ReadingStylePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.general)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.content_renderer),
                         desc = renderer.toDesc(context),
@@ -211,10 +212,12 @@ fun ReadingStylePage(
                             pullToSwitchArticle.toggle(context, scope)
                         })
                     }
+                    } // Brief You
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.toolbars)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.tonal_elevation),
                         desc = "${tonalElevation.value}dp",
@@ -222,6 +225,7 @@ fun ReadingStylePage(
                             tonalElevationDialogVisible = true
                         },
                     ) {}
+                    } // Brief You
 
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -232,6 +236,7 @@ fun ReadingStylePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.advanced)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.title),
                         desc = stringResource(R.string.title_desc),
@@ -257,6 +262,7 @@ fun ReadingStylePage(
                         enabled = false,
                         onClick = navigateToReadingPageVideo,
                     ) {}
+                    } // Brief You
                 }
 
                 item {

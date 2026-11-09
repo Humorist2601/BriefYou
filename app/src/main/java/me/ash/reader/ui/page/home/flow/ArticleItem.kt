@@ -1,6 +1,7 @@
 package me.ash.reader.ui.page.home.flow
 
 // Brief You
+import me.ash.reader.brief.list.listCard // Brief You
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.ui.graphics.Color
 import me.ash.reader.brief.feeds.rememberFeedAccent
@@ -137,12 +138,16 @@ fun ArticleItem(
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
-    val articleListFeedIcon = LocalFlowArticleListFeedIcon.current
-    val articleListFeedName = LocalFlowArticleListFeedName.current
+    // Brief You: on a one-feed list the feed's name and icon would repeat on every row.
+    val singleFeed = me.ash.reader.brief.list.LocalSingleFeedList.current
+    val articleListFeedIcon = if (singleFeed) me.ash.reader.infrastructure.preference.FlowArticleListFeedIconPreference.OFF else LocalFlowArticleListFeedIcon.current // Brief You
+    val articleListFeedName = if (singleFeed) me.ash.reader.infrastructure.preference.FlowArticleListFeedNamePreference.OFF else LocalFlowArticleListFeedName.current // Brief You
     val articleListImage = LocalFlowArticleListImage.current
     val articleListDesc = LocalFlowArticleListDesc.current
     val articleListDate = LocalFlowArticleListTime.current
     val articleListReadIndicator = LocalFlowArticleListReadIndicator.current
+    val inCard = me.ash.reader.brief.list.LocalListCard.current != null // Brief You: in its day's card
+    val showImage = imgData != null && articleListImage.value // Brief You
     // Brief You: reading time next to the time ("4 min · 2h").
     val readingLabel = readingMinutes?.let { stringResource(R.string.reading_time_min, it) }
     val timeLabel = listOfNotNull(readingLabel, timeString?.takeIf { it.isNotBlank() })
@@ -151,10 +156,10 @@ fun ArticleItem(
     Column(
         modifier =
             modifier
-                .padding(horizontal = 12.dp)
-                .clip(Shape20)
+                .padding(horizontal = if (inCard) 0.dp else 12.dp) // Brief You: the card has its own margins
+                .clip(if (inCard) androidx.compose.ui.graphics.RectangleShape else Shape20) // Brief You
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                .padding(horizontal = 12.dp, vertical = 12.dp)
+                .padding(horizontal = if (inCard) 16.dp else 12.dp, vertical = if (inCard) 14.dp else 12.dp) // Brief You
                 .alpha(
                     when (articleListReadIndicator) {
                         FlowArticleReadIndicatorPreference.None -> 1f
@@ -247,6 +252,13 @@ fun ArticleItem(
 
                 // Title
                 Row {
+                    if (inCard && isUnread) { // Brief You: a dot marks an unread article
+                        androidx.compose.foundation.layout.Box(
+                            Modifier.padding(top = 7.dp, end = 8.dp).size(8.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    } // Brief You
                     Text(
                         text = title,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -271,7 +283,8 @@ fun ArticleItem(
                 // Description
                 if (
                     articleListDesc != FlowArticleListDescPreference.NONE &&
-                        shortDescription.isNotBlank()
+                        shortDescription.isNotBlank() &&
+                        !(inCard && showImage) // Brief You: in a card, the summary only when there's no picture, so rows stay even
                 ) {
                     Text(
                         modifier = Modifier.padding(top = 4.dp),
@@ -295,7 +308,7 @@ fun ArticleItem(
             // Image
             if (imgData != null && articleListImage.value) {
                 RYAsyncImage(
-                    modifier = Modifier.padding(start = 10.dp).size(80.dp).clip(Shape20),
+                    modifier = Modifier.padding(start = if (inCard) 12.dp else 10.dp).size(if (inCard) 72.dp else 80.dp).clip(if (inCard) androidx.compose.foundation.shape.RoundedCornerShape(me.ash.reader.brief.ui.Corner.Small) else Shape20), // Brief You: 72 dp, 16 dp corners in a card
                     data = imgData,
                     scale = Scale.FILL,
                     precision = Precision.INEXACT,
@@ -352,7 +365,9 @@ fun SwipeableArticleItem(
         }
     var menuOffset by remember { mutableStateOf(IntOffset.Zero) }
 
+    val inCard = me.ash.reader.brief.list.LocalListCard.current != null // Brief You
     SwipeActionBox(
+        modifier = Modifier.listCard(), // Brief You: in its day's card
         articleWithFeed = articleWithFeed,
         isRead = !isUnread,
         isStarred = articleWithFeed.article.isStarred,
@@ -372,7 +387,8 @@ fun SwipeableArticleItem(
                         }
                     }
                     .background(
-                        MaterialTheme.colorScheme.surfaceColorAtElevation(
+                        if (inCard) MaterialTheme.colorScheme.surfaceContainerHigh // Brief You: the card, like the app's other cards
+                        else MaterialTheme.colorScheme.surfaceColorAtElevation(
                             articleListTonalElevation.dp
                         ) onDark MaterialTheme.colorScheme.surface
                     )

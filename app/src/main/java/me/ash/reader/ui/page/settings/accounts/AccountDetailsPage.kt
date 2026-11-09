@@ -151,6 +151,7 @@ fun AccountDetailsPage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.display),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.name),
                         desc = selectedAccount?.name ?: "",
@@ -159,6 +160,7 @@ fun AccountDetailsPage(
                             nameDialogVisible = true
                         },
                     ) {}
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
                 }
                 if (selectedAccount != null) {
@@ -169,6 +171,7 @@ fun AccountDetailsPage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.synchronous),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     selectedAccount?.let {
                         SettingItem(
                             title = stringResource(R.string.last_updated),
@@ -230,6 +233,7 @@ fun AccountDetailsPage(
                         desc = selectedAccount?.keepArchived?.toDesc(context),
                         onClick = { keepArchivedDialogVisible = true },
                     ) {}
+                    } // Brief You
                     // SettingItem(
                     //     title = stringResource(R.string.block_list),
                     //     onClick = { blockListDialogVisible = true },
@@ -247,6 +251,7 @@ fun AccountDetailsPage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.advanced),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.export_as_opml),
                         onClick = { exportOPMLModeDialogVisible = true },
@@ -260,6 +265,7 @@ fun AccountDetailsPage(
                         title = stringResource(R.string.delete_account),
                         onClick = { viewModel.showDeleteDialog() },
                     ) {}
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
                 }
                 item {
@@ -351,6 +357,7 @@ fun AccountDetailsPage(
         confirmButton = {
             TextButton(
                 onClick = {
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     selectedAccount?.let {
                         viewModel.clear(it) {
                             viewModel.hideClearDialog()
@@ -359,6 +366,7 @@ fun AccountDetailsPage(
                             )
                         }
                     }
+                    } // Brief You
                 }
             ) {
                 Text(text = stringResource(R.string.clear))

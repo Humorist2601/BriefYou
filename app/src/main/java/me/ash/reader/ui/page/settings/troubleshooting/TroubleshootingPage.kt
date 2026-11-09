@@ -154,6 +154,7 @@ fun TroubleshootingPage(onBack: () -> Unit, viewModel: TroubleshootingViewModel 
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.app_preferences),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.import_from_json),
                         onClick = { importLauncher.launch(arrayOf(MimeType.ANY)) },
@@ -162,6 +163,7 @@ fun TroubleshootingPage(onBack: () -> Unit, viewModel: TroubleshootingViewModel 
                         title = stringResource(R.string.export_as_json),
                         onClick = { preferenceFileLauncher(context, exportLauncher) },
                     ) {}
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
                 }
                 item {

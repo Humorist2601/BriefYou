@@ -106,6 +106,7 @@ fun InteractionPage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.on_start),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.initial_page),
                         desc = initialPage.toDesc(context),
@@ -120,12 +121,14 @@ fun InteractionPage(
                             initialFilterDialogVisible = true
                         },
                     ) {}
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.feeds_page),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.hide_empty_groups),
                         onClick = {
@@ -136,12 +139,14 @@ fun InteractionPage(
                             hideEmptyGroups.toggle(context, scope)
                         }
                     }
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.article_list),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.swipe_to_start),
                         desc = swipeToStartAction.desc,
@@ -184,6 +189,7 @@ fun InteractionPage(
                             showPullToLoadDialog = true
                         },
                     )
+                    } // Brief You
 
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -191,6 +197,7 @@ fun InteractionPage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.reading_page),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(id = R.string.pull_to_switch_article),
                         onClick = { pullToSwitchArticle.toggle(context, scope) }) {
@@ -198,12 +205,14 @@ fun InteractionPage(
                             pullToSwitchArticle.toggle(context, scope)
                         }
                     }
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.external_links),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.initial_open_app),
                         desc = openLink.toDesc(context),
@@ -222,12 +231,14 @@ fun InteractionPage(
                             }
                         },
                     ) {}
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.share),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.shared_content),
                         desc = sharedContent.toDesc(context),
@@ -235,6 +246,7 @@ fun InteractionPage(
                             sharedContentDialogVisible = true
                         },
                     ) {}
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
                 }
                 item {

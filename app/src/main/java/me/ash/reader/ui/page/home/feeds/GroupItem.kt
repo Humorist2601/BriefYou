@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp // Brief You
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import me.ash.reader.R
 import me.ash.reader.domain.model.group.Group
@@ -40,6 +41,7 @@ fun GroupItem(
     onExpanded: () -> Unit = {},
     onLongClick: () -> Unit = {},
     count: Int = 0, // Brief You: the group's unread (or all/starred) count, next to its arrow
+    iconFeed: me.ash.reader.domain.model.feed.Feed? = null, // Brief You: its first feed, for the group's icon tile
     groupOnClick: () -> Unit = {},
 ) {
     val view = LocalView.current
@@ -56,43 +58,35 @@ fun GroupItem(
                     onLongClick()
                 }
             )
-            .padding(top = 22.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh) // Brief You: the group's row in the joined list
+            .padding(vertical = 12.dp) // Brief You: was 22 above and below
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            me.ash.reader.brief.feeds.GroupIconTile(group.name, iconFeed, Modifier.padding(start = 14.dp)) // Brief You: an icon tile
             Text(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 28.dp),
+                    .padding(horizontal = 14.dp), // Brief You: after the tile
                 text = group.name,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = 16.sp), // Brief You: 16 sp, like every row
+                color = MaterialTheme.colorScheme.onSurface, // Brief You
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             me.ash.reader.brief.filters.WatchedCount(me.ash.reader.brief.filters.WatchedWords.groupCounts[group.id] ?: 0) // Brief You: watched words
-            if (count > 0) { // Brief You: the group's count, in the same badge as each feed's
-                Badge(
-                    modifier = Modifier.padding(end = 10.dp),
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.outline,
-                    content = {
-                        Text(
-                            text = count.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    },
-                )
+            if (count > 0) { // Brief You: the group's count in a pill, next to its arrow
+                me.ash.reader.brief.feeds.CountPill(count, Modifier.padding(end = 10.dp))
             }
             Row(
                 modifier = Modifier
                     .padding(end = 20.dp)
                     .size(24.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest) // Brief You: shows on the row
                     .clickable { onExpanded() },
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
@@ -104,17 +98,21 @@ fun GroupItem(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(22.dp))
     }
 }
 
 @Composable
-inline fun GroupWithFeedsContainer(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+inline fun GroupWithFeedsContainer(
+    modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = Shape32, // Brief You: its place in the joined list
+    top: androidx.compose.ui.unit.Dp = 16.dp, // Brief You: the gap above it
+    content: @Composable () -> Unit,
+) {
     Column(
         modifier = modifier
-            .padding(top = 16.dp)
+            .padding(top = top) // Brief You
             .padding(horizontal = 16.dp)
-            .clip(Shape32)
+            .clip(shape) // Brief You
             .background(MaterialTheme.colorScheme.surfaceContainerLow),
         content = { content() }
     )

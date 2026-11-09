@@ -80,6 +80,7 @@ fun ReadingTitlePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.title)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.bold),
                         onClick = {
@@ -109,6 +110,7 @@ fun ReadingTitlePage(
                         desc = titleAlign.toDesc(context),
                         onClick = { titleAlignDialogVisible = true },
                     ) {}
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
@@ -118,6 +120,7 @@ fun ReadingTitlePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.subhead)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.bold),
                         onClick = {
@@ -150,6 +153,7 @@ fun ReadingTitlePage(
 //                            subtitleAlignDialogVisible = true
                         },
                     ) {}
+                    } // Brief You
                 }
 
                 item {

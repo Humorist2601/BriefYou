@@ -191,6 +191,7 @@ fun ColorAndStylePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.appearance),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.dark_theme),
                         desc = darkTheme.toDesc(context),
@@ -208,6 +209,7 @@ fun ColorAndStylePage(
                         desc = fonts.toDesc(context),
                         onClick = { fontsDialogVisible = true },
                     ) {}
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
                 }
                 item {
@@ -215,6 +217,7 @@ fun ColorAndStylePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.style)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.feeds_page),
                         onClick = navigateToFeedsPageStyle,
@@ -227,6 +230,7 @@ fun ColorAndStylePage(
                         title = stringResource(R.string.reading_page),
                         onClick = navigateToReadingPageStyle,
                     ) {}
+                    } // Brief You
                 }
                 item {
                     Spacer(modifier = Modifier.height(24.dp))

@@ -107,6 +107,7 @@ fun FlowPageStylePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.top_bar)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.mark_as_read_button_position),
                         desc = stringResource(R.string.top),
@@ -120,6 +121,7 @@ fun FlowPageStylePage(
                             topBarTonalElevationDialogVisible = true
                         },
                     ) {}
+                    } // Brief You
                     Tips(text = stringResource(R.string.tips_top_bar_tonal_elevation))
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -130,6 +132,7 @@ fun FlowPageStylePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.article_list)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.feed_favicons),
                         onClick = {
@@ -218,6 +221,7 @@ fun FlowPageStylePage(
                             articleListTonalElevationDialogVisible = true
                         },
                     ) {}
+                    } // Brief You
                     Tips(text = stringResource(R.string.tips_article_list_tonal_elevation))
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -228,6 +232,7 @@ fun FlowPageStylePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.filter_bar),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.style),
                         desc = filterBarStyle.toDesc(context),
@@ -250,6 +255,7 @@ fun FlowPageStylePage(
                             filterBarTonalElevationDialogVisible = true
                         },
                     ) {}
+                    } // Brief You
                 }
                 item {
                     Spacer(modifier = Modifier.height(24.dp))

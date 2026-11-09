@@ -168,6 +168,9 @@ fun BriefFlowOverlays(
         }
     }
 
+    // An empty list says so (Starred with nothing starred, a caught-up Unread list…).
+    EmptyListState(pagingItems, filterUiState.filter, searching = !filterUiState.searchContent.isNullOrBlank())
+
     if (state.celebrate) {
         // Only when nothing is unread anywhere: marking one feed or group as read while others
         // still have unread articles is not inbox zero.

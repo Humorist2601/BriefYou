@@ -18,6 +18,18 @@ object Group {
     val NestedInner = 4.dp
 }
 
+/**
+ * The app's corner sizes, one scale for everything: inner joins of a group, pictures and small
+ * cards, cards and groups, tiles and heroes, banners. Buttons, chips and pills are fully round.
+ */
+object Corner {
+    val Inner = 6.dp
+    val Small = 16.dp
+    val Card = 24.dp
+    val Tile = 28.dp
+    val Banner = 32.dp
+}
+
 /** The shape of row [index] of [count] in a connected list. */
 fun groupShape(index: Int, count: Int, outer: Dp = Group.Outer, inner: Dp = Group.Inner): RoundedCornerShape {
     val top = if (index == 0) outer else inner

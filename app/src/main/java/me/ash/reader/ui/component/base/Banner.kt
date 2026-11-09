@@ -41,7 +41,7 @@ fun Banner(
     modifier: Modifier = Modifier,
     title: String,
     desc: String? = null,
-    backgroundColor: Color = MaterialTheme.colorScheme.primaryFixed,
+    backgroundColor: Color = me.ash.reader.brief.ui.bannerContainer(), // Brief You: tinted, not glaring, in dark mode
     icon: ImageVector? = null,
     action: (@Composable () -> Unit)? = null,
     onClick: () -> Unit = {},
@@ -70,7 +70,7 @@ fun Banner(
     modifier: Modifier = Modifier,
     title: String,
     desc: String? = null,
-    backgroundColor: Color = MaterialTheme.colorScheme.primaryFixed,
+    backgroundColor: Color = me.ash.reader.brief.ui.bannerContainer(), // Brief You: tinted, not glaring, in dark mode
     contentColor: Color = MaterialTheme.colorScheme.contentColorFor(backgroundColor),
     icon: (@Composable () -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,

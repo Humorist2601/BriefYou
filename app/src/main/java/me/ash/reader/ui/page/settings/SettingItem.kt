@@ -57,6 +57,7 @@ fun SettingItem(
 ) {
     val tonalPalettes = LocalTonalPalettes.current
     val interactionSource = remember { MutableInteractionSource() }
+    val inGroup = me.ash.reader.brief.ui.LocalInSettingGroup.current // Brief You: in a joined card
 
     Surface(
         modifier = modifier
@@ -67,12 +68,12 @@ fun SettingItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp, 16.dp, 16.dp, 16.dp),
+                .padding(if (inGroup) 20.dp else 24.dp, if (inGroup) 14.dp else 16.dp, 16.dp, if (inGroup) 14.dp else 16.dp), // Brief You: the card's padding
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (icon != null) {
                 Icon(
-                    modifier = Modifier.padding(end = 24.dp),
+                    modifier = Modifier.padding(end = if (inGroup) 16.dp else 24.dp), // Brief You
                     imageVector = icon,
                     contentDescription = title,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -81,7 +82,7 @@ fun SettingItem(
                 iconPainter?.let {
                     Icon(
                         modifier = Modifier
-                            .padding(end = 24.dp)
+                            .padding(end = if (inGroup) 16.dp else 24.dp) // Brief You
                             .size(24.dp),
                         painter = it,
                         contentDescription = title,
@@ -95,7 +96,7 @@ fun SettingItem(
                     color = titleColor, // Brief You
                     maxLines = if (desc == null) 2 else 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp)
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 16.sp) // Brief You: 16 sp, like every row
                 )
                 desc?.let {
                     Text(

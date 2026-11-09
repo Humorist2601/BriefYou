@@ -92,6 +92,7 @@ fun FeedsPageStylePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.top_bar)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.tonal_elevation),
                         desc = "${topBarTonalElevation.value}dp",
@@ -99,6 +100,7 @@ fun FeedsPageStylePage(
                             topBarTonalElevationDialogVisible = true
                         },
                     ) {}
+                    } // Brief You
 //                    Tips(text = stringResource(R.string.tips_top_bar_tonal_elevation))
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -109,6 +111,7 @@ fun FeedsPageStylePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.group_list)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.always_expand),
                         onClick = {
@@ -119,6 +122,7 @@ fun FeedsPageStylePage(
                             (!groupListExpand).put(context, scope)
                         }
                     }
+                    } // Brief You
 /*                    SettingItem(
                         title = stringResource(R.string.tonal_elevation),
                         desc = "${groupListTonalElevation.value}dp",
@@ -136,6 +140,7 @@ fun FeedsPageStylePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.filter_bar),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.style),
                         desc = filterBarStyle.toDesc(context),
@@ -158,6 +163,7 @@ fun FeedsPageStylePage(
                             filterBarTonalElevationDialogVisible = true
                         },
                     ) {}
+                    } // Brief You
                 }
                 item {
                     Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))

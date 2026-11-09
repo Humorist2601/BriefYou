@@ -105,3 +105,16 @@ fun Modifier.pressNudge(): Modifier = composed {
     val press = LocalPressFeel.current
     graphicsLayer { translationX = (press?.progress ?: 0f) * 4.dp.toPx() }
 }
+
+/**
+ * The colour of banners (the Starred / Unread / All openers, Settings' banners): Read You's light
+ * lavender in light mode; in dark mode the tinted container colour of the app's other cards, so
+ * the banner isn't the brightest thing on a dark page.
+ */
+@androidx.compose.runtime.Composable
+fun bannerContainer(): androidx.compose.ui.graphics.Color =
+    if (me.ash.reader.infrastructure.preference.LocalDarkTheme.current.isDarkTheme()) {
+        androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer
+    } else {
+        androidx.compose.material3.MaterialTheme.colorScheme.primaryFixed
+    }
