@@ -1,6 +1,7 @@
 package me.ash.reader.ui.component.base
 
 import androidx.annotation.DrawableRes
+import me.ash.reader.brief.reading.extractReferer // Brief You
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
@@ -39,10 +40,8 @@ fun RYAsyncImage(
             model =
                 ImageRequest.Builder(LocalContext.current)
                     .apply {
-                        val domain = data.toString().extractDomain()
-                        if (data.toString().extractDomain() != null) {
-                            addHeader("Referer", domain!!)
-                        }
+                        // Brief You: a real address, not the bare host (Read You #1347)
+                        data.toString().extractReferer()?.let { addHeader("Referer", it) }
                     }
                     .data(data = data)
                     .apply {

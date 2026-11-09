@@ -81,6 +81,8 @@ fun BriefTopBar(
     onNavButtonClick: (NavigationAction) -> Unit = {},
     onNavigateToStylePage: () -> Unit,
     onSummarize: (() -> Unit)? = null,
+    /** A long press on Share: the article as a newspaper. */
+    onShareNewspaper: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val sharedContent = LocalSharedContent.current
@@ -180,7 +182,11 @@ fun BriefTopBar(
                                     }
                                 )
                                 add(
-                                    TopBarAction(Icons.Outlined.Share, stringResource(R.string.share)) {
+                                    TopBarAction(
+                                        Icons.Outlined.Share,
+                                        stringResource(R.string.share),
+                                        onLongClick = onShareNewspaper,
+                                    ) {
                                         sharedContent.share(context, title, link)
                                     }
                                 )

@@ -34,9 +34,10 @@ fun WatchedChip(title: String, unread: Boolean, modifier: Modifier = Modifier) {
     Spacer(Modifier.width(6.dp))
     Row(
         modifier =
-            modifier.clip(RoundedCornerShape(8.dp))
+            // A pill, like every other label in the app (and its partner, the count at home).
+            modifier.clip(RoundedCornerShape(50))
                 .background(MaterialTheme.colorScheme.tertiaryContainer)
-                .padding(start = 5.dp, end = 7.dp, top = 1.dp, bottom = 1.dp),
+                .padding(start = 6.dp, end = 8.dp, top = 1.dp, bottom = 1.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(

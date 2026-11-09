@@ -5,6 +5,12 @@
 
 package me.ash.reader.brief.triage
 
+import androidx.compose.foundation.lazy.itemsIndexed
+import me.ash.reader.brief.tour.rememberHasModel
+import me.ash.reader.brief.tour.hintText
+import me.ash.reader.brief.tour.HintPlacement
+import me.ash.reader.brief.tour.BriefHints
+import me.ash.reader.brief.tour.BriefHint
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Folder
@@ -1373,6 +1379,13 @@ private fun TriageStack(
                             )
                         }
                     }
+                    // The first Triage with the AI ready: hold a card for its summary (once).
+                    BriefHint(
+                        key = BriefHints.TRIAGE_HOLD,
+                        text = hintText(stringResource(R.string.hint_triage_hold_bold), stringResource(R.string.hint_triage_hold)),
+                        enabled = rememberHasModel(),
+                        placement = HintPlacement.InsideBottom,
+                    )
                 }
 
                 // Buttons
@@ -2274,25 +2287,27 @@ private fun TriagePlacesSheet(
         sheetScope.launch { sheetState.hide() }.invokeOnCompletion { then() }
     }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
+        // The app's sheet design: title, muted subtitle, divider, 24 dp sides, a connected list.
+        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
             Text(
                 text = stringResource(if (isFeeds) R.string.triage_places_feeds else R.string.triage_places_groups),
                 style = MaterialTheme.typography.titleLarge,
-                fontFamily = GoogleSansWideFontFamily,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 4.dp),
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = stringResource(R.string.triage_jump_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 12.dp),
+                modifier = Modifier.padding(top = 2.dp),
             )
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(14.dp))
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(me.ash.reader.brief.ui.Group.Gap),
             ) {
-                items(places, key = { it.id }) { place ->
+                itemsIndexed(places, key = { _, it -> it.id }) { index, place ->
                     val here = place.id == currentId
                     // A group you moved on from with cards still unread can be opened again.
                     val leftBehind = if (here) 0 else leftIn[place.id] ?: 0
@@ -2300,7 +2315,8 @@ private fun TriagePlacesSheet(
                     Surface(
                         onClick = { close { onPick(place) } },
                         enabled = !here && !doneHere,
-                        shape = RoundedCornerShape(if (here) 20.dp else 16.dp),
+                        // One connected list: rounded at its outer corners only.
+                        shape = me.ash.reader.brief.ui.groupShape(index, places.size),
                         color =
                             if (here) MaterialTheme.colorScheme.secondaryContainer
                             else MaterialTheme.colorScheme.surfaceContainerHigh,

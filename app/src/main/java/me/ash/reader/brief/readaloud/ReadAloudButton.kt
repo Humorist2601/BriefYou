@@ -246,7 +246,11 @@ fun Context.openTtsSettings() {
 fun ReadAloudSpeedSheet(speed: Float, onSpeed: (Float) -> Unit, onDismiss: () -> Unit) {
     var value by remember(speed) { mutableFloatStateOf(speed) }
     val haptic = LocalHapticFeedback.current
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    // Opens fully, like the app's other sheets.
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(
             modifier =
                 Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding()

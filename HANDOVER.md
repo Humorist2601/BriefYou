@@ -39,6 +39,10 @@ These are the owner's standing preferences. A new assistant should follow them.
    `.github/assets/readme/`, drawn by `.github/readme/make_assets.py` (Google Sans Flex outlines,
    Material Symbols in `.github/readme/icons/`). To change their text or add one, edit the lists in
    the script and run `python3 .github/readme/make_assets.py` from the repository root.
+   All feature tables share one name-column width (`NAME_W`), so they line up. The screenshot
+   strip has a dark twin, `.github/assets/screenshots-dark.png`, made from `screenshots.png` by
+   darkening the background around the phones and turning the white label pills into dark tonal
+   ones; remake it whenever the screenshots change.
 4. **Watch every build to the end.** After a push, follow the GitHub Actions run until it
    finishes; read failures, fix them, push again, and report the result (and the release name).
 5. **Plain language** in replies: what changed and what the owner will notice, not jargon.
@@ -49,6 +53,17 @@ These are the owner's standing preferences. A new assistant should follow them.
    let the owner try it, then merge to `main` with a full changelog (that makes a release).
 8. When the owner says something "causes more issues", remove it entirely rather than patching
    around it.
+9. **New screens and sheets look like the existing ones** (the owner wants Brief You to feel
+   cohesive, down to the last corner). Pages: `RYScaffold` with the collapsing `DisplayText`
+   title, the tonal back circle, hero cards (32 dp), cards and tiles (28 dp). Connected lists come
+   from `brief/ui/Groups.kt`: `groupShape` (24 dp outer, 6 dp inner) on pages and sheets,
+   `nestedGroupShape` (16 / 4) inside dialogs and cards, rows `Group.Gap` (3 dp) apart. Bottom
+   sheets: a Title Large title (normal weight), an optional Body Medium muted subtitle, a divider,
+   24 dp sides, opened fully (`skipPartiallyExpanded`; the AI sheet's 70 % is the one exception).
+   Dialogs: `InWindowAlertDialog` (Read You's `RYDialog` draws through it), the standard title, no
+   icon. Labels: pills (`RoundedCornerShape(50)`), Label Medium, 10 × 4 dp padding; tertiary for
+   what's yours or watched, neutral for plain info. Tiles, cards and the tour's buttons press with
+   `PressFeel`.
 
 ---
 
@@ -93,7 +108,7 @@ create and approve pull requests*.
 
 | Folder | What's there |
 | --- | --- |
-| `ai/` | On-device AI. `GemmaSummarizer.kt`: loads Gemma through **LiteRT-LM** (`com.google.ai.edge.litertlm`, version in `libs.versions.toml`), GPU first, falls back to CPU and remembers a failed GPU for 30 days (`KEY_GPU_FAILED_AT`); loads in the background 2.5 s after the app comes to the foreground (`onAppForeground`, called from `BriefActivity`) if battery/memory allow, stays loaded while the app is open, unloads 3 minutes after the app leaves the screen; streams text. `SummarySheet.kt` (the 70 % sheet with key-point cards, Ask, Regenerate, Read), `SummaryViewModel.kt` (article summary or list gist; gist = newest 40 unread), `AiSettingsPage.kt` (import the model file, edit the instructions). The model is **not bundled**: the user downloads `gemma-4-E2B-it.litertlm` (~2.6 GB) and imports it. |
+| `ai/` | On-device AI. `GemmaSummarizer.kt`: loads Gemma through **LiteRT-LM** (`com.google.ai.edge.litertlm`, version in `libs.versions.toml`), GPU first, falls back to CPU and remembers a failed GPU for 30 days (`KEY_GPU_FAILED_AT`); loads in the background 2.5 s after the app comes to the foreground (`onAppForeground`, called from `BriefActivity`) if battery/memory allow, stays loaded while the app is open, unloads 3 minutes after the app leaves the screen; streams text. `SummarySheet.kt` (the 70 % sheet with key-point cards, Ask, Regenerate, Read), `SummaryViewModel.kt` (article summary or list gist; gist = newest 40 unread), `AiSettingsPage.kt` (import the model file, edit the instructions). The model is **not bundled**: the user downloads `gemma-4-E2B-it.litertlm` (~2.6 GB) and imports it. `ModelDownload.kt`: the in-app download (a WorkManager job in the foreground, `dataSync`, resumable with Range, straight into `files/models`, then renamed into place) and `PhoneCheck` (memory size as sold, free space, mobile data). `ArticleText.kt`: the text the AI gets; a teaser (under ~1,500 characters) is swapped for the full article through Read You's `ReaderCacheHelper`. |
 | `app/` | `BriefActivity.kt` (called from MainActivity: splash, in-window dialogs, shortcuts publishing, spare web view, Saved Articles refresh), `BriefNavigation.kt` (around Navigation 3: back preview, the shared filter bar, screen transitions), `BriefShortcuts.kt` (app shortcuts Triage / AI gist / Unread / Sync now, also used by the digest's Triage button), `BriefSync.kt` (after-sync work: filters, duplicates, icons). |
 | `backup/` | Full backup/restore to one file (subscriptions, starred articles, filters, settings, AI instructions, custom icons, feed order, …). |
 | `data/` | `BriefArticleDao.kt`: Brief You's own Room queries (Read You's DB lists it with one line). |
@@ -105,9 +120,11 @@ create and approve pull requests*.
 | `reading/` | The reading page: colours from the article picture (`BriefReading.kt`), header, top bar, floating reading bar, next-article card, image viewer, reading time (`ReadingTime.kt`, one-pass counter), **`FeedContent.kt`** (tidies every article's HTML: complete URLs, removes share junk, lead-picture split; cached with `prepared()`, done off the main thread with `forReaderInBackground()`), screen transitions (`PaneTransitions.kt`). |
 | `readlater/` | **Read Later**: `ReadLaterActivity` (Share menu entry "Read Later": fetches the page, saves it starred+unread with full text into a never-synced **Saved Articles** feed, shows a sheet that closes after 3 s). `ReadLater.kt` does the saving. Local accounts only. The saved feed has URL `briefyou://saved-for-later`; `LocalRssService` and OPML export skip it. Its icon is `icon:bookmark`, drawn by `FeedIcon.kt`. |
 | `splash/` | Animated splash (card stack). |
+| `tour/` | `BriefTour.kt`: the first-run tour (replaces Read You's welcome page through one hook in `AppEntry`'s `Route.Startup`; the agreement is on its last page) and *Settings → Tour* (a full-screen dialog). `BriefHints.kt`: one-time hint bubbles (`BriefHint`, a `Popup` placed against its parent Box; one at a time; remembered in `brief_hints` prefs). |
+| `share/` | `Newspaper.kt`: an article as a newspaper front page (hold Share on the reading page, or the list's long-press menu). One `NewspaperMaker` lives in `BriefNavigationHost` (`LocalNewspaperMaker`); it runs the steps (full text via `ArticleText`, *In brief* via `summarizeForCard`, the page), shows `PressSheet` after 0.5 s, and takes the picture off screen. The picture is a toned black-and-white photo with a faint dot screen, drawn on the CPU; the page is straight, cut with a transparent zig-zag top and bottom, and captured with `OffscreenPictureAt` at a fixed 1600 px (a 400 dp page at 4×, font scale 1). `BriefYouMark` on shared pictures is the themed-icon glyph in the accent colour on a cookie; the newspaper's is black and white on a squircle. Masthead: Literata at weight 900. |
 | `stats/` | Reading stats page and data; `MonthRecap.kt` is the monthly recap (Stats card, Past months, home row). `YearRecap.kt` is the year in review (first week of January in place of December's card, then first under Past months); it reuses the month card's heading, tiles and rows. Days also count opens per feed and filtered articles (for the recap). |
 | `triage/` | **Triage** (`TriageScreen.kt`, the biggest file): card stack, swipe right read / left save / up open / down skip, undo, auto-advance with a wavy ring, next-group end screen, haptics. A run moves through groups (or feeds, when opened from a feed) in the Feeds order. `TriageSession` keeps the run: visited places, cards left behind per place (`leftIn`), sizes for the run bar, totals, and saved states so Undo can step back into the previous group. Header: "Triage" + a "2 of 5" chip (opens `TriagePlacesSheet`: jump, skip, reopen groups left with cards) + group · cards left. After a group, the bar becomes `RunBar` (one piece per group). `TriageSummary.kt`: long-press AI summary on a card. |
-| `ui/` | `BackPreview.kt` (predictive back like stock Android, scrim 35 % dark / 12 % light), `SharedFilterBar.kt` + `BriefFilterBar.kt` (the bottom Starred/Unread/All bar drawn once above all screens), `InWindowDialog.kt`, `MaterialYouScheme.kt`, `TopBarButtons.kt`, `SharePicture.kt` (share a composable as a PNG: Triage card, monthly recap), `Type.kt` (Google Sans Flex). |
+| `ui/` | `BackPreview.kt` (predictive back like stock Android, scrim 35 % dark / 12 % light), `SharedFilterBar.kt` + `BriefFilterBar.kt` (the bottom Starred/Unread/All bar drawn once above all screens), `InWindowDialog.kt`, `MaterialYouScheme.kt`, `TopBarButtons.kt`, `SharePicture.kt` (share a composable as a PNG: Triage card, monthly recap), `PressFeel.kt` (Triage's press for tiles and cards: squeeze, tighter corners, the cookie turns, spring back, matching Triage's Next card and buttons; used by the Filters and Reading stats tiles, the sort tiles and the recap cards), `Type.kt` (Google Sans Flex). |
 | `webview/` | The article web view (Brief You's copy): `RYWebView.kt` (styles cached with `remember`, one web view per article), `WebViewPool.kt` (a spare web view made at a quiet moment so opening an article doesn't stutter; closed web views freed after the animation), `ImagePlaceholders.kt` (boxes + Expressive shape-morphing loader while pictures load; small pictures centred). |
 
 Other places worth knowing:

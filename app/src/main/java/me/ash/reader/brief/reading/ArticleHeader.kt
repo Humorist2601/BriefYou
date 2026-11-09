@@ -135,7 +135,7 @@ private fun HeaderChip(
             style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
             maxLines = 1,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }

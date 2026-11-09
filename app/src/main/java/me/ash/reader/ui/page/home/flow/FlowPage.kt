@@ -557,6 +557,7 @@ fun FlowPage(
                     val pagingItems = pager.collectAsLazyPagingItems().also { pagingItems = it }
 
                     if (markAsReadOnScroll && filterState.filter.isUnread()) {
+                        val briefSeen = me.ash.reader.brief.list.rememberSeenArticles(listState, pager) // Brief You
                         LaunchedEffect(listState.isScrollInProgress) {
                             if (!listState.isScrollInProgress) {
                                 val firstItemKey =
@@ -573,7 +574,8 @@ fun FlowPage(
                                                 found = true
                                                 break
                                             }
-                                            items.add(it.articleWithFeed)
+                                            // Brief You: only articles that were on screen (#1274)
+                                            if (it.articleWithFeed.article.id in briefSeen) items.add(it.articleWithFeed)
                                         }
                                     }
                                 }

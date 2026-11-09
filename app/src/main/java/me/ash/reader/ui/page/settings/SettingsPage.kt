@@ -156,6 +156,7 @@ fun SettingsPage(
                     )
                 }
                 item { me.ash.reader.brief.stats.ReadingStatsSettingsItem() } // Brief You
+                item { me.ash.reader.brief.tour.TourSettingsItem(navigateToAiModel) } // Brief You
                 item {
                     SelectableSettingGroupItem(
                         title = stringResource(R.string.troubleshooting),

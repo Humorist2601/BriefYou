@@ -2,6 +2,8 @@
 
 package me.ash.reader.brief.ai
 
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.BorderStroke
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.clip
@@ -91,6 +93,20 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
     val gistPrompt = viewModel.gistPrompt.collectAsStateValue()
     val cardPrompt = viewModel.cardPrompt.collectAsStateValue()
     var editing by rememberSaveable { mutableStateOf<PromptKind?>(null) }
+    var downloadAsk by rememberSaveable { mutableStateOf(false) }
+    if (downloadAsk) {
+        DownloadDialog(
+            onDownload = {
+                downloadAsk = false
+                viewModel.startDownload()
+            },
+            onOpenPage = {
+                downloadAsk = false
+                context.startActivity(Intent(Intent.ACTION_VIEW, GemmaSummarizer.MODEL_PAGE.toUri()))
+            },
+            onDismiss = { downloadAsk = false },
+        )
+    }
 
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -119,13 +135,11 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                     // The model at a glance, with what to do next right inside the card.
                     ModelHero(
                         model = model,
-                        onDownload = {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, GemmaSummarizer.MODEL_PAGE.toUri())
-                            )
-                        },
+                        // The phone check first, then the download inside the app.
+                        onDownload = { downloadAsk = true },
                         onImport = { picker.launch(arrayOf("*/*")) },
                         onRemove = viewModel::removeModel,
+                        onCancelDownload = viewModel::cancelDownload,
                     )
                     Spacer(modifier = Modifier.height(28.dp))
                 }
@@ -144,7 +158,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                             title = stringResource(R.string.ai_settings_article_prompt),
                             text = articlePrompt,
                             edited = articlePrompt.trim() != GemmaSummarizer.DEFAULT_ARTICLE_PROMPT.trim(),
-                            shape = RoundedCornerShape(24.dp, 24.dp, 6.dp, 6.dp),
+                            shape = me.ash.reader.brief.ui.groupShape(0, 3),
                             onClick = { editing = PromptKind.Article },
                         )
                         PromptCard(
@@ -152,7 +166,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                             title = stringResource(R.string.ai_settings_gist_prompt),
                             text = gistPrompt,
                             edited = gistPrompt.trim() != GemmaSummarizer.DEFAULT_GIST_PROMPT.trim(),
-                            shape = RoundedCornerShape(6.dp),
+                            shape = me.ash.reader.brief.ui.groupShape(1, 3),
                             onClick = { editing = PromptKind.Gist },
                         )
                         PromptCard(
@@ -160,7 +174,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                             title = stringResource(R.string.ai_settings_card_prompt),
                             text = cardPrompt,
                             edited = cardPrompt.trim() != GemmaSummarizer.DEFAULT_CARD_PROMPT.trim(),
-                            shape = RoundedCornerShape(6.dp, 6.dp, 24.dp, 24.dp),
+                            shape = me.ash.reader.brief.ui.groupShape(2, 3),
                             onClick = { editing = PromptKind.Card },
                         )
                     }
@@ -281,6 +295,7 @@ private fun ModelHero(
     onDownload: () -> Unit,
     onImport: () -> Unit,
     onRemove: () -> Unit,
+    onCancelDownload: () -> Unit,
 ) {
     val context = LocalContext.current
     val failed = model is ModelState.ImportFailed
@@ -372,7 +387,18 @@ private fun ModelHero(
                                         R.string.ai_model_ready,
                                         Formatter.formatShortFileSize(context, model.sizeBytes),
                                     )
-                                is ModelState.Importing -> stringResource(R.string.ai_model_tile_importing_label)
+                                is ModelState.Importing ->
+                                    when {
+                                        !model.downloading -> stringResource(R.string.ai_model_tile_importing_label)
+                                        model.waiting -> stringResource(R.string.ai_download_waiting)
+                                        model.progress != null ->
+                                            stringResource(
+                                                R.string.ai_download_progress,
+                                                (model.progress * 100).toInt(),
+                                                Formatter.formatShortFileSize(context, ModelDownload.MODEL_BYTES),
+                                            )
+                                        else -> stringResource(R.string.ai_download_starting)
+                                    }
                                 is ModelState.ImportFailed -> model.message
                                 ModelState.Missing -> stringResource(R.string.ai_model_tile_missing_label)
                             },
@@ -409,15 +435,35 @@ private fun ModelHero(
                 is ModelState.Ready -> {
                     Spacer(Modifier.height(14.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        FilledTonalButton(onClick = onImport) {
-                            Text(stringResource(R.string.ai_model_replace))
+                        FilledTonalButton(onClick = onImport, modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.ai_model_replace), maxLines = 1)
                         }
-                        TextButton(onClick = onRemove) {
-                            Text(stringResource(R.string.ai_settings_remove), color = content)
+                        // Its own look: an outline in a soft red, a button and a warning without a
+                        // heavy block of colour (removing deletes the 2.6 GB file).
+                        val danger = MaterialTheme.colorScheme.error
+                        OutlinedButton(
+                            onClick = onRemove,
+                            modifier = Modifier.weight(1f),
+                            border = BorderStroke(1.5.dp, danger),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = danger),
+                        ) {
+                            Text(stringResource(R.string.ai_settings_remove), maxLines = 1)
                         }
                     }
                 }
-                is ModelState.Importing -> Unit
+                is ModelState.Importing ->
+                    if (model.downloading) {
+                        Spacer(Modifier.height(14.dp))
+                        val danger = MaterialTheme.colorScheme.error
+                        OutlinedButton(
+                            onClick = onCancelDownload,
+                            modifier = Modifier.fillMaxWidth(),
+                            border = BorderStroke(1.5.dp, danger),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = danger),
+                        ) {
+                            Text(stringResource(R.string.ai_download_cancel), maxLines = 1)
+                        }
+                    }
             }
         }
     }
@@ -493,3 +539,74 @@ private fun PromptCard(
         }
     }
 }
+
+/**
+ * Before downloading 2.6 GB: what this phone can expect (memory), whether there's room, and a
+ * warning on mobile data. With too little room it can't start; the model page is still offered.
+ */
+@Composable
+private fun DownloadDialog(onDownload: () -> Unit, onOpenPage: () -> Unit, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val check = remember { PhoneCheck.of(context) }
+    // Each row: its text and how it reads (fine, a heads-up, or something that stops it working).
+    val rows = buildList {
+        add(
+            when (check.fit) {
+                PhoneCheck.Fit.Good -> stringResource(R.string.ai_check_memory_good, check.nominalGb) to CheckTone.Ok
+                PhoneCheck.Fit.Okay -> stringResource(R.string.ai_check_memory_okay, check.nominalGb) to CheckTone.Warn
+                PhoneCheck.Fit.Poor -> stringResource(R.string.ai_check_memory_poor, check.nominalGb) to CheckTone.Bad
+            }
+        )
+        add(
+            if (check.enoughSpace)
+                stringResource(R.string.ai_check_space_ok, Formatter.formatShortFileSize(context, check.freeBytes)) to CheckTone.Ok
+            else
+                stringResource(R.string.ai_check_space_low, Formatter.formatShortFileSize(context, check.needBytes - check.freeBytes)) to CheckTone.Bad
+        )
+        if (check.metered) add(stringResource(R.string.ai_check_metered) to CheckTone.Warn)
+    }
+    InWindowAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ai_download_title_ask)) },
+        text = {
+            Column {
+                Text(
+                    stringResource(R.string.ai_download_desc, Formatter.formatShortFileSize(context, ModelDownload.MODEL_BYTES)),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(Modifier.height(14.dp))
+                rows.forEachIndexed { i, (text, tone) ->
+                    val scheme = MaterialTheme.colorScheme
+                    // The dialog is surfaceContainerHigh, so fine rows sit one tone up to show.
+                    val (back, fore) =
+                        when (tone) {
+                            CheckTone.Ok -> scheme.surfaceContainerHighest to scheme.onSurface
+                            CheckTone.Warn -> scheme.tertiaryContainer to scheme.onTertiaryContainer
+                            CheckTone.Bad -> scheme.errorContainer to scheme.onErrorContainer
+                        }
+                    Text(
+                        text = (if (tone == CheckTone.Ok) "✓  " else "!  ") + text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = fore,
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(vertical = me.ash.reader.brief.ui.Group.Gap / 2)
+                                .clip(me.ash.reader.brief.ui.nestedGroupShape(i, rows.size))
+                                .background(back)
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (check.enoughSpace) {
+                TextButton(onClick = onDownload) { Text(stringResource(R.string.ai_download_start)) }
+            } else {
+                TextButton(onClick = onOpenPage) { Text(stringResource(R.string.ai_download_page)) }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+private enum class CheckTone { Ok, Warn, Bad }

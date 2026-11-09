@@ -385,3 +385,14 @@ fun BriefReadingPage(
         )
     }
 }
+
+/** Share's long press on the reading page: the article (as shown) as a newspaper. */
+@Composable
+fun briefNewspaper(
+    item: me.ash.reader.domain.model.article.ArticleWithFeed?,
+    html: String?,
+): (() -> Unit)? {
+    val maker = me.ash.reader.brief.share.LocalNewspaperMaker.current ?: return null
+    if (item == null) return null
+    return { maker.make(item, html) }
+}

@@ -187,7 +187,11 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     //                    }
                     Route.Startup -> {
                         NavEntry(key) {
-                            StartupPage(onNavigateToFeeds = { backStack.add(Route.Feeds) })
+                            // Brief You: the tour, with Read You's agreement on its last page
+                            me.ash.reader.brief.tour.BriefFirstRun(
+                                onNavigateToFeeds = { backStack.add(Route.Feeds) },
+                                onNavigateToAi = { backStack.add(Route.AiModel) },
+                            )
                         }
                     }
                     Route.Settings ->
