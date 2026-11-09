@@ -209,7 +209,7 @@ for key, title, sub, ic, sh, tone in CARDS:
 # Section headers -------------------------------------------------------------------------------
 HEADERS = [
     ("ai", "On-device AI", "sparkle", "cookie9", "p"),
-    ("reading", "Reading", "menu_book", "square", "s"),
+    ("reading", "Reading", "menu_book", "cookie7", "s"),
     ("listen", "Read aloud", "graphic_eq", "sunny", "t"),
     ("triage", "Triage", "style", "clover4", "p"),
     ("calm", "Calmer feeds", "notifications_off", "flower8", "s"),
@@ -238,6 +238,7 @@ TABLES = {
         ('Ask', 'Ask questions about an article or a gist.'),
         ('Read aloud', 'Any summary or gist, read aloud.'),
         ('Your instructions', 'Edit what the model is told, in Settings, AI model.'),
+        ('Download in the app', 'Gemma downloads in the background, after a quick check of your phone.'),
     ],
     "reading": [
         ('Colours from the picture', 'The page takes its colours from the article’s picture.'),
@@ -247,6 +248,7 @@ TABLES = {
         ('Next article card', 'At the end of an article, or "You’re all caught up".'),
         ('Reading time', '4 min in the list and on the page.'),
         ('Read later', 'Share a link from any app to save the full page, offline.'),
+        ('Newspaper', 'Hold Share to send an article as a newspaper front page.'),
         ('Tidier articles', 'No share buttons, "Read more" links or tracking pixels.'),
     ],
     "listen": [
@@ -280,9 +282,10 @@ TABLES = {
         ('App shortcuts', 'Long-press the icon for Triage, AI gist, Unread or Sync now.'),
         ('Reading stats', 'Your week, streak, top feeds and this month vs last.'),
         ('Monthly recap', 'Last month as calendar and highlights; last year each January.'),
-        ('Swipe between Starred, Unread and All', 'Each with its own list and scroll position.'),
+        ('Swipe between lists', 'Starred, Unread and All, each with its own scroll position.'),
         ('Predictive back', 'Android’s own back animation, in screens and dialogs.'),
         ('New icon and animated splash', 'A fanned stack of cards that grows into the app.'),
+        ('First-run tour', 'Four pages on what’s different, and a hint the first time you meet a feature.'),
     ],
     "backup": [
         ('Full backup and restore', 'Feeds, starred articles, filters and settings in one file.'),
@@ -293,13 +296,15 @@ TABLES = {
     ],
 }
 
+# One name column for every table, so the descriptions line up from section to section.
+NAME_W = 22 + max(text(n, 0, 0, 16, "#000", 620)[1] for rows in TABLES.values() for n, _ in rows) + 28
+
 for key, rows in TABLES.items():
     rows = [(n, re.sub(r'"([^"]*)"', "\u201c\\1\u201d", d)) for n, d in rows]  # curly quotes
     for mode, c in THEMES.items():
         W = 880
         size = 16
-        # The name column fits the longest name in this table.
-        nameW = 22 + max(text(n, 0, 0, size, "#000", 620)[1] for n, _ in rows) + 28
+        nameW = NAME_W
         _glyphs.clear()
         lines = [wrap(desc, size, W - nameW - 40, 420) for _, desc in rows]
         heights = [max(52, 22 + 24 * len(l)) for l in lines]

@@ -39,6 +39,10 @@ These are the owner's standing preferences. A new assistant should follow them.
    `.github/assets/readme/`, drawn by `.github/readme/make_assets.py` (Google Sans Flex outlines,
    Material Symbols in `.github/readme/icons/`). To change their text or add one, edit the lists in
    the script and run `python3 .github/readme/make_assets.py` from the repository root.
+   All feature tables share one name-column width (`NAME_W`), so they line up. The screenshot
+   strip has a dark twin, `.github/assets/screenshots-dark.png`, made from `screenshots.png` by
+   darkening the background around the phones and turning the white label pills into dark tonal
+   ones; remake it whenever the screenshots change.
 4. **Watch every build to the end.** After a push, follow the GitHub Actions run until it
    finishes; read failures, fix them, push again, and report the result (and the release name).
 5. **Plain language** in replies: what changed and what the owner will notice, not jargon.

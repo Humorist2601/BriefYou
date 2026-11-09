@@ -150,19 +150,6 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
             TourArt(MaterialShapes.Clover4Leaf, scheme.secondaryContainer, scheme.onSecondaryContainer, Icons.Outlined.NotificationsActive),
             TourArt(MaterialShapes.SoftBurst, scheme.primaryContainer, scheme.onPrimaryContainer, Icons.Outlined.TouchApp),
         )
-    // A tick as each page settles, and the art pops a little.
-    val pop = remember { Animatable(1f) }
-    LaunchedEffect(pager) {
-        var first = true
-        snapshotFlow { pager.settledPage }.collect {
-            if (!first) {
-                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                pop.snapTo(0.9f)
-                pop.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = Spring.StiffnessMediumLow))
-            }
-            first = false
-        }
-    }
     fun go(page: Int) {
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
         scope.launch { pager.animateScrollToPage(page) }
@@ -173,8 +160,11 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
             Spacer(Modifier.height(40.dp))
             // One shape for the whole tour: as you swipe it morphs into the next page's shape,
             // its colour and icon following your finger.
-            MorphingArt(arts, position = { pager.currentPage + pager.currentPageOffsetFraction }, pop = { pop.value })
+            MorphingArt(arts, position = { pager.currentPage + pager.currentPageOffsetFraction })
             HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
+                // Scrolls only if the page is taller than the screen; otherwise dragging up or
+                // down does nothing (no stretch).
+                val scroll = rememberScrollState()
                 Column(
                     modifier =
                         Modifier.fillMaxSize()
@@ -185,7 +175,7 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                                 translationX = offset * size.width * 0.35f
                                 alpha = 1f - (kotlin.math.abs(offset) * 0.9f).coerceIn(0f, 1f)
                             }
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(scroll, enabled = scroll.maxValue > 0)
                             .padding(horizontal = 28.dp),
                 ) {
                     when (page) {
@@ -321,10 +311,10 @@ private fun Body(text: String) {
 /**
  * The tour's art: one Expressive shape that turns slowly and, at [position] between two pages,
  * is part-way morphed from one page's shape to the next, with the colour blended and the icons
- * crossing over. [pop] scales it as a page settles.
+ * crossing over.
  */
 @Composable
-private fun MorphingArt(arts: List<TourArt>, position: () -> Float, pop: () -> Float) {
+private fun MorphingArt(arts: List<TourArt>, position: () -> Float) {
     val turn by
         rememberInfiniteTransition(label = "tour art")
             .animateFloat(0f, 360f, infiniteRepeatable(tween(24_000, easing = LinearEasing)), label = "turn")
@@ -341,8 +331,6 @@ private fun MorphingArt(arts: List<TourArt>, position: () -> Float, pop: () -> F
                 .graphicsLayer {
                     // Turns slowly, and a quarter turn more over each swipe.
                     rotationZ = turn + at * 90f
-                    scaleX = pop()
-                    scaleY = pop()
                 }
                 .clip(shape)
                 .background(container),
