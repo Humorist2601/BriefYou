@@ -37,13 +37,14 @@ fun FeedIcon(
     size: Dp = 20.dp,
     placeholderIcon: ImageVector? = null,
 ) {
-    if (iconUrl == SAVED_ARTICLES_ICON) { // Brief You: Read later's Saved Articles feed
+    val symbol = me.ash.reader.brief.feeds.SymbolIcons.of(iconUrl) // Brief You: a chosen Material icon
+    if (iconUrl == SAVED_ARTICLES_ICON || symbol != null) { // Brief You: Saved Articles, or a chosen Material icon
         Box(
             modifier = modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.primary), // Brief You
             contentAlignment = Alignment.Center, // Brief You
         ) { // Brief You
             Icon( // Brief You
-                imageVector = androidx.compose.material.icons.Icons.Rounded.Bookmark, // Brief You
+                imageVector = if (iconUrl == SAVED_ARTICLES_ICON) androidx.compose.material.icons.Icons.Rounded.Bookmark else symbol ?: androidx.compose.material.icons.Icons.Rounded.Bookmark, // Brief You: Saved Articles keeps its filled bookmark
                 contentDescription = feedName, // Brief You
                 tint = MaterialTheme.colorScheme.onPrimary, // Brief You
                 modifier = Modifier.size(size * 0.6f), // Brief You

@@ -2282,6 +2282,8 @@ private fun TriagePlacesSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val sheetScope = rememberCoroutineScope()
+    val iconContext = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(Unit) { me.ash.reader.brief.feeds.GroupIcons.load(iconContext) } // groups' chosen icons
     // Buttons slide the sheet down first, like a swipe down does, instead of it vanishing.
     fun close(then: () -> Unit) {
         sheetScope.launch { sheetState.hide() }.invokeOnCompletion { then() }
@@ -2329,9 +2331,15 @@ private fun TriagePlacesSheet(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            // A group's chosen icon (from its options): a Material icon goes in the
+                            // circle like the folder; an emoji or image is drawn as it is.
+                            val chosen = if (!isFeeds) me.ash.reader.brief.feeds.GroupIcons.icons[place.id] else null
+                            val symbol = me.ash.reader.brief.feeds.SymbolIcons.of(chosen)
                             if (isFeeds && !doneHere) {
                                 // The feed's own icon; done ones get the tick like groups.
                                 FeedIcon(feedName = place.name, iconUrl = place.icon, size = 26.dp)
+                            } else if (!doneHere && chosen != null && symbol == null) {
+                                FeedIcon(feedName = place.name, iconUrl = chosen, size = 26.dp)
                             } else {
                                 Box(
                                     modifier =
@@ -2344,7 +2352,7 @@ private fun TriagePlacesSheet(
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
-                                        if (doneHere) Icons.Rounded.Check else Icons.Rounded.Folder,
+                                        if (doneHere) Icons.Rounded.Check else symbol ?: Icons.Rounded.Folder,
                                         contentDescription = null,
                                         tint =
                                             if (here || doneHere) MaterialTheme.colorScheme.onPrimary

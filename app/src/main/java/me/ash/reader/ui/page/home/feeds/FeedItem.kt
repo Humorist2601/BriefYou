@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size // Brief You
 import androidx.compose.material3.Badge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,9 +30,11 @@ import me.ash.reader.ui.component.base.RYExtensibleVisibility
 import me.ash.reader.ui.page.home.feeds.drawer.feed.FeedOptionViewModel
 
 @Composable
+// Brief You: lined up with the group's row (the icon under its tile, the name under its name), not indented.
+// Brief You: compact rows (40 dp), so a group's feeds read as one tight list under it.
 private fun contentPadding(isLastItem: Boolean): PaddingValues = if (isLastItem) PaddingValues(
-    bottom = 22.dp, start = 14.dp, end = 14.dp, top = 14.dp
-) else PaddingValues(14.dp)
+    bottom = 12.dp, start = 0.dp, end = 14.dp, top = 8.dp // Brief You
+) else PaddingValues(start = 0.dp, end = 14.dp, top = 8.dp, bottom = 8.dp) // Brief You
 
 @OptIn(
     ExperimentalFoundationApi::class,
@@ -66,11 +69,13 @@ private fun FeedItemImpl(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.foundation.layout.Box(Modifier.size(width = 36.dp, height = 24.dp), contentAlignment = Alignment.Center) { // Brief You: the width of the group's tile, not its height
                 FeedIcon(
                     feedName = feed.name, iconUrl = feed.icon, modifier = Modifier
                 )
+                } // Brief You
                 Text(
-                    modifier = Modifier.padding(start = 12.dp, end = 6.dp),
+                    modifier = Modifier.padding(start = 14.dp, end = 6.dp), // Brief You: 14, as after the group's tile
                     text = feed.name,
                     style = MaterialTheme.typography.labelLarge.merge(
                         lineHeight = 20.sp,

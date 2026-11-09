@@ -53,8 +53,9 @@ fun AccountsPage(
                         text = stringResource(R.string.list),
                     )
                 }
-                accounts.forEach {
-                    item {
+                item { // Brief You: the accounts as one joined card (was one item each)
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You
+                    accounts.forEach {
                         SettingItem(
                             title = it.name,
                             desc = it.type.toDesc(context),
@@ -63,6 +64,7 @@ fun AccountsPage(
                             onClick = { navigateToAccountDetails(it.id!!) },
                         ) {}
                     }
+                    } // Brief You
                 }
                 item {
                     Tips(text = stringResource(R.string.accounts_tips))
@@ -73,12 +75,14 @@ fun AccountsPage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.more),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.add_accounts),
                         desc = stringResource(R.string.add_accounts_desc),
                         icon = Icons.Outlined.PersonAdd,
                         onClick = navigateToAddAccount,
                     ) {}
+                    } // Brief You
                 }
                 item {
                     Spacer(modifier = Modifier.height(24.dp))

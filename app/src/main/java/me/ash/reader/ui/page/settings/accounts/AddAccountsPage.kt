@@ -54,6 +54,7 @@ fun AddAccountsPage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.local),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.local),
                         desc = stringResource(R.string.local_desc),
@@ -62,6 +63,7 @@ fun AddAccountsPage(
                             additionViewModel.showAddLocalAccountDialog()
                         },
                     ) {}
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 /*                item {
@@ -69,6 +71,7 @@ fun AddAccountsPage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.services),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         enabled = false,
                         title = stringResource(R.string.feedly),
@@ -83,6 +86,7 @@ fun AddAccountsPage(
                         iconPainter = painterResource(id = R.drawable.ic_inoreader),
                         onClick = {},
                     ) {}
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
                 }*/
                 item {
@@ -90,6 +94,7 @@ fun AddAccountsPage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.self_hosted),
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.fresh_rss),
                         desc = stringResource(R.string.fresh_rss_desc),
@@ -114,6 +119,7 @@ fun AddAccountsPage(
                             additionViewModel.showAddFeverAccountDialog()
                         },
                     ) {}
+                    } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
                 }
                 item {

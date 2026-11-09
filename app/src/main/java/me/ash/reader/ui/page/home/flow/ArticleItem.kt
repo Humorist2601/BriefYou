@@ -295,7 +295,7 @@ fun ArticleItem(
             // Image
             if (imgData != null && articleListImage.value) {
                 RYAsyncImage(
-                    modifier = Modifier.padding(start = 10.dp).size(80.dp).clip(Shape20),
+                    modifier = Modifier.padding(start = 10.dp).size(80.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(me.ash.reader.brief.ui.Corner.Small)), // Brief You: 80 dp, 16 dp corners
                     data = imgData,
                     scale = Scale.FILL,
                     precision = Precision.INEXACT,

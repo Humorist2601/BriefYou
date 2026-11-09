@@ -79,6 +79,7 @@ fun ReadingVideoPage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.videos)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.rounded_corners),
                         onClick = {},
@@ -88,6 +89,7 @@ fun ReadingVideoPage(
                         desc = "dp",
                         onClick = {},
                     ) {}
+                    } // Brief You
                 }
 
                 item {

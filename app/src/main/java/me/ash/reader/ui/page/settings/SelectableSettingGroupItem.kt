@@ -59,6 +59,7 @@ fun SelectableSettingGroupItem(
     onClick: () -> Unit,
 ) {
     val view = LocalView.current
+    val inGroup = me.ash.reader.brief.ui.LocalInSettingGroup.current // Brief You: in a joined card
 
     Surface(
         modifier = modifier
@@ -72,12 +73,12 @@ fun SelectableSettingGroupItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = if (inGroup) 0.dp else 16.dp) // Brief You: the card has its own
                 .background(
                     color = if (selected) MaterialTheme.colorScheme.onSurface else Color.Unspecified,
                     shape = RoundedCornerShape(24.dp)
                 )
-                .padding(8.dp, 16.dp),
+                .padding(8.dp, if (inGroup) 12.dp else 16.dp), // Brief You: a little tighter in a card
             verticalAlignment = Alignment.CenterVertically,
         ) {
             icon?.let {
@@ -113,7 +114,7 @@ fun SelectableSettingGroupItem(
                 Text(
                     text = title,
                     maxLines = if (desc == null) 2 else 1,
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp),
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 16.sp), // Brief You: 16 sp, like every row
                     color = if (selected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface,
                 )
                 desc?.let {

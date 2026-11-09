@@ -190,9 +190,8 @@ fun FeedsPage(
         groupWithFeedList.forEach { groupWithFeed -> groupsVisible[groupWithFeed.group.id] = false }
     }
 
-    val groupDrawerState =
-        rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden, skipHalfExpanded = true)
-    val feedDrawerState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden, skipHalfExpanded = true)
+    val groupDrawerState = me.ash.reader.brief.ui.rememberSheetSwitch() // Brief You: Material 3 option sheets
+    val feedDrawerState = me.ash.reader.brief.ui.rememberSheetSwitch() // Brief You
 
     // Brief You: on Android 12+ the system already sends a root activity to the background on
     // Back, and leaving Back unhandled lets the predictive "back to home" animation play.
@@ -303,8 +302,8 @@ fun FeedsPage(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    itemsIndexed(groupWithFeedList) { _, (group, feeds) ->
-                        GroupWithFeedsContainer {
+                    itemsIndexed(groupWithFeedList) { index, (group, feeds) -> // Brief You: index, for the joined list
+                        GroupWithFeedsContainer(shape = me.ash.reader.brief.ui.groupShape(index, groupWithFeedList.size), top = me.ash.reader.brief.ui.Group.Gap) { // Brief You: the groups as one joined list
                             GroupItem(
                                 isExpanded = {
                                     groupsVisible.getOrPut(group.id, groupListExpand::value)

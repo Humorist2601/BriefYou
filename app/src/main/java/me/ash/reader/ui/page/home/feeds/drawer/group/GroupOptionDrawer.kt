@@ -12,6 +12,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.ui.draw.clip // Brief You
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.OpenInBrowser
 import androidx.compose.material3.Icon
@@ -19,6 +20,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue // Brief You
+import androidx.compose.runtime.setValue // Brief You
+import androidx.compose.runtime.mutableStateOf // Brief You
+import androidx.compose.runtime.remember // Brief You
+import androidx.compose.foundation.clickable // Brief You
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -43,7 +49,7 @@ import me.ash.reader.ui.interaction.alphaIndicationClickable
 
 @Composable
 fun GroupOptionDrawer(
-    drawerState: ModalBottomSheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden),
+    drawerState: me.ash.reader.brief.ui.SheetSwitch = me.ash.reader.brief.ui.rememberSheetSwitch(), // Brief You: Material 3 sheet
     viewModel: GroupOptionViewModel = hiltViewModel(),
     content: @Composable () -> Unit = {},
 ) {
@@ -52,83 +58,77 @@ fun GroupOptionDrawer(
     val groupOptionUiState = viewModel.groupOptionUiState.collectAsStateValue()
     val group = groupOptionUiState.group
     val toastString = stringResource(R.string.rename_toast, groupOptionUiState.newName)
+    // Brief You: the group's icon, chosen like a feed's (a Material icon, an image, or back to the folder).
+    var showIconDialog by remember { mutableStateOf(false) } // Brief You
+    val iconScope = rememberCoroutineScope() // Brief You
+    val imagePicker = // Brief You
+        androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri -> // Brief You
+            val id = group?.id // Brief You
+            if (uri != null && id != null) iconScope.launch { // Brief You
+                runCatching { me.ash.reader.brief.feeds.GroupIcons.setImage(context, id, uri) }.onFailure { context.showToast(it.message) } // Brief You
+            } // Brief You
+        } // Brief You
+    if (showIconDialog) me.ash.reader.brief.ui.OptionSheetDialogs { // Brief You: above the sheet
+        me.ash.reader.brief.feeds.FeedIconDialog( // Brief You
+            onSymbol = { n -> group?.id?.let { me.ash.reader.brief.feeds.GroupIcons.setSymbol(context, it, n) } }, // Brief You: Material icons
+            onEmoji = { e -> group?.id?.let { me.ash.reader.brief.feeds.GroupIcons.setEmoji(context, it, e) } }, // Brief You: or any emoji
+            current = group?.id?.let { me.ash.reader.brief.feeds.GroupIcons.icons[it] }, // Brief You
+            onImage = { imagePicker.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) }, // Brief You
+            onWebsiteIcon = { group?.id?.let { me.ash.reader.brief.feeds.GroupIcons.clear(context, it) } }, // Brief You
+            onDismiss = { showIconDialog = false }, // Brief You
+            resetLabel = stringResource(R.string.group_icon_folder), // Brief You
+            resetIcon = Icons.Outlined.Folder, // Brief You
+        ) // Brief You
+    } // Brief You
 
-    BackHandler(drawerState.isVisible) {
-        scope.launch {
-            drawerState.hide()
-        }
-    }
+    // Brief You: the app's Material 3 sheet (was Read You's Material 2 one), in the app's sheet design.
+    me.ash.reader.brief.ui.OptionSheet(drawerState) { // Brief You
+        me.ash.reader.brief.ui.SheetHeader( // Brief You
+            icon = { me.ash.reader.brief.feeds.GroupIconTile(group?.id.orEmpty(), Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).clickable { showIconDialog = true }, size = 48.dp) }, // Brief You: tap to change
+            title = { // Brief You: tap the name to rename
+                Text( // Brief You
+                    modifier = Modifier.alphaIndicationClickable { if (viewModel.rssService.get().updateSubscription) viewModel.showRenameDialog() }, // Brief You
+                    text = group?.name ?: stringResource(R.string.unknown), // Brief You
+                    style = MaterialTheme.typography.titleLarge, // Brief You
+                    color = MaterialTheme.colorScheme.onSurface, // Brief You
+                    maxLines = 1, // Brief You
+                    overflow = TextOverflow.Ellipsis, // Brief You
+                ) // Brief You
+            }, // Brief You
+            subtitle = { // Brief You
+                Text( // Brief You
+                    text = stringResource(R.string.group_option_tips), // Brief You
+                    style = MaterialTheme.typography.bodyMedium, // Brief You
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Brief You
+                ) // Brief You
+            }, // Brief You
+        ) // Brief You
+        Column(modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) { // Brief You
+            me.ash.reader.brief.feeds.SettingTiles( // Brief You: each asks before applying to all its feeds
+                fullContent = null, browser = null, notification = null, // Brief You
+                onFullContent = { viewModel.showAllParseFullContentDialog() }, // Brief You
+                onBrowser = { viewModel.showAllOpenInBrowserDialog() }, // Brief You
+                onNotification = { viewModel.showAllAllowNotificationDialog() }, // Brief You
+            ) // Brief You
+            if (viewModel.rssService.get().moveSubscription && groupOptionUiState.groups.size != 1) { // Brief You
+                Spacer(modifier = Modifier.height(20.dp)) // Brief You
+                me.ash.reader.brief.ui.SheetSection(stringResource(R.string.move_to_group)) // Brief You
+                me.ash.reader.brief.feeds.GroupChips( // Brief You: moves all its feeds there
+                    groups = groupOptionUiState.groups.filter { it.id != group?.id }, // Brief You
+                    selectedGroupId = "", // Brief You
+                    onGroupClick = { id -> groupOptionUiState.groups.firstOrNull { it.id == id }?.let { viewModel.showAllMoveToGroupDialog(it) } }, // Brief You
+                ) // Brief You
+            } // Brief You
+            Spacer(modifier = Modifier.height(20.dp)) // Brief You
+            me.ash.reader.brief.ui.SheetActions( // Brief You
+                stringResource(R.string.clear_articles) to { viewModel.showClearDialog() }, // Brief You
+                if (viewModel.rssService.get().deleteSubscription && group?.id != context.currentAccountId.getDefaultGroupId()) stringResource(R.string.delete_group) to { viewModel.showDeleteDialog() } else null, // Brief You
+            ) // Brief You
+        } // Brief You
+    } // Brief You
+    content() // Brief You
 
-    BottomDrawer(
-        drawerState = drawerState,
-        sheetContent = {
-            Column(modifier = Modifier.navigationBarsPadding()) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Folder,
-                        contentDescription = group?.name ?: stringResource(R.string.unknown),
-                        tint = MaterialTheme.colorScheme.secondary,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        modifier = Modifier.alphaIndicationClickable() {
-                            if (viewModel.rssService.get().updateSubscription) {
-                                viewModel.showRenameDialog()
-                            }
-                        },
-                        text = group?.name ?: stringResource(R.string.unknown),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState())
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.group_option_tips),
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(26.dp))
-                    Subtitle(text = stringResource(R.string.preset))
-
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Preset(viewModel, group, context)
-
-                    if (viewModel.rssService.get().moveSubscription && groupOptionUiState.groups.size != 1) {
-                        Spacer(modifier = Modifier.height(26.dp))
-                        Subtitle(text = stringResource(R.string.move_to_group))
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        if (groupOptionUiState.groups.size > 6) {
-                            LazyRowGroups(groupOptionUiState, group, viewModel)
-                        } else {
-                            FlowRowGroups(groupOptionUiState, group, viewModel)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
-            }
-        }
-    ) {
-        content()
-    }
-
+    me.ash.reader.brief.ui.OptionSheetDialogs { // Brief You: above the sheet
     ClearGroupDialog(
         groupName = group?.name ?: "",
         onConfirm = { scope.launch { drawerState.hide() } })
@@ -162,6 +162,7 @@ fun GroupOptionDrawer(
             context.showToast(toastString)
         }
     )
+    } // Brief You
 }
 
 @OptIn(ExperimentalLayoutApi::class)

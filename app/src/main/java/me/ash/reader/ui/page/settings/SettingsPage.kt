@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding // Brief You
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
@@ -107,71 +108,75 @@ fun SettingsPage(
                         // )
                     }
                 }
-                item {
-                    SelectableSettingGroupItem(
-                        title = stringResource(R.string.accounts),
-                        desc = stringResource(R.string.accounts_desc),
-                        icon = Icons.Outlined.AccountCircle,
-                        onClick = navigateToAccounts
-                    )
-                }
-                item {
+                // Brief You: three sections, each one joined card (was one long column).
+                item { // Brief You
+                    me.ash.reader.ui.component.base.Subtitle(modifier = Modifier.padding(horizontal = 24.dp), text = stringResource(R.string.settings_section_reading)) // Brief You
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You
                     SelectableSettingGroupItem(
                         title = stringResource(R.string.color_and_style),
                         desc = stringResource(R.string.color_and_style_desc),
                         icon = Icons.Outlined.Palette,
                         onClick = navigateToColorAndStyle
                     )
-                }
-                item {
+                    // Brief You: the same card
                     SelectableSettingGroupItem(
                         title = stringResource(R.string.interaction),
                         desc = stringResource(R.string.interaction_desc),
                         icon = Icons.Outlined.TouchApp,
                         onClick = navigateToInteraction
                     )
-                }
-                item {
+                    // Brief You: the same card
                     SelectableSettingGroupItem(
                         title = stringResource(R.string.languages),
                         desc = Locale.getDefault().toDisplayName(),
                         icon = Icons.Outlined.Language,
                         onClick = navigateToLanguages
                     )
-                }
-                item { // Brief You
+                    } // Brief You
+                    Spacer(modifier = Modifier.height(16.dp)) // Brief You
+                    me.ash.reader.ui.component.base.Subtitle(modifier = Modifier.padding(horizontal = 24.dp), text = stringResource(R.string.settings_section_brief)) // Brief You
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You
                     SelectableSettingGroupItem(
                         title = stringResource(R.string.ai_settings),
                         desc = stringResource(R.string.ai_settings_desc),
                         icon = Icons.Outlined.AutoAwesome,
                         onClick = navigateToAiModel
                     )
-                }
-                item {
+                    // Brief You: the same card
                     SelectableSettingGroupItem(
                         title = stringResource(R.string.filters_settings),
                         desc = stringResource(R.string.filters_settings_desc),
                         icon = Icons.Outlined.FilterAlt,
                         onClick = navigateToFilters
                     )
-                }
-                item { me.ash.reader.brief.stats.ReadingStatsSettingsItem() } // Brief You
-                item {
+                    // Brief You: the same card
+                    me.ash.reader.brief.stats.ReadingStatsSettingsItem()
+                    } // Brief You
+                    Spacer(modifier = Modifier.height(16.dp)) // Brief You
+                    me.ash.reader.ui.component.base.Subtitle(modifier = Modifier.padding(horizontal = 24.dp), text = stringResource(R.string.settings_section_app)) // Brief You
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You
+                    SelectableSettingGroupItem(
+                        title = stringResource(R.string.accounts),
+                        desc = stringResource(R.string.accounts_desc),
+                        icon = Icons.Outlined.AccountCircle,
+                        onClick = navigateToAccounts
+                    )
+                    // Brief You: the same card
                     SelectableSettingGroupItem(
                         title = stringResource(R.string.troubleshooting),
                         desc = stringResource(R.string.troubleshooting_desc),
                         icon = Icons.Outlined.BugReport,
                         onClick = navigateToTroubleshooting
                     )
-                }
-                item {
+                    // Brief You: the same card
                     SelectableSettingGroupItem(
                         title = stringResource(R.string.tips_and_support),
                         desc = stringResource(R.string.tips_and_support_desc),
                         icon = Icons.Outlined.TipsAndUpdates,
                         onClick = navigateToTipsAndSupport
                     )
-                }
+                    } // Brief You
+                } // Brief You
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
                     Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))

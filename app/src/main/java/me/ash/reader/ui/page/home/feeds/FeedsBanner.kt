@@ -16,6 +16,7 @@ fun FeedsBanner(
     desc: String? = null,
     onClick: () -> Unit = {},
 ) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current // Brief You
     Banner(
         modifier = modifier,
         title = filter.toName(),
@@ -28,6 +29,9 @@ fun FeedsBanner(
                 modifier = Modifier.pressNudge(), // Brief You: nudges toward the page while held
             )
         },
-        onClick = onClick
+        onClick = { // Brief You: a tap you can feel, like the app's other openers
+            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.ContextClick) // Brief You
+            onClick() // Brief You
+        } // Brief You
     )
 }

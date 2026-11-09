@@ -78,6 +78,7 @@ fun LanguagesPage(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 item {
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the choices as one joined card
                     LanguagesPreference.values.map {
                         SettingItem(
                             title = it.toDesc(),
@@ -90,6 +91,7 @@ fun LanguagesPage(
                             })
                         }
                     }
+                    } // Brief You
                 }
                 item {
                     Spacer(modifier = Modifier.height(24.dp))

@@ -39,6 +39,7 @@ fun LazyItemScope.FeverConnection(account: Account, viewModel: AccountViewModel 
 
     LaunchedEffect(securityKey.password) { passwordMask = securityKey.password?.mask() }
 
+    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
     SettingItem(
         title = stringResource(R.string.server_url),
         desc = securityKey.serverUrl ?: "",
@@ -71,6 +72,7 @@ fun LazyItemScope.FeverConnection(account: Account, viewModel: AccountViewModel 
             )
         },
     ) {}
+    } // Brief You
 
     TextFieldDialog(
         visible = serverUrlDialogVisible,

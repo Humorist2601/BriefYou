@@ -24,6 +24,14 @@ import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CreateNewFolder
+import androidx.compose.material.icons.outlined.Edit // Brief You
+import androidx.compose.foundation.layout.Row // Brief You
+import androidx.compose.foundation.layout.size // Brief You
+import androidx.compose.foundation.combinedClickable // Brief You
+import androidx.compose.foundation.rememberScrollState // Brief You
+import androidx.compose.foundation.verticalScroll // Brief You
+import androidx.compose.foundation.shape.CircleShape // Brief You
+import androidx.compose.ui.draw.clip // Brief You
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,9 +61,10 @@ import me.ash.reader.ui.ext.showToast
 import me.ash.reader.ui.interaction.alphaIndicationClickable
 import me.ash.reader.ui.page.home.feeds.FeedOptionView
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class) // Brief You
 @Composable
 fun FeedOptionDrawer(
-    drawerState: ModalBottomSheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden),
+    drawerState: me.ash.reader.brief.ui.SheetSwitch = me.ash.reader.brief.ui.rememberSheetSwitch(), // Brief You: Material 3 sheet
     feedOptionViewModel: FeedOptionViewModel = hiltViewModel(),
     content: @Composable () -> Unit = {},
 ) {
@@ -77,9 +86,11 @@ fun FeedOptionDrawer(
                 feedOptionViewModel.setImageIcon(it) { msg -> iconContext.showToast(msg) }
             }
         }
-    if (showIconDialog) {
+    if (showIconDialog) me.ash.reader.brief.ui.OptionSheetDialogs { // Brief You: above the sheet
         FeedIconDialog(
-            onEmoji = { feedOptionViewModel.setEmojiIcon(it) },
+            onSymbol = { feedOptionViewModel.setSymbolIcon(it) }, // Brief You: Material icons
+            onEmoji = { feedOptionViewModel.setEmojiIcon(it) }, // Brief You: or any emoji
+            current = feed?.icon, // Brief You
             onImage = {
                 imagePicker.launch(
                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -88,100 +99,75 @@ fun FeedOptionDrawer(
             onWebsiteIcon = { feedOptionViewModel.reloadIcon() },
             onDismiss = { showIconDialog = false },
         )
-    }
+    } // Brief You
 
-    BackHandler(drawerState.isVisible) {
-        scope.launch {
-            drawerState.hide()
-        }
-    }
+    // Brief You: the app's Material 3 sheet (was Read You's Material 2 one), in the app's sheet design.
+    me.ash.reader.brief.ui.OptionSheet(drawerState) { // Brief You
+        me.ash.reader.brief.ui.SheetHeader( // Brief You
+            icon = { // Brief You: tap the icon to change it
+                FeedIcon(modifier = Modifier.clip(CircleShape).clickable { showIconDialog = true }, feedName = feed?.name, iconUrl = feed?.icon, size = 48.dp) // Brief You
+            }, // Brief You
+            title = { // Brief You: tap the name to rename
+                Text( // Brief You
+                    modifier = Modifier.alphaIndicationClickable { if (feedOptionViewModel.rssService.get().updateSubscription) feedOptionViewModel.showRenameDialog() }, // Brief You
+                    text = feed?.name ?: stringResource(R.string.unknown), // Brief You
+                    style = MaterialTheme.typography.titleLarge, // Brief You
+                    color = MaterialTheme.colorScheme.onSurface, // Brief You
+                    maxLines = 1, // Brief You
+                    overflow = TextOverflow.Ellipsis, // Brief You
+                ) // Brief You
+            }, // Brief You
+            subtitle = { // Brief You: the address; tap opens it, hold or the pencil edits it
+                Row(verticalAlignment = Alignment.CenterVertically) { // Brief You
+                Text( // Brief You
+                    modifier = Modifier.weight(1f, fill = false).combinedClickable( // Brief You
+                        onClick = { context.openURL(feed?.url, openLink, openLinkSpecificBrowser) }, // Brief You
+                        onLongClick = { // Brief You
+                            if (feedOptionViewModel.rssService.get().updateSubscription) { // Brief You
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) // Brief You
+                                feedOptionViewModel.showFeedUrlDialog() // Brief You
+                            } // Brief You
+                        }, // Brief You
+                    ), // Brief You
+                    text = feed?.url ?: stringResource(R.string.unknown), // Brief You
+                    style = MaterialTheme.typography.bodyMedium, // Brief You
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Brief You
+                    maxLines = 1, // Brief You
+                    overflow = TextOverflow.Ellipsis, // Brief You
+                ) // Brief You
+                if (feedOptionViewModel.rssService.get().updateSubscription) { // Brief You: change the feed's address
+                    androidx.compose.material3.IconButton( // Brief You
+                        onClick = { feedOptionViewModel.showFeedUrlDialog() }, // Brief You
+                        modifier = Modifier.size(32.dp), // Brief You
+                    ) { // Brief You
+                        androidx.compose.material3.Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.change_url), modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) // Brief You
+                    } // Brief You
+                } // Brief You
+                } // Brief You
+            }, // Brief You
+        ) // Brief You
+        Column(modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) { // Brief You
+            me.ash.reader.brief.feeds.FeedOptions( // Brief You
+                fullContent = feed?.isFullContent ?: false, // Brief You
+                browser = feed?.isBrowser ?: false, // Brief You
+                notification = feed?.isNotification ?: false, // Brief You
+                onFullContent = { feedOptionViewModel.changeParseFullContentPreset() }, // Brief You
+                onBrowser = { feedOptionViewModel.changeOpenInBrowserPreset() }, // Brief You
+                onNotification = { feedOptionViewModel.changeAllowNotificationPreset() }, // Brief You
+                groups = feedOptionUiState.groups, // Brief You
+                selectedGroupId = feed?.groupId ?: "", // Brief You
+                onGroupClick = { feedOptionViewModel.selectedGroup(it) }, // Brief You
+                onAddNewGroup = { feedOptionViewModel.showNewGroupDialog() }, // Brief You
+                showGroup = feedOptionViewModel.rssService.get().moveSubscription, // Brief You
+                isMoveToGroup = true, // Brief You
+                clear = stringResource(R.string.clear_articles) to { feedOptionViewModel.showClearDialog() }, // Brief You
+                remove = if (feedOptionViewModel.rssService.get().deleteSubscription) stringResource(R.string.unsubscribe) to { feedOptionViewModel.showDeleteDialog() } else null, // Brief You
+            ) // Brief You
+        } // Brief You
+    } // Brief You
+    content() // Brief You
 
-    BottomDrawer(
-        drawerState = drawerState,
-        sheetContent = {
-            Column(modifier = Modifier.navigationBarsPadding()) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    // Brief You: tap the icon to change it (emoji, image, or website icon).
-                    FeedIcon(
-                        modifier = Modifier.clickable { showIconDialog = true },
-                        feedName = feed?.name,
-                        iconUrl = feed?.icon,
-                        size = 48.dp,
-                    )
-                    Text(
-                        text = stringResource(R.string.feed_icon_change),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 6.dp).clickable { showIconDialog = true },
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        modifier = Modifier.alphaIndicationClickable {
-                            if (feedOptionViewModel.rssService.get().updateSubscription) {
-                                feedOptionViewModel.showRenameDialog()
-                            }
-                        },
-                        text = feed?.name ?: stringResource(R.string.unknown),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                FeedOptionView(
-                    link = feed?.url ?: stringResource(R.string.unknown),
-                    groups = feedOptionUiState.groups,
-                    selectedAllowNotificationPreset = feedOptionUiState.feed?.isNotification
-                        ?: false,
-                    selectedParseFullContentPreset = feedOptionUiState.feed?.isFullContent ?: false,
-                    selectedOpenInBrowserPreset = feedOptionUiState.feed?.isBrowser ?: false,
-                    isMoveToGroup = true,
-                    showGroup = feedOptionViewModel.rssService.get().moveSubscription,
-                    showUnsubscribe = feedOptionViewModel.rssService.get().deleteSubscription,
-                    notSubscribeMode = true,
-                    selectedGroupId = feedOptionUiState.feed?.groupId ?: "",
-                    allowNotificationPresetOnClick = {
-                        feedOptionViewModel.changeAllowNotificationPreset()
-                    },
-                    parseFullContentPresetOnClick = {
-                        feedOptionViewModel.changeParseFullContentPreset()
-                    },
-                    openInBrowserPresetOnClick = {
-                        feedOptionViewModel.changeOpenInBrowserPreset()
-                    },
-                    clearArticlesOnClick = {
-                        feedOptionViewModel.showClearDialog()
-                    },
-                    unsubscribeOnClick = {
-                        feedOptionViewModel.showDeleteDialog()
-                    },
-                    onGroupClick = {
-                        feedOptionViewModel.selectedGroup(it)
-                    },
-                    onAddNewGroup = {
-                        feedOptionViewModel.showNewGroupDialog()
-                    },
-                    onFeedUrlClick = {
-                        context.openURL(feed?.url, openLink, openLinkSpecificBrowser)
-                    },
-                    onFeedUrlLongClick = {
-                        if (feedOptionViewModel.rssService.get().updateSubscription) {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            feedOptionViewModel.showFeedUrlDialog()
-                        }
-                    }
-                )
-            }
-        }
-    ) {
-        content()
-    }
-
+    me.ash.reader.brief.ui.OptionSheetDialogs { // Brief You: above the sheet
     DeleteFeedDialog(
         feedName = feed?.name ?: "",
         onConfirm = { scope.launch { drawerState.hide() } })
@@ -237,4 +223,5 @@ fun FeedOptionDrawer(
             scope.launch { drawerState.hide() }
         }
     )
+    } // Brief You
 }

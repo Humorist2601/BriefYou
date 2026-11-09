@@ -111,6 +111,7 @@ fun ReadingImagePage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.images)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.rounded_corners),
                         desc = "${roundedCorners}dp",
@@ -135,6 +136,7 @@ fun ReadingImagePage(
                             ReadingThemePreference.Custom.put(context, scope)
                         }
                     }
+                    } // Brief You
                 }
 
                 item {

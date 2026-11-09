@@ -141,9 +141,14 @@
 
     <!-- Custom feed icons -->
     <string name="feed_icon_change">Change icon</string>
-    <string name="feed_icon_emoji">Emoji</string>
+    <string name="feed_icon_symbols">Icons</string>
     <string name="feed_icon_emoji_hint">Or type any emoji</string>
     <string name="feed_icon_use">Use</string>
+    <string name="add_feed_title">Add a feed</string>
+    <string name="sheet_full_content">Full content</string>
+    <string name="sheet_browser">In browser</string>
+    <string name="sheet_notify">Notify</string>
+    <string name="add_feed_hint">Paste the address of a feed or a website</string>
     <string name="feed_icon_image">Choose an image</string>
     <string name="feed_icon_website">Use the website\'s icon</string>
 
@@ -324,6 +329,20 @@
     <string name="tour_next">Next</string>
     <string name="tour_close">Close</string>
     <string name="tour_settings">Tour</string>
+    <string name="settings_section_reading">Reading</string>
+    <plurals name="day_article_count">
+        <item quantity="one">%s article</item>
+        <item quantity="other">%s articles</item>
+    </plurals>
+    <string name="group_icon_folder">Folder icon</string>
+    <string name="empty_starred_title">Nothing starred yet</string>
+    <string name="empty_starred_text">Star an article, or save one in Triage, to keep it here.</string>
+    <string name="empty_unread_title">All caught up</string>
+    <string name="empty_unread_text">Nothing unread here. New articles come in with the next sync.</string>
+    <string name="empty_all_title">No articles yet</string>
+    <string name="empty_all_text">Pull down to sync your feeds.</string>
+    <string name="settings_section_brief">Brief You</string>
+    <string name="settings_section_app">Account and app</string>
     <string name="hint_show_again">Show hints again</string>
     <string name="hint_reset_done">The hints will show again</string>
     <string name="hint_got_it">Got it</string>

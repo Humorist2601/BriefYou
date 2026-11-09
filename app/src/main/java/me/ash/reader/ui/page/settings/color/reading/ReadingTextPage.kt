@@ -123,6 +123,7 @@ fun ReadingTextPage(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.text)
                     )
+                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
                         title = stringResource(R.string.font_size),
                         desc = "${fontSize}sp",
@@ -160,6 +161,7 @@ fun ReadingTextPage(
                         desc = align.toDesc(context),
                         onClick = { alignDialogVisible = true },
                     ) {}
+                    } // Brief You
                 }
 
                 item {
