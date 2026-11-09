@@ -116,16 +116,36 @@ fun InWindowAlertDialog(
 ) {
     val host = LocalDialogHost.current
     if (host == null) {
-        AlertDialog(
+        // No host here (over a bottom sheet, which is its own window, or in a widget's settings):
+        // a window of its own that covers the screen and doesn't move for the keyboard. The dialog
+        // moves above the keyboard inside it, as in the app's window, so the cursor's handle stays
+        // under the cursor (a normal dialog window moves, and the handle was left behind).
+        androidx.compose.ui.window.Dialog(
             onDismissRequest = onDismissRequest,
-            confirmButton = confirmButton,
-            modifier = modifier,
-            dismissButton = dismissButton,
-            icon = icon,
-            title = title,
-            text = text,
-            properties = properties,
-        )
+            properties =
+                DialogProperties(
+                    dismissOnBackPress = false, // handled by the scaffold's own back
+                    dismissOnClickOutside = false, // and its scrim
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false,
+                ),
+        ) {
+            // The scaffold draws its own scrim; no second dimming from the window.
+            val view = androidx.compose.ui.platform.LocalView.current
+            SideEffect {
+                (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window?.setDimAmount(0f)
+            }
+            DialogScaffold(
+                onDismissRequest = onDismissRequest,
+                confirmButton = confirmButton,
+                modifier = modifier,
+                dismissButton = dismissButton,
+                icon = icon,
+                title = title,
+                text = text,
+                properties = properties,
+            )
+        }
         return
     }
     val entry = remember { DialogEntry() }
