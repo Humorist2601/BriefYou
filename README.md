@@ -59,6 +59,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Tidier articles also drop "appeared first on" lines.
 - Large header picture; feed, date and reading time as chips; title, time left and a wavy progress bar in the top bar once you scroll.
 - Pictures: drag one away to close it; Save and Share in its menu; slightly dimmed in dark mode.
+- Newspaper: hold Share at the top of an article (or pick *Share as newspaper* in an article's long-press menu) to share it as a newspaper front page: the feed's name as the masthead, the date and site on the dateline, the headline, the lead picture in halftone dots like newsprint, the AI's 3 points boxed as *In brief*, and the opening lines in two columns. A sheet shows the steps while it's made (getting the full article, writing *In brief*, setting the page); the title and link go with the picture.
 - Selected text and its handles use your accent colour.
 - Feeds that only send a teaser show no reading-time estimate rather than a wrong one.
 - Articles without a colourful picture keep your theme's colours.

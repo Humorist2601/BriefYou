@@ -34,6 +34,13 @@ constructor(
             if (full != null && textLength(full) > textLength(longest)) full else longest
         }
 
+    /** Whether [best] would fetch the full article (all the text at hand is a teaser). */
+    suspend fun needsFullText(article: Article, shown: String? = null): Boolean =
+        withContext(Dispatchers.IO) {
+            article.link.startsWith("http") &&
+                listOfNotNull(shown, article.rawDescription).maxOfOrNull { textLength(it) }.let { (it ?: 0) < TEASER_CHARS }
+        }
+
     /** The same, for an article known by its id (the reading page's summary sheet). */
     suspend fun best(articleId: String, shown: String): String {
         val article = runCatching { rssService.get().findArticleById(articleId)?.article }.getOrNull() ?: return shown

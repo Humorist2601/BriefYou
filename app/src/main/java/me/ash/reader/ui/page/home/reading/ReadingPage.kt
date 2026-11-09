@@ -8,6 +8,7 @@ import me.ash.reader.brief.reading.BriefTopBar
 import me.ash.reader.brief.reading.BriefTrackReadingProgress
 import me.ash.reader.brief.reading.ImageData
 import me.ash.reader.brief.reading.ReaderImageViewer
+import me.ash.reader.brief.reading.briefNewspaper // Brief You
 import me.ash.reader.brief.reading.briefTimeLeft
 import me.ash.reader.brief.reading.rememberBriefReadingState
 
@@ -128,6 +129,7 @@ fun ReadingPage(
                         onNavButtonClick = onNavAction,
                         onNavigateToStylePage = { brief.showTextSheet = true }, // Brief You: quick text sheet
                         onSummarize = null, // Brief You: the AI button is in the reading bar
+                        onShareNewspaper = briefNewspaper(readingUiState.articleWithFeed, readerState.content.text), // Brief You
                     )
                 }
 

@@ -56,15 +56,16 @@ fun backPreviewTransition(running: () -> Boolean, forward: Boolean = false): Con
     if (running()) backPreviewPopTransform() else screenSwitch(forward)
 
 /**
- * Around the app's navigation: the back preview's controller and picture, and the filter bar of
+ * Around the app's navigation: the back preview's controller and picture, the filter bar of
  * Feeds and the article list, drawn once above every screen, so screen animations (including the
- * back gesture) never move it.
+ * back gesture) never move it, and the newspaper maker shared by the article screen and lists.
  */
 @Composable
 fun BriefNavigationHost(backStack: NavBackStack<NavKey>, content: @Composable () -> Unit) {
     val backPreviewPicture = rememberGraphicsLayer()
     val backPreviewLeavingPicture = rememberGraphicsLayer()
     val filterBarHost = remember { FilterBarHost() }
+    val newspapers = me.ash.reader.brief.share.rememberNewspaperMaker()
     BackPreviewController(backStack)
     BriefShortcuts.Handler(backStack)
     CompositionLocalProvider(
@@ -72,6 +73,7 @@ fun BriefNavigationHost(backStack: NavBackStack<NavKey>, content: @Composable ()
         LocalBackPreviewPicture provides backPreviewPicture,
         LocalBackPreviewLeavingPicture provides backPreviewLeavingPicture,
         LocalFilterBarHost provides filterBarHost,
+        me.ash.reader.brief.share.LocalNewspaperMaker provides newspapers,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             content()
@@ -81,6 +83,8 @@ fun BriefNavigationHost(backStack: NavBackStack<NavKey>, content: @Composable ()
                 hasBar = { it == Route.Feeds || it is Route.Reading },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
+            // Takes a newspaper's picture off screen, at the screen's width.
+            me.ash.reader.brief.share.NewspaperHost(newspapers)
         }
     }
 }

@@ -693,6 +693,7 @@ fun ArticleItemMenuContent(
                 )
             },
         )
+        me.ash.reader.brief.share.NewspaperMenuItem(articleWithFeed, iconSize, onItemClick) // Brief You
     }
 }
 

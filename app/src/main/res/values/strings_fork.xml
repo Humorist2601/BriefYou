@@ -291,6 +291,15 @@
     <string name="recap_share">Share</string>
     <string name="recap_teaser">%1$d articles</string>
     <string name="recap_past">Past months</string>
+    <string name="newspaper_share">Share as newspaper</string>
+    <string name="newspaper_printing">Printing your newspaper</string>
+    <string name="newspaper_step_full">Getting the full article</string>
+    <string name="newspaper_step_brief">Writing In brief</string>
+    <string name="newspaper_step_page">Setting the page</string>
+    <string name="newspaper_retry">Try again</string>
+    <string name="newspaper_issue">Vol. 1 · No. 1</string>
+    <string name="newspaper_in_brief">In brief</string>
+    <string name="newspaper_continued">Continued at %1$s</string>
 
     <!-- First-run tour and one-time hints -->
     <string name="tour_triage_title">Triage your news</string>
