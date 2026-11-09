@@ -26,6 +26,11 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -169,11 +174,10 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                     modifier =
                         Modifier.fillMaxSize()
                             .graphicsLayer {
-                                // The text slides a little slower than the page and fades, so it
-                                // trails the shape.
+                                // The text moves with its page and fades out quickly as it
+                                // leaves, so the last page is gone before the next one settles.
                                 val offset = (pager.currentPage - page) + pager.currentPageOffsetFraction
-                                translationX = offset * size.width * 0.35f
-                                alpha = 1f - (kotlin.math.abs(offset) * 0.9f).coerceIn(0f, 1f)
+                                alpha = 1f - (kotlin.math.abs(offset) * 1.6f).coerceIn(0f, 1f)
                             }
                             .verticalScroll(scroll, enabled = scroll.maxValue > 0)
                             .padding(horizontal = 28.dp),
@@ -229,33 +233,59 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                 }
             }
             Dots(pager.currentPage)
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            // Two buttons, Skip (or Later) and Next; on the last page Skip shrinks away and Next
+            // grows to fill the row, its words changing as it does.
+            val split by
+                animateFloatAsState(
+                    if (last) 0f else 1f,
+                    spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+                    label = "tour buttons",
+                )
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)
             ) {
-                when {
-                    last ->
-                        TourButton(
-                            text = stringResource(if (firstRun) R.string.tour_agree_start else R.string.tour_done),
-                            kind = TourButtonKind.Filled,
-                            modifier = Modifier.weight(1f),
+                val half = (maxWidth - 12.dp) / 2
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (split > 0.01f) {
+                        Box(
+                            modifier =
+                                Modifier.width(half * split).clipToBounds().graphicsLayer {
+                                    alpha = split
+                                },
+                            contentAlignment = Alignment.CenterStart,
                         ) {
-                            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-                            onDone(setUpAi)
+                            val later = pager.currentPage == 1
+                            TourButton(
+                                text = stringResource(if (later) R.string.tour_later else R.string.tour_skip),
+                                kind = TourButtonKind.Tonal,
+                                modifier = Modifier.wrapContentWidth(Alignment.Start, unbounded = true).width(half),
+                            ) {
+                                if (!last) go(if (later) 2 else PAGES - 1)
+                            }
                         }
-                    pager.currentPage == 1 -> {
-                        TourButton(stringResource(R.string.tour_later), TourButtonKind.Tonal, Modifier.weight(1f)) { go(2) }
-                        TourButton(stringResource(R.string.tour_set_up_ai), TourButtonKind.Filled, Modifier.weight(1f)) {
-                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
-                            setUpAi = true
-                            scope.launch { pager.animateScrollToPage(2) }
-                        }
+                        Spacer(Modifier.width(12.dp * split))
                     }
-                    else -> {
-                        TourButton(stringResource(R.string.tour_skip), TourButtonKind.Text, Modifier.weight(1f)) { go(PAGES - 1) }
-                        TourButton(stringResource(R.string.tour_next), TourButtonKind.Filled, Modifier.weight(1f)) {
-                            go(pager.currentPage + 1)
+                    TourButton(
+                        text =
+                            when {
+                                last -> stringResource(if (firstRun) R.string.tour_agree_start else R.string.tour_done)
+                                pager.currentPage == 1 -> stringResource(R.string.tour_set_up_ai)
+                                else -> stringResource(R.string.tour_next)
+                            },
+                        kind = TourButtonKind.Filled,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        when {
+                            last -> {
+                                haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                                onDone(setUpAi)
+                            }
+                            pager.currentPage == 1 -> {
+                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                                setUpAi = true
+                                scope.launch { pager.animateScrollToPage(2) }
+                            }
+                            else -> go(pager.currentPage + 1)
                         }
                     }
                 }
@@ -365,7 +395,7 @@ private class MorphShape(private val morph: Morph, private val progress: Float) 
     }
 }
 
-private enum class TourButtonKind { Filled, Tonal, Text }
+private enum class TourButtonKind { Filled, Tonal }
 
 /** The tour's buttons, with Triage's press: they squeeze and their corners tighten, then spring back. */
 @Composable
@@ -373,19 +403,24 @@ private fun TourButton(text: String, kind: TourButtonKind, modifier: Modifier = 
     val press = rememberPressFeel(rest = 26.dp, held = 12.dp)
     val shape = RoundedCornerShape(press.corner)
     val m = with(press) { modifier.height(52.dp).squeeze() }
+    // A new label fades in over the old one (Next → Agree and start).
+    val label: @Composable () -> Unit = {
+        androidx.compose.animation.AnimatedContent(
+            targetState = text,
+            transitionSpec = {
+                androidx.compose.animation.fadeIn(tween(220, delayMillis = 90)) togetherWith
+                    androidx.compose.animation.fadeOut(tween(90))
+            },
+            label = "tour button label",
+        ) {
+            Text(it, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+        }
+    }
     when (kind) {
         TourButtonKind.Filled ->
-            Button(onClick = onClick, shape = shape, interactionSource = press.interaction, modifier = m) {
-                Text(text, style = MaterialTheme.typography.titleMedium)
-            }
+            Button(onClick = onClick, shape = shape, interactionSource = press.interaction, modifier = m) { label() }
         TourButtonKind.Tonal ->
-            FilledTonalButton(onClick = onClick, shape = shape, interactionSource = press.interaction, modifier = m) {
-                Text(text, style = MaterialTheme.typography.titleMedium)
-            }
-        TourButtonKind.Text ->
-            TextButton(onClick = onClick, shape = shape, interactionSource = press.interaction, modifier = m) {
-                Text(text, style = MaterialTheme.typography.titleMedium)
-            }
+            FilledTonalButton(onClick = onClick, shape = shape, interactionSource = press.interaction, modifier = m) { label() }
     }
 }
 
@@ -461,21 +496,4 @@ private fun Dots(current: Int) {
             )
         }
     }
-}
-
-/** "Tour" in Settings: see the tour again (and its hints). */
-@Composable
-fun TourSettingsItem(navigateToAiModel: () -> Unit) {
-    val context = LocalContext.current
-    var open by rememberSaveable { mutableStateOf(false) }
-    me.ash.reader.ui.page.settings.SelectableSettingGroupItem(
-        title = stringResource(R.string.tour_settings),
-        desc = stringResource(R.string.tour_settings_desc),
-        icon = Icons.Outlined.TouchApp,
-        onClick = {
-            BriefHints.reset(context)
-            open = true
-        },
-    )
-    if (open) BriefTourDialog(onDismiss = { open = false }, onSetUpAi = navigateToAiModel)
 }

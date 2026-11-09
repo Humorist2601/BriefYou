@@ -83,6 +83,7 @@ import kotlinx.coroutines.withContext
 import me.ash.reader.R
 import me.ash.reader.brief.feeds.rememberFeedAccent
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily
+import me.ash.reader.brief.ui.StatTile
 import me.ash.reader.brief.ui.LocalBackStack
 import me.ash.reader.domain.repository.FeedDao
 import me.ash.reader.domain.service.AccountService
@@ -208,26 +209,26 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         StatTile(
-                            Modifier.weight(1f).fillMaxHeight(),
-                            Icons.Outlined.Schedule,
-                            weekMinutes.toString(),
-                            stringResource(R.string.stats_minutes_week),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            icon = Icons.Outlined.Schedule,
+                            value = weekMinutes.toString(),
+                            label = stringResource(R.string.stats_minutes_week),
                             selected = chartStat == ChartStat.Minutes,
                             onClick = { chartStat = ChartStat.Minutes },
                         )
                         StatTile(
-                            Modifier.weight(1f).fillMaxHeight(),
-                            Icons.AutoMirrored.Outlined.Article,
-                            weekArticles.toString(),
-                            stringResource(R.string.stats_articles_week),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            icon = Icons.AutoMirrored.Outlined.Article,
+                            value = weekArticles.toString(),
+                            label = stringResource(R.string.stats_articles_week),
                             selected = chartStat == ChartStat.Articles,
                             onClick = { chartStat = ChartStat.Articles },
                         )
                         StatTile(
-                            Modifier.weight(1f).fillMaxHeight(),
-                            Icons.Outlined.LocalFireDepartment,
-                            streak.toString(),
-                            stringResource(R.string.stats_streak),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            icon = Icons.Outlined.LocalFireDepartment,
+                            value = streak.toString(),
+                            label = stringResource(R.string.stats_streak),
                             selected = chartStat == ChartStat.Streak,
                             onClick = { chartStat = ChartStat.Streak },
                         )
@@ -499,71 +500,6 @@ private fun HeroCard(minutes: Long, daysRead: Int) {
                     }
                 }
             }
-        }
-    }
-}
-
-/**
- * A big tonal tile with a number. Tap to show its stat in the weekly chart; the chosen one is
- * tertiary, like the chart's bars.
- */
-@Composable
-private fun StatTile(
-    modifier: Modifier,
-    icon: ImageVector,
-    value: String,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val haptic = LocalHapticFeedback.current
-    val container by
-        animateColorAsState(
-            if (selected) MaterialTheme.colorScheme.tertiaryContainer
-            else MaterialTheme.colorScheme.surfaceContainerHigh,
-            label = "statTile",
-        )
-    val content by
-        animateColorAsState(
-            if (selected) MaterialTheme.colorScheme.onTertiaryContainer
-            else MaterialTheme.colorScheme.onSurface,
-            label = "statTileContent",
-        )
-    // The chosen tile's corners grow rounder, the Expressive way of showing a selection.
-    val corner by animateFloatAsState(if (selected) 36f else 20f, label = "statTileCorner")
-    // Triage's press, the squeeze and spring only: the corners already show which is chosen.
-    val press = rememberPressFeel(rest = 0.dp, held = 0.dp)
-    Surface(
-        onClick = {
-            if (!selected) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-            onClick()
-        },
-        interactionSource = press.interaction,
-        color = container,
-        contentColor = content,
-        shape = RoundedCornerShape(corner.dp),
-        modifier = with(press) { modifier.squeeze() }.semantics { this.selected = selected },
-    ) {
-        // Centred, so it stays clear of the rounder corners when the tile is chosen.
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }

@@ -1,5 +1,6 @@
 package me.ash.reader.domain.service
 
+import me.ash.reader.brief.app.scheduledTooFar // Brief You
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -71,7 +72,10 @@ constructor(
         ) {
             workManager.enqueueUniquePeriodicWork(
                 WORK_NAME_PERIODIC,
-                ExistingPeriodicWorkPolicy.UPDATE,
+                // Brief You: scheduled again from now if the clock left its next run far ahead.
+                if (workManager.scheduledTooFar(WORK_NAME_PERIODIC, syncInterval.value))
+                    ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE
+                else ExistingPeriodicWorkPolicy.UPDATE,
                 PeriodicWorkRequestBuilder<WidgetUpdateWorker>(syncInterval.value, TimeUnit.MINUTES)
                     .setConstraints(
                         Constraints.Builder()

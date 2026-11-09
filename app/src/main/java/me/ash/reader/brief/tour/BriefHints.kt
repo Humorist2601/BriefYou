@@ -57,16 +57,29 @@ object BriefHints {
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences("brief_hints", Context.MODE_PRIVATE)
 
-    fun seen(context: Context, key: String): Boolean = prefs(context).getBoolean(key, false)
+    /**
+     * Bumped whenever a hint is seen or the hints are reset. Every bubble reads it, so one made
+     * before "Got it" (the next Triage card, a page kept nearby) sees the change too, instead of
+     * showing again later.
+     */
+    private var changes by mutableStateOf(0)
+
+    fun seen(context: Context, key: String): Boolean {
+        changes
+        return prefs(context).getBoolean(key, false)
+    }
 
     fun markSeen(context: Context, key: String) {
         prefs(context).edit { putBoolean(key, true) }
+        changes++
         if (showing == key) showing = null
     }
 
-    /** Shows the hints again (Settings → the tour). */
+    /** Shows the hints again (Settings → Tips & support). */
     fun reset(context: Context) {
         prefs(context).edit { clear() }
+        changes++
+        showing = null
     }
 }
 
@@ -78,7 +91,7 @@ object BriefHints {
 @Composable
 fun BriefHint(key: String, text: AnnotatedString, enabled: Boolean = true, placement: HintPlacement = HintPlacement.Above) {
     val context = LocalContext.current
-    var seen by remember(key) { mutableStateOf(BriefHints.seen(context, key)) }
+    val seen = BriefHints.seen(context, key)
     var ready by remember(key) { mutableStateOf(false) }
     // Leaving the screen before "Got it" frees the slot (and it shows again next time).
     androidx.compose.runtime.DisposableEffect(key) {
@@ -140,7 +153,6 @@ fun BriefHint(key: String, text: AnnotatedString, enabled: Boolean = true, place
                 TextButton(
                     onClick = {
                         BriefHints.markSeen(context, key)
-                        seen = true
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary),
                     modifier = Modifier.align(Alignment.End),
@@ -179,4 +191,22 @@ fun rememberHasModel(): Boolean {
         }
     val state by summarizer.modelState.collectAsState()
     return state is me.ash.reader.brief.ai.ModelState.Ready
+}
+
+/**
+ * "Show hints again", under the round buttons in Tips & support: the bubbles show once more, each
+ * the next time you reach its place.
+ */
+@Composable
+fun ShowHintsAgain() {
+    val context = LocalContext.current
+    TextButton(
+        onClick = {
+            BriefHints.reset(context)
+            android.widget.Toast.makeText(context, R.string.hint_reset_done, android.widget.Toast.LENGTH_SHORT).show()
+        },
+        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+    ) {
+        Text(stringResource(R.string.hint_show_again))
+    }
 }
