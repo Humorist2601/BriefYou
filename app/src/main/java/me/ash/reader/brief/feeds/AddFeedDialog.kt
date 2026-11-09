@@ -86,6 +86,22 @@ fun AddFeedDialog(viewModel: SubscribeViewModel) {
         viewModel.hideDrawer()
     }
 
+    // In a window of its own (no dialog host), like the dialogs over the option sheets. Drawn in
+    // the app's window, every frame of the keyboard sliding re-laid out the whole feeds page
+    // under it, which made the dialog lag.
+    me.ash.reader.brief.ui.OptionSheetDialogs { AddFeedDialogContent(viewModel, state, uiState, { launcher.launch(it) }) { close() } }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun AddFeedDialogContent(
+    viewModel: SubscribeViewModel,
+    state: SubscribeState,
+    uiState: me.ash.reader.ui.page.home.feeds.subscribe.SubscribeUiState,
+    openFile: (Array<String>) -> Unit,
+    close: () -> Unit,
+) {
+    val focusManager = LocalFocusManager.current
     val configure = state as? SubscribeState.Configure
     InWindowAlertDialog(
         // Not closed by a tap outside, so a pasted address isn't lost to a stray tap.
@@ -231,7 +247,7 @@ fun AddFeedDialog(viewModel: SubscribeViewModel) {
             if (state is SubscribeState.Idle && state.importFromOpmlEnabled) {
                 TextButton(
                     onClick = {
-                        launcher.launch(arrayOf(MimeType.ANY))
+                        openFile(arrayOf(MimeType.ANY))
                         close()
                     }
                 ) {

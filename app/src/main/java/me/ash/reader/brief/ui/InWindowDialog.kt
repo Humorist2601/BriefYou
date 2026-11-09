@@ -49,13 +49,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 
 /*
- * Dialogs drawn inside the app's own window instead of a separate dialog window.
+ * The app's dialogs, and a host for things drawn over the whole app window (ScreenOverlay).
  *
- * A separate dialog window moves when the keyboard opens, and the text cursor's handle (placed
- * from the field's position inside that window) doesn't follow, so it showed far below the field,
- * even under the keyboard. In the app's window the keyboard is handled the same way as on every
- * other screen, so the handle sits under the cursor. They look and behave like Material dialogs:
- * scrim, tap outside or back to close (unless turned off), centred, moved up above the keyboard.
+ * A normal dialog window moves when the keyboard opens, and the text cursor's handle (placed from
+ * the field's position inside that window) doesn't follow, so it showed far below the field, even
+ * under the keyboard. Dialogs were first drawn in the app's own window to avoid that; now each gets
+ * a full-screen window of its own that doesn't move, with the dialog moved above the keyboard inside
+ * it, which keeps the handle in place without re-laying out the page behind on every keyboard
+ * frame. They look and behave like Material dialogs: scrim, tap outside or back to close (unless
+ * turned off), centred, moved up above the keyboard.
  */
 
 /** Where in-window dialogs are drawn: one host at the root of the app, above everything. */
@@ -100,8 +102,8 @@ fun ScreenOverlay(content: @Composable () -> Unit) {
 }
 
 /**
- * A Material alert dialog in the app's window (falls back to the normal [AlertDialog] where there
- * is no [DialogHost], such as in a widget's settings).
+ * A Material alert dialog that keeps the cursor's handle in place: drawn in a full-screen window of
+ * its own that doesn't move for the keyboard (see the comment inside).
  */
 @Composable
 fun InWindowAlertDialog(
@@ -114,58 +116,38 @@ fun InWindowAlertDialog(
     text: @Composable (() -> Unit)? = null,
     properties: DialogProperties = DialogProperties(),
 ) {
-    val host = LocalDialogHost.current
-    if (host == null) {
-        // No host here (over a bottom sheet, which is its own window, or in a widget's settings):
-        // a window of its own that covers the screen and doesn't move for the keyboard. The dialog
-        // moves above the keyboard inside it, as in the app's window, so the cursor's handle stays
-        // under the cursor (a normal dialog window moves, and the handle was left behind).
-        androidx.compose.ui.window.Dialog(
+    // Every dialog gets a window of its own that covers the screen and doesn't move for the
+    // keyboard; the dialog moves above the keyboard inside it, so the cursor's handle stays under
+    // the cursor (a normal dialog window moves, and the handle was left behind). Drawn in the
+    // app's window instead (the host, as before), the keyboard's slide re-laid out the page
+    // behind the dialog on every frame, and it showed under bottom sheets.
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismissRequest,
+        properties =
+            DialogProperties(
+                // Back: the scaffold's predictive back when it reaches this window's dispatcher
+                // (it's added later, so it goes first); the window's own dismiss otherwise.
+                dismissOnBackPress = properties.dismissOnBackPress,
+                dismissOnClickOutside = false, // and its scrim
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false,
+            ),
+    ) {
+        // The scaffold draws its own scrim; no second dimming from the window.
+        val view = androidx.compose.ui.platform.LocalView.current
+        SideEffect {
+            (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window?.setDimAmount(0f)
+        }
+        DialogScaffold(
             onDismissRequest = onDismissRequest,
-            properties =
-                DialogProperties(
-                    dismissOnBackPress = false, // handled by the scaffold's own back
-                    dismissOnClickOutside = false, // and its scrim
-                    usePlatformDefaultWidth = false,
-                    decorFitsSystemWindows = false,
-                ),
-        ) {
-            // The scaffold draws its own scrim; no second dimming from the window.
-            val view = androidx.compose.ui.platform.LocalView.current
-            SideEffect {
-                (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window?.setDimAmount(0f)
-            }
-            DialogScaffold(
-                onDismissRequest = onDismissRequest,
-                confirmButton = confirmButton,
-                modifier = modifier,
-                dismissButton = dismissButton,
-                icon = icon,
-                title = title,
-                text = text,
-                properties = properties,
-            )
-        }
-        return
-    }
-    val entry = remember { DialogEntry() }
-    SideEffect {
-        entry.content = {
-            DialogScaffold(
-                onDismissRequest = onDismissRequest,
-                confirmButton = confirmButton,
-                modifier = modifier,
-                dismissButton = dismissButton,
-                icon = icon,
-                title = title,
-                text = text,
-                properties = properties,
-            )
-        }
-    }
-    DisposableEffect(host, entry) {
-        host.entries.add(entry)
-        onDispose { host.entries.remove(entry) }
+            confirmButton = confirmButton,
+            modifier = modifier,
+            dismissButton = dismissButton,
+            icon = icon,
+            title = title,
+            text = text,
+            properties = properties,
+        )
     }
 }
 

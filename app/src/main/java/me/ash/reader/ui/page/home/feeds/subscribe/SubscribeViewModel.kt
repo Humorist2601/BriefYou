@@ -304,5 +304,16 @@ sealed interface SubscribeState {
         val fullContent: Boolean = false,
         val browser: Boolean = false,
         val selectedGroupId: String,
-    ) : SubscribeState, Visible
+    ) : SubscribeState, Visible {
+        // Brief You: the feed by identity. Rome's SyndFeed compares itself by reflection over every
+        // entry, and this state is compared on each tap of a setting (state flow, Compose), which
+        // made the found-feed dialog lag.
+        override fun equals(other: Any?): Boolean = // Brief You
+            other is Configure && other.searchedFeed === searchedFeed && other.feedLink == feedLink && // Brief You
+                other.groups == groups && other.notification == notification && other.fullContent == fullContent && // Brief You
+                other.browser == browser && other.selectedGroupId == selectedGroupId // Brief You
+
+        override fun hashCode(): Int = // Brief You
+            listOf(System.identityHashCode(searchedFeed), feedLink, groups, notification, fullContent, browser, selectedGroupId).hashCode() // Brief You
+    } // Brief You
 }
