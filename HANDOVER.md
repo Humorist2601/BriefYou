@@ -76,11 +76,12 @@ These are the owner's standing preferences. A new assistant should follow them.
    yet; Triage's places sheet shows them too). Feed and group icons can be Material icons (outlined, 54; `brief/feeds/SymbolIcons.kt`, stored as `icon:<name>`;
    or any emoji typed in the same dialog). Day labels show a count (`brief/list/DayCount.kt`, passed to Read You's
    `StickyHeader`, which draws a faint line only while articles pass under it: `rememberScrolledUnder`). Option
-   sheets (hold a feed or group) and Add a feed are Material 3 sheets: `OptionSheet`/`SheetSwitch`/`SheetHeader`/
-   `SheetTile`/`SheetActions` in `brief/ui/OptionSheet.kt`, `FeedOptions`/`SettingTiles`/`GroupChips`
-   (`brief/feeds/FeedOptions.kt`) and `AddFeedSheet` (keyboard rises and falls with the sheet; its content pads for
-   the keyboard itself; option sheets ignore the keyboard); dialogs opened from a sheet go through
-   `OptionSheetDialogs` so they draw above it. Read You's `FeedOptionView` and `BottomDrawer` are no longer used
+   sheets (hold a feed or group) are Material 3 sheets: `OptionSheet`/`SheetSwitch`/`SheetHeader`/
+   `SheetTile`/`SheetActions` in `brief/ui/OptionSheet.kt`, with `FeedOptions`/`SettingTiles`/`GroupChips`
+   (`brief/feeds/FeedOptions.kt`); they ignore the keyboard. Add a feed is a floating in-window dialog
+   (`AddFeedDialog`) using the same `FeedOptions`. Dialogs opened from a sheet go through `OptionSheetDialogs`
+   (no dialog host), so `InWindowAlertDialog` draws them in a full-screen window of their own that doesn't move
+   for the keyboard: the dialog moves above it inside, and the cursor's handle stays put. Read You's `FeedOptionView` and `BottomDrawer` are no longer used
    by the feeds page. Empty lists: `EmptyListState`
    (`brief/list/EmptyState.kt`, shown from `BriefFlowOverlays`). Card colour: surfaceContainerHigh. Number tiles (Filters, Reading stats) are one `StatTile` (`brief/ui/StatTile.kt`):
    icon on a cookie, wide number, left-aligned.

@@ -47,5 +47,5 @@ import me.ash.reader.ui.page.home.feeds.FeedOptionView
 fun SubscribeDialog(
     subscribeViewModel: SubscribeViewModel = hiltViewModel(),
 ) {
-    me.ash.reader.brief.feeds.AddFeedSheet(subscribeViewModel) // Brief You: the app's bottom sheet, in its sheet design (was Read You's dialog)
+    me.ash.reader.brief.feeds.AddFeedDialog(subscribeViewModel) // Brief You: a floating dialog in the app's design (was Read You's own)
 }
