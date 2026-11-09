@@ -548,21 +548,22 @@ private fun PromptCard(
 private fun DownloadDialog(onDownload: () -> Unit, onOpenPage: () -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val check = remember { PhoneCheck.of(context) }
+    // Each row: its text and how it reads (fine, a heads-up, or something that stops it working).
     val rows = buildList {
         add(
             when (check.fit) {
-                PhoneCheck.Fit.Good -> stringResource(R.string.ai_check_memory_good, check.nominalGb)
-                PhoneCheck.Fit.Okay -> stringResource(R.string.ai_check_memory_okay, check.nominalGb)
-                PhoneCheck.Fit.Poor -> stringResource(R.string.ai_check_memory_poor, check.nominalGb)
-            } to (check.fit != PhoneCheck.Fit.Poor)
+                PhoneCheck.Fit.Good -> stringResource(R.string.ai_check_memory_good, check.nominalGb) to CheckTone.Ok
+                PhoneCheck.Fit.Okay -> stringResource(R.string.ai_check_memory_okay, check.nominalGb) to CheckTone.Warn
+                PhoneCheck.Fit.Poor -> stringResource(R.string.ai_check_memory_poor, check.nominalGb) to CheckTone.Bad
+            }
         )
         add(
             if (check.enoughSpace)
-                stringResource(R.string.ai_check_space_ok, Formatter.formatShortFileSize(context, check.freeBytes)) to true
+                stringResource(R.string.ai_check_space_ok, Formatter.formatShortFileSize(context, check.freeBytes)) to CheckTone.Ok
             else
-                stringResource(R.string.ai_check_space_low, Formatter.formatShortFileSize(context, check.needBytes - check.freeBytes)) to false
+                stringResource(R.string.ai_check_space_low, Formatter.formatShortFileSize(context, check.needBytes - check.freeBytes)) to CheckTone.Bad
         )
-        if (check.metered) add(stringResource(R.string.ai_check_metered) to false)
+        if (check.metered) add(stringResource(R.string.ai_check_metered) to CheckTone.Warn)
     }
     InWindowAlertDialog(
         onDismissRequest = onDismiss,
@@ -574,13 +575,21 @@ private fun DownloadDialog(onDownload: () -> Unit, onOpenPage: () -> Unit, onDis
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(Modifier.height(14.dp))
-                rows.forEachIndexed { i, (text, ok) ->
+                rows.forEachIndexed { i, (text, tone) ->
+                    val scheme = MaterialTheme.colorScheme
+                    // The dialog is surfaceContainerHigh, so fine rows sit one tone up to show.
+                    val (back, fore) =
+                        when (tone) {
+                            CheckTone.Ok -> scheme.surfaceContainerHighest to scheme.onSurface
+                            CheckTone.Warn -> scheme.tertiaryContainer to scheme.onTertiaryContainer
+                            CheckTone.Bad -> scheme.errorContainer to scheme.onErrorContainer
+                        }
                     val big = 16.dp
                     val small = 4.dp
                     Text(
-                        text = (if (ok) "✓  " else "!  ") + text,
+                        text = (if (tone == CheckTone.Ok) "✓  " else "!  ") + text,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (ok) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onErrorContainer,
+                        color = fore,
                         modifier =
                             Modifier.fillMaxWidth()
                                 .padding(vertical = 1.dp)
@@ -592,10 +601,7 @@ private fun DownloadDialog(onDownload: () -> Unit, onOpenPage: () -> Unit, onDis
                                         bottomEnd = if (i == rows.lastIndex) big else small,
                                     )
                                 )
-                                .background(
-                                    if (ok) MaterialTheme.colorScheme.surfaceContainerHigh
-                                    else MaterialTheme.colorScheme.errorContainer
-                                )
+                                .background(back)
                                 .padding(horizontal = 14.dp, vertical = 10.dp),
                     )
                 }
@@ -611,3 +617,5 @@ private fun DownloadDialog(onDownload: () -> Unit, onOpenPage: () -> Unit, onDis
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
+
+private enum class CheckTone { Ok, Warn, Bad }

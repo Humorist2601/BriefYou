@@ -121,8 +121,11 @@ fun BriefHint(key: String, text: AnnotatedString, enabled: Boolean = true, place
         }
     Popup(popupPositionProvider = provider, properties = PopupProperties(focusable = false)) {
         Surface(
-            color = MaterialTheme.colorScheme.inverseSurface,
-            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+            // Material's rich tooltip colours: a raised surface in the theme's own tone (dark in
+            // dark mode), not the inverse colours of a one-line tooltip.
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            tonalElevation = 3.dp,
             shape = RoundedCornerShape(18.dp),
             shadowElevation = 6.dp,
             modifier =
@@ -139,7 +142,7 @@ fun BriefHint(key: String, text: AnnotatedString, enabled: Boolean = true, place
                         BriefHints.markSeen(context, key)
                         seen = true
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.inversePrimary),
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary),
                     modifier = Modifier.align(Alignment.End),
                 ) {
                     Text(stringResource(R.string.hint_got_it))

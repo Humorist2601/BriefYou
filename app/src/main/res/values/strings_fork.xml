@@ -67,7 +67,7 @@
     <string name="ai_model_replace">Import another file</string>
     <string name="ai_prompt_default">Default</string>
     <string name="ai_prompt_edited">Edited</string>
-    <string name="ai_model_tile_missing_label">Download Gemma, then import it below</string>
+    <string name="ai_model_tile_missing_label">Not on this phone yet: download it here, or import a file</string>
     <string name="ai_model_tile_importing_label">Copying the model into the app</string>
     <string name="ai_settings_download_desc">Downloads Gemma 4 E2B (about 2.6 GB) from Hugging Face, after a quick check of your phone. Or import a .litertlm file you already have.</string>
     <string name="ai_settings_remove">Remove model</string>

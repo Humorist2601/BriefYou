@@ -298,30 +298,57 @@ class NewspaperMaker internal constructor(
         }
 
         /**
-         * The picture as newsprint: ink dots on a grid at 45°, each as big as the picture is dark
-         * there. Drawn on the CPU, so it looks the same on every phone.
+         * The picture as newsprint: a black-and-white photo, a little more contrasty and toned
+         * from ink to paper, with a faint dot screen on top. The photo stays recognisable; the
+         * dots make it read as print. Drawn on the CPU, so it looks the same on every phone.
          */
         fun halftone(src: Bitmap): Bitmap {
             val width = 900
             val height = (width * src.height / src.width.toFloat()).toInt().coerceIn(1, 1400)
-            val cell = 7
-            val cols = width / cell + 2
-            val rows = height / cell + 2
-            val small = src.scale(cols, rows, filter = true)
             val out = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             val canvas = android.graphics.Canvas(out)
             canvas.drawColor(Paper.toArgb())
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Ink.toArgb() }
+            // Grey (with 15% more contrast) mapped from ink (black) to paper (white), in one step.
+            val contrast = 1.15f
+            fun channel(ink: Float, paper: Float): FloatArray {
+                val k = (paper - ink) / 255f
+                return floatArrayOf(
+                    k * contrast * 0.299f,
+                    k * contrast * 0.587f,
+                    k * contrast * 0.114f,
+                    0f,
+                    ink + k * (128f - 128f * contrast),
+                )
+            }
+            val matrix =
+                channel(Ink.red * 255, Paper.red * 255) +
+                    channel(Ink.green * 255, Paper.green * 255) +
+                    channel(Ink.blue * 255, Paper.blue * 255) +
+                    floatArrayOf(0f, 0f, 0f, 1f, 0f)
+            val photo = Paint(Paint.FILTER_BITMAP_FLAG).apply {
+                colorFilter = android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix(matrix))
+            }
+            val scaled = src.scale(width, height, filter = true)
+            canvas.drawBitmap(scaled, 0f, 0f, photo)
+            // The dot screen: small ink dots on a grid at 45°, as big as the photo is dark, faint.
+            val cell = 4
+            val cols = width / cell + 2
+            val rows = height / cell + 2
+            val small = src.scale(cols, rows, filter = true)
+            val dots = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Ink.toArgb()
+                alpha = 70
+            }
             for (y in 0 until rows) {
                 val shift = if (y % 2 == 1) cell / 2f else 0f
                 for (x in 0 until cols) {
-                    val p = small.getPixel(x.coerceAtMost(cols - 1), y.coerceAtMost(rows - 1))
+                    val p = small.getPixel(x, y)
                     val r = (p shr 16) and 0xff
                     val g = (p shr 8) and 0xff
                     val b = p and 0xff
                     val light = (0.299f * r + 0.587f * g + 0.114f * b) / 255f
-                    val radius = cell * 0.62f * sqrt(1f - light)
-                    if (radius > 0.35f) canvas.drawCircle(x * cell + shift, y * cell + cell / 2f, radius, paint)
+                    val radius = cell * 0.6f * sqrt(1f - light)
+                    if (radius > 0.3f) canvas.drawCircle(x * cell + shift, y * cell + cell / 2f, radius, dots)
                 }
             }
             return out
@@ -431,21 +458,6 @@ private fun PressSheet(run: PressRun, onCancel: () -> Unit, onRetry: () -> Unit)
                 )
             }
         }
-        // The AI's points as they're written, in the newspaper's type.
-        if (PressStep.Brief in run.steps && run.brief.isNotBlank()) {
-            Text(
-                run.brief.trim(),
-                style = TextStyle(fontFamily = LiterataFontFamily, fontSize = 15.sp, lineHeight = 22.sp),
-                color = scheme.onSurface,
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .padding(top = 12.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(scheme.surfaceContainerLowest)
-                        .padding(14.dp)
-                        .animateContentSize(),
-            )
-        }
         Spacer(Modifier.height(16.dp))
         if (run.failed != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -502,17 +514,13 @@ private val ColumnText =
     )
 
 /**
- * The front page, always on cream newsprint (the same in light and dark), tilted a little on a
- * soft backdrop in your colours.
+ * The front page, always on cream newsprint (the same in light and dark): just the page, straight,
+ * with nothing around it.
  */
 @Composable
 private fun FrontPagePicture(page: FrontPage) {
-    val scheme = MaterialTheme.colorScheme
-    Box(
-        modifier = Modifier.fillMaxWidth().background(scheme.primaryContainer).padding(horizontal = 24.dp, vertical = 34.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().rotate(-1.2f).background(Paper).padding(18.dp)) {
+    run {
+        Column(modifier = Modifier.fillMaxWidth().background(Paper).padding(18.dp)) {
             BasicText(
                 text = page.masthead,
                 style = TextStyle(fontFamily = MastheadFont, fontSize = 42.sp, lineHeight = 46.sp, color = Ink, textAlign = TextAlign.Center),

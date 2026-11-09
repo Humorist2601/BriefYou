@@ -91,8 +91,8 @@ object ModelDownload {
     const val URL =
         "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm"
 
-    /** About 2.6 GB (shown before downloading; the real size comes from the server). */
-    const val MODEL_BYTES = 2_583L * 1024 * 1024
+    /** About 2.6 GB, as the file's page and the model card show it (the real size comes from the server). */
+    const val MODEL_BYTES = 2_583_000_000L
 
     private const val WORK = "brief_model_download"
 
