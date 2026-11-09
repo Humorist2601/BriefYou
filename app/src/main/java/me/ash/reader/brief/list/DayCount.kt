@@ -32,10 +32,12 @@ fun rememberScrolledUnder(listState: androidx.compose.foundation.lazy.LazyListSt
     val under by
         androidx.compose.runtime.remember(listState, headerKey) {
             androidx.compose.runtime.derivedStateOf {
+                // A header pinned far above its own place (a long day) isn't among the visible
+                // rows any more, though it's still on screen: then it's certainly scrolled under.
                 val h = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == headerKey }?.index
-                h != null &&
-                    (listState.firstVisibleItemIndex > h ||
-                        (listState.firstVisibleItemIndex == h && listState.firstVisibleItemScrollOffset > 0))
+                h == null ||
+                    listState.firstVisibleItemIndex > h ||
+                    (listState.firstVisibleItemIndex == h && listState.firstVisibleItemScrollOffset > 0)
             }
         }
     return under

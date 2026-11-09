@@ -1,60 +1,64 @@
 package me.ash.reader.brief.feeds
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Article
-import androidx.compose.material.icons.automirrored.rounded.MenuBook
-import androidx.compose.material.icons.automirrored.rounded.ShowChart
-import androidx.compose.material.icons.rounded.AccountBalance
-import androidx.compose.material.icons.rounded.AttachMoney
-import androidx.compose.material.icons.rounded.AutoStories
-import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.rounded.Bookmark
-import androidx.compose.material.icons.rounded.Campaign
-import androidx.compose.material.icons.rounded.Cloud
-import androidx.compose.material.icons.rounded.Code
-import androidx.compose.material.icons.rounded.Computer
-import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material.icons.rounded.Eco
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FitnessCenter
-import androidx.compose.material.icons.rounded.Flight
-import androidx.compose.material.icons.rounded.Folder
-import androidx.compose.material.icons.rounded.Forum
-import androidx.compose.material.icons.rounded.Gavel
-import androidx.compose.material.icons.rounded.HealthAndSafety
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.Lightbulb
-import androidx.compose.material.icons.rounded.LocalOffer
-import androidx.compose.material.icons.rounded.Mail
-import androidx.compose.material.icons.rounded.Mosque
-import androidx.compose.material.icons.rounded.Movie
-import androidx.compose.material.icons.rounded.MusicNote
-import androidx.compose.material.icons.rounded.Newspaper
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.Park
-import androidx.compose.material.icons.rounded.Pets
-import androidx.compose.material.icons.rounded.PhoneAndroid
-import androidx.compose.material.icons.rounded.PhotoCamera
-import androidx.compose.material.icons.rounded.Podcasts
-import androidx.compose.material.icons.rounded.Psychology
-import androidx.compose.material.icons.rounded.Public
-import androidx.compose.material.icons.rounded.Restaurant
-import androidx.compose.material.icons.rounded.RocketLaunch
-import androidx.compose.material.icons.rounded.School
-import androidx.compose.material.icons.rounded.Science
-import androidx.compose.material.icons.rounded.Security
-import androidx.compose.material.icons.rounded.ShoppingBag
-import androidx.compose.material.icons.rounded.SportsEsports
-import androidx.compose.material.icons.rounded.SportsSoccer
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.TravelExplore
-import androidx.compose.material.icons.rounded.Videocam
-import androidx.compose.material.icons.rounded.Work
+import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.AttachMoney
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Computer
+import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Eco
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.Flight
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.Gavel
+import androidx.compose.material.icons.outlined.HealthAndSafety
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.Mail
+import androidx.compose.material.icons.outlined.Mosque
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Newspaper
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Park
+import androidx.compose.material.icons.outlined.Pets
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Podcasts
+import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.RocketLaunch
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.SportsEsports
+import androidx.compose.material.icons.outlined.SportsSoccer
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material.icons.outlined.TravelExplore
+import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material.icons.outlined.Work
+import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material.icons.outlined.Checkroom
+import androidx.compose.material.icons.outlined.Handyman
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
- * Material icons a feed or group can wear instead of its website icon. Stored as `icon:<name>`
+ * Material icons (outlined) a feed or group can wear instead of its website icon. Stored as `icon:<name>`
  * (the name, not the drawing, so the choice survives app updates and backups).
  */
 object SymbolIcons {
@@ -62,56 +66,60 @@ object SymbolIcons {
 
     val all: List<Pair<String, ImageVector>> =
         listOf(
-            "newspaper" to Icons.Rounded.Newspaper,
-            "article" to Icons.AutoMirrored.Rounded.Article,
-            "public" to Icons.Rounded.Public,
-            "language" to Icons.Rounded.Language,
-            "campaign" to Icons.Rounded.Campaign,
-            "forum" to Icons.Rounded.Forum,
-            "computer" to Icons.Rounded.Computer,
-            "phone" to Icons.Rounded.PhoneAndroid,
-            "code" to Icons.Rounded.Code,
-            "security" to Icons.Rounded.Security,
-            "science" to Icons.Rounded.Science,
-            "psychology" to Icons.Rounded.Psychology,
-            "rocket" to Icons.Rounded.RocketLaunch,
-            "lightbulb" to Icons.Rounded.Lightbulb,
-            "bolt" to Icons.Rounded.Bolt,
-            "cloud" to Icons.Rounded.Cloud,
-            "money" to Icons.Rounded.AttachMoney,
-            "chart" to Icons.AutoMirrored.Rounded.ShowChart,
-            "bank" to Icons.Rounded.AccountBalance,
-            "law" to Icons.Rounded.Gavel,
-            "work" to Icons.Rounded.Work,
-            "school" to Icons.Rounded.School,
-            "book" to Icons.AutoMirrored.Rounded.MenuBook,
-            "stories" to Icons.Rounded.AutoStories,
-            "games" to Icons.Rounded.SportsEsports,
-            "movie" to Icons.Rounded.Movie,
-            "video" to Icons.Rounded.Videocam,
-            "music" to Icons.Rounded.MusicNote,
-            "podcast" to Icons.Rounded.Podcasts,
-            "camera" to Icons.Rounded.PhotoCamera,
-            "palette" to Icons.Rounded.Palette,
-            "sport" to Icons.Rounded.SportsSoccer,
-            "fitness" to Icons.Rounded.FitnessCenter,
-            "health" to Icons.Rounded.HealthAndSafety,
-            "food" to Icons.Rounded.Restaurant,
-            "travel" to Icons.Rounded.Flight,
-            "explore" to Icons.Rounded.TravelExplore,
-            "car" to Icons.Rounded.DirectionsCar,
-            "nature" to Icons.Rounded.Park,
-            "eco" to Icons.Rounded.Eco,
-            "pets" to Icons.Rounded.Pets,
-            "home" to Icons.Rounded.Home,
-            "shopping" to Icons.Rounded.ShoppingBag,
-            "deals" to Icons.Rounded.LocalOffer,
-            "mail" to Icons.Rounded.Mail,
-            "mosque" to Icons.Rounded.Mosque,
-            "favorite" to Icons.Rounded.Favorite,
-            "star" to Icons.Rounded.Star,
-            "bookmark" to Icons.Rounded.Bookmark,
-            "folder" to Icons.Rounded.Folder,
+            "newspaper" to Icons.Outlined.Newspaper,
+            "article" to Icons.AutoMirrored.Outlined.Article,
+            "public" to Icons.Outlined.Public,
+            "language" to Icons.Outlined.Language,
+            "campaign" to Icons.Outlined.Campaign,
+            "forum" to Icons.Outlined.Forum,
+            "community" to Icons.Outlined.Groups,
+            "computer" to Icons.Outlined.Computer,
+            "phone" to Icons.Outlined.PhoneAndroid,
+            "code" to Icons.Outlined.Code,
+            "security" to Icons.Outlined.Security,
+            "science" to Icons.Outlined.Science,
+            "psychology" to Icons.Outlined.Psychology,
+            "rocket" to Icons.Outlined.RocketLaunch,
+            "lightbulb" to Icons.Outlined.Lightbulb,
+            "bolt" to Icons.Outlined.Bolt,
+            "cloud" to Icons.Outlined.Cloud,
+            "weather" to Icons.Outlined.WbSunny,
+            "money" to Icons.Outlined.AttachMoney,
+            "chart" to Icons.AutoMirrored.Outlined.ShowChart,
+            "bank" to Icons.Outlined.AccountBalance,
+            "law" to Icons.Outlined.Gavel,
+            "work" to Icons.Outlined.Work,
+            "school" to Icons.Outlined.School,
+            "book" to Icons.AutoMirrored.Outlined.MenuBook,
+            "stories" to Icons.Outlined.AutoStories,
+            "games" to Icons.Outlined.SportsEsports,
+            "movie" to Icons.Outlined.Movie,
+            "video" to Icons.Outlined.Videocam,
+            "music" to Icons.Outlined.MusicNote,
+            "podcast" to Icons.Outlined.Podcasts,
+            "camera" to Icons.Outlined.PhotoCamera,
+            "palette" to Icons.Outlined.Palette,
+            "sport" to Icons.Outlined.SportsSoccer,
+            "fitness" to Icons.Outlined.FitnessCenter,
+            "health" to Icons.Outlined.HealthAndSafety,
+            "food" to Icons.Outlined.Restaurant,
+            "travel" to Icons.Outlined.Flight,
+            "explore" to Icons.Outlined.TravelExplore,
+            "car" to Icons.Outlined.DirectionsCar,
+            "nature" to Icons.Outlined.Park,
+            "eco" to Icons.Outlined.Eco,
+            "pets" to Icons.Outlined.Pets,
+            "home" to Icons.Outlined.Home,
+            "diy" to Icons.Outlined.Handyman,
+            "fashion" to Icons.Outlined.Checkroom,
+            "shopping" to Icons.Outlined.ShoppingBag,
+            "deals" to Icons.Outlined.LocalOffer,
+            "mail" to Icons.Outlined.Mail,
+            "mosque" to Icons.Outlined.Mosque,
+            "favorite" to Icons.Outlined.FavoriteBorder,
+            "star" to Icons.Outlined.StarOutline,
+            "bookmark" to Icons.Outlined.BookmarkBorder,
+            "folder" to Icons.Outlined.Folder,
         )
 
     private val byName = all.toMap()

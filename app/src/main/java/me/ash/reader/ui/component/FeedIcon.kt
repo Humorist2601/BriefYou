@@ -44,7 +44,7 @@ fun FeedIcon(
             contentAlignment = Alignment.Center, // Brief You
         ) { // Brief You
             Icon( // Brief You
-                imageVector = symbol ?: androidx.compose.material.icons.Icons.Rounded.Bookmark, // Brief You
+                imageVector = if (iconUrl == SAVED_ARTICLES_ICON) androidx.compose.material.icons.Icons.Rounded.Bookmark else symbol ?: androidx.compose.material.icons.Icons.Rounded.Bookmark, // Brief You: Saved Articles keeps its filled bookmark
                 contentDescription = feedName, // Brief You
                 tint = MaterialTheme.colorScheme.onPrimary, // Brief You
                 modifier = Modifier.size(size * 0.6f), // Brief You

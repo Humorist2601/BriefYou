@@ -89,6 +89,7 @@ fun FeedOptionDrawer(
     if (showIconDialog) me.ash.reader.brief.ui.OptionSheetDialogs { // Brief You: above the sheet
         FeedIconDialog(
             onSymbol = { feedOptionViewModel.setSymbolIcon(it) }, // Brief You: Material icons
+            onEmoji = { feedOptionViewModel.setEmojiIcon(it) }, // Brief You: or any emoji
             current = feed?.icon, // Brief You
             onImage = {
                 imagePicker.launch(

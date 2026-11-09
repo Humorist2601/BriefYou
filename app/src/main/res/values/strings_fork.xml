@@ -142,6 +142,8 @@
     <!-- Custom feed icons -->
     <string name="feed_icon_change">Change icon</string>
     <string name="feed_icon_symbols">Icons</string>
+    <string name="feed_icon_emoji_hint">Or type any emoji</string>
+    <string name="feed_icon_use">Use</string>
     <string name="add_feed_title">Add a feed</string>
     <string name="sheet_full_content">Full content</string>
     <string name="sheet_browser">In browser</string>

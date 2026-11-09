@@ -71,6 +71,7 @@ fun GroupOptionDrawer(
     if (showIconDialog) me.ash.reader.brief.ui.OptionSheetDialogs { // Brief You: above the sheet
         me.ash.reader.brief.feeds.FeedIconDialog( // Brief You
             onSymbol = { n -> group?.id?.let { me.ash.reader.brief.feeds.GroupIcons.setSymbol(context, it, n) } }, // Brief You: Material icons
+            onEmoji = { e -> group?.id?.let { me.ash.reader.brief.feeds.GroupIcons.setEmoji(context, it, e) } }, // Brief You: or any emoji
             current = group?.id?.let { me.ash.reader.brief.feeds.GroupIcons.icons[it] }, // Brief You
             onImage = { imagePicker.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) }, // Brief You
             onWebsiteIcon = { group?.id?.let { me.ash.reader.brief.feeds.GroupIcons.clear(context, it) } }, // Brief You

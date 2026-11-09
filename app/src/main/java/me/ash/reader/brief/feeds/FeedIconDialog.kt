@@ -33,6 +33,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -45,13 +51,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 import me.ash.reader.R
 
 /**
- * Change a feed's or group's icon: pick a Material icon, choose an image, or go back to the
+ * Change a feed's or group's icon: pick a Material icon, type any emoji, choose an image, or go
+ * back to the
  * website's icon (a group: the folder).
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FeedIconDialog(
     onSymbol: (String) -> Unit,
+    onEmoji: (String) -> Unit,
     onImage: () -> Unit,
     onWebsiteIcon: () -> Unit,
     onDismiss: () -> Unit,
@@ -110,6 +118,29 @@ fun FeedIconDialog(
                         }
                     }
                 }
+                }
+                Spacer(Modifier.height(12.dp))
+                // Any emoji, typed or picked from the keyboard's emoji page.
+                var emoji by rememberSaveable { mutableStateOf("") }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = emoji,
+                        onValueChange = { emoji = it.take(8) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        placeholder = { Text(stringResource(R.string.feed_icon_emoji_hint)) },
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    TextButton(
+                        enabled = emoji.isNotBlank(),
+                        onClick = {
+                            onEmoji(emoji)
+                            onDismiss()
+                        },
+                    ) {
+                        Text(stringResource(R.string.feed_icon_use))
+                    }
                 }
                 Spacer(Modifier.height(16.dp))
                 FilledTonalButton(

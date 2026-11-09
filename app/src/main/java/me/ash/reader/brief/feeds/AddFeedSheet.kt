@@ -64,6 +64,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalDensity
 import me.ash.reader.ui.component.base.RYTextField2
 import me.ash.reader.R
 import me.ash.reader.brief.ui.OptionSheetDialogs
@@ -119,19 +124,38 @@ fun AddFeedSheet(viewModel: SubscribeViewModel) {
 
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    // Focus the address box once the sheet has finished sliding up (not on every state change).
+    // The keyboard rises with the sheet: the address box is focused as soon as the sheet starts
+    // opening (the sheet's content pads for the keyboard frame by frame, so they move together).
     LaunchedEffect(visible) {
         if (!visible) return@LaunchedEffect
-        snapshotFlow { sheetState.currentValue == SheetValue.Expanded && sheetState.targetValue == SheetValue.Expanded }
-            .first { it }
+        snapshotFlow { sheetState.targetValue == SheetValue.Expanded }.first { it }
         if (viewModel.subscribeState.value is SubscribeState.Idle) runCatching { focus.requestFocus() }
+    }
+    // And falls with it: whenever the sheet starts closing (a swipe, the scrim, back or a button),
+    // the keyboard goes down at the same time instead of staying up after the sheet has gone.
+    LaunchedEffect(sheetState) {
+        snapshotFlow { sheetState.targetValue }.collect {
+            if (it == SheetValue.Hidden && mounted) {
+                focusManager.clearFocus()
+                keyboard?.hide()
+            }
+        }
     }
 
     // The keyboard goes down first, then the sheet, so they don't fight over the sheet's place.
+    // Cancel / Import: the keyboard slides down first (the sheet's content following it), then the
+    // sheet. Closing both at once removed the sheet's window under the keyboard, so the keyboard
+    // vanished instead of sliding.
+    val closeScope = rememberCoroutineScope()
+    val ime = WindowInsets.ime
+    val density = LocalDensity.current
     fun close() {
-        focusManager.clearFocus()
-        keyboard?.hide()
-        viewModel.hideDrawer()
+        closeScope.launch {
+            focusManager.clearFocus()
+            keyboard?.hide()
+            withTimeoutOrNull(600) { snapshotFlow { ime.getBottom(density) }.first { it == 0 } }
+            viewModel.hideDrawer()
+        }
     }
 
     // The content follows the keyboard frame by frame (padding for it inside the sheet) instead of
@@ -193,9 +217,8 @@ fun AddFeedSheet(viewModel: SubscribeViewModel) {
                                 OutlinedButton(
                                     shapes = ButtonDefaults.shapes(),
                                     onClick = {
-                                        focusManager.clearFocus()
                                         launcher.launch(arrayOf(MimeType.ANY))
-                                        viewModel.hideDrawer()
+                                        close()
                                     },
                                     modifier = Modifier.weight(1f),
                                 ) {
