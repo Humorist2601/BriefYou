@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Balance
 import androidx.compose.material.icons.rounded.TipsAndUpdates
+import androidx.compose.material.icons.rounded.TouchApp // Brief You
 import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -95,12 +96,14 @@ fun TipsAndSupportPage(
     updateViewModel: UpdateViewModel = hiltViewModel(),
     onBack: () -> Unit,
     navigateToLicenseList: () -> Unit,
+    navigateToAiModel: () -> Unit = {}, // Brief You
 ) {
     val context = LocalContext.current
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     var currentVersion by remember { mutableStateOf("") }
     var showSponsorDialog by remember { mutableStateOf(false) }
+    var showTour by remember { mutableStateOf(false) } // Brief You
 
     val morphProgress = remember { Animatable(0f) }
 
@@ -289,6 +292,17 @@ fun TipsAndSupportPage(
                             Spacer(modifier = Modifier.width(16.dp))
                         }
 
+                        // Brief You: the tour again
+                        RoundIconButton(
+                            RoundIconButtonType.Tour(
+                                backgroundColor = MaterialTheme.colorScheme.primaryContainer alwaysLight true,
+                            ) {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                view.playSoundEffect(SoundEffectConstants.CLICK)
+                                showTour = true
+                            })
+                        Spacer(modifier = Modifier.width(16.dp)) // Brief You
+
                         // Help
                         RoundIconButton(
                             RoundIconButtonType.Help(
@@ -302,7 +316,9 @@ fun TipsAndSupportPage(
                                 )
                             })
                     }
-                    Spacer(modifier = Modifier.height(48.dp))
+                    Spacer(modifier = Modifier.height(12.dp)) // Brief You
+                    me.ash.reader.brief.tour.ShowHintsAgain() // Brief You
+                    Spacer(modifier = Modifier.height(36.dp)) // Brief You: 48 with the line above
                 }
             }
         }
@@ -311,6 +327,9 @@ fun TipsAndSupportPage(
     UpdateDialog()
     if (showSponsorDialog) {
         SponsorDialog { showSponsorDialog = false }
+    }
+    if (showTour) { // Brief You
+        me.ash.reader.brief.tour.BriefTourDialog(onDismiss = { showTour = false }, onSetUpAi = navigateToAiModel)
     }
 }
 
@@ -375,6 +394,19 @@ sealed class RoundIconButtonType(
         backgroundColor = backgroundColor,
         onClick = onClick,
     )
+
+    // Brief You: the tour again
+    @Immutable
+    data class Tour(
+        val desc: Int = R.string.tour_settings,
+        override val backgroundColor: Color,
+        override val onClick: () -> Unit = {},
+    ) : RoundIconButtonType(
+        iconVector = Icons.Rounded.TouchApp,
+        descResource = desc,
+        backgroundColor = backgroundColor,
+        onClick = onClick,
+    )
 }
 
 @Composable
@@ -389,7 +421,7 @@ private fun RoundIconButton(type: RoundIconButtonType) {
         onClick = { type.onClick() }
     ) {
         when (type) {
-            is RoundIconButtonType.Sponsor, is RoundIconButtonType.Help -> {
+            is RoundIconButtonType.Sponsor, is RoundIconButtonType.Help, is RoundIconButtonType.Tour -> { // Brief You: Tour
                 Icon(
                     modifier = type.offset.size(type.size),
                     imageVector = type.iconVector!!,

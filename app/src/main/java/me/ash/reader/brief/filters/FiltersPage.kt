@@ -5,6 +5,7 @@ package me.ash.reader.brief.filters
 import me.ash.reader.brief.ui.rememberPressFeel
 import androidx.compose.runtime.rememberCoroutineScope
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily
+import me.ash.reader.brief.ui.StatTile
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.clickable
@@ -156,8 +157,8 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
 
     var addDialogVisible by rememberSaveable { mutableStateOf(false) }
     var addWatchedVisible by rememberSaveable { mutableStateOf(false) }
-    // Watched (0) or Muted (1).
-    var tab by rememberSaveable { mutableStateOf(0) }
+    // Watched (0) or Muted (1); Muted, on the left, first.
+    var tab by rememberSaveable { mutableStateOf(1) }
     val watched = WatchedWords.words
     val watchedLog = WatchedWords.log
     val watchedFound = viewModel.watchedFound.collectAsStateValue()
@@ -201,29 +202,29 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                     ) {
                         StatTile(
                             modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.Visibility,
-                            onClick = { tab = 0 },
-                            count = watchedLog.size,
-                            label = pluralStringResource(R.plurals.filters_stat_watched, watchedLog.size),
-                        )
-                        StatTile(
-                            modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.NotificationsOff,
                             onClick = { tab = 1 },
-                            count = mutedCount,
+                            value = mutedCount.toString(),
                             label = pluralStringResource(R.plurals.filters_stat_muted, mutedCount),
                         )
                         StatTile(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Outlined.ContentCopy,
                             onClick = { tab = 1 },
-                            count = duplicateCount,
+                            value = duplicateCount.toString(),
                             label =
                                 pluralStringResource(R.plurals.filters_stat_duplicates, duplicateCount),
                         )
+                        StatTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Outlined.Visibility,
+                            onClick = { tab = 0 },
+                            value = watchedLog.size.toString(),
+                            label = pluralStringResource(R.plurals.filters_stat_watched, watchedLog.size),
+                        )
                     }
                     Spacer(Modifier.height(16.dp))
-                    // Watched on the left, muted on the right: tap or swipe.
+                    // Muted on the left, watched on the right.
                     FilterTabs(page = tab) { tab = it }
                     Spacer(Modifier.height(8.dp))
                 }
@@ -817,7 +818,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
 }
 
 /**
- * The two tabs, watched on the left and muted on the right, as one joined pill (the chosen half
+ * The two tabs, muted on the left and watched on the right, as one joined pill (the chosen half
  * filled, its icon with it), like the app's other joined buttons.
  */
 @Composable
@@ -827,10 +828,10 @@ private fun FilterTabs(page: Int, onSelect: (Int) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         listOf(
-                Triple(Icons.Outlined.Visibility, R.string.filters_tab_watched, 0),
                 Triple(Icons.Outlined.NotificationsOff, R.string.filters_tab_muted, 1),
+                Triple(Icons.Outlined.Visibility, R.string.filters_tab_watched, 0),
             )
-            .forEach { (icon, label, index) ->
+            .forEachIndexed { position, (icon, label, index) ->
                 val selected = page == index
                 val outer = me.ash.reader.brief.ui.Group.Outer
                 val inner = me.ash.reader.brief.ui.Group.Inner
@@ -847,7 +848,7 @@ private fun FilterTabs(page: Int, onSelect: (Int) -> Unit) {
                         if (selected) MaterialTheme.colorScheme.onSecondaryContainer
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                     shape =
-                        if (index == 0) RoundedCornerShape(outer, inner, inner, outer)
+                        if (position == 0) RoundedCornerShape(outer, inner, inner, outer)
                         else RoundedCornerShape(inner, outer, outer, inner),
                     modifier = Modifier.weight(1f).height(48.dp),
                 ) {
@@ -862,48 +863,6 @@ private fun FilterTabs(page: Int, onSelect: (Int) -> Unit) {
                     }
                 }
             }
-    }
-}
-
-/** A big tonal tile with a number, like the tiles in the sort sheet. */
-@Composable
-private fun StatTile(modifier: Modifier, icon: ImageVector, count: Int, label: String, onClick: () -> Unit) {
-    // Triage's press: squeeze, tighter corners, the cookie turns by one bump, then a spring back.
-    val press = rememberPressFeel(rest = 28.dp, held = 18.dp, bumps = 9)
-    Surface(
-        onClick = onClick,
-        interactionSource = press.interaction,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = RoundedCornerShape(press.corner),
-        modifier = with(press) { modifier.squeeze() },
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-            Box(
-                modifier =
-                    Modifier.size(40.dp)
-                        .graphicsLayer { rotationZ = press.turn }
-                        .clip(MaterialShapes.Cookie9Sided.toShape())
-                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp).graphicsLayer { rotationZ = -press.turn },
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = count.toString(),
-                style =
-                    MaterialTheme.typography.headlineLarge.copy(
-                        fontFamily = GoogleSansWideFontFamily,
-                        fontWeight = FontWeight.SemiBold,
-                    ),
-            )
-            Text(text = label, style = MaterialTheme.typography.labelLarge)
-        }
     }
 }
 

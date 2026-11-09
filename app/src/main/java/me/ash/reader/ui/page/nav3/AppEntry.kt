@@ -293,6 +293,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             TipsAndSupportPage(
                                 onBack = onBack,
                                 navigateToLicenseList = { backStack.add(Route.LicenseList) },
+                                navigateToAiModel = { backStack.add(Route.AiModel) }, // Brief You
                             )
                         }
                     Route.LicenseList -> NavEntry(key) { LicenseListPage(onBack = onBack) }

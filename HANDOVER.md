@@ -62,8 +62,10 @@ These are the owner's standing preferences. A new assistant should follow them.
    24 dp sides, opened fully (`skipPartiallyExpanded`; the AI sheet's 70 % is the one exception).
    Dialogs: `InWindowAlertDialog` (Read You's `RYDialog` draws through it), the standard title, no
    icon. Labels: pills (`RoundedCornerShape(50)`), Label Medium, 10 × 4 dp padding; tertiary for
-   what's yours or watched, neutral for plain info. Tiles, cards and the tour's buttons press with
-   `PressFeel`.
+   what's yours or watched, neutral for plain info. Tiles, cards, banners (Read You's `Banner`: the Starred / Unread / All
+   openers and the Settings banners; their icon sits on a turning cookie, `BannerCookie`, and the openers' arrow
+   nudges right, `pressNudge`) and the tour's buttons press with `PressFeel`. Number tiles (Filters, Reading stats) are one `StatTile` (`brief/ui/StatTile.kt`):
+   icon on a cookie, wide number, left-aligned.
 
 ---
 
@@ -117,10 +119,10 @@ create and approve pull requests*.
 | `list/` | Article list additions: `BriefFlow.kt` (Triage/gist state), `FlowFab.kt` (AI gist / Triage pill), `InboxZero.kt`. |
 | `notifications/` | **The digest** (`NotificationHelper.kt`): one notification per sync, stored in SharedPreferences, posted once after the sync. InboxStyle list, one line per feed ("Variety (5) · newest title"); **Android 16 shows at most 6 lines and ignores bold**, so >6 feeds = 5 lines + "+N more: …". Buttons: Mark all read (`DigestActionReceiver`) and Triage. |
 | `readaloud/` | Text-to-speech by sentences with a media notification/lock-screen controls (`ReadAloudService`), progress ring buttons. |
-| `reading/` | The reading page: colours from the article picture (`BriefReading.kt`), header, top bar, floating reading bar, next-article card, image viewer, reading time (`ReadingTime.kt`, one-pass counter), **`FeedContent.kt`** (tidies every article's HTML: complete URLs, removes share junk, lead-picture split; cached with `prepared()`, done off the main thread with `forReaderInBackground()`), screen transitions (`PaneTransitions.kt`). |
+| `reading/` | The reading page: colours from the article picture (`BriefReading.kt`), header, top bar, floating reading bar, next-article card, image viewer, reading time (`ReadingTime.kt`, one-pass counter), **`FeedContent.kt`** (tidies every article's HTML: complete URLs, removes share junk, lead-picture split; cached with `prepared()`, done off the main thread with `forReaderInBackground()`), **`EmailContent.kt`** (newsletters read as feeds: detects emails, turns layout tables into plain blocks, removes hidden preheaders/Outlook XML/pixels/social/footers, makes big text headings, no lead picture; `adjust()` is hooked into `RssHelper.buildArticleFromSyndEntry` for the list text, picture, author and the "view in browser" link), screen transitions (`PaneTransitions.kt`). |
 | `readlater/` | **Read Later**: `ReadLaterActivity` (Share menu entry "Read Later": fetches the page, saves it starred+unread with full text into a never-synced **Saved Articles** feed, shows a sheet that closes after 3 s). `ReadLater.kt` does the saving. Local accounts only. The saved feed has URL `briefyou://saved-for-later`; `LocalRssService` and OPML export skip it. Its icon is `icon:bookmark`, drawn by `FeedIcon.kt`. |
 | `splash/` | Animated splash (card stack). |
-| `tour/` | `BriefTour.kt`: the first-run tour (replaces Read You's welcome page through one hook in `AppEntry`'s `Route.Startup`; the agreement is on its last page) and *Settings → Tour* (a full-screen dialog). `BriefHints.kt`: one-time hint bubbles (`BriefHint`, a `Popup` placed against its parent Box; one at a time; remembered in `brief_hints` prefs). |
+| `tour/` | `BriefTour.kt`: the first-run tour (replaces Read You's welcome page through one hook in `AppEntry`'s `Route.Startup`; the agreement is on its last page) and a tour button in *Settings → Tips & support* (a full-screen dialog). `BriefHints.kt`: one-time hint bubbles (`BriefHint`, a `Popup` placed against its parent Box; one at a time; remembered in `brief_hints` prefs, with one shared change counter so every bubble sees *Got it*); `ShowHintsAgain` (under the round buttons in Tips & support) resets them. |
 | `share/` | `Newspaper.kt`: an article as a newspaper front page (hold Share on the reading page, or the list's long-press menu). One `NewspaperMaker` lives in `BriefNavigationHost` (`LocalNewspaperMaker`); it runs the steps (full text via `ArticleText`, *In brief* via `summarizeForCard`, the page), shows `PressSheet` after 0.5 s, and takes the picture off screen. The picture is a toned black-and-white photo with a faint dot screen, drawn on the CPU; the page is straight, cut with a transparent zig-zag top and bottom, and captured with `OffscreenPictureAt` at a fixed 1600 px (a 400 dp page at 4×, font scale 1). `BriefYouMark` on shared pictures is the themed-icon glyph in the accent colour on a cookie; the newspaper's is black and white on a squircle. Masthead: Literata at weight 900. |
 | `stats/` | Reading stats page and data; `MonthRecap.kt` is the monthly recap (Stats card, Past months, home row). `YearRecap.kt` is the year in review (first week of January in place of December's card, then first under Past months); it reuses the month card's heading, tiles and rows. Days also count opens per feed and filtered articles (for the recap). |
 | `triage/` | **Triage** (`TriageScreen.kt`, the biggest file): card stack, swipe right read / left save / up open / down skip, undo, auto-advance with a wavy ring, next-group end screen, haptics. A run moves through groups (or feeds, when opened from a feed) in the Feeds order. `TriageSession` keeps the run: visited places, cards left behind per place (`leftIn`), sizes for the run bar, totals, and saved states so Undo can step back into the previous group. Header: "Triage" + a "2 of 5" chip (opens `TriagePlacesSheet`: jump, skip, reopen groups left with cards) + group · cards left. After a group, the bar becomes `RunBar` (one piece per group). `TriageSummary.kt`: long-press AI summary on a card. |
@@ -132,7 +134,7 @@ Other places worth knowing:
   Saved Articles bookmark (`icon:bookmark`).
 - `ui/page/home/flow/FlowPage.kt` (hooks): the article list; contains the "don't scroll if the
   article is still on screen" fix.
-- `domain/service/SyncWorker.kt` (hook): calls `BriefSync` after each sync.
+- `domain/service/SyncWorker.kt` (hook): calls `BriefSync` after each sync. It and `WidgetUpdateWorker` reschedule from now when the next run is far beyond the interval (`brief/app/StaleSchedule.kt`; the clock was set ahead and back).
 - `app/src/nightly/`: Nightly's own name/icon resources and its manifest (the sample-digest receiver).
 - `app/src/main/baseline-prof.txt`: compiles all app code ahead of time on install.
 

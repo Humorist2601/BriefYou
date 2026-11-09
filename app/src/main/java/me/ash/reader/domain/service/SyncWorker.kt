@@ -1,5 +1,6 @@
 package me.ash.reader.domain.service
 
+import me.ash.reader.brief.app.scheduledTooFar // Brief You
 import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
@@ -104,8 +105,11 @@ constructor(
                     .firstOrNull()
                     ?.state
 
+            // Brief You: a next run far beyond the interval (the clock was set ahead and back)
+            // is scheduled again from now, not kept.
+            val stale = workManager.scheduledTooFar(SYNC_WORK_NAME_PERIODIC, syncInterval.value)
             val policy =
-                if (workState == WorkInfo.State.ENQUEUED || workState == WorkInfo.State.RUNNING)
+                if (!stale && (workState == WorkInfo.State.ENQUEUED || workState == WorkInfo.State.RUNNING))
                     ExistingPeriodicWorkPolicy.UPDATE
                 else ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE
 

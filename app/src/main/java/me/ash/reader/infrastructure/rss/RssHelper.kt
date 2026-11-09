@@ -238,7 +238,7 @@ constructor(
                 ),
             link = syndEntry.link ?: "",
             updateAt = preDate,
-        )
+        ).let { me.ash.reader.brief.reading.EmailContent.adjust(it) } // Brief You: newsletters read as feeds
     }
 
     fun findThumbnail(syndEntry: SyndEntry): String? {

@@ -21,7 +21,7 @@
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-backup-dark.svg"><img alt="Full backup: everything in one file" src=".github/assets/readme/card-backup-light.svg" width="32%"></picture>
 </p>
 
-Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It keeps everything that makes Read You great (Material You design, Reeder-style reading, FreshRSS, Miniflux, Fever, Google Reader API and more) and adds AI that runs **entirely on your phone**: articles and questions never leave it. It installs **next to** Read You (app ID `com.ay.briefyou`); move your feeds over with OPML. It also fixes a few Read You bugs: read state that could go back to unread ([#1254](https://github.com/ReadYouApp/ReadYou/issues/1254)), *Mark as read on scroll* marking articles you never saw ([#1274](https://github.com/ReadYouApp/ReadYou/issues/1274)), and pictures blocked by hotlink protection ([#1347](https://github.com/ReadYouApp/ReadYou/issues/1347)).
+Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It keeps everything that makes Read You great (Material You design, Reeder-style reading, FreshRSS, Miniflux, Fever, Google Reader API and more) and adds AI that runs **entirely on your phone**: articles and questions never leave it. It installs **next to** Read You (app ID `com.ay.briefyou`); move your feeds over with OPML. It also fixes a few Read You bugs: read state that could go back to unread ([#1254](https://github.com/ReadYouApp/ReadYou/issues/1254)), *Mark as read on scroll* marking articles you never saw ([#1274](https://github.com/ReadYouApp/ReadYou/issues/1274)), pictures blocked by hotlink protection ([#1347](https://github.com/ReadYouApp/ReadYou/issues/1347)), and automatic sync that stops after the phone's clock is set ahead and back.
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots-dark.png"><img alt="Brief You screenshots: feeds, reading, Triage, AI gist and Reading stats" src=".github/assets/screenshots.png" width="100%"></picture></p>
 
@@ -59,6 +59,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Toolbar long presses: Star marks read or unread, AI opens its settings, Next goes to the previous article, Full content opens the browser.
 - Pictures in the text get a box of their own size with the app's shape-changing loading indicator, and fade in.
 - Read later: share a link to *Read Later* (or to *Add Feed* to subscribe to its feed). The page is saved with its full text as a starred article in a *Saved Articles* feed; a small sheet confirms it and closes by itself. If the page can't be loaded (offline, blocked, or a file like a PDF), the link is saved instead. Local accounts only.
+- Newsletters read as feeds (through an email-to-feed service such as Kill the Newsletter) read like articles: the email's layout boxes, hidden preview text, tracking pixels, social links and preference footers are removed, its big text becomes headings, and sharing uses the issue's public web page instead of your private feed address.
 - Tidier articles also drop "appeared first on" lines.
 - Large header picture; feed, date and reading time as chips; title, time left and a wavy progress bar in the top bar once you scroll.
 - Pictures: drag one away to close it; Save and Share in its menu; slightly dimmed in dark mode.
@@ -127,7 +128,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
   - comes first in Triage and in the digest ("2 about Pixel, Gemma");
   - is counted on its feed and group at home, and is never muted.
 - Tap a watched word to stop watching it. *Recently watched* keeps 30 days.
-- The Filters page has two tabs, *Watched* on the left and *Muted* (with *Hide duplicate stories*) on the right, under tiles counting what was watched, muted and merged. Each tab has its words, *Apply now* and a recent list laid out the same way: today in full, earlier days grouped by word.
+- The Filters page has two tabs, *Muted* (with *Hide duplicate stories*) on the left and *Watched* on the right, under tiles counting what was muted, merged and watched. Each tab has its words, *Apply now* and a recent list laid out the same way: today in full, earlier days grouped by word.
 - *Apply now* checks the last 3 days and says what it did ("3 hidden", "2 found").
 - The digest reads like "12 new articles · Variety, Kotaku, Kagi News +2".
 - Duplicates: another feed, or the same feed twice. Filters lists the hidden copies under the story they repeat, and which copy was kept unread.
@@ -160,8 +161,8 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
   - twelve month bars and four highlights (best month, longest streak, reading time, Triage);
   - tap it and each bar breaks into its days, which fly into twelve little calendars; tap a day for its numbers.
 - It shares, hides and shows on home the same way, and stays at the top of *Past months* after that week.
-- First run: a four-page tour (Triage, the on-device AI with a check of your phone, calmer feeds, and the buttons that do more when held) in place of Read You's welcome page; its agreement is on the last page. One Expressive shape morphs from page to page as you swipe. See it again in *Settings → Tour*.
-- One-time hints: a small bubble the first time you reach Triage, the AI button and the Unread list's Triage button; *Got it* and it's gone.
+- First run: a four-page tour (Triage, the on-device AI with a check of your phone, calmer feeds, and the buttons that do more when held) in place of Read You's welcome page; its agreement is on the last page. One Expressive shape morphs from page to page as you swipe. See it again from the tour button in *Settings → Tips & support*.
+- One-time hints: a small bubble the first time you reach Triage, the AI button and the Unread list's Triage button; *Got it* and it's gone (*Show hints again* in *Settings → Tips & support*).
 - Tiles and cards (Filters, Reading stats, the sort tiles and the recaps) squeeze and spring back when pressed, like Triage's buttons.
 - Predictive back uses a gentler dim on the screen behind, so it never flashes dark.
 - Wide headings use Google Sans Flex at its widest; long names shrink or wrap to fit.
