@@ -233,7 +233,7 @@ for key, title, ic, sh, tone in HEADERS:
 # between), the feature's name on the left and what it does on the right (wrapping if needed).
 TABLES = {
     "ai": [
-        ('Summaries', 'Tap the sparkle in an article: 3–5 key points and why it matters.'),
+        ('Summaries', 'Tap the sparkle in an article: 3 key points and why it matters.'),
         ('Group gists', 'A briefing of your newest unread, grouped by story.'),
         ('Ask', 'Ask questions about an article or a gist.'),
         ('Read aloud', 'Any summary or gist, read aloud.'),

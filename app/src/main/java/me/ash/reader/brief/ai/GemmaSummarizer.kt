@@ -45,7 +45,12 @@ import timber.log.Timber
 sealed interface ModelState {
     data object Missing : ModelState
 
-    data class Importing(val progress: Float?) : ModelState
+    /**
+     * Copying a picked file in, or [downloading] it from Hugging Face ([waiting]: the connection
+     * dropped and it will carry on by itself).
+     */
+    data class Importing(val progress: Float?, val downloading: Boolean = false, val waiting: Boolean = false) :
+        ModelState
 
     data class Ready(val sizeBytes: Long) : ModelState
 
@@ -179,6 +184,50 @@ constructor(
                     tmp.delete()
                 }
             }
+    }
+
+    /** Downloads the model in the background (see [ModelDownload]); progress is on [modelState]. */
+    fun startDownload() {
+        if (importJob?.isActive == true) return
+        _modelState.value = ModelState.Importing(null, downloading = true)
+        ModelDownload.start(context)
+    }
+
+    fun cancelDownload() {
+        ModelDownload.cancel(context)
+        _modelState.value = currentFileState()
+    }
+
+    private var downloadWatch: Job? = null
+
+    /** Shows a download that's still running from before (the app was closed meanwhile). */
+    fun watchDownload() {
+        if (downloadWatch?.isActive == true) return
+        downloadWatch =
+            appScope.launch {
+                ModelDownload.running(context).collect { running ->
+                    val now = _modelState.value
+                    if (running && !(now is ModelState.Importing && now.downloading)) {
+                        _modelState.value = ModelState.Importing(null, downloading = true)
+                    }
+                }
+            }
+    }
+
+    internal fun onDownload(progress: Float?, waiting: Boolean = false) {
+        _modelState.value = ModelState.Importing(progress, downloading = true, waiting = waiting)
+    }
+
+    internal fun onDownloadFailed(message: String) {
+        _modelState.value = ModelState.ImportFailed(message)
+    }
+
+    /** Moves the downloaded file into place (the same folder, so no second copy). */
+    internal suspend fun installDownloaded(part: File) {
+        unload(force = true)
+        modelFile.delete()
+        if (!part.renameTo(modelFile)) error("Could not save the model")
+        _modelState.value = currentFileState()
     }
 
     fun deleteModel() {
@@ -504,8 +553,8 @@ constructor(
                 "not in the article and do not add any preamble or closing line."
 
         const val DEFAULT_ARTICLE_PROMPT =
-            "You summarize articles for a news reader app. Reply with 3 to 5 short bullet " +
-                "points starting with \"• \" that capture the key facts, then one line starting " +
+            "You summarize articles for a news reader app. Reply with exactly 3 short " +
+                "bullet points starting with \"• \" that capture the key facts, then one line starting " +
                 "with \"Why it matters:\". Write in the same language as the article. Do not " +
                 "add facts that are not in the article and do not add any preamble."
 

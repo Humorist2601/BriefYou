@@ -29,11 +29,12 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 
 <p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-ai-dark.svg"><img alt="On-device AI" src=".github/assets/readme/h-ai-light.svg" width="100%"></picture></p>
 
-<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-ai-dark.svg"><img alt="Summaries: Tap the sparkle in an article: 3–5 key points and why it matters. Group gists: A briefing of your newest unread, grouped by story. Ask: Ask questions about an article or a gist. Read aloud: Any summary or gist, read aloud. Your instructions: Edit what the model is told, in Settings, AI model." src=".github/assets/readme/t-ai-light.svg" width="100%"></picture></p>
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-ai-dark.svg"><img alt="Summaries: Tap the sparkle in an article: 3 key points and why it matters. Group gists: A briefing of your newest unread, grouped by story. Ask: Ask questions about an article or a gist. Read aloud: Any summary or gist, read aloud. Your instructions: Edit what the model is told, in Settings, AI model." src=".github/assets/readme/t-ai-light.svg" width="100%"></picture></p>
 
 <details>
 <summary>More details</summary>
 
+- When a feed only sends a teaser, the summary, Ask and Triage's card summary fetch the full article first (and keep it, so opening the article is instant), so there's enough to summarise.
 - Gists cover the newest 40 unread articles in a group, feed or everything.
 - Your instructions cover article summaries, gists and Triage card summaries.
 - Runs Google's Gemma model through [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM). Nothing is sent to a server, and summaries are never saved.
@@ -137,6 +138,9 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Reading stats are in *Settings → Reading stats*: this week Monday to Sunday (a bar per day), articles read, your streak, top feeds, and this month compared with last.
 - Monthly recap: for the first week of a month it sits at the top of Reading stats with the articles you read (and the change from the month before), a row of daily bars and four highlights. Tap it and the bars slide into a calendar (tap a day for its numbers) with every highlight: busiest day, top feed, longest streak, reading time, Triage and what the filters hid. Share it as a picture of the card as it is, or hide it with ✕. A slim version shows above your feeds on home (off with *Monthly recap on home*), and *Past months* keeps about a year of recaps.
 - Year in review: for the first week of January, last year takes the monthly recap's place, with twelve month bars and four highlights (best month, longest streak, reading time, Triage). Tap it and each bar breaks into its days, which fly into twelve little calendars; tap a day for its numbers. It shares, hides and shows on home the same way, and stays at the top of *Past months* after that week.
+- First run: a four-page tour (Triage, the on-device AI with a check of your phone, calmer feeds, and the buttons that do more when held) in place of Read You's welcome page; its agreement is on the last page. See it again in *Settings → Tour*.
+- One-time hints: a small bubble the first time you reach Triage, the AI button and the Unread list's Triage button; *Got it* and it's gone.
+- Tiles and cards (Filters, Reading stats, the sort tiles and the recaps) squeeze and spring back when pressed, like Triage's buttons.
 - Predictive back uses a gentler dim on the screen behind, so it never flashes dark.
 - Wide headings use Google Sans Flex at its widest; long names shrink or wrap to fit.
 - AMOLED black still works on top of any colours.
@@ -166,11 +170,18 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 
 </details>
 
+### Fixes to Read You
+
+- Read state: marking articles read or unread could be lost when the app saved them (they came back unread), and *Mark as read on scroll* could mark articles a sync had just added at the top, which you never saw. Both are fixed ([Read You #1254](https://github.com/ReadYouApp/ReadYou/issues/1254), [#1274](https://github.com/ReadYouApp/ReadYou/issues/1274)).
+- Pictures from hotlink-protected sites load: requests send a proper Referer address instead of a bare host name ([#1347](https://github.com/ReadYouApp/ReadYou/issues/1347)).
+
 ## Setting up the AI
 
-1. Open **Settings → AI model** and tap **Download Gemma 4 E2B**. On Hugging Face, download `gemma-4-E2B-it.litertlm` (about 2.6 GB).
-2. Back in the app, tap **Import model file** and pick it. It's copied into the app; you can delete the download afterwards.
+1. Open **Settings → AI model** and tap **Download** (or **Set up AI** in the first-run tour). A quick check shows whether your phone has the memory and room for it, and warns on mobile data.
+2. Gemma 4 E2B (about 2.6 GB) downloads from Hugging Face in the background, with a notification; it carries on if you leave the app and picks up where it stopped if the connection drops.
 3. Tap ✨ on any article. The first answer takes a few seconds while the model loads.
+
+Already have the file? **Import** picks a `gemma-4-E2B-it.litertlm` you downloaded yourself.
 
 ## How Brief You is organised
 

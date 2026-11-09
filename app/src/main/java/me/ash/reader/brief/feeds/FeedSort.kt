@@ -2,6 +2,8 @@
 
 package me.ash.reader.brief.feeds
 
+import androidx.compose.material3.ripple
+import me.ash.reader.brief.ui.rememberPressFeel
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -244,13 +246,22 @@ private fun SortTile(kind: SortKind, selected: Boolean, onClick: () -> Unit) {
             effects,
             label = "tileLabel",
         )
+    // Triage's press, the squeeze and spring only: the chosen tile already becomes a circle.
+    val press = rememberPressFeel(rest = 0.dp, held = 0.dp)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier =
-                Modifier.size(60.dp)
+                with(press) { Modifier.squeeze() }
+                    .size(60.dp)
                     .clip(RoundedCornerShape(corner))
                     .background(container)
-                    .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+                    .selectable(
+                        selected = selected,
+                        interactionSource = press.interaction,
+                        indication = ripple(),
+                        role = Role.RadioButton,
+                        onClick = onClick,
+                    ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

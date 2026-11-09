@@ -2,6 +2,7 @@
 
 package me.ash.reader.brief.stats
 
+import me.ash.reader.brief.ui.rememberPressFeel
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -188,15 +189,18 @@ fun YearRecapCard(
             animationSpec = tween(650, easing = FastOutSlowInEasing),
             label = "year open",
         )
+    // A gentle squeeze and spring when pressed (Triage's press, softer for a big card).
+    val press = rememberPressFeel(rest = 28.dp, held = 28.dp, squeezeTo = 0.98f)
     Surface(
         onClick = {
             open = !open
             if (!open) picked = -1
         },
+        interactionSource = press.interaction,
         color = scheme.primaryContainer,
         contentColor = scheme.onPrimaryContainer,
         shape = RoundedCornerShape(28.dp),
-        modifier = modifier,
+        modifier = with(press) { modifier.squeeze() },
     ) {
         Box {
             Column(modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 16.dp, bottom = 8.dp)) {

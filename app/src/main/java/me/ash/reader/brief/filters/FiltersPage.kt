@@ -2,6 +2,7 @@
 
 package me.ash.reader.brief.filters
 
+import me.ash.reader.brief.ui.rememberPressFeel
 import androidx.compose.runtime.rememberCoroutineScope
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily
 import androidx.compose.ui.draw.clip
@@ -867,22 +868,30 @@ private fun FilterTabs(page: Int, onSelect: (Int) -> Unit) {
 /** A big tonal tile with a number, like the tiles in the sort sheet. */
 @Composable
 private fun StatTile(modifier: Modifier, icon: ImageVector, count: Int, label: String, onClick: () -> Unit) {
+    // Triage's press: squeeze, tighter corners, the cookie turns by one bump, then a spring back.
+    val press = rememberPressFeel(rest = 28.dp, held = 18.dp, bumps = 9)
     Surface(
         onClick = onClick,
+        interactionSource = press.interaction,
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = RoundedCornerShape(28.dp),
-        modifier = modifier,
+        shape = RoundedCornerShape(press.corner),
+        modifier = with(press) { modifier.squeeze() },
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
             Box(
                 modifier =
                     Modifier.size(40.dp)
+                        .graphicsLayer { rotationZ = press.turn }
                         .clip(MaterialShapes.Cookie9Sided.toShape())
                         .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp).graphicsLayer { rotationZ = -press.turn },
+                )
             }
             Spacer(Modifier.height(12.dp))
             Text(

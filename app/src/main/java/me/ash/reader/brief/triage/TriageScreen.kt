@@ -5,6 +5,11 @@
 
 package me.ash.reader.brief.triage
 
+import me.ash.reader.brief.tour.rememberHasModel
+import me.ash.reader.brief.tour.hintText
+import me.ash.reader.brief.tour.HintPlacement
+import me.ash.reader.brief.tour.BriefHints
+import me.ash.reader.brief.tour.BriefHint
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Folder
@@ -1373,6 +1378,13 @@ private fun TriageStack(
                             )
                         }
                     }
+                    // The first Triage with the AI ready: hold a card for its summary (once).
+                    BriefHint(
+                        key = BriefHints.TRIAGE_HOLD,
+                        text = hintText(stringResource(R.string.hint_triage_hold_bold), stringResource(R.string.hint_triage_hold)),
+                        enabled = rememberHasModel(),
+                        placement = HintPlacement.InsideBottom,
+                    )
                 }
 
                 // Buttons

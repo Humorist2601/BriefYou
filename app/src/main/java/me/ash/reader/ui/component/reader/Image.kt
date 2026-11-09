@@ -1,6 +1,7 @@
 package me.ash.reader.ui.component.reader
 
 import androidx.compose.foundation.Image
+import me.ash.reader.brief.reading.extractReferer // Brief You
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -107,10 +108,8 @@ private fun ArticleImage(
             model =
                 ImageRequest.Builder(LocalContext.current)
                     .apply {
-                        val domain = data.toString().extractDomain()
-                        if (data.toString().extractDomain() != null) {
-                            addHeader("Referer", domain!!)
-                        }
+                        // Brief You: a real address, not the bare host (Read You #1347)
+                        data.toString().extractReferer()?.let { addHeader("Referer", it) }
                         data(data = data)
                         crossfade(true)
                         precision(Precision.INEXACT)

@@ -92,7 +92,10 @@ private const val TEXT_EVERY_MS = 120L
 
 /** The summaries of this Triage run, by article. */
 @Stable
-class CardSummaries internal constructor(private val summarizer: GemmaSummarizer) {
+class CardSummaries internal constructor(
+    private val summarizer: GemmaSummarizer,
+    private val articleText: me.ash.reader.brief.ai.ArticleText,
+) {
     private val summaries = mutableStateMapOf<String, CardSummary>()
     /** Cards switched back to their own description with a tap (the summary is kept). */
     private val hidden = mutableStateMapOf<String, Boolean>()
@@ -131,8 +134,10 @@ class CardSummaries internal constructor(private val summarizer: GemmaSummarizer
                     // [TEXT_EVERY_MS], and the last piece once it's done.
                     var shownAt = 0L
                     var latest: String? = null
+                    // A teaser is swapped for the full article first (then kept for opening it).
+                    val body = articleText.best(article.article)
                     summarizer
-                        .summarizeForCard(article.article.title, article.article.rawDescription)
+                        .summarizeForCard(article.article.title, body)
                         .collect { text ->
                             latest = text
                             val now = android.os.SystemClock.uptimeMillis()
@@ -163,19 +168,17 @@ class CardSummaries internal constructor(private val summarizer: GemmaSummarizer
 @InstallIn(SingletonComponent::class)
 internal interface TriageSummaryDependencies {
     fun summarizer(): GemmaSummarizer
+
+    fun articleText(): me.ash.reader.brief.ai.ArticleText
 }
 
 @Composable
 fun rememberCardSummaries(): CardSummaries {
     val context = LocalContext.current
     return remember {
-        CardSummaries(
-            EntryPointAccessors.fromApplication(
-                    context.applicationContext,
-                    TriageSummaryDependencies::class.java,
-                )
-                .summarizer()
-        )
+        val deps =
+            EntryPointAccessors.fromApplication(context.applicationContext, TriageSummaryDependencies::class.java)
+        CardSummaries(deps.summarizer(), deps.articleText())
     }
 }
 

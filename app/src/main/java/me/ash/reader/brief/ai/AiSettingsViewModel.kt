@@ -20,6 +20,15 @@ class AiSettingsViewModel @Inject constructor(private val summarizer: GemmaSumma
 
     fun removeModel() = summarizer.deleteModel()
 
+    fun startDownload() = summarizer.startDownload()
+
+    fun cancelDownload() = summarizer.cancelDownload()
+
+    init {
+        // A download started before the app was closed carries on in the background: show it.
+        summarizer.watchDownload()
+    }
+
     fun setArticlePrompt(value: String?) = summarizer.setArticlePrompt(value)
 
     fun setGistPrompt(value: String?) = summarizer.setGistPrompt(value)

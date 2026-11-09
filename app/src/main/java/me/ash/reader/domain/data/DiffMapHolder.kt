@@ -199,11 +199,22 @@ class DiffMapHolder @Inject constructor(
 
     fun commitDiffsToDb() {
         applicationScope.launch(ioDispatcher) {
-            val markAsReadArticles = diffMap.filter { !it.value.isUnread }.map { it.key }.toSet()
-            val markAsUnreadArticles = diffMap.filter { it.value.isUnread }.map { it.key }.toSet()
-            clearDiffs()
+            // Brief You: write first, then forget only the changes that were written. Read You
+            // cleared every change (in a separate coroutine) before writing, so anything marked
+            // read or unread in between was dropped, and lists briefly showed the old state:
+            // articles "went back" to unread (Read You #1254, #1285).
+            val committed = diffMap.toMap()
+            if (committed.isEmpty()) return@launch
+            val markAsReadArticles = committed.filter { !it.value.isUnread }.map { it.key }.toSet()
+            val markAsUnreadArticles = committed.filter { it.value.isUnread }.map { it.key }.toSet()
             rssService.get().batchMarkAsRead(articleIds = markAsReadArticles, isUnread = false)
             rssService.get().batchMarkAsRead(articleIds = markAsUnreadArticles, isUnread = true)
+            committed.forEach { (id, diff) -> if (diffMap[id] == diff) diffMap.remove(id) }
+            if (diffMap.isEmpty()) {
+                if (cacheFile.exists() && cacheFile.canWrite()) cacheFile.delete()
+            } else {
+                writeDiffsToCache()
+            }
         }
     }
 

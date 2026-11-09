@@ -65,8 +65,12 @@ constructor(
     private val articleDao: BriefArticleDao,
     private val accountService: AccountService,
     private val rssService: RssService,
+    private val articleText: ArticleText,
     val textToSpeechManager: TextToSpeechManager,
 ) : ViewModel() {
+
+    /** The article's text the summary was written from (the full article when it was a teaser). */
+    private var articleHtml: Pair<String, String>? = null
 
     private val _state = MutableStateFlow<SummaryUiState>(SummaryUiState.Thinking())
     val state: StateFlow<SummaryUiState> = _state.asStateFlow()
@@ -120,7 +124,13 @@ constructor(
         askJob =
             viewModelScope.launch {
                 when (req) {
-                        is SummaryRequest.Article -> summarizer.ask(req.title, req.html, history, q)
+                        is SummaryRequest.Article ->
+                            summarizer.ask(
+                                req.title,
+                                articleHtml?.takeIf { it.first == req.articleId }?.second ?: req.html,
+                                history,
+                                q,
+                            )
                         is SummaryRequest.Gist ->
                             summarizer.askGist(
                                 req.filterState.group?.name ?: req.filterState.feed?.name,
@@ -157,7 +167,14 @@ constructor(
                 _state.value = SummaryUiState.Thinking()
                 job =
                     viewModelScope.launch {
-                        collect(summarizer.summarize(req.title, req.html), null)
+                        // A teaser is swapped for the full article first, so there's enough to
+                        // summarise (fetched once, then kept like any full article).
+                        val html =
+                            articleHtml?.takeIf { it.first == req.articleId }?.second
+                                ?: articleText.best(req.articleId, req.html).also {
+                                    articleHtml = req.articleId to it
+                                }
+                        collect(summarizer.summarize(req.title, html), null)
                     }
             }
             is SummaryRequest.Gist -> {

@@ -2,6 +2,10 @@
 
 package me.ash.reader.brief.reading
 
+import me.ash.reader.brief.tour.rememberHasModel
+import me.ash.reader.brief.tour.hintText
+import me.ash.reader.brief.tour.BriefHints
+import me.ash.reader.brief.tour.BriefHint
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
@@ -130,6 +134,7 @@ fun BottomBar(
                         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                         onStarred(!isStarred)
                     }
+                    Box {
                     PillButton(
                         icon = Icons.Outlined.AutoAwesome,
                         description = stringResource(R.string.ai_summarize),
@@ -140,6 +145,13 @@ fun BottomBar(
                     ) {
                         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                         onSummarize()
+                    }
+                    // The first article with the AI ready: what this button does (once).
+                    BriefHint(
+                        key = BriefHints.READING_AI,
+                        text = hintText(stringResource(R.string.hint_reading_ai_bold), stringResource(R.string.hint_reading_ai)),
+                        enabled = rememberHasModel(),
+                    )
                     }
                     PillButton(
                         icon = Icons.Rounded.ExpandMore,

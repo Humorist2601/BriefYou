@@ -1,6 +1,7 @@
 package me.ash.reader.ui.page.home.reading
 
 import androidx.compose.foundation.ScrollState
+import me.ash.reader.brief.reading.extractReferer // Brief You
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -105,7 +106,7 @@ fun Content(
                                 modifier = Modifier.fillMaxSize(),
                                 content = brief.body, // Brief You
                                 baseUrl = link, // Brief You
-                                refererDomain = link.extractDomain(),
+                                refererDomain = link.extractReferer(), // Brief You: a real address (#1347)
                                 onImageClick = onImageClick,
                             )
                             afterArticle?.invoke() // Brief You

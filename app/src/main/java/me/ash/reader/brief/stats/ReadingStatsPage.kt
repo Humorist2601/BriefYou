@@ -2,6 +2,7 @@
 
 package me.ash.reader.brief.stats
 
+import me.ash.reader.brief.ui.rememberPressFeel
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -538,15 +539,18 @@ private fun StatTile(
         )
     // The chosen tile's corners grow rounder, the Expressive way of showing a selection.
     val corner by animateFloatAsState(if (selected) 36f else 20f, label = "statTileCorner")
+    // Triage's press, the squeeze and spring only: the corners already show which is chosen.
+    val press = rememberPressFeel(rest = 0.dp, held = 0.dp)
     Surface(
         onClick = {
             if (!selected) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
             onClick()
         },
+        interactionSource = press.interaction,
         color = container,
         contentColor = content,
         shape = RoundedCornerShape(corner.dp),
-        modifier = modifier.semantics { this.selected = selected },
+        modifier = with(press) { modifier.squeeze() }.semantics { this.selected = selected },
     ) {
         // Centred, so it stays clear of the rounder corners when the tile is chosen.
         Column(

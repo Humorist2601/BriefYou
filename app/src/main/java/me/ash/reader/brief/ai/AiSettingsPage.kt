@@ -2,6 +2,8 @@
 
 package me.ash.reader.brief.ai
 
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.BorderStroke
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.clip
@@ -91,6 +93,20 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
     val gistPrompt = viewModel.gistPrompt.collectAsStateValue()
     val cardPrompt = viewModel.cardPrompt.collectAsStateValue()
     var editing by rememberSaveable { mutableStateOf<PromptKind?>(null) }
+    var downloadAsk by rememberSaveable { mutableStateOf(false) }
+    if (downloadAsk) {
+        DownloadDialog(
+            onDownload = {
+                downloadAsk = false
+                viewModel.startDownload()
+            },
+            onOpenPage = {
+                downloadAsk = false
+                context.startActivity(Intent(Intent.ACTION_VIEW, GemmaSummarizer.MODEL_PAGE.toUri()))
+            },
+            onDismiss = { downloadAsk = false },
+        )
+    }
 
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -119,13 +135,11 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                     // The model at a glance, with what to do next right inside the card.
                     ModelHero(
                         model = model,
-                        onDownload = {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, GemmaSummarizer.MODEL_PAGE.toUri())
-                            )
-                        },
+                        // The phone check first, then the download inside the app.
+                        onDownload = { downloadAsk = true },
                         onImport = { picker.launch(arrayOf("*/*")) },
                         onRemove = viewModel::removeModel,
+                        onCancelDownload = viewModel::cancelDownload,
                     )
                     Spacer(modifier = Modifier.height(28.dp))
                 }
@@ -281,6 +295,7 @@ private fun ModelHero(
     onDownload: () -> Unit,
     onImport: () -> Unit,
     onRemove: () -> Unit,
+    onCancelDownload: () -> Unit,
 ) {
     val context = LocalContext.current
     val failed = model is ModelState.ImportFailed
@@ -372,7 +387,18 @@ private fun ModelHero(
                                         R.string.ai_model_ready,
                                         Formatter.formatShortFileSize(context, model.sizeBytes),
                                     )
-                                is ModelState.Importing -> stringResource(R.string.ai_model_tile_importing_label)
+                                is ModelState.Importing ->
+                                    when {
+                                        !model.downloading -> stringResource(R.string.ai_model_tile_importing_label)
+                                        model.waiting -> stringResource(R.string.ai_download_waiting)
+                                        model.progress != null ->
+                                            stringResource(
+                                                R.string.ai_download_progress,
+                                                (model.progress * 100).toInt(),
+                                                Formatter.formatShortFileSize(context, ModelDownload.MODEL_BYTES),
+                                            )
+                                        else -> stringResource(R.string.ai_download_starting)
+                                    }
                                 is ModelState.ImportFailed -> model.message
                                 ModelState.Missing -> stringResource(R.string.ai_model_tile_missing_label)
                             },
@@ -409,15 +435,35 @@ private fun ModelHero(
                 is ModelState.Ready -> {
                     Spacer(Modifier.height(14.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        FilledTonalButton(onClick = onImport) {
-                            Text(stringResource(R.string.ai_model_replace))
+                        FilledTonalButton(onClick = onImport, modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.ai_model_replace), maxLines = 1)
                         }
-                        TextButton(onClick = onRemove) {
-                            Text(stringResource(R.string.ai_settings_remove), color = content)
+                        // Its own look: an outline in a soft red, a button and a warning without a
+                        // heavy block of colour (removing deletes the 2.6 GB file).
+                        val danger = MaterialTheme.colorScheme.error
+                        OutlinedButton(
+                            onClick = onRemove,
+                            modifier = Modifier.weight(1f),
+                            border = BorderStroke(1.5.dp, danger),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = danger),
+                        ) {
+                            Text(stringResource(R.string.ai_settings_remove), maxLines = 1)
                         }
                     }
                 }
-                is ModelState.Importing -> Unit
+                is ModelState.Importing ->
+                    if (model.downloading) {
+                        Spacer(Modifier.height(14.dp))
+                        val danger = MaterialTheme.colorScheme.error
+                        OutlinedButton(
+                            onClick = onCancelDownload,
+                            modifier = Modifier.fillMaxWidth(),
+                            border = BorderStroke(1.5.dp, danger),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = danger),
+                        ) {
+                            Text(stringResource(R.string.ai_download_cancel), maxLines = 1)
+                        }
+                    }
             }
         }
     }
@@ -492,4 +538,76 @@ private fun PromptCard(
             }
         }
     }
+}
+
+/**
+ * Before downloading 2.6 GB: what this phone can expect (memory), whether there's room, and a
+ * warning on mobile data. With too little room it can't start; the model page is still offered.
+ */
+@Composable
+private fun DownloadDialog(onDownload: () -> Unit, onOpenPage: () -> Unit, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val check = remember { PhoneCheck.of(context) }
+    val rows = buildList {
+        add(
+            when (check.fit) {
+                PhoneCheck.Fit.Good -> stringResource(R.string.ai_check_memory_good, check.nominalGb)
+                PhoneCheck.Fit.Okay -> stringResource(R.string.ai_check_memory_okay, check.nominalGb)
+                PhoneCheck.Fit.Poor -> stringResource(R.string.ai_check_memory_poor, check.nominalGb)
+            } to (check.fit != PhoneCheck.Fit.Poor)
+        )
+        add(
+            if (check.enoughSpace)
+                stringResource(R.string.ai_check_space_ok, Formatter.formatShortFileSize(context, check.freeBytes)) to true
+            else
+                stringResource(R.string.ai_check_space_low, Formatter.formatShortFileSize(context, check.needBytes - check.freeBytes)) to false
+        )
+        if (check.metered) add(stringResource(R.string.ai_check_metered) to false)
+    }
+    InWindowAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ai_download_title_ask)) },
+        text = {
+            Column {
+                Text(
+                    stringResource(R.string.ai_download_desc, Formatter.formatShortFileSize(context, ModelDownload.MODEL_BYTES)),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(Modifier.height(14.dp))
+                rows.forEachIndexed { i, (text, ok) ->
+                    val big = 16.dp
+                    val small = 4.dp
+                    Text(
+                        text = (if (ok) "✓  " else "!  ") + text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (ok) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onErrorContainer,
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(vertical = 1.dp)
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = if (i == 0) big else small,
+                                        topEnd = if (i == 0) big else small,
+                                        bottomStart = if (i == rows.lastIndex) big else small,
+                                        bottomEnd = if (i == rows.lastIndex) big else small,
+                                    )
+                                )
+                                .background(
+                                    if (ok) MaterialTheme.colorScheme.surfaceContainerHigh
+                                    else MaterialTheme.colorScheme.errorContainer
+                                )
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (check.enoughSpace) {
+                TextButton(onClick = onDownload) { Text(stringResource(R.string.ai_download_start)) }
+            } else {
+                TextButton(onClick = onOpenPage) { Text(stringResource(R.string.ai_download_page)) }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }

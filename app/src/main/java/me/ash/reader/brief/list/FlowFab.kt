@@ -1,5 +1,9 @@
 package me.ash.reader.brief.list
 
+import me.ash.reader.brief.tour.hintText
+import me.ash.reader.brief.tour.BriefHints
+import me.ash.reader.brief.tour.BriefHint
+import androidx.compose.foundation.layout.Box
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -70,6 +74,12 @@ fun FlowActionsFab(
     ) {
         val haptic = LocalHapticFeedback.current
         val content = MaterialTheme.colorScheme.onPrimaryContainer
+        Box {
+        // The first Unread list: what Triage is (once).
+        BriefHint(
+            key = BriefHints.UNREAD_TRIAGE,
+            text = hintText(stringResource(R.string.triage), stringResource(R.string.hint_unread_triage)),
+        )
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primaryContainer,
@@ -91,6 +101,7 @@ fun FlowActionsFab(
                     onTriage()
                 }
             }
+        }
         }
     }
 }
