@@ -54,12 +54,8 @@ fun Banner(
         contentColor = MaterialTheme.colorScheme.contentColorFor(backgroundColor),
         icon = icon?.let {
             {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier,
-                    tint = MaterialTheme.colorScheme.contentColorFor(backgroundColor),
-                )
+                // Brief You: on the Filters tiles' cookie, turning while the banner is held
+                me.ash.reader.brief.ui.BannerCookie(icon, MaterialTheme.colorScheme.contentColorFor(backgroundColor))
                 Spacer(modifier = Modifier.width(16.dp))
             }
         },
@@ -81,19 +77,24 @@ fun Banner(
     onClick: () -> Unit = {},
 ) {
     val view = LocalView.current
+    // Brief You: the tiles' press (squeeze, tighter corners, spring back), gentler for a wide card.
+    val press = me.ash.reader.brief.ui.rememberPressFeel(rest = 32.dp, held = 18.dp, bumps = 9, squeezeTo = 0.98f)
 
     Surface(
-        modifier = modifier
+        modifier = with(press) { modifier // Brief You: squeezes when pressed
             .padding(horizontal = 16.dp)
-            .fillMaxWidth(),
+            .squeeze() // Brief You
+            .fillMaxWidth() }, // Brief You
         color = backgroundColor,
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(press.corner), // Brief You: was 32 dp, now tightens when pressed
         contentColor = contentColor,
+        interactionSource = press.interaction, // Brief You
         onClick = {
             view.playSoundEffect(SoundEffectConstants.CLICK)
             onClick()
         }
     ) {
+        androidx.compose.runtime.CompositionLocalProvider(me.ash.reader.brief.ui.LocalPressFeel provides press) { // Brief You: for the cookie and arrow
         Row(
             modifier = Modifier
                 .heightIn(min = 88.dp)
@@ -131,5 +132,6 @@ fun Banner(
                 }
             }
         }
+        } // Brief You
     }
 }

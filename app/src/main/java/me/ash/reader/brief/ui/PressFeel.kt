@@ -14,6 +14,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.toShape
+import androidx.compose.ui.draw.clip
 
 /**
  * The press feel of Triage's Next card and buttons, for any tile: while held it squeezes a little,
@@ -27,9 +32,13 @@ class PressFeel internal constructor(
     private val cornerState: State<Dp>,
     private val turnState: State<Float>,
     private val scaleState: State<Float>,
+    private val progressState: State<Float>,
 ) {
     val corner: Dp get() = cornerState.value
     val turn: Float get() = turnState.value
+
+    /** 0 at rest, 1 while held (springing a little past on the way back): for anything else that moves with the press. */
+    val progress: Float get() = progressState.value
 
     /** The squeeze, for a graphicsLayer. */
     val scale: Float get() = scaleState.value
@@ -58,5 +67,40 @@ fun rememberPressFeel(rest: Dp, held: Dp, bumps: Int = 0, squeezeTo: Float = 0.9
             label = "press corner",
         )
     val turn = animateFloatAsState(if (pressed && bumps > 0) 360f / bumps else 0f, bounce, label = "press turn")
-    return remember(interaction) { PressFeel(interaction, corner, turn, scale) }
+    val progress = animateFloatAsState(if (pressed) 1f else 0f, bounce, label = "press progress")
+    return remember(interaction) { PressFeel(interaction, corner, turn, scale, progress) }
+}
+
+/** The press of the card around this (a banner), for its cookie and arrow. */
+val LocalPressFeel = androidx.compose.runtime.compositionLocalOf<PressFeel?> { null }
+
+/**
+ * A banner's icon on the Filters tiles' cookie (9 bumps, a soft tint of the card's text): it
+ * turns by one bump while the banner is held, the icon staying upright.
+ */
+@androidx.compose.runtime.Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+fun BannerCookie(icon: androidx.compose.ui.graphics.vector.ImageVector, tint: androidx.compose.ui.graphics.Color) {
+    val press = LocalPressFeel.current
+    androidx.compose.foundation.layout.Box(
+        modifier =
+            Modifier.size(40.dp)
+                .graphicsLayer { rotationZ = press?.turn ?: 0f }
+                .clip(androidx.compose.material3.MaterialShapes.Cookie9Sided.toShape())
+                .background(tint.copy(alpha = 0.12f)),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        androidx.compose.material3.Icon(
+            icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(20.dp).graphicsLayer { rotationZ = -(press?.turn ?: 0f) },
+        )
+    }
+}
+
+/** A banner's arrow, nudged 4 dp toward where it goes while the banner is held. */
+fun Modifier.pressNudge(): Modifier = androidx.compose.ui.composed {
+    val press = LocalPressFeel.current
+    graphicsLayer { translationX = (press?.progress ?: 0f) * 4.dp.toPx() }
 }

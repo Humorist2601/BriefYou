@@ -50,6 +50,9 @@ object EmailContent {
                 (link ?: img).drop()
             }
         }
+        // The footer's own links (preferences, unsubscribe, the feed service's settings) are
+        // kept, as one short line at the very end.
+        val keep = footerLinks(body)
         removeFooters(body)
         removeSocialLinks(body)
         removeMastheadLogo(body)
@@ -78,6 +81,13 @@ object EmailContent {
         // Blocks left empty (spacers, removed icons) and runs of empty lines.
         removeEmpty(body)
         trimSignOff(body)
+        if (keep.isNotEmpty()) {
+            val line = body.appendElement("p")
+            keep.entries.forEachIndexed { i, (label, href) ->
+                if (i > 0) line.appendText(" · ")
+                line.appendElement("a").attr("href", href).text(label)
+            }
+        }
         body.prepend(MARK)
     }
 
@@ -217,6 +227,25 @@ object EmailContent {
     }
 
     /** Footers: preferences, unsubscribe, view in browser, the feed service's own links. */
+    /** "Email preferences", "Unsubscribe", "Feed settings": the footer links worth keeping, by label. */
+    private fun footerLinks(body: Element): Map<String, String> {
+        val found = linkedMapOf<String, String>()
+        for (a in body.select("a[href]")) {
+            val href = a.attr("abs:href").ifEmpty { a.attr("href") }
+            if (!href.startsWith("http")) continue
+            val text = a.text()
+            val label =
+                when {
+                    Regex("(?i)prefer|manage (your )?subscription").containsMatchIn(text) -> "Email preferences"
+                    Regex("(?i)unsubscribe").containsMatchIn(text) -> "Unsubscribe"
+                    Regex("(?i)kill the newsletter").containsMatchIn(text) -> "Feed settings"
+                    else -> continue
+                }
+            found.putIfAbsent(label, href)
+        }
+        return found
+    }
+
     private fun removeFooters(body: Element) {
         val targets =
             body.select("a, p, div, td, span").filter { el ->

@@ -62,8 +62,9 @@ These are the owner's standing preferences. A new assistant should follow them.
    24 dp sides, opened fully (`skipPartiallyExpanded`; the AI sheet's 70 % is the one exception).
    Dialogs: `InWindowAlertDialog` (Read You's `RYDialog` draws through it), the standard title, no
    icon. Labels: pills (`RoundedCornerShape(50)`), Label Medium, 10 × 4 dp padding; tertiary for
-   what's yours or watched, neutral for plain info. Tiles, cards and the tour's buttons press with
-   `PressFeel`. Number tiles (Filters, Reading stats) are one `StatTile` (`brief/ui/StatTile.kt`):
+   what's yours or watched, neutral for plain info. Tiles, cards, banners (Read You's `Banner`: the Starred / Unread / All
+   openers and the Settings banners; their icon sits on a turning cookie, `BannerCookie`, and the openers' arrow
+   nudges right, `pressNudge`) and the tour's buttons press with `PressFeel`. Number tiles (Filters, Reading stats) are one `StatTile` (`brief/ui/StatTile.kt`):
    icon on a cookie, wide number, left-aligned.
 
 ---

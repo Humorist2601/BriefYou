@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import me.ash.reader.domain.model.general.Filter
 import me.ash.reader.ui.component.base.Banner
+import me.ash.reader.brief.ui.pressNudge // Brief You
 
 @Composable
 fun FeedsBanner(
@@ -24,6 +25,7 @@ fun FeedsBanner(
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,
+                modifier = Modifier.pressNudge(), // Brief You: nudges toward the page while held
             )
         },
         onClick = onClick
