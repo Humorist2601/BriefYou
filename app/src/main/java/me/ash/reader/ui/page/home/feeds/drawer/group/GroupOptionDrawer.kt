@@ -12,8 +12,6 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.DeleteSweep // Brief You
-import androidx.compose.material.icons.outlined.RemoveCircleOutline // Brief You
 import androidx.compose.ui.draw.clip // Brief You
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.OpenInBrowser
@@ -105,17 +103,12 @@ fun GroupOptionDrawer(
             }, // Brief You
         ) // Brief You
         Column(modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) { // Brief You
-            me.ash.reader.brief.ui.SheetRows(listOf( // Brief You: each opens its "apply to all feeds" question
-                me.ash.reader.brief.ui.SheetRow(Icons.AutoMirrored.Outlined.Article, stringResource(R.string.parse_full_content)) { viewModel.showAllParseFullContentDialog() }, // Brief You
-                me.ash.reader.brief.ui.SheetRow(Icons.Outlined.OpenInBrowser, stringResource(R.string.open_in_browser)) { viewModel.showAllOpenInBrowserDialog() }, // Brief You
-                me.ash.reader.brief.ui.SheetRow(Icons.Outlined.Notifications, stringResource(R.string.allow_notification)) { viewModel.showAllAllowNotificationDialog() }, // Brief You
-            )) // Brief You
-            Spacer(modifier = Modifier.height(12.dp)) // Brief You
-            me.ash.reader.brief.ui.SheetRows(buildList { // Brief You
-                add(me.ash.reader.brief.ui.SheetRow(Icons.Outlined.DeleteSweep, stringResource(R.string.clear_articles)) { viewModel.showClearDialog() }) // Brief You
-                if (viewModel.rssService.get().deleteSubscription && group?.id != context.currentAccountId.getDefaultGroupId()) // Brief You
-                    add(me.ash.reader.brief.ui.SheetRow(Icons.Outlined.RemoveCircleOutline, stringResource(R.string.delete_group), danger = true) { viewModel.showDeleteDialog() }) // Brief You
-            }) // Brief You
+            me.ash.reader.brief.feeds.SettingTiles( // Brief You: each asks before applying to all its feeds
+                fullContent = null, browser = null, notification = null, // Brief You
+                onFullContent = { viewModel.showAllParseFullContentDialog() }, // Brief You
+                onBrowser = { viewModel.showAllOpenInBrowserDialog() }, // Brief You
+                onNotification = { viewModel.showAllAllowNotificationDialog() }, // Brief You
+            ) // Brief You
             if (viewModel.rssService.get().moveSubscription && groupOptionUiState.groups.size != 1) { // Brief You
                 Spacer(modifier = Modifier.height(20.dp)) // Brief You
                 me.ash.reader.brief.ui.SheetSection(stringResource(R.string.move_to_group)) // Brief You
@@ -125,6 +118,11 @@ fun GroupOptionDrawer(
                     onGroupClick = { id -> groupOptionUiState.groups.firstOrNull { it.id == id }?.let { viewModel.showAllMoveToGroupDialog(it) } }, // Brief You
                 ) // Brief You
             } // Brief You
+            Spacer(modifier = Modifier.height(20.dp)) // Brief You
+            me.ash.reader.brief.ui.SheetActions( // Brief You
+                stringResource(R.string.clear_articles) to { viewModel.showClearDialog() }, // Brief You
+                if (viewModel.rssService.get().deleteSubscription && group?.id != context.currentAccountId.getDefaultGroupId()) stringResource(R.string.delete_group) to { viewModel.showDeleteDialog() } else null, // Brief You
+            ) // Brief You
         } // Brief You
     } // Brief You
     content() // Brief You

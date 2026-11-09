@@ -165,7 +165,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - One-time hints: a small bubble the first time you reach Triage, the AI button and the Unread list's Triage button; *Got it* and it's gone (*Show hints again* in *Settings → Tips & support*).
 - Tiles and cards (Filters, Reading stats, the sort tiles and the recaps) squeeze and spring back when pressed, like Triage's buttons.
 - One card style everywhere: the feeds page shows groups as one joined list with icon tiles (a folder, or a Material icon or image you pick in the group's options) and compact feed rows, article lists count each day's articles in a header that gets a hairline while it's pinned, and every settings page groups its rows into joined cards. Empty lists say so (*Nothing starred yet*, *All caught up*).
-- The options you get by holding a feed or group, and *Add a feed*, are the app's bottom sheets: icon and name on top, switches and actions as joined lists, groups as chips.
+- The options you get by holding a feed or group, and *Add a feed*, are the app's bottom sheets: icon and name on top (a pencil changes a feed's address), its settings as three tiles, groups as one sideways row of chips, and Clear / Unsubscribe as two buttons.
 - Predictive back uses a gentler dim on the screen behind, so it never flashes dark.
 - Wide headings use Google Sans Flex at its widest; long names shrink or wrap to fit.
 - AMOLED black still works on top of any colours.

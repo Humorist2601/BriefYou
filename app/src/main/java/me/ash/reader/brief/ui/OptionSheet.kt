@@ -1,5 +1,9 @@
 package me.ash.reader.brief.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,7 +80,13 @@ fun OptionSheet(switch: SheetSwitch, content: @Composable ColumnScope.() -> Unit
             switch.gone()
         }
     }
-    ModalBottomSheet(onDismissRequest = { switch.gone() }, sheetState = state) {
+    // Not lifted by the keyboard: a sheet has no text box, and a rename dialog's keyboard
+    // shouldn't push the sheet up behind it.
+    ModalBottomSheet(
+        onDismissRequest = { switch.gone() },
+        sheetState = state,
+        contentWindowInsets = { androidx.compose.foundation.layout.WindowInsets.navigationBars },
+    ) {
         Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp), content = content)
     }
 }
@@ -171,3 +181,103 @@ fun SheetRows(rows: List<SheetRow>) {
         }
     }
 }
+
+/**
+ * A setting as a tile, like the sort sheet's: lit and round when [on], a rounded square when off.
+ * [on] null: a tile that only acts (a group's "apply to all feeds", which asks first).
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun SheetTile(icon: ImageVector, label: String, on: Boolean?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val lit = on == true
+    val spatial = MaterialTheme.motionScheme.fastSpatialSpec<androidx.compose.ui.unit.Dp>()
+    val effects = MaterialTheme.motionScheme.fastEffectsSpec<androidx.compose.ui.graphics.Color>()
+    val corner by androidx.compose.animation.core.animateDpAsState(if (lit) 30.dp else 16.dp, spatial, label = "tileCorner")
+    val container by
+        androidx.compose.animation.animateColorAsState(
+            if (lit) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+            effects,
+            label = "tileColor",
+        )
+    val content by
+        androidx.compose.animation.animateColorAsState(
+            if (lit) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+            effects,
+            label = "tileContent",
+        )
+    val press = rememberPressFeel(rest = 0.dp, held = 0.dp)
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier =
+                with(press) { Modifier.squeeze() }
+                    .size(60.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(corner))
+                    .background(container)
+                    .then(
+                        if (on != null) {
+                            Modifier.toggleable(
+                                value = on,
+                                interactionSource = press.interaction,
+                                indication = androidx.compose.material3.ripple(),
+                                role = androidx.compose.ui.semantics.Role.Switch,
+                                onValueChange = { onClick() },
+                            )
+                        } else {
+                            Modifier.clickable(
+                                interactionSource = press.interaction,
+                                indication = androidx.compose.material3.ripple(),
+                                role = androidx.compose.ui.semantics.Role.Button,
+                                onClick = onClick,
+                            )
+                        }
+                    ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(26.dp))
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (lit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** Two actions side by side at the bottom of a sheet; the second in red when [dangerSecond]. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun SheetActions(
+    first: Pair<String, () -> Unit>,
+    second: Pair<String, () -> Unit>?,
+    dangerSecond: Boolean = true,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        androidx.compose.material3.OutlinedButton(
+            shapes = androidx.compose.material3.ButtonDefaults.shapes(),
+            onClick = first.second,
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(first.first, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (second != null) {
+            val red = MaterialTheme.colorScheme.error
+            androidx.compose.material3.OutlinedButton(
+                shapes = androidx.compose.material3.ButtonDefaults.shapes(),
+                onClick = second.second,
+                modifier = Modifier.weight(1f),
+                colors =
+                    if (dangerSecond) androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = red)
+                    else androidx.compose.material3.ButtonDefaults.outlinedButtonColors(),
+                border =
+                    if (dangerSecond) androidx.compose.foundation.BorderStroke(1.dp, red.copy(alpha = 0.5f))
+                    else androidx.compose.material3.ButtonDefaults.outlinedButtonBorder(enabled = true),
+            ) {
+                Text(second.first, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+}
+

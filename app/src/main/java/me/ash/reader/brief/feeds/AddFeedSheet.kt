@@ -17,6 +17,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -52,6 +56,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.KeyboardActionHandler
+import androidx.compose.material3.SheetValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import kotlinx.coroutines.flow.first
+import me.ash.reader.ui.component.base.RYTextField2
 import me.ash.reader.R
 import me.ash.reader.brief.ui.OptionSheetDialogs
 import me.ash.reader.brief.ui.SheetHeader
@@ -104,12 +117,35 @@ fun AddFeedSheet(viewModel: SubscribeViewModel) {
         DisposableEffect(Unit) { onDispose { viewModel.cancelSearch() } }
     }
 
+    val focus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    // Focus the address box once the sheet has finished sliding up (not on every state change).
+    LaunchedEffect(visible) {
+        if (!visible) return@LaunchedEffect
+        snapshotFlow { sheetState.currentValue == SheetValue.Expanded && sheetState.targetValue == SheetValue.Expanded }
+            .first { it }
+        if (viewModel.subscribeState.value is SubscribeState.Idle) runCatching { focus.requestFocus() }
+    }
+
+    // The keyboard goes down first, then the sheet, so they don't fight over the sheet's place.
     fun close() {
         focusManager.clearFocus()
+        keyboard?.hide()
         viewModel.hideDrawer()
     }
 
-    ModalBottomSheet(onDismissRequest = { close() }, sheetState = sheetState) {
+    // The content follows the keyboard frame by frame (padding for it inside the sheet) instead of
+    // the sheet being moved to a new place when the keyboard has opened.
+    ModalBottomSheet(
+        onDismissRequest = { close() },
+        sheetState = sheetState,
+        contentWindowInsets = { androidx.compose.foundation.layout.WindowInsets(0) },
+    ) {
+      androidx.compose.foundation.layout.Box(
+          Modifier.windowInsetsPadding(
+              androidx.compose.foundation.layout.WindowInsets.ime.union(androidx.compose.foundation.layout.WindowInsets.navigationBars)
+          )
+      ) {
         AnimatedContent(
             targetState = shown as SubscribeState,
             transitionSpec = {
@@ -139,16 +175,19 @@ fun AddFeedSheet(viewModel: SubscribeViewModel) {
                             },
                         )
                         val errorText = (s as? SubscribeState.Idle)?.errorMessage ?: ""
-                        ClipboardTextField(
+                        // The keyboard opens only once the sheet is fully up: opening it while
+                        // the sheet slides in made the sheet jump.
+                        RYTextField2(
                             state = s.linkState,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().focusRequester(focus),
                             readOnly = s is SubscribeState.Fetching,
                             placeholder = stringResource(R.string.feed_or_site_url),
-                            errorText = errorText,
-                            imeAction = ImeAction.Search,
-                            onConfirm = { viewModel.searchFeed() },
+                            errorMessage = errorText,
+                            autoFocus = false,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            onKeyboardAction = KeyboardActionHandler { viewModel.searchFeed() },
                         )
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(20.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (s is SubscribeState.Idle && s.importFromOpmlEnabled) {
                                 OutlinedButton(
@@ -252,6 +291,7 @@ fun AddFeedSheet(viewModel: SubscribeViewModel) {
                 }
             }
         }
+      }
     }
 
     OptionSheetDialogs {

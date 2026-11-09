@@ -75,9 +75,11 @@ These are the owner's standing preferences. A new assistant should follow them.
    options and kept in `GroupIcons` (prefs `group_icons`, images in `files/group_icons`; not in backups
    yet). Feed and group icons can be Material icons (`brief/feeds/SymbolIcons.kt`, stored as `icon:<name>`;
    emoji icons chosen before still show). Day labels show a count (`brief/list/DayCount.kt`, passed to Read You's
-   `StickyHeader`, which draws a hairline while pinned). Option sheets (hold a feed or group) and Add a feed
-   are Material 3 sheets: `OptionSheet`/`SheetSwitch`/`SheetHeader`/`SheetRows` in `brief/ui/OptionSheet.kt`,
-   `FeedOptions` (`brief/feeds/FeedOptions.kt`) and `AddFeedSheet`; dialogs opened from a sheet go through
+   `StickyHeader`, which draws a faint line only while articles pass under it: `rememberScrolledUnder`). Option
+   sheets (hold a feed or group) and Add a feed are Material 3 sheets: `OptionSheet`/`SheetSwitch`/`SheetHeader`/
+   `SheetTile`/`SheetActions` in `brief/ui/OptionSheet.kt`, `FeedOptions`/`SettingTiles`/`GroupChips`
+   (`brief/feeds/FeedOptions.kt`) and `AddFeedSheet` (keyboard opens once the sheet is up; its content pads for
+   the keyboard itself; option sheets ignore the keyboard); dialogs opened from a sheet go through
    `OptionSheetDialogs` so they draw above it. Read You's `FeedOptionView` and `BottomDrawer` are no longer used
    by the feeds page. Empty lists: `EmptyListState`
    (`brief/list/EmptyState.kt`, shown from `BriefFlowOverlays`). Card colour: surfaceContainerHigh. Number tiles (Filters, Reading stats) are one `StatTile` (`brief/ui/StatTile.kt`):

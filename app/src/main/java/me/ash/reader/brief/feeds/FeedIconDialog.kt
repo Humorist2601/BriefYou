@@ -33,6 +33,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import me.ash.reader.R
 
 /**
@@ -63,10 +72,18 @@ fun FeedIconDialog(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.height(8.dp))
-                // Six across; scrolls inside the dialog when there are more rows than fit.
+                // Six across, four and a half rows tall: the cut row and the fading edges show
+                // there's more to scroll to.
+                val gridState = rememberLazyGridState()
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val tile = (maxWidth - 6.dp * 5) / 6
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(6),
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 232.dp),
+                    state = gridState,
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .heightIn(max = tile * 4.5f + 6.dp * 4)
+                            .fadingEdges(gridState),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
@@ -92,6 +109,7 @@ fun FeedIconDialog(
                             }
                         }
                     }
+                }
                 }
                 Spacer(Modifier.height(16.dp))
                 FilledTonalButton(
@@ -126,3 +144,26 @@ fun FeedIconDialog(
         },
     )
 }
+
+/** Fades the grid's top and bottom edge out while there's more to scroll that way. */
+private fun Modifier.fadingEdges(state: LazyGridState): Modifier =
+    graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+        .drawWithContent {
+            drawContent()
+            val edge = 28.dp.toPx()
+            if (state.canScrollBackward) {
+                drawRect(
+                    Brush.verticalGradient(listOf(Color.Transparent, Color.Black), startY = 0f, endY = edge),
+                    blendMode = BlendMode.DstIn,
+                    size = size.copy(height = edge),
+                )
+            }
+            if (state.canScrollForward) {
+                drawRect(
+                    Brush.verticalGradient(listOf(Color.Black, Color.Transparent), startY = size.height - edge, endY = size.height),
+                    topLeft = androidx.compose.ui.geometry.Offset(0f, size.height - edge),
+                    blendMode = BlendMode.DstIn,
+                    size = size.copy(height = edge),
+                )
+            }
+        }

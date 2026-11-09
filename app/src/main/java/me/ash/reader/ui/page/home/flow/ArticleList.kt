@@ -29,6 +29,7 @@ fun LazyListScope.ArticleList(
     onMarkAboveAsRead: ((ArticleWithFeed) -> Unit)? = null,
     onMarkBelowAsRead: ((ArticleWithFeed) -> Unit)? = null,
     onShare: ((ArticleWithFeed) -> Unit)? = null,
+    listState: androidx.compose.foundation.lazy.LazyListState? = null, // Brief You: for the pinned day's line
 ) {
     // https://issuetracker.google.com/issues/193785330
     // FIXME: Using sticky header with paging-compose need to iterate through the entire list
@@ -100,7 +101,8 @@ fun LazyListScope.ArticleList(
                         item { Spacer(modifier = Modifier.height(32.dp)) }
                     }
                     stickyHeader(key = key(item), contentType = contentType(item)) {
-                        StickyHeader(item.date, isShowFeedIcon, articleListTonalElevation, me.ash.reader.brief.list.dayCount(pagingItems, index), sticky = true) // Brief You: with the day's count, and a line while pinned
+                        val under = me.ash.reader.brief.list.rememberScrolledUnder(listState, key(item)) // Brief You: articles passing under it
+                        StickyHeader(item.date, isShowFeedIcon, articleListTonalElevation, me.ash.reader.brief.list.dayCount(pagingItems, index), line = under) // Brief You: with the day's count, and a line while articles pass under it
                     }
                 }
 

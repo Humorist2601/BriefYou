@@ -710,6 +710,7 @@ fun FlowPage(
                                 isShowStickyHeader = articleListDateStickyHeader.value,
                                 articleListTonalElevation = articleListTonalElevation.value,
                                 isSwipeEnabled = { listState.isScrollInProgress },
+                                listState = listState, // Brief You: the pinned day's line
                                 onClick = { articleWithFeed, index ->
                                     if (articleWithFeed.feed.isBrowser) {
                                         viewModel.diffMapHolder.updateDiff(

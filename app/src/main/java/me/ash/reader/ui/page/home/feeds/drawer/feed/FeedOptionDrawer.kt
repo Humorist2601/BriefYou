@@ -24,8 +24,9 @@ import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CreateNewFolder
-import androidx.compose.material.icons.outlined.DeleteSweep // Brief You
-import androidx.compose.material.icons.outlined.RemoveCircleOutline // Brief You
+import androidx.compose.material.icons.outlined.Edit // Brief You
+import androidx.compose.foundation.layout.Row // Brief You
+import androidx.compose.foundation.layout.size // Brief You
 import androidx.compose.foundation.combinedClickable // Brief You
 import androidx.compose.foundation.rememberScrollState // Brief You
 import androidx.compose.foundation.verticalScroll // Brief You
@@ -115,9 +116,10 @@ fun FeedOptionDrawer(
                     overflow = TextOverflow.Ellipsis, // Brief You
                 ) // Brief You
             }, // Brief You
-            subtitle = { // Brief You: the address; tap opens it, hold edits it
+            subtitle = { // Brief You: the address; tap opens it, hold or the pencil edits it
+                Row(verticalAlignment = Alignment.CenterVertically) { // Brief You
                 Text( // Brief You
-                    modifier = Modifier.combinedClickable( // Brief You
+                    modifier = Modifier.weight(1f, fill = false).combinedClickable( // Brief You
                         onClick = { context.openURL(feed?.url, openLink, openLinkSpecificBrowser) }, // Brief You
                         onLongClick = { // Brief You
                             if (feedOptionViewModel.rssService.get().updateSubscription) { // Brief You
@@ -132,6 +134,15 @@ fun FeedOptionDrawer(
                     maxLines = 1, // Brief You
                     overflow = TextOverflow.Ellipsis, // Brief You
                 ) // Brief You
+                if (feedOptionViewModel.rssService.get().updateSubscription) { // Brief You: change the feed's address
+                    androidx.compose.material3.IconButton( // Brief You
+                        onClick = { feedOptionViewModel.showFeedUrlDialog() }, // Brief You
+                        modifier = Modifier.size(32.dp), // Brief You
+                    ) { // Brief You
+                        androidx.compose.material3.Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.change_url), modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) // Brief You
+                    } // Brief You
+                } // Brief You
+                } // Brief You
             }, // Brief You
         ) // Brief You
         Column(modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) { // Brief You
@@ -148,10 +159,8 @@ fun FeedOptionDrawer(
                 onAddNewGroup = { feedOptionViewModel.showNewGroupDialog() }, // Brief You
                 showGroup = feedOptionViewModel.rssService.get().moveSubscription, // Brief You
                 isMoveToGroup = true, // Brief You
-                actions = buildList { // Brief You
-                    add(me.ash.reader.brief.ui.SheetRow(Icons.Outlined.DeleteSweep, stringResource(R.string.clear_articles)) { feedOptionViewModel.showClearDialog() }) // Brief You
-                    if (feedOptionViewModel.rssService.get().deleteSubscription) add(me.ash.reader.brief.ui.SheetRow(Icons.Outlined.RemoveCircleOutline, stringResource(R.string.unsubscribe), danger = true) { feedOptionViewModel.showDeleteDialog() }) // Brief You
-                }, // Brief You
+                clear = stringResource(R.string.clear_articles) to { feedOptionViewModel.showClearDialog() }, // Brief You
+                remove = if (feedOptionViewModel.rssService.get().deleteSubscription) stringResource(R.string.unsubscribe) to { feedOptionViewModel.showDeleteDialog() } else null, // Brief You
             ) // Brief You
         } // Brief You
     } // Brief You
