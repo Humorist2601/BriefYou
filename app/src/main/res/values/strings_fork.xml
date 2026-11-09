@@ -325,6 +325,11 @@
     <string name="tour_close">Close</string>
     <string name="tour_settings">Tour</string>
     <string name="settings_section_reading">Reading</string>
+    <plurals name="day_article_count">
+        <item quantity="one">%s article</item>
+        <item quantity="other">%s articles</item>
+    </plurals>
+    <string name="group_icon_folder">Folder icon</string>
     <string name="empty_starred_title">Nothing starred yet</string>
     <string name="empty_starred_text">Star an article, or save one in Triage, to keep it here.</string>
     <string name="empty_unread_title">All caught up</string>

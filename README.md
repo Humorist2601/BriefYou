@@ -164,7 +164,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - First run: a four-page tour (Triage, the on-device AI with a check of your phone, calmer feeds, and the buttons that do more when held) in place of Read You's welcome page; its agreement is on the last page. One Expressive shape morphs from page to page as you swipe. See it again from the tour button in *Settings → Tips & support*.
 - One-time hints: a small bubble the first time you reach Triage, the AI button and the Unread list's Triage button; *Got it* and it's gone (*Show hints again* in *Settings → Tips & support*).
 - Tiles and cards (Filters, Reading stats, the sort tiles and the recaps) squeeze and spring back when pressed, like Triage's buttons.
-- One card style everywhere: article lists show each day as one joined card (even pictures, a dot for unread, no repeated feed name on a feed's own page), the feeds page shows groups as one joined list with icon tiles and counts, and every settings page groups its rows into joined cards. Empty lists say so (*Nothing starred yet*, *All caught up*).
+- One card style everywhere: the feeds page shows groups as one joined list with icon tiles and counts, and every settings page groups its rows into joined cards. Empty lists say so (*Nothing starred yet*, *All caught up*).
 - Predictive back uses a gentler dim on the screen behind, so it never flashes dark.
 - Wide headings use Google Sans Flex at its widest; long names shrink or wrap to fit.
 - AMOLED black still works on top of any colours.

@@ -18,6 +18,7 @@ fun StickyHeader(
     dateString: String,
     isShowFeedIcon: Boolean,
     articleListTonalElevation: Int,
+    dayCount: me.ash.reader.brief.list.DayCount? = null, // Brief You: "3 articles" on the right
 ) {
     Row(
         modifier = Modifier
@@ -36,5 +37,14 @@ fun StickyHeader(
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.labelLarge,
         )
+        if (dayCount != null && dayCount.count > 0) { // Brief You
+            androidx.compose.foundation.layout.Spacer(Modifier.weight(1f)) // Brief You
+            Text( // Brief You
+                modifier = Modifier.padding(end = 24.dp).padding(top = 8.dp, bottom = 4.dp), // Brief You
+                text = androidx.compose.ui.res.pluralStringResource(me.ash.reader.R.plurals.day_article_count, dayCount.count, dayCount.count.toString() + if (dayCount.more) "+" else ""), // Brief You
+                color = MaterialTheme.colorScheme.onSurfaceVariant, // Brief You
+                style = MaterialTheme.typography.labelMedium, // Brief You
+            ) // Brief You
+        } // Brief You
     }
 }

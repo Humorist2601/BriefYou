@@ -311,7 +311,6 @@ fun FeedsPage(
                                 },
                                 group = group,
                                 count = feeds.sumOf { it.important }, // Brief You
-                                iconFeed = feeds.firstOrNull { it.icon != null } ?: feeds.firstOrNull(), // Brief You
                                 onExpanded = {
                                     groupsVisible[group.id] =
                                         groupsVisible

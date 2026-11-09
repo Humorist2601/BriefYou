@@ -70,9 +70,7 @@ These are the owner's standing preferences. A new assistant should follow them.
    and `SelectableSettingGroupItem` draw no background and pad themselves for the card when inside
    one; every row's title is 16 sp. Banners are `bannerContainer()`: Read You's lavender in light
    mode, the tinted primary container in dark mode.
-   Article lists: `brief/list/ListCard.kt` (`LocalListCard` set per row by Read You's `ArticleList`
-   from its neighbours: each day one joined card; `LocalSingleFeedList` hides the feed name on a
-   feed's own list). Feeds page: groups joined via `GroupWithFeedsContainer(shape, top)`, with
+   Feeds page: groups joined via `GroupWithFeedsContainer(shape, top)`, with
    `GroupIconTile` and `CountPill` (`brief/feeds/GroupTile.kt`). Empty lists: `EmptyListState`
    (`brief/list/EmptyState.kt`, shown from `BriefFlowOverlays`). Card colour: surfaceContainerHigh. Number tiles (Filters, Reading stats) are one `StatTile` (`brief/ui/StatTile.kt`):
    icon on a cookie, wide number, left-aligned.

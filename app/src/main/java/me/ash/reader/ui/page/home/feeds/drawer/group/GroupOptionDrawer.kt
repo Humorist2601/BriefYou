@@ -19,6 +19,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue // Brief You
+import androidx.compose.runtime.setValue // Brief You
+import androidx.compose.runtime.mutableStateOf // Brief You
+import androidx.compose.runtime.remember // Brief You
+import androidx.compose.foundation.clickable // Brief You
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -52,6 +57,26 @@ fun GroupOptionDrawer(
     val groupOptionUiState = viewModel.groupOptionUiState.collectAsStateValue()
     val group = groupOptionUiState.group
     val toastString = stringResource(R.string.rename_toast, groupOptionUiState.newName)
+    // Brief You: the group's icon, chosen like a feed's (emoji, image, or back to the folder).
+    var showIconDialog by remember { mutableStateOf(false) } // Brief You
+    val iconScope = rememberCoroutineScope() // Brief You
+    val imagePicker = // Brief You
+        androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri -> // Brief You
+            val id = group?.id // Brief You
+            if (uri != null && id != null) iconScope.launch { // Brief You
+                runCatching { me.ash.reader.brief.feeds.GroupIcons.setImage(context, id, uri) }.onFailure { context.showToast(it.message) } // Brief You
+            } // Brief You
+        } // Brief You
+    if (showIconDialog) { // Brief You
+        me.ash.reader.brief.feeds.FeedIconDialog( // Brief You
+            onEmoji = { e -> group?.id?.let { me.ash.reader.brief.feeds.GroupIcons.setEmoji(context, it, e) } }, // Brief You
+            onImage = { imagePicker.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) }, // Brief You
+            onWebsiteIcon = { group?.id?.let { me.ash.reader.brief.feeds.GroupIcons.clear(context, it) } }, // Brief You
+            onDismiss = { showIconDialog = false }, // Brief You
+            resetLabel = stringResource(R.string.group_icon_folder), // Brief You
+            resetIcon = Icons.Outlined.Folder, // Brief You
+        ) // Brief You
+    } // Brief You
 
     BackHandler(drawerState.isVisible) {
         scope.launch {
@@ -68,11 +93,14 @@ fun GroupOptionDrawer(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Folder,
-                        contentDescription = group?.name ?: stringResource(R.string.unknown),
-                        tint = MaterialTheme.colorScheme.secondary,
-                    )
+                    // Brief You: the group's icon; tap to change it (was a plain folder).
+                    me.ash.reader.brief.feeds.GroupIconTile(group?.id.orEmpty(), Modifier.clickable { showIconDialog = true }, size = 48.dp) // Brief You
+                    Text( // Brief You
+                        text = stringResource(R.string.feed_icon_change), // Brief You
+                        style = MaterialTheme.typography.labelSmall, // Brief You
+                        color = MaterialTheme.colorScheme.primary, // Brief You
+                        modifier = Modifier.padding(top = 6.dp).clickable { showIconDialog = true }, // Brief You
+                    ) // Brief You
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         modifier = Modifier.alphaIndicationClickable() {

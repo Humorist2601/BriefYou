@@ -41,7 +41,6 @@ fun GroupItem(
     onExpanded: () -> Unit = {},
     onLongClick: () -> Unit = {},
     count: Int = 0, // Brief You: the group's unread (or all/starred) count, next to its arrow
-    iconFeed: me.ash.reader.domain.model.feed.Feed? = null, // Brief You: its first feed, for the group's icon tile
     groupOnClick: () -> Unit = {},
 ) {
     val view = LocalView.current
@@ -66,7 +65,7 @@ fun GroupItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            me.ash.reader.brief.feeds.GroupIconTile(group.name, iconFeed, Modifier.padding(start = 14.dp)) // Brief You: an icon tile
+            me.ash.reader.brief.feeds.GroupIconTile(group.id, Modifier.padding(start = 14.dp)) // Brief You: its icon (a folder, or the one chosen)
             Text(
                 modifier = Modifier
                     .weight(1f)

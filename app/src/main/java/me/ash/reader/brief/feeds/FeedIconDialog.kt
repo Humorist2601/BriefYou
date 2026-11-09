@@ -50,6 +50,9 @@ fun FeedIconDialog(
     onImage: () -> Unit,
     onWebsiteIcon: () -> Unit,
     onDismiss: () -> Unit,
+    // A group's dialog: "Folder icon" in place of the website's icon.
+    resetLabel: String? = null,
+    resetIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Outlined.Public,
 ) {
     var emoji by rememberSaveable { mutableStateOf("") }
     InWindowAlertDialog(
@@ -129,9 +132,9 @@ fun FeedIconDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(Icons.Outlined.Public, null, Modifier.size(ButtonDefaults.IconSize))
+                    Icon(resetIcon, null, Modifier.size(ButtonDefaults.IconSize))
                     Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                    Text(stringResource(R.string.feed_icon_website))
+                    Text(resetLabel ?: stringResource(R.string.feed_icon_website))
                 }
             }
         },

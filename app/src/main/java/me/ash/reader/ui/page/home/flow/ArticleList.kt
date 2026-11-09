@@ -29,7 +29,6 @@ fun LazyListScope.ArticleList(
     onMarkAboveAsRead: ((ArticleWithFeed) -> Unit)? = null,
     onMarkBelowAsRead: ((ArticleWithFeed) -> Unit)? = null,
     onShare: ((ArticleWithFeed) -> Unit)? = null,
-    singleFeed: Boolean = false, // Brief You: rows leave out the feed's name and icon
 ) {
     // https://issuetracker.google.com/issues/193785330
     // FIXME: Using sticky header with paging-compose need to iterate through the entire list
@@ -43,7 +42,6 @@ fun LazyListScope.ArticleList(
             when (val item = pagingItems[index]) {
                 is ArticleFlowItem.Article -> {
                     val article = item.articleWithFeed.article
-                    androidx.compose.runtime.CompositionLocalProvider(me.ash.reader.brief.list.LocalListCard provides me.ash.reader.brief.list.listCardPosition(pagingItems, index), me.ash.reader.brief.list.LocalSingleFeedList provides singleFeed) { // Brief You: each day one joined card
                     SwipeableArticleItem(
                         articleWithFeed = item.articleWithFeed,
                         isUnread = diffMap[article.id]?.isUnread ?: article.isUnread,
@@ -60,14 +58,13 @@ fun LazyListScope.ArticleList(
                             if (index == pagingItems.itemCount - 1) null else onMarkBelowAsRead,
                         onShare = onShare,
                     )
-                    } // Brief You
                 }
 
                 is ArticleFlowItem.Date -> {
                     if (item.showSpacer) {
-                        Spacer(modifier = Modifier.height(16.dp)) // Brief You: 16, the days are cards now
+                        Spacer(modifier = Modifier.height(32.dp))
                     }
-                    StickyHeader(item.date, isShowFeedIcon, articleListTonalElevation)
+                    StickyHeader(item.date, isShowFeedIcon, articleListTonalElevation, me.ash.reader.brief.list.dayCount(pagingItems, index)) // Brief You: with the day's count
                 }
 
                 else -> {}
@@ -79,7 +76,6 @@ fun LazyListScope.ArticleList(
                 is ArticleFlowItem.Article -> {
                     item(key = key(item), contentType = contentType(item)) {
                         val article = item.articleWithFeed.article
-                        androidx.compose.runtime.CompositionLocalProvider(me.ash.reader.brief.list.LocalListCard provides me.ash.reader.brief.list.listCardPosition(pagingItems, index), me.ash.reader.brief.list.LocalSingleFeedList provides singleFeed) { // Brief You: each day one joined card
                         SwipeableArticleItem(
                             articleWithFeed = item.articleWithFeed,
                             isUnread = diffMap[article.id]?.isUnread ?: article.isUnread,
@@ -96,16 +92,15 @@ fun LazyListScope.ArticleList(
                                 if (index == pagingItems.itemCount - 1) null else onMarkBelowAsRead,
                             onShare = onShare,
                         )
-                        } // Brief You
                     }
                 }
 
                 is ArticleFlowItem.Date -> {
                     if (item.showSpacer) {
-                        item { Spacer(modifier = Modifier.height(16.dp)) } // Brief You: 16, the days are cards now
+                        item { Spacer(modifier = Modifier.height(32.dp)) }
                     }
                     stickyHeader(key = key(item), contentType = contentType(item)) {
-                        StickyHeader(item.date, isShowFeedIcon, articleListTonalElevation)
+                        StickyHeader(item.date, isShowFeedIcon, articleListTonalElevation, me.ash.reader.brief.list.dayCount(pagingItems, index)) // Brief You: with the day's count
                     }
                 }
 

@@ -730,7 +730,6 @@ fun FlowPage(
                                 onMarkAboveAsRead = onMarkAboveAsRead,
                                 onMarkBelowAsRead = onMarkBelowAsRead,
                                 onShare = onShare,
-                                singleFeed = filterUiState.feed != null, // Brief You
                             )
                             item {
                                 Spacer(modifier = Modifier.height(128.dp))
