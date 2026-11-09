@@ -82,6 +82,7 @@ object EmailContent {
         removeEmpty(body)
         trimSignOff(body)
         if (keep.isNotEmpty()) {
+            body.appendElement("hr")
             val line = body.appendElement("p")
             keep.entries.forEachIndexed { i, (label, href) ->
                 if (i > 0) line.appendText(" · ")
