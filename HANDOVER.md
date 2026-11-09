@@ -78,10 +78,13 @@ These are the owner's standing preferences. A new assistant should follow them.
    `StickyHeader`, which draws a faint line only while articles pass under it: `rememberScrolledUnder`). Option
    sheets (hold a feed or group) are Material 3 sheets: `OptionSheet`/`SheetSwitch`/`SheetHeader`/
    `SheetTile`/`SheetActions` in `brief/ui/OptionSheet.kt`, with `FeedOptions`/`SettingTiles`/`GroupChips`
-   (`brief/feeds/FeedOptions.kt`); they ignore the keyboard. Add a feed is a floating in-window dialog
-   (`AddFeedDialog`) using the same `FeedOptions`. Dialogs opened from a sheet go through `OptionSheetDialogs`
-   (no dialog host), so `InWindowAlertDialog` draws them in a full-screen window of their own that doesn't move
-   for the keyboard: the dialog moves above it inside, and the cursor's handle stays put. Read You's `FeedOptionView` and `BottomDrawer` are no longer used
+   (`brief/feeds/FeedOptions.kt`); they ignore the keyboard. Add a feed is a floating dialog
+   (`AddFeedDialog`) using the same `FeedOptions`, in its own window like the sheets' dialogs (in the app's window
+   the keyboard's slide re-laid out the feeds page every frame). `SubscribeState.Configure` compares its `SyndFeed` by
+   identity: Rome's reflective `equals` over every entry made each tap in the found-feed dialog lag. Every `InWindowAlertDialog` (so RYDialog and
+   TextFieldDialog too) is drawn in a full-screen window of its own that doesn't move for the keyboard: the
+   dialog moves above it inside, the cursor's handle stays put, and nothing behind is re-laid out per keyboard
+   frame. `DialogHost` now only carries `ScreenOverlay`; `OptionSheetDialogs` is kept but no longer needed. Read You's `FeedOptionView` and `BottomDrawer` are no longer used
    by the feeds page. Empty lists: `EmptyListState`
    (`brief/list/EmptyState.kt`, shown from `BriefFlowOverlays`). Card colour: surfaceContainerHigh. Number tiles (Filters, Reading stats) are one `StatTile` (`brief/ui/StatTile.kt`):
    icon on a cookie, wide number, left-aligned.
