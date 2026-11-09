@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
  * [selected] null: a plain tile, always primary. True or false: one of a set you choose from; the
  * chosen one is tertiary (like the stats chart's bars), the others a quiet surface.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun StatTile(
     icon: ImageVector,
