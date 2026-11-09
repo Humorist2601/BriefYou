@@ -34,7 +34,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -123,14 +129,43 @@ fun FeedIconDialog(
                 // Any emoji, typed or picked from the keyboard's emoji page.
                 var emoji by rememberSaveable { mutableStateOf("") }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
+                    // A compact field, as tall as the buttons (a standard one is 56 dp).
+                    val interaction = remember { MutableInteractionSource() }
+                    val textColor = MaterialTheme.colorScheme.onSurface
+                    BasicTextField(
                         value = emoji,
                         onValueChange = { emoji = it.take(8) },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).height(44.dp),
                         singleLine = true,
-                        placeholder = { Text(stringResource(R.string.feed_icon_emoji_hint)) },
-                        shape = RoundedCornerShape(16.dp),
-                    )
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        interactionSource = interaction,
+                    ) { inner ->
+                        OutlinedTextFieldDefaults.DecorationBox(
+                            value = emoji,
+                            innerTextField = inner,
+                            enabled = true,
+                            singleLine = true,
+                            visualTransformation = VisualTransformation.None,
+                            interactionSource = interaction,
+                            placeholder = {
+                                Text(
+                                    stringResource(R.string.feed_icon_emoji_hint),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            },
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                            container = {
+                                OutlinedTextFieldDefaults.Container(
+                                    enabled = true,
+                                    isError = false,
+                                    interactionSource = interaction,
+                                    colors = OutlinedTextFieldDefaults.colors(),
+                                    shape = RoundedCornerShape(14.dp),
+                                )
+                            },
+                        )
+                    }
                     Spacer(Modifier.width(8.dp))
                     TextButton(
                         enabled = emoji.isNotBlank(),
