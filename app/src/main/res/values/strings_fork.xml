@@ -338,7 +338,7 @@
     <string name="empty_starred_title">Nothing starred yet</string>
     <string name="empty_starred_text">Star an article, or save one in Triage, to keep it here.</string>
     <string name="empty_unread_title">All caught up</string>
-    <string name="empty_unread_text">Nothing unread here. New articles come in with the next sync.</string>
+    <string name="empty_unread_text">New articles arrive with the next sync.</string>
     <string name="empty_all_title">No articles yet</string>
     <string name="empty_all_text">Pull down to sync your feeds.</string>
     <string name="settings_section_brief">Brief You</string>
