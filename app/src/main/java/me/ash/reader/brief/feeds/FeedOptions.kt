@@ -28,6 +28,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import me.ash.reader.R
 import me.ash.reader.brief.ui.SheetActions
 import me.ash.reader.brief.ui.SheetSection
@@ -116,6 +123,8 @@ fun GroupChips(
     }
     LazyRow(
         state = state,
+        // Fades out at an edge while there's more to swipe to that way, like the icon picker.
+        modifier = Modifier.fadingEdgesHorizontal(state),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -143,3 +152,26 @@ fun GroupChips(
         }
     }
 }
+
+/** Fades the row's start and end out while there's more to scroll that way. */
+private fun Modifier.fadingEdgesHorizontal(state: androidx.compose.foundation.lazy.LazyListState): Modifier =
+    graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+        .drawWithContent {
+            drawContent()
+            val edge = 32.dp.toPx()
+            if (state.canScrollBackward) {
+                drawRect(
+                    Brush.horizontalGradient(listOf(Color.Transparent, Color.Black), startX = 0f, endX = edge),
+                    blendMode = BlendMode.DstIn,
+                    size = size.copy(width = edge),
+                )
+            }
+            if (state.canScrollForward) {
+                drawRect(
+                    Brush.horizontalGradient(listOf(Color.Black, Color.Transparent), startX = size.width - edge, endX = size.width),
+                    topLeft = Offset(size.width - edge, 0f),
+                    blendMode = BlendMode.DstIn,
+                    size = size.copy(width = edge),
+                )
+            }
+        }

@@ -2452,9 +2452,18 @@ private fun TriageBar(
     val doneColor = WavyProgressIndicatorDefaults.indicatorColor
     val todoColor = WavyProgressIndicatorDefaults.trackColor
     val modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
+    // In a group you came back to, the bar starts from what you'd already done there (as its
+    // piece of the run does), not from empty: it used to drop to empty once the run had turned
+    // back into this group's bar.
+    val here = runPlaces.firstOrNull { it.id == focusId }
+    val hereSize = here?.let { (sizes[it.id] ?: it.unread).coerceAtLeast(1) } ?: 1
+    val hereBefore = here?.let { (doneBefore[it.id] ?: 0).coerceIn(0, hereSize) } ?: 0
+    val barProgress = {
+        ((hereBefore + groupProgress().coerceIn(0f, 1f) * (hereSize - hereBefore)) / hereSize).coerceIn(0f, 1f)
+    }
     if (morph.value == 0f || runPlaces.size < 2) {
         LinearWavyProgressIndicator(
-            progress = groupProgress,
+            progress = barProgress,
             modifier = modifier.padding(vertical = 12.dp),
             // Flat while calm: the indicator eases its wave in and out by itself.
             // Material's own wave, which calms down near the start and the end on purpose (the

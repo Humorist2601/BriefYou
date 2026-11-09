@@ -111,6 +111,8 @@ data class ExtrasBackup(
  * - `extras.json`: your AI instructions, the Triage auto-advance delay and read aloud's speed.
  * - `order.json`: how groups and feeds are sorted (by name, by count or by hand), if you set one.
  *   The OPML above is written in that same order, too.
+ * - `group_icons.json`: the icons chosen for groups, by group name (a Material icon, an emoji, or
+ *   the image itself).
  * - `preferences.json`: appearance, reading and sync settings.
  * - `manifest.json`: format version, so future versions can still read old backups.
  *
@@ -129,6 +131,7 @@ constructor(
     private val articleDao: ArticleDao,
     private val briefArticleDao: me.ash.reader.brief.data.BriefArticleDao,
     private val feedDao: FeedDao,
+    private val groupDao: me.ash.reader.domain.repository.GroupDao,
     private val accountService: AccountService,
     private val summarizer: GemmaSummarizer,
     private val workManager: WorkManager,
@@ -223,6 +226,10 @@ constructor(
                 zip.put(STATS, ReadingStats.export(context))
                 // The order of groups and feeds (only when it isn't the default one).
                 feedOrdering.export(accountId)?.let { zip.put(ORDER, json.encodeToString(it)) }
+                // Group icons, by group name (added later; older backups don't have them).
+                val groupIcons =
+                    me.ash.reader.brief.feeds.GroupIcons.export(context, groupDao.queryAll(accountId).map { it.id to it.name })
+                if (groupIcons.isNotEmpty()) zip.put(GROUP_ICONS, json.encodeToString(groupIcons))
                 zip.put(PREFERENCES, portablePreferences())
             }
             out.toByteArray()
@@ -273,6 +280,14 @@ constructor(
                                 // The order is applied once the groups and feeds exist again.
                                 entries[ORDER]?.let {
                                     feedOrdering.import(json.decodeFromString<OrderBackup>(String(it)))
+                                }
+                                // Group icons, onto the groups with the same names.
+                                entries[GROUP_ICONS]?.let {
+                                    runCatching {
+                                        val icons = json.decodeFromString<Map<String, String>>(String(it))
+                                        val groups = groupDao.queryAll(accountService.getCurrentAccountId()).map { g -> g.id to g.name }
+                                        me.ash.reader.brief.feeds.GroupIcons.restore(context, groups, icons)
+                                    }
                                 }
                             }
                             Part.Starred ->
@@ -426,7 +441,7 @@ constructor(
     /** Reads the few files we know about into memory; anything else in the ZIP is ignored. */
     private fun readZip(bytes: ByteArray): Map<String, ByteArray> {
         val known =
-            setOf(MANIFEST, SUBSCRIPTIONS, FILTERS, PREFERENCES, ORDER, STARRED, ACCOUNT, EXTRAS, STATS)
+            setOf(MANIFEST, SUBSCRIPTIONS, FILTERS, PREFERENCES, ORDER, STARRED, ACCOUNT, EXTRAS, STATS, GROUP_ICONS)
         val result = mutableMapOf<String, ByteArray>()
         var total = 0L
         ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
@@ -463,6 +478,7 @@ constructor(
         const val ACCOUNT = "account.json"
         const val EXTRAS = "extras.json"
         const val STATS = "stats.json"
+        const val GROUP_ICONS = "group_icons.json"
         private const val TRIAGE_SECONDS = "auto_seconds"
         private const val READ_ALOUD_SPEED = "speed"
         private const val MAX_STARRED = 100_000

@@ -90,6 +90,8 @@ constructor(
     private var unloadJob: Job? = null
     private var importJob: Job? = null
     private val activeUses = AtomicInteger(0)
+    /** An answer the model didn't stop in time; completes when it finally does. */
+    @Volatile private var stuck: CompletableDeferred<Unit>? = null
 
     private val _modelState = MutableStateFlow(currentFileState())
     val modelState: StateFlow<ModelState> = _modelState.asStateFlow()
@@ -330,6 +332,15 @@ constructor(
     private fun generate(systemPrompt: String, userText: String): Flow<String> =
         flow {
                 generationLock.withLock {
+                    // An earlier answer the model didn't stop in time: wait (a little) for it to
+                    // finish before starting another, instead of starting alongside it, which
+                    // could hang. Still busy: say so, rather than loading forever.
+                    stuck?.let { busy ->
+                        withTimeoutOrNull(STOP_TIMEOUT_MS) { busy.await() }
+                            ?: throw IllegalStateException(
+                                "The model is still finishing the last answer. Try again in a moment."
+                            )
+                    }
                     val sb = StringBuilder()
                     val engine = acquireEngine()
                     var stillRunning = false
@@ -365,8 +376,21 @@ constructor(
                                     }
                                 },
                             )
-                            for (chunk in chunks) {
-                                sb.append(chunk)
+                            // Never waits forever: if the model goes quiet (nothing at all, or
+                            // nothing more for a while), the request ends with an error and a
+                            // chance to try again, instead of a spinner that never stops.
+                            var first = true
+                            while (true) {
+                                val next =
+                                    withTimeoutOrNull(if (first) FIRST_CHUNK_TIMEOUT_MS else NEXT_CHUNK_TIMEOUT_MS) {
+                                        chunks.receiveCatching()
+                                    } ?: throw IllegalStateException("The model stopped answering. Try again.")
+                                if (next.isClosed) {
+                                    next.exceptionOrNull()?.let { throw it }
+                                    break
+                                }
+                                first = false
+                                sb.append(next.getOrThrow())
                                 emit(sb.toString().trim())
                             }
                         } finally {
@@ -381,9 +405,18 @@ constructor(
                                 runCatching { conversation.close() }
                             } else {
                                 // The model never said it stopped. Leaving the conversation (and
-                                // the engine) alone is better than crashing.
+                                // the engine) alone is better than crashing; it's closed, and the
+                                // engine released, once the model does say so. Until then the next
+                                // request waits for it (see above).
                                 Timber.w("model did not stop in time; keeping the engine loaded")
                                 stillRunning = true
+                                stuck = finished
+                                appScope.launch {
+                                    finished.await()
+                                    runCatching { conversation.close() }
+                                    if (stuck === finished) stuck = null
+                                    if (activeUses.decrementAndGet() == 0) scheduleUnload()
+                                }
                             }
                         }
                     } finally {
@@ -531,6 +564,10 @@ constructor(
         private const val MAX_GIST_DESC_CHARS = 220
         private const val IDLE_UNLOAD_MS = 3 * 60 * 1000L
         private const val STOP_TIMEOUT_MS = 15_000L
+        /** How long the model may think before its first word (a long article on a slow phone). */
+        private const val FIRST_CHUNK_TIMEOUT_MS = 180_000L
+        /** How long it may go quiet once it has started writing. */
+        private const val NEXT_CHUNK_TIMEOUT_MS = 60_000L
 
         private const val ASK_PROMPT =
             "You answer a reader's questions about a news article. Use the article first. You " +

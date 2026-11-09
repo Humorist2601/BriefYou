@@ -184,7 +184,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 
 - The backup also has sync settings and AI instructions.
 - Every other branch is built as **Brief You Nightly**, with a night-sky icon, published as the one *Nightly* prerelease.
-- Back up in *Account → Advanced → Back up everything*. It also includes custom feed icons, feed and group order, the Triage delay and the read-aloud speed.
+- Back up in *Account → Advanced → Back up everything*. It also includes custom feed and group icons, feed and group order, the Triage delay and the read-aloud speed.
 - Restore adds everything back on any phone: feeds you already have are kept, feeds go into your existing groups, and starred articles come back even if their feed dropped them. Server logins and the AI model aren't included.
 - Release names are Read You's version plus a rising build number, so each APK installs as an update (works with Obtainium). The notes say which Read You version a build is based on.
 - APKs are for 64-bit ARM phones (arm64-v8a).
