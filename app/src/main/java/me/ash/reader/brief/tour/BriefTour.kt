@@ -74,6 +74,7 @@ import me.ash.reader.brief.ui.GoogleSansWideFontFamily
 import me.ash.reader.ui.component.base.RYDialog
 import me.ash.reader.ui.ext.DataStoreKey
 import me.ash.reader.ui.ext.dataStore
+import me.ash.reader.ui.ext.put
 
 private const val PAGES = 4
 
