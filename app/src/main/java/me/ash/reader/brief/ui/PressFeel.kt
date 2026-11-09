@@ -12,6 +12,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -100,7 +101,7 @@ fun BannerCookie(icon: androidx.compose.ui.graphics.vector.ImageVector, tint: an
 }
 
 /** A banner's arrow, nudged 4 dp toward where it goes while the banner is held. */
-fun Modifier.pressNudge(): Modifier = androidx.compose.ui.composed {
+fun Modifier.pressNudge(): Modifier = composed {
     val press = LocalPressFeel.current
     graphicsLayer { translationX = (press?.progress ?: 0f) * 4.dp.toPx() }
 }
