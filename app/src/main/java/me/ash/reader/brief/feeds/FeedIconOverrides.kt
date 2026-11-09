@@ -16,7 +16,8 @@ import me.ash.reader.domain.repository.FeedDao
 import me.ash.reader.ui.component.EMOJI_PREFIX
 
 /**
- * Custom feed icons chosen by the user: an emoji, or an image from the phone.
+ * Custom feed icons chosen by the user: a Material icon, an emoji (older choices), or an image
+ * from the phone.
  *
  * The choice is written to the feed's icon field so every screen shows it, and also remembered
  * here, because some accounts (Fever, Google Reader API) rewrite feed icons when they sync.
@@ -31,6 +32,12 @@ constructor(
 ) {
     private val prefs = context.getSharedPreferences("feed_icon_overrides", Context.MODE_PRIVATE)
     private val dir = File(context.filesDir, "feed_icons").apply { mkdirs() }
+
+    /** A Material icon from [SymbolIcons], by name. */
+    suspend fun setSymbol(feedId: String, name: String) {
+        val value = SymbolIcons.PREFIX + name
+        if (SymbolIcons.isKnown(value)) set(feedId, value)
+    }
 
     suspend fun setEmoji(feedId: String, emoji: String) {
         val e = emoji.trim()
@@ -81,7 +88,7 @@ constructor(
     suspend fun exportValue(feedId: String): String? =
         withContext(Dispatchers.IO) {
             val icon = prefs.getString(feedId, null) ?: return@withContext null
-            if (icon.startsWith(EMOJI_PREFIX)) return@withContext icon
+            if (icon.startsWith(EMOJI_PREFIX) || icon.startsWith(SymbolIcons.PREFIX)) return@withContext icon
             val file = Uri.parse(icon).path?.let { File(it) }
             if (file == null || !file.exists()) return@withContext null
             "image/png;base64," + Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
@@ -92,6 +99,7 @@ constructor(
         withContext(Dispatchers.IO) {
             when {
                 value.startsWith(EMOJI_PREFIX) -> setEmoji(feedId, value.removePrefix(EMOJI_PREFIX))
+                value.startsWith(SymbolIcons.PREFIX) -> setSymbol(feedId, value.removePrefix(SymbolIcons.PREFIX))
                 else -> {
                     val data = IMAGE_VALUE.matchEntire(value)?.groupValues?.get(1) ?: return@withContext
                     val bytes =

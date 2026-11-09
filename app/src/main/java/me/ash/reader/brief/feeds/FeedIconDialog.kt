@@ -1,113 +1,96 @@
 package me.ash.reader.brief.feeds
 
 import me.ash.reader.brief.ui.InWindowAlertDialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import me.ash.reader.R
 
-private val QUICK_EMOJI =
-    listOf("📰", "🗞️", "💻", "🧪", "🎮", "🎬", "🎵", "📚", "🌍", "💰", "⚽", "🍳", "✈️", "🚀", "🎨", "🧠")
-
-/** Change a feed's icon: pick an emoji, choose an image, or go back to the website's icon. */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
+/**
+ * Change a feed's or group's icon: pick a Material icon, choose an image, or go back to the
+ * website's icon (a group: the folder).
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FeedIconDialog(
-    onEmoji: (String) -> Unit,
+    onSymbol: (String) -> Unit,
     onImage: () -> Unit,
     onWebsiteIcon: () -> Unit,
     onDismiss: () -> Unit,
+    /** The icon in use now (`icon:<name>` marks its tile). */
+    current: String? = null,
     // A group's dialog: "Folder icon" in place of the website's icon.
     resetLabel: String? = null,
     resetIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Outlined.Public,
 ) {
-    var emoji by rememberSaveable { mutableStateOf("") }
     InWindowAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.feed_icon_change)) },
         text = {
             Column {
                 Text(
-                    stringResource(R.string.feed_icon_emoji),
+                    stringResource(R.string.feed_icon_symbols),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.height(8.dp))
-                FlowRow(
+                // Six across; scrolls inside the dialog when there are more rows than fit.
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(6),
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 232.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    QUICK_EMOJI.forEach { e ->
+                    items(SymbolIcons.all, key = { it.first }) { (name, vector) ->
+                        val selected = current == SymbolIcons.PREFIX + name
                         Surface(
                             onClick = {
-                                onEmoji(e)
+                                onSymbol(name)
                                 onDismiss()
                             },
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            modifier = Modifier.size(44.dp),
+                            // The chosen one is a circle in the accent colour; the rest rounded tiles.
+                            shape = if (selected) CircleShape else RoundedCornerShape(12.dp),
+                            color =
+                                if (selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor =
+                                if (selected) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.aspectRatio(1f),
                         ) {
-                            Row(
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(e, fontSize = 22.sp)
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(vector, contentDescription = name, modifier = Modifier.size(22.dp))
                             }
                         }
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = emoji,
-                        onValueChange = { emoji = it.take(8) },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        placeholder = { Text(stringResource(R.string.feed_icon_emoji_hint)) },
-                        shape = RoundedCornerShape(16.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    TextButton(
-                        enabled = emoji.isNotBlank(),
-                        onClick = {
-                            onEmoji(emoji)
-                            onDismiss()
-                        },
-                    ) {
-                        Text(stringResource(R.string.feed_icon_use))
                     }
                 }
                 Spacer(Modifier.height(16.dp))

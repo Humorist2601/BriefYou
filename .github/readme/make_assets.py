@@ -278,7 +278,7 @@ TABLES = {
         ('Material 3 Expressive', 'Shape-morphing buttons, shaped icons, wavy progress.'),
         ('Google Sans Flex', 'Rounded throughout, with wide headings.'),
         ('Material You, the current way', 'The system’s wallpaper colours and Google’s latest colour spec.'),
-        ('Feed colours and icons', 'Names coloured from their icon; set an emoji or image as an icon.'),
+        ('Feed colours and icons', 'Names coloured from their icon; pick a Material icon or an image.'),
         ('App shortcuts', 'Long-press the icon for Triage, AI gist, Unread or Sync now.'),
         ('Reading stats', 'Your week, streak, top feeds and this month vs last.'),
         ('Monthly recap', 'Last month as calendar and highlights; last year each January.'),

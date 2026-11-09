@@ -31,9 +31,10 @@ import me.ash.reader.ui.page.home.feeds.drawer.feed.FeedOptionViewModel
 
 @Composable
 // Brief You: lined up with the group's row (the icon under its tile, the name under its name), not indented.
+// Brief You: compact rows (40 dp), so a group's feeds read as one tight list under it.
 private fun contentPadding(isLastItem: Boolean): PaddingValues = if (isLastItem) PaddingValues(
-    bottom = 18.dp, start = 0.dp, end = 14.dp, top = 12.dp // Brief You
-) else PaddingValues(start = 0.dp, end = 14.dp, top = 12.dp, bottom = 12.dp) // Brief You
+    bottom = 12.dp, start = 0.dp, end = 14.dp, top = 8.dp // Brief You
+) else PaddingValues(start = 0.dp, end = 14.dp, top = 8.dp, bottom = 8.dp) // Brief You
 
 @OptIn(
     ExperimentalFoundationApi::class,
@@ -68,7 +69,7 @@ private fun FeedItemImpl(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                androidx.compose.foundation.layout.Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) { // Brief You: the width of the group's tile
+                androidx.compose.foundation.layout.Box(Modifier.size(width = 36.dp, height = 24.dp), contentAlignment = Alignment.Center) { // Brief You: the width of the group's tile, not its height
                 FeedIcon(
                     feedName = feed.name, iconUrl = feed.icon, modifier = Modifier
                 )

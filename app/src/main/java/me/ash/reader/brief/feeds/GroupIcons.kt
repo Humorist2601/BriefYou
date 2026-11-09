@@ -12,7 +12,8 @@ import kotlinx.coroutines.withContext
 import me.ash.reader.ui.component.EMOJI_PREFIX
 
 /**
- * Icons chosen for groups, like a feed's custom icon: an emoji or an image from the phone. Groups
+ * Icons chosen for groups, like a feed's custom icon: a Material icon, an emoji (older choices) or
+ * an image from the phone. Groups
  * have no icon field of their own, so the choice is kept here (by group id) and read by the feeds
  * page; a group without one shows a folder.
  */
@@ -31,6 +32,12 @@ object GroupIcons {
         if (loaded) return
         loaded = true
         prefs(context).all.forEach { (k, v) -> if (v is String) icons[k] = v }
+    }
+
+    /** A Material icon from [SymbolIcons], by name. */
+    fun setSymbol(context: Context, groupId: String, name: String) {
+        val value = SymbolIcons.PREFIX + name
+        if (SymbolIcons.isKnown(value)) set(context, groupId, value)
     }
 
     fun setEmoji(context: Context, groupId: String, emoji: String) {

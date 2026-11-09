@@ -71,7 +71,15 @@ These are the owner's standing preferences. A new assistant should follow them.
    one; every row's title is 16 sp. Banners are `bannerContainer()`: Read You's lavender in light
    mode, the tinted primary container in dark mode.
    Feeds page: groups joined via `GroupWithFeedsContainer(shape, top)`, with
-   `GroupIconTile` and `CountPill` (`brief/feeds/GroupTile.kt`). Empty lists: `EmptyListState`
+   `GroupIconTile` and `CountPill` (`brief/feeds/GroupTile.kt`); group icons are chosen in the group's
+   options and kept in `GroupIcons` (prefs `group_icons`, images in `files/group_icons`; not in backups
+   yet). Feed and group icons can be Material icons (`brief/feeds/SymbolIcons.kt`, stored as `icon:<name>`;
+   emoji icons chosen before still show). Day labels show a count (`brief/list/DayCount.kt`, passed to Read You's
+   `StickyHeader`, which draws a hairline while pinned). Option sheets (hold a feed or group) and Add a feed
+   are Material 3 sheets: `OptionSheet`/`SheetSwitch`/`SheetHeader`/`SheetRows` in `brief/ui/OptionSheet.kt`,
+   `FeedOptions` (`brief/feeds/FeedOptions.kt`) and `AddFeedSheet`; dialogs opened from a sheet go through
+   `OptionSheetDialogs` so they draw above it. Read You's `FeedOptionView` and `BottomDrawer` are no longer used
+   by the feeds page. Empty lists: `EmptyListState`
    (`brief/list/EmptyState.kt`, shown from `BriefFlowOverlays`). Card colour: surfaceContainerHigh. Number tiles (Filters, Reading stats) are one `StatTile` (`brief/ui/StatTile.kt`):
    icon on a cookie, wide number, left-aligned.
 

@@ -215,6 +215,15 @@ constructor(
 
     // --- Brief You: custom feed icons ---
 
+    fun setSymbolIcon(name: String) { // Brief You: a Material icon
+        _feedOptionUiState.value.feed?.let { feed -> // Brief You
+            viewModelScope.launch(ioDispatcher) { // Brief You
+                iconOverrides.setSymbol(feed.id, name) // Brief You
+                fetchFeed(feed.id) // Brief You
+            } // Brief You
+        } // Brief You
+    } // Brief You
+
     fun setEmojiIcon(emoji: String) {
         _feedOptionUiState.value.feed?.let { feed ->
             viewModelScope.launch(ioDispatcher) {

@@ -100,7 +100,7 @@ fun LazyListScope.ArticleList(
                         item { Spacer(modifier = Modifier.height(32.dp)) }
                     }
                     stickyHeader(key = key(item), contentType = contentType(item)) {
-                        StickyHeader(item.date, isShowFeedIcon, articleListTonalElevation, me.ash.reader.brief.list.dayCount(pagingItems, index)) // Brief You: with the day's count
+                        StickyHeader(item.date, isShowFeedIcon, articleListTonalElevation, me.ash.reader.brief.list.dayCount(pagingItems, index), sticky = true) // Brief You: with the day's count, and a line while pinned
                     }
                 }
 

@@ -190,9 +190,8 @@ fun FeedsPage(
         groupWithFeedList.forEach { groupWithFeed -> groupsVisible[groupWithFeed.group.id] = false }
     }
 
-    val groupDrawerState =
-        rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden, skipHalfExpanded = true)
-    val feedDrawerState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden, skipHalfExpanded = true)
+    val groupDrawerState = me.ash.reader.brief.ui.rememberSheetSwitch() // Brief You: Material 3 option sheets
+    val feedDrawerState = me.ash.reader.brief.ui.rememberSheetSwitch() // Brief You
 
     // Brief You: on Android 12+ the system already sends a root activity to the background on
     // Back, and leaving Back unhandled lets the predictive "back to home" animation play.

@@ -23,6 +23,7 @@ import me.ash.reader.ui.component.FeedIcon
 /**
  * A group's icon on the feeds page: the icon chosen for it (an emoji or an image, from the group's
  * options) on a small rounded tile, or a folder.
+ * A chosen Material icon is drawn in the tile's colours, like the folder.
  */
 @Composable
 fun GroupIconTile(groupId: String, modifier: Modifier = Modifier, size: Dp = 36.dp) {
@@ -37,7 +38,15 @@ fun GroupIconTile(groupId: String, modifier: Modifier = Modifier, size: Dp = 36.
                 .background(MaterialTheme.colorScheme.secondaryContainer),
         contentAlignment = Alignment.Center,
     ) {
-        if (icon != null) {
+        val symbol = SymbolIcons.of(icon)
+        if (symbol != null) {
+            Icon(
+                symbol,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(size * 0.55f),
+            )
+        } else if (icon != null) {
             FeedIcon(feedName = null, iconUrl = icon, size = size * 0.6f)
         } else {
             Icon(

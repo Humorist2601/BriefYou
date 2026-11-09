@@ -144,6 +144,7 @@ class OPMLDataSource @Inject constructor(
         val value = this?.attributes?.getOrDefault("customIcon", null) ?: return null
         return when {
             value.startsWith(EMOJI_PREFIX) && value.length <= 40 -> value
+            me.ash.reader.brief.feeds.SymbolIcons.isKnown(value) -> value // Brief You: a Material icon
             value.length <= FeedIconOverrides.MAX_IMPORT_ICON_CHARS &&
                 FeedIconOverrides.IMAGE_VALUE.matches(value) -> value
             else -> null
