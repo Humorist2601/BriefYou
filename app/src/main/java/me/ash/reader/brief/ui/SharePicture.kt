@@ -1,5 +1,7 @@
 package me.ash.reader.brief.ui
 
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
@@ -80,25 +82,31 @@ fun OffscreenPicture(capturing: Boolean, onPicture: (ImageBitmap?) -> Unit, cont
 }
 
 /**
- * The Brief You mark for shared pictures: the app's own icon (its foreground on its background
- * colour, in a circle, as a launcher shows it; the Nightly's icon in Nightly builds) and the name.
+ * The Brief You mark for shared pictures: the app's glyph (its one-colour themed-icon glyph) in a
+ * shape, and the name. By default in your accent colour on a squiggly cookie; the newspaper
+ * passes ink and paper and a squircle, so it stays black and white.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @androidx.compose.runtime.Composable
-fun BriefYouMark(color: androidx.compose.ui.graphics.Color) {
+fun BriefYouMark(
+    color: androidx.compose.ui.graphics.Color,
+    container: androidx.compose.ui.graphics.Color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+    glyph: androidx.compose.ui.graphics.Color = androidx.compose.material3.MaterialTheme.colorScheme.onPrimary,
+    shape: androidx.compose.ui.graphics.Shape? = null,
+) {
+    val markShape = shape ?: MaterialShapes.Cookie12Sided.toShape()
     androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
         androidx.compose.foundation.layout.Box(
-            modifier =
-                Modifier.size(18.dp)
-                    .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(androidx.compose.ui.res.colorResource(me.ash.reader.R.color.ic_launcher_background)),
+            modifier = Modifier.size(20.dp).clip(markShape).background(container),
             contentAlignment = androidx.compose.ui.Alignment.Center,
         ) {
-            // The foreground is drawn on 108 units with the icon in the middle 72, so it's drawn
-            // half as big again as the circle and cropped to it.
+            // The glyph is drawn on 108 units with the icon in the middle 72, so it's drawn half
+            // as big again as the shape and cropped to it.
             androidx.compose.foundation.Image(
-                painter = androidx.compose.ui.res.painterResource(me.ash.reader.R.drawable.ic_launcher_foreground),
+                painter = androidx.compose.ui.res.painterResource(me.ash.reader.R.drawable.ic_launcher_monochrome),
                 contentDescription = null,
-                modifier = Modifier.requiredSize(27.dp),
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(glyph),
+                modifier = Modifier.requiredSize(30.dp),
             )
         }
         androidx.compose.material3.Text(
@@ -107,5 +115,44 @@ fun BriefYouMark(color: androidx.compose.ui.graphics.Color) {
             color = color,
             modifier = Modifier.padding(start = 6.dp),
         )
+    }
+}
+
+/**
+ * Like [OffscreenPicture], but always [widthPx] pixels wide whatever the phone: [content] is laid
+ * out [widthDp] wide at the density that makes that many pixels, and at a font scale of 1. For
+ * pictures with small print (the newspaper), so they stay sharp after messaging apps shrink them.
+ */
+@Composable
+fun OffscreenPictureAt(
+    widthPx: Int,
+    widthDp: Float,
+    capturing: Boolean,
+    onPicture: (ImageBitmap?) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    if (!capturing) return
+    val layer = rememberGraphicsLayer()
+    LaunchedEffect(Unit) {
+        withFrameNanos {}
+        delay(350)
+        withFrameNanos {}
+        onPicture(runCatching { layer.toImageBitmap() }.getOrNull())
+    }
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(widthPx / widthDp, 1f)
+    ) {
+        Layout(
+            content = {
+                androidx.compose.foundation.layout.Box(
+                    Modifier.drawWithContent { layer.record { this@drawWithContent.drawContent() } }
+                ) {
+                    content()
+                }
+            }
+        ) { measurables, _ ->
+            val placeable = measurables.first().measure(Constraints(minWidth = widthPx, maxWidth = widthPx))
+            layout(0, 0) { placeable.place(0, 0) }
+        }
     }
 }

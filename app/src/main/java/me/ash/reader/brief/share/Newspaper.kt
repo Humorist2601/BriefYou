@@ -104,7 +104,7 @@ import me.ash.reader.brief.ai.GemmaSummarizer
 import me.ash.reader.brief.reading.FeedContent
 import me.ash.reader.brief.ui.BriefYouMark
 import me.ash.reader.brief.ui.LiterataFontFamily
-import me.ash.reader.brief.ui.OffscreenPicture
+import me.ash.reader.brief.ui.OffscreenPictureAt
 import me.ash.reader.brief.ui.sharePicture
 import me.ash.reader.domain.model.article.ArticleWithFeed
 import org.jsoup.Jsoup
@@ -377,7 +377,13 @@ fun rememberNewspaperMaker(): NewspaperMaker {
 /** The progress sheet, and the front page's picture taken off screen. Put it where it gets the screen's width. */
 @Composable
 fun NewspaperHost(maker: NewspaperMaker) {
-    maker.ready?.let { page -> OffscreenPicture(capturing = true, onPicture = { maker.done(it) }) { FrontPagePicture(page) } }
+    // Always 1600 pixels wide (a 400 dp page at 4×), whatever the phone, so the small print
+    // stays sharp after messaging apps shrink it.
+    maker.ready?.let { page ->
+        OffscreenPictureAt(widthPx = 1600, widthDp = 400f, capturing = true, onPicture = { maker.done(it) }) {
+            FrontPagePicture(page)
+        }
+    }
     val run = maker.run ?: return
     if (!run.visible) return
     ModalBottomSheet(
@@ -505,8 +511,8 @@ private val MastheadFont =
 private val ColumnText =
     TextStyle(
         fontFamily = LiterataFontFamily,
-        fontSize = 12.sp,
-        lineHeight = 17.sp,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
         color = Ink,
         textAlign = TextAlign.Justify,
         hyphens = Hyphens.Auto,
@@ -520,7 +526,9 @@ private val ColumnText =
 @Composable
 private fun FrontPagePicture(page: FrontPage) {
     run {
-        Column(modifier = Modifier.fillMaxWidth().background(Paper).padding(18.dp)) {
+        // Cut with a zig-zag at the top and bottom, like a page torn off a pad; the gaps are
+        // transparent.
+        Column(modifier = Modifier.fillMaxWidth().clip(ZigZagEdges).background(Paper).padding(horizontal = 18.dp, vertical = 26.dp)) {
             BasicText(
                 text = page.masthead,
                 style = TextStyle(fontFamily = MastheadFont, fontSize = 42.sp, lineHeight = 46.sp, color = Ink, textAlign = TextAlign.Center),
@@ -567,7 +575,7 @@ private fun FrontPagePicture(page: FrontPage) {
                     Column(Modifier.weight(1f).border(1.5.dp, Ink).padding(horizontal = 9.dp, vertical = 7.dp)) {
                         Text(
                             stringResource(R.string.newspaper_in_brief).uppercase(),
-                            style = TextStyle(fontSize = 10.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold, color = Ink),
+                            style = TextStyle(fontSize = 11.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold, color = Ink),
                         )
                         page.brief.forEach { point ->
                             Text("• $point", style = ColumnText.copy(textAlign = TextAlign.Start), modifier = Modifier.padding(top = 4.dp))
@@ -586,10 +594,10 @@ private fun FrontPagePicture(page: FrontPage) {
             Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     stringResource(R.string.newspaper_continued, page.host),
-                    style = TextStyle(fontSize = 10.sp, color = Faint),
+                    style = TextStyle(fontSize = 11.sp, color = Faint),
                     modifier = Modifier.weight(1f),
                 )
-                BriefYouMark(Faint)
+                BriefYouMark(Faint, container = Ink, glyph = Paper, shape = RoundedCornerShape(30))
             }
         }
     }
@@ -599,7 +607,7 @@ private fun FrontPagePicture(page: FrontPage) {
 private fun Dateline(text: String) {
     Text(
         text.uppercase(),
-        style = TextStyle(fontSize = 8.sp, letterSpacing = 0.8.sp, color = Ink),
+        style = TextStyle(fontSize = 9.sp, letterSpacing = 0.8.sp, color = Ink),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )
@@ -633,3 +641,32 @@ private fun split(text: String): Pair<String, String> {
     val middle = text.lastIndexOf(' ', text.length / 2).takeIf { it > 0 } ?: (text.length / 2)
     return text.substring(0, middle).trim() to text.substring(middle).trim()
 }
+
+/** A page edge cut in a zig-zag at the top and bottom (teeth 12 dp wide, 6 dp deep). */
+private val ZigZagEdges =
+    object : androidx.compose.ui.graphics.Shape {
+        override fun createOutline(
+            size: androidx.compose.ui.geometry.Size,
+            layoutDirection: androidx.compose.ui.unit.LayoutDirection,
+            density: androidx.compose.ui.unit.Density,
+        ): androidx.compose.ui.graphics.Outline {
+            val depth = with(density) { 6.dp.toPx() }
+            val teeth = (size.width / with(density) { 12.dp.toPx() }).toInt().coerceAtLeast(1)
+            val tooth = size.width / teeth
+            val path =
+                androidx.compose.ui.graphics.Path().apply {
+                    moveTo(0f, depth)
+                    for (i in 0 until teeth) {
+                        lineTo(i * tooth + tooth / 2, 0f)
+                        lineTo((i + 1) * tooth, depth)
+                    }
+                    lineTo(size.width, size.height - depth)
+                    for (i in teeth downTo 1) {
+                        lineTo(i * tooth - tooth / 2, size.height)
+                        lineTo((i - 1) * tooth, size.height - depth)
+                    }
+                    close()
+                }
+            return androidx.compose.ui.graphics.Outline.Generic(path)
+        }
+    }
