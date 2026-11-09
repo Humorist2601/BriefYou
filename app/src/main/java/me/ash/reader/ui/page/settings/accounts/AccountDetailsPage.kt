@@ -357,7 +357,6 @@ fun AccountDetailsPage(
         confirmButton = {
             TextButton(
                 onClick = {
-                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     selectedAccount?.let {
                         viewModel.clear(it) {
                             viewModel.hideClearDialog()
@@ -366,7 +365,6 @@ fun AccountDetailsPage(
                             )
                         }
                     }
-                    } // Brief You
                 }
             ) {
                 Text(text = stringResource(R.string.clear))
