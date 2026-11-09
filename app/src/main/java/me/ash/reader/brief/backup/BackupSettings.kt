@@ -139,14 +139,8 @@ fun BackupSettingItems(accountId: Int, viewModel: BackupViewModel = hiltViewMode
 
     RYDialog(
         visible = pendingRestore != null,
-        title = {
-            Text(
-                text = stringResource(R.string.restore_from_backup),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.titleLarge,
-            )
-        },
+        // The standard dialog title, like every other dialog.
+        title = { Text(text = stringResource(R.string.restore_from_backup)) },
         text = { Text(text = stringResource(R.string.restore_confirm_text)) },
         confirmButton = {
             TextButton(

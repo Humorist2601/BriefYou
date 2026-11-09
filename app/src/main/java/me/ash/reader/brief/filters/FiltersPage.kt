@@ -832,8 +832,8 @@ private fun FilterTabs(page: Int, onSelect: (Int) -> Unit) {
             )
             .forEach { (icon, label, index) ->
                 val selected = page == index
-                val outer = 24.dp
-                val inner = 8.dp
+                val outer = me.ash.reader.brief.ui.Group.Outer
+                val inner = me.ash.reader.brief.ui.Group.Inner
                 val color by
                     androidx.compose.animation.animateColorAsState(
                         if (selected) MaterialTheme.colorScheme.secondaryContainer
@@ -1302,13 +1302,8 @@ private fun ShapeIcon(
 }
 
 /** Big corners on the outside of a group, small ones between its cards. */
-private fun groupShape(position: Int, size: Int): RoundedCornerShape {
-    val outer = 24.dp
-    val inner = 6.dp
-    val top = if (position == 0) outer else inner
-    val bottom = if (position == size - 1) outer else inner
-    return RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
-}
+private fun groupShape(position: Int, size: Int): RoundedCornerShape =
+    me.ash.reader.brief.ui.groupShape(position, size)
 
 /** The day a time falls on, as days since the epoch in the phone's time zone. */
 private fun dayOf(millis: Long): Long =

@@ -433,16 +433,8 @@ private fun streakOn(data: ReadingStatsData, day: LocalDate): Int {
 }
 
 /** Rounded at the outer ends only, so the cards read as one connected group. */
-private fun connectedShape(index: Int, count: Int): RoundedCornerShape {
-    val big = 24.dp
-    val small = 6.dp
-    return RoundedCornerShape(
-        topStart = if (index == 0) big else small,
-        topEnd = if (index == 0) big else small,
-        bottomStart = if (index == count - 1) big else small,
-        bottomEnd = if (index == count - 1) big else small,
-    )
-}
+private fun connectedShape(index: Int, count: Int): RoundedCornerShape =
+    me.ash.reader.brief.ui.groupShape(index, count)
 
 /**
  * This week at a glance: the reading time in large wide type, and a wavy ring filling with the

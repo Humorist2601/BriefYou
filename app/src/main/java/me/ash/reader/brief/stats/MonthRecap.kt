@@ -356,14 +356,13 @@ internal fun RecapHeading(title: String, since: LocalDate?, articles: Int, vs: S
             Text(
                 text = it,
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
                 color = tint,
                 maxLines = 1,
                 modifier =
                     Modifier.padding(start = 8.dp, bottom = 6.dp)
                         .clip(CircleShape)
                         .background(tint.copy(alpha = 0.14f))
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
     }
@@ -499,8 +498,8 @@ internal fun TileGrid(tiles: List<Pair<String, String>>, tint: Color, modifier: 
         rows.forEachIndexed { r, row ->
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
                 row.forEachIndexed { c, (value, label) ->
-                    val big = 16.dp
-                    val small = 4.dp
+                    val big = me.ash.reader.brief.ui.Group.NestedOuter
+                    val small = me.ash.reader.brief.ui.Group.NestedInner
                     val firstRow = r == 0
                     val lastRow = r == rows.lastIndex
                     val left = c == 0
@@ -574,14 +573,12 @@ private fun HighlightRows(recap: MonthRecap, tint: Color, modifier: Modifier = M
 /** Highlights (label, value) as one connected list. */
 @Composable
 internal fun RowList(rows: List<Pair<String, String>>, tint: Color, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(me.ash.reader.brief.ui.Group.Gap)) {
         rows.forEachIndexed { i, (label, value) ->
-            val top = if (i == 0) 16.dp else 4.dp
-            val bottom = if (i == rows.lastIndex) 16.dp else 4.dp
             Row(
                 modifier =
                     Modifier.fillMaxWidth()
-                        .clip(RoundedCornerShape(top, top, bottom, bottom))
+                        .clip(me.ash.reader.brief.ui.nestedGroupShape(i, rows.size))
                         .background(tint.copy(alpha = 0.1f))
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -717,18 +714,17 @@ fun PastMonths(data: ReadingStatsData, modifier: Modifier = Modifier) {
                 PastRow(
                     title = stringResource(R.string.recap_year_row, lastYear.year),
                     articles = lastYear.articles,
-                    shape = RoundedCornerShape(24.dp, 24.dp, if (rows == 1) 24.dp else 6.dp, if (rows == 1) 24.dp else 6.dp),
+                    shape = me.ash.reader.brief.ui.groupShape(0, rows),
                     onClick = { open = "year" },
                 )
             }
             past.forEachIndexed { index, recap ->
                 val i = index + if (lastYear != null) 1 else 0
-                val top = if (i == 0) 24.dp else 6.dp
-                val bottom = if (i == rows - 1) 24.dp else 6.dp
+
                 PastRow(
                     title = "${monthName(recap.month)} ${recap.month.year}",
                     articles = recap.articles,
-                    shape = RoundedCornerShape(top, top, bottom, bottom),
+                    shape = me.ash.reader.brief.ui.groupShape(i, rows),
                     onClick = { open = recap.month.toString() },
                 )
             }

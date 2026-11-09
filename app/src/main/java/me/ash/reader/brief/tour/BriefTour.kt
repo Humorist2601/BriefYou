@@ -1,5 +1,24 @@
 package me.ash.reader.brief.tour
 
+import me.ash.reader.brief.ui.groupShape
+import me.ash.reader.brief.ui.Group
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.asComposePath
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.graphics.shapes.Morph
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.toPath
+import me.ash.reader.brief.ui.rememberPressFeel
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
@@ -109,45 +128,82 @@ fun BriefTourDialog(onDismiss: () -> Unit, onSetUpAi: () -> Unit) {
     }
 }
 
+/** A page's art: its Expressive shape, colours and icon (the shape morphs into the next one). */
+private class TourArt(val polygon: RoundedPolygon, val container: Color, val content: Color, val icon: ImageVector)
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
     val pager = rememberPagerState { PAGES }
     var setUpAi by rememberSaveable { mutableStateOf(false) }
     var termsVisible by remember { mutableStateOf(false) }
     val phone = remember { PhoneCheck.of(context) }
     val scheme = MaterialTheme.colorScheme
     val last = pager.currentPage == PAGES - 1
+    val arts =
+        listOf(
+            TourArt(MaterialShapes.Cookie4Sided, scheme.primary, scheme.onPrimary, Icons.Rounded.Style),
+            TourArt(MaterialShapes.Cookie9Sided, scheme.tertiaryContainer, scheme.onTertiaryContainer, Icons.Outlined.AutoAwesome),
+            TourArt(MaterialShapes.Clover4Leaf, scheme.secondaryContainer, scheme.onSecondaryContainer, Icons.Outlined.NotificationsActive),
+            TourArt(MaterialShapes.SoftBurst, scheme.primaryContainer, scheme.onPrimaryContainer, Icons.Outlined.TouchApp),
+        )
+    // A tick as each page settles, and the art pops a little.
+    val pop = remember { Animatable(1f) }
+    LaunchedEffect(pager) {
+        var first = true
+        snapshotFlow { pager.settledPage }.collect {
+            if (!first) {
+                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                pop.snapTo(0.9f)
+                pop.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = Spring.StiffnessMediumLow))
+            }
+            first = false
+        }
+    }
+    fun go(page: Int) {
+        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+        scope.launch { pager.animateScrollToPage(page) }
+    }
 
     Surface(color = scheme.surface, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
+            Spacer(Modifier.height(40.dp))
+            // One shape for the whole tour: as you swipe it morphs into the next page's shape,
+            // its colour and icon following your finger.
+            MorphingArt(arts, position = { pager.currentPage + pager.currentPageOffsetFraction }, pop = { pop.value })
             HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
                 Column(
-                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 28.dp),
+                    modifier =
+                        Modifier.fillMaxSize()
+                            .graphicsLayer {
+                                // The text slides a little slower than the page and fades, so it
+                                // trails the shape.
+                                val offset = (pager.currentPage - page) + pager.currentPageOffsetFraction
+                                translationX = offset * size.width * 0.35f
+                                alpha = 1f - (kotlin.math.abs(offset) * 0.9f).coerceIn(0f, 1f)
+                            }
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 28.dp),
                 ) {
-                    Spacer(Modifier.height(48.dp))
                     when (page) {
                         0 -> {
-                            CardsArt()
                             Title(stringResource(R.string.tour_triage_title))
                             Body(stringResource(R.string.tour_triage_text))
                         }
                         1 -> {
-                            ShapeArt(MaterialShapes.Cookie9Sided.toShape(), scheme.tertiaryContainer, scheme.onTertiaryContainer, Icons.Outlined.AutoAwesome)
                             Title(stringResource(R.string.tour_ai_title))
                             Body(stringResource(R.string.tour_ai_text))
                             Spacer(Modifier.height(16.dp))
                             PhoneLine(phone, setUpAi)
                         }
                         2 -> {
-                            ShapeArt(MaterialShapes.Clover4Leaf.toShape(), scheme.secondaryContainer, scheme.onSecondaryContainer, Icons.Outlined.NotificationsActive)
                             Title(stringResource(R.string.tour_calm_title))
                             Body(stringResource(R.string.tour_calm_text))
                         }
                         else -> {
-                            ShapeArt(MaterialShapes.SoftBurst.toShape(), scheme.primaryContainer, scheme.onPrimaryContainer, Icons.Outlined.TouchApp)
                             Title(stringResource(R.string.tour_hold_title))
                             Body(stringResource(R.string.tour_hold_text))
                             Spacer(Modifier.height(10.dp))
@@ -168,7 +224,12 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = scheme.onSurfaceVariant,
                                 )
-                                TextButton(onClick = { termsVisible = true }) {
+                                TextButton(
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                        termsVisible = true
+                                    }
+                                ) {
                                     Text(stringResource(R.string.terms_of_service))
                                 }
                             }
@@ -185,41 +246,26 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
             ) {
                 when {
                     last ->
-                        Button(onClick = { onDone(setUpAi) }, modifier = Modifier.weight(1f).height(52.dp)) {
-                            Text(
-                                stringResource(if (firstRun) R.string.tour_agree_start else R.string.tour_done),
-                                style = MaterialTheme.typography.titleMedium,
-                            )
+                        TourButton(
+                            text = stringResource(if (firstRun) R.string.tour_agree_start else R.string.tour_done),
+                            kind = TourButtonKind.Filled,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                            onDone(setUpAi)
                         }
                     pager.currentPage == 1 -> {
-                        FilledTonalButton(
-                            onClick = { scope.launch { pager.animateScrollToPage(2) } },
-                            modifier = Modifier.weight(1f).height(52.dp),
-                        ) {
-                            Text(stringResource(R.string.tour_later))
-                        }
-                        Button(
-                            onClick = {
-                                setUpAi = true
-                                scope.launch { pager.animateScrollToPage(2) }
-                            },
-                            modifier = Modifier.weight(1f).height(52.dp),
-                        ) {
-                            Text(stringResource(R.string.tour_set_up_ai))
+                        TourButton(stringResource(R.string.tour_later), TourButtonKind.Tonal, Modifier.weight(1f)) { go(2) }
+                        TourButton(stringResource(R.string.tour_set_up_ai), TourButtonKind.Filled, Modifier.weight(1f)) {
+                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                            setUpAi = true
+                            scope.launch { pager.animateScrollToPage(2) }
                         }
                     }
                     else -> {
-                        TextButton(
-                            onClick = { scope.launch { pager.animateScrollToPage(PAGES - 1) } },
-                            modifier = Modifier.weight(1f).height(52.dp),
-                        ) {
-                            Text(stringResource(R.string.tour_skip))
-                        }
-                        Button(
-                            onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } },
-                            modifier = Modifier.weight(1f).height(52.dp),
-                        ) {
-                            Text(stringResource(R.string.tour_next))
+                        TourButton(stringResource(R.string.tour_skip), TourButtonKind.Text, Modifier.weight(1f)) { go(PAGES - 1) }
+                        TourButton(stringResource(R.string.tour_next), TourButtonKind.Filled, Modifier.weight(1f)) {
+                            go(pager.currentPage + 1)
                         }
                     }
                 }
@@ -230,7 +276,6 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
     RYDialog(
         visible = termsVisible,
         onDismissRequest = { termsVisible = false },
-        icon = { Icon(Icons.Rounded.Balance, contentDescription = null) },
         title = { Text(text = stringResource(R.string.terms_of_service)) },
         text = {
             SelectionContainer {
@@ -273,43 +318,86 @@ private fun Body(text: String) {
     )
 }
 
-/** An Expressive shape that turns slowly, with an icon that stays upright. */
+/**
+ * The tour's art: one Expressive shape that turns slowly and, at [position] between two pages,
+ * is part-way morphed from one page's shape to the next, with the colour blended and the icons
+ * crossing over. [pop] scales it as a page settles.
+ */
 @Composable
-private fun ShapeArt(shape: Shape, container: Color, content: Color, icon: ImageVector) {
+private fun MorphingArt(arts: List<TourArt>, position: () -> Float, pop: () -> Float) {
     val turn by
         rememberInfiniteTransition(label = "tour art")
             .animateFloat(0f, 360f, infiniteRepeatable(tween(24_000, easing = LinearEasing)), label = "turn")
-    Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+    val at = position().coerceIn(0f, (arts.size - 1).toFloat())
+    val from = at.toInt().coerceAtMost(arts.size - 1)
+    val to = (from + 1).coerceAtMost(arts.size - 1)
+    val t = at - from
+    val morph = remember(from, to) { Morph(arts[from].polygon, arts[to].polygon) }
+    val shape = remember(morph, t) { MorphShape(morph, t) }
+    val container = androidx.compose.ui.graphics.lerp(arts[from].container, arts[to].container, t)
+    Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
         Box(
-            Modifier.size(180.dp).graphicsLayer { rotationZ = turn }.clip(shape).background(container),
+            Modifier.size(190.dp)
+                .graphicsLayer {
+                    // Turns slowly, and a quarter turn more over each swipe.
+                    rotationZ = turn + at * 90f
+                    scaleX = pop()
+                    scaleY = pop()
+                }
+                .clip(shape)
+                .background(container),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = content,
-                modifier = Modifier.size(72.dp).graphicsLayer { rotationZ = -turn },
-            )
+            // The two pages' icons cross over, upright whatever the shape's turn.
+            listOf(from to 1f - t, to to t).distinctBy { it.first }.forEach { (i, amount) ->
+                Icon(
+                    arts[i].icon,
+                    contentDescription = null,
+                    tint = arts[i].content,
+                    modifier =
+                        Modifier.size(72.dp).graphicsLayer {
+                            rotationZ = -(turn + at * 90f)
+                            alpha = if (from == to) 1f else amount
+                            val grow = 0.6f + 0.4f * (if (from == to) 1f else amount)
+                            scaleX = grow
+                            scaleY = grow
+                        },
+                )
+            }
         }
     }
 }
 
-/** Triage's art: a little stack of cards that sways, the front one with Triage's icon. */
+/** A [Morph] at [progress], scaled to the size it's drawn at (a fresh matrix each time). */
+private class MorphShape(private val morph: Morph, private val progress: Float) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val path = morph.toPath(progress).asComposePath()
+        path.transform(Matrix().apply { scale(size.width, size.height) })
+        return Outline.Generic(path)
+    }
+}
+
+private enum class TourButtonKind { Filled, Tonal, Text }
+
+/** The tour's buttons, with Triage's press: they squeeze and their corners tighten, then spring back. */
 @Composable
-private fun CardsArt() {
-    val scheme = MaterialTheme.colorScheme
-    val sway by
-        rememberInfiniteTransition(label = "tour cards")
-            .animateFloat(-6f, 6f, infiniteRepeatable(tween(2_400), RepeatMode.Reverse), label = "sway")
-    Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(width = 130.dp, height = 176.dp).rotate(-10f).clip(RoundedCornerShape(26.dp)).background(scheme.secondaryContainer))
-        Box(Modifier.size(width = 130.dp, height = 176.dp).rotate(7f).clip(RoundedCornerShape(26.dp)).background(scheme.primaryContainer))
-        Box(
-            Modifier.size(width = 130.dp, height = 176.dp).rotate(sway).clip(RoundedCornerShape(26.dp)).background(scheme.primary),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Rounded.Style, contentDescription = null, tint = scheme.onPrimary, modifier = Modifier.size(56.dp))
-        }
+private fun TourButton(text: String, kind: TourButtonKind, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val press = rememberPressFeel(rest = 26.dp, held = 12.dp)
+    val shape = RoundedCornerShape(press.corner)
+    val m = with(press) { modifier.height(52.dp).squeeze() }
+    when (kind) {
+        TourButtonKind.Filled ->
+            Button(onClick = onClick, shape = shape, interactionSource = press.interaction, modifier = m) {
+                Text(text, style = MaterialTheme.typography.titleMedium)
+            }
+        TourButtonKind.Tonal ->
+            FilledTonalButton(onClick = onClick, shape = shape, interactionSource = press.interaction, modifier = m) {
+                Text(text, style = MaterialTheme.typography.titleMedium)
+            }
+        TourButtonKind.Text ->
+            TextButton(onClick = onClick, shape = shape, interactionSource = press.interaction, modifier = m) {
+                Text(text, style = MaterialTheme.typography.titleMedium)
+            }
     }
 }
 
@@ -350,23 +438,14 @@ private fun PhoneLine(phone: PhoneCheck, setUpAi: Boolean) {
 /** One long press, in a connected list. */
 @Composable
 private fun HoldRow(text: String, first: Boolean, last: Boolean) {
-    val big = 20.dp
-    val small = 4.dp
     Text(
         text = text,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurface,
         modifier =
             Modifier.fillMaxWidth()
-                .padding(vertical = 1.dp)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = if (first) big else small,
-                        topEnd = if (first) big else small,
-                        bottomStart = if (last) big else small,
-                        bottomEnd = if (last) big else small,
-                    )
-                )
+                .padding(vertical = Group.Gap / 2)
+                .clip(groupShape(if (first) 0 else if (last) 2 else 1, if (first && last) 1 else 3))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
     )
@@ -377,7 +456,12 @@ private fun HoldRow(text: String, first: Boolean, last: Boolean) {
 private fun Dots(current: Int) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
         repeat(PAGES) { i ->
-            val width by animateDpAsState(if (i == current) 24.dp else 8.dp, label = "dot")
+            val width by
+                animateDpAsState(
+                    if (i == current) 24.dp else 8.dp,
+                    spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMediumLow),
+                    label = "dot",
+                )
             Box(
                 Modifier.padding(horizontal = 3.dp)
                     .size(width = width, height = 8.dp)

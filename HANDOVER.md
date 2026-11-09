@@ -49,6 +49,17 @@ These are the owner's standing preferences. A new assistant should follow them.
    let the owner try it, then merge to `main` with a full changelog (that makes a release).
 8. When the owner says something "causes more issues", remove it entirely rather than patching
    around it.
+9. **New screens and sheets look like the existing ones** (the owner wants Brief You to feel
+   cohesive, down to the last corner). Pages: `RYScaffold` with the collapsing `DisplayText`
+   title, the tonal back circle, hero cards (32 dp), cards and tiles (28 dp). Connected lists come
+   from `brief/ui/Groups.kt`: `groupShape` (24 dp outer, 6 dp inner) on pages and sheets,
+   `nestedGroupShape` (16 / 4) inside dialogs and cards, rows `Group.Gap` (3 dp) apart. Bottom
+   sheets: a Title Large title (normal weight), an optional Body Medium muted subtitle, a divider,
+   24 dp sides, opened fully (`skipPartiallyExpanded`; the AI sheet's 70 % is the one exception).
+   Dialogs: `InWindowAlertDialog` (Read You's `RYDialog` draws through it), the standard title, no
+   icon. Labels: pills (`RoundedCornerShape(50)`), Label Medium, 10 × 4 dp padding; tertiary for
+   what's yours or watched, neutral for plain info. Tiles, cards and the tour's buttons press with
+   `PressFeel`.
 
 ---
 

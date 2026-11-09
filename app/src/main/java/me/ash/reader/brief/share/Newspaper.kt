@@ -2,6 +2,8 @@
 
 package me.ash.reader.brief.share
 
+import me.ash.reader.brief.ui.groupShape
+import me.ash.reader.brief.ui.Group
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Paint
@@ -398,7 +400,7 @@ fun NewspaperHost(maker: NewspaperMaker) {
 private fun PressSheet(run: PressRun, onCancel: () -> Unit, onRetry: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 16.dp).navigationBarsPadding()) {
-        Text(stringResource(R.string.newspaper_printing), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.newspaper_printing), style = MaterialTheme.typography.titleLarge, color = scheme.onSurface)
         Text(
             run.title,
             style = MaterialTheme.typography.bodyMedium,
@@ -407,25 +409,18 @@ private fun PressSheet(run: PressRun, onCancel: () -> Unit, onRetry: () -> Unit)
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 2.dp),
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
+        androidx.compose.material3.HorizontalDivider(color = scheme.outlineVariant)
+        Spacer(Modifier.height(14.dp))
         run.steps.forEachIndexed { i, step ->
-            val big = 20.dp
-            val small = 4.dp
             val failed = run.failed == step
             val now = run.current == step && !failed
             val done = run.isDone(step) && !failed
             Row(
                 modifier =
                     Modifier.fillMaxWidth()
-                        .padding(vertical = 1.5.dp)
-                        .clip(
-                            RoundedCornerShape(
-                                topStart = if (i == 0) big else small,
-                                topEnd = if (i == 0) big else small,
-                                bottomStart = if (i == run.steps.lastIndex) big else small,
-                                bottomEnd = if (i == run.steps.lastIndex) big else small,
-                            )
-                        )
+                        .padding(vertical = Group.Gap / 2)
+                        .clip(groupShape(i, run.steps.size))
                         .background(if (failed) scheme.errorContainer else scheme.surfaceContainerHigh)
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,

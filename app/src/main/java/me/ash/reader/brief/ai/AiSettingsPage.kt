@@ -158,7 +158,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                             title = stringResource(R.string.ai_settings_article_prompt),
                             text = articlePrompt,
                             edited = articlePrompt.trim() != GemmaSummarizer.DEFAULT_ARTICLE_PROMPT.trim(),
-                            shape = RoundedCornerShape(24.dp, 24.dp, 6.dp, 6.dp),
+                            shape = me.ash.reader.brief.ui.groupShape(0, 3),
                             onClick = { editing = PromptKind.Article },
                         )
                         PromptCard(
@@ -166,7 +166,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                             title = stringResource(R.string.ai_settings_gist_prompt),
                             text = gistPrompt,
                             edited = gistPrompt.trim() != GemmaSummarizer.DEFAULT_GIST_PROMPT.trim(),
-                            shape = RoundedCornerShape(6.dp),
+                            shape = me.ash.reader.brief.ui.groupShape(1, 3),
                             onClick = { editing = PromptKind.Gist },
                         )
                         PromptCard(
@@ -174,7 +174,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                             title = stringResource(R.string.ai_settings_card_prompt),
                             text = cardPrompt,
                             edited = cardPrompt.trim() != GemmaSummarizer.DEFAULT_CARD_PROMPT.trim(),
-                            shape = RoundedCornerShape(6.dp, 6.dp, 24.dp, 24.dp),
+                            shape = me.ash.reader.brief.ui.groupShape(2, 3),
                             onClick = { editing = PromptKind.Card },
                         )
                     }
@@ -584,23 +584,14 @@ private fun DownloadDialog(onDownload: () -> Unit, onOpenPage: () -> Unit, onDis
                             CheckTone.Warn -> scheme.tertiaryContainer to scheme.onTertiaryContainer
                             CheckTone.Bad -> scheme.errorContainer to scheme.onErrorContainer
                         }
-                    val big = 16.dp
-                    val small = 4.dp
                     Text(
                         text = (if (tone == CheckTone.Ok) "✓  " else "!  ") + text,
                         style = MaterialTheme.typography.bodyMedium,
                         color = fore,
                         modifier =
                             Modifier.fillMaxWidth()
-                                .padding(vertical = 1.dp)
-                                .clip(
-                                    RoundedCornerShape(
-                                        topStart = if (i == 0) big else small,
-                                        topEnd = if (i == 0) big else small,
-                                        bottomStart = if (i == rows.lastIndex) big else small,
-                                        bottomEnd = if (i == rows.lastIndex) big else small,
-                                    )
-                                )
+                                .padding(vertical = me.ash.reader.brief.ui.Group.Gap / 2)
+                                .clip(me.ash.reader.brief.ui.nestedGroupShape(i, rows.size))
                                 .background(back)
                                 .padding(horizontal = 14.dp, vertical = 10.dp),
                     )

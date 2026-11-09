@@ -209,7 +209,7 @@ fun SummarySheet(
                 text =
                     if (count != null) pluralStringResource(R.plurals.ai_gist_based_on, count, count)
                     else stringResource(R.string.ai_summary_on_device),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(12.dp))
