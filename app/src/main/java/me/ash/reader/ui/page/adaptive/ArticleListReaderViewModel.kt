@@ -306,7 +306,7 @@ constructor(
                             articleId = article.id,
                             feedName = feed.name,
                             title = article.title,
-                            author = article.author,
+                            author = me.ash.reader.brief.reading.EmailContent.readableAuthor(article.author), // Brief You: no "delivery_…@bounce" senders
                             link = article.link,
                             publishedDate = article.date,
                         )

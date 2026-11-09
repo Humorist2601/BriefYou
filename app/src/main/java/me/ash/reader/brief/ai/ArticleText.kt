@@ -26,6 +26,17 @@ constructor(
     /** [shown] is what the reading page shows, if any (full content when that's on). */
     suspend fun best(article: Article, shown: String? = null): String =
         withContext(Dispatchers.IO) {
+            val text = bestRaw(article, shown)
+            // A newsletter's email: its text without footers, Outlook settings and hidden preview.
+            if (me.ash.reader.brief.reading.EmailContent.isEmail(text, article.link)) {
+                me.ash.reader.brief.reading.FeedContent.forReader(text, article.link)
+            } else {
+                text
+            }
+        }
+
+    private suspend fun bestRaw(article: Article, shown: String?): String =
+        withContext(Dispatchers.IO) {
             val candidates = listOfNotNull(shown, article.rawDescription).filter { it.isNotBlank() }
             val longest = candidates.maxByOrNull { textLength(it) }.orEmpty()
             if (textLength(longest) >= TEASER_CHARS || !article.link.startsWith("http")) return@withContext longest

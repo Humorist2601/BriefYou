@@ -59,6 +59,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Toolbar long presses: Star marks read or unread, AI opens its settings, Next goes to the previous article, Full content opens the browser.
 - Pictures in the text get a box of their own size with the app's shape-changing loading indicator, and fade in.
 - Read later: share a link to *Read Later* (or to *Add Feed* to subscribe to its feed). The page is saved with its full text as a starred article in a *Saved Articles* feed; a small sheet confirms it and closes by itself. If the page can't be loaded (offline, blocked, or a file like a PDF), the link is saved instead. Local accounts only.
+- Newsletters read as feeds (through an email-to-feed service such as Kill the Newsletter) read like articles: the email's layout boxes, hidden preview text, tracking pixels, social links and preference footers are removed, its big text becomes headings, and sharing uses the issue's public web page instead of your private feed address.
 - Tidier articles also drop "appeared first on" lines.
 - Large header picture; feed, date and reading time as chips; title, time left and a wavy progress bar in the top bar once you scroll.
 - Pictures: drag one away to close it; Save and Share in its menu; slightly dimmed in dark mode.

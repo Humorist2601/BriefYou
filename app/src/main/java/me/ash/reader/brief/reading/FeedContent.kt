@@ -23,6 +23,8 @@ import org.jsoup.nodes.Element
  * - The Main Page footers are removed (Archive · By email · More featured articles, Recently
  *   featured…).
  *
+ * For newsletters read as feeds (whole emails), see [EmailContent].
+ *
  * For xkcd:
  * - The comic is shown in xkcd's double-resolution version (falling back to the normal one for the
  *   few comics that don't have it).
@@ -79,6 +81,8 @@ object FeedContent {
         return runCatching {
                 val doc = Jsoup.parseBodyFragment(html, link ?: "")
                 makeAddressesComplete(doc, link)
+                // A newsletter read as a feed: the whole email, made a plain article first.
+                if (EmailContent.isEmail(html, link)) EmailContent.tidy(doc)
                 tidyGeneral(doc)
                 val host = link?.let { runCatching { URI(it).host }.getOrNull() }.orEmpty()
                 when {
@@ -97,6 +101,8 @@ object FeedContent {
      */
     fun extractHero(html: String): Pair<String?, String> {
         if (html.isBlank()) return null to html
+        // An email's first picture is usually its masthead (a logo, "Welcome"): it stays in place.
+        if (html.startsWith(EmailContent.MARK)) return null to html
         return runCatching {
                 val doc = Jsoup.parseBodyFragment(html)
                 var textBefore = 0
