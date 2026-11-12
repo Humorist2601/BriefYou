@@ -23,6 +23,7 @@ import me.ash.reader.brief.reading.estimateReadingMinutes
 
 import androidx.compose.material3.toShape
 import androidx.compose.material3.MaterialShapes
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import me.ash.reader.brief.reading.FeedContent
 import androidx.activity.BackEventCompat
@@ -1691,7 +1692,8 @@ private fun TriageCard(
                 val imageHeight by
                     animateDpAsState(
                         if (summary == null) 150.dp else 0.dp,
-                        MaterialTheme.motionScheme.defaultSpatialSpec(),
+                        // Brief You: no spring here, it overshot and squashed the picture against the header.
+                        androidx.compose.animation.core.tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing),
                         label = "picture",
                     )
                 if (item.img != null && imageHeight > 0.5.dp) {
@@ -1717,9 +1719,15 @@ private fun TriageCard(
                 )
 
                 Spacer(Modifier.height(12.dp))
-                if (hasHiddenSummary) {
-                    SummaryHint()
-                    Spacer(Modifier.height(8.dp))
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = hasHiddenSummary,
+                    enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
+                    exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
+                ) {
+                    Column {
+                        SummaryHint()
+                        Spacer(Modifier.height(8.dp))
+                    }
                 }
                 // The points and the description trade places with a fade and a fold, like the picture
                 // above them folds away (not a cut).
@@ -1728,8 +1736,15 @@ private fun TriageCard(
                     targetState = summary,
                     contentKey = { it != null },
                     transitionSpec = {
-                        (androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically())
-                            .togetherWith(androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically())
+                        // Brief You: the old text fades out first, then the new one fades in as the height
+                        // eases to it, so the two never overlap (they were drawn on top of each other).
+                        (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220, delayMillis = 110)))
+                            .togetherWith(androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(100)))
+                            .using(
+                                androidx.compose.animation.SizeTransform(clip = true) { _, _ ->
+                                    androidx.compose.animation.core.tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                                }
+                            )
                     },
                     label = "points",
                 ) { shown ->
@@ -2439,7 +2454,10 @@ private fun TriagePlacesSheet(
     }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         // The app's sheet design: title, muted subtitle, divider, 24 dp sides, a connected list.
-        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
+        val feedsByGroup = remember(places, isFeeds) { if (isFeeds) emptyMap() else places.associate { it.id to feedsOf(it.id) } }
+        // Brief You: opening a group's feeds makes the sheet taller; its height eases with them
+        // instead of the top edge jumping up.
+        Column(modifier = Modifier.animateContentSize().padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
             Text(
                 text = stringResource(if (isFeeds) R.string.triage_places_feeds else R.string.triage_places_groups),
                 style = MaterialTheme.typography.titleLarge,
@@ -2457,7 +2475,6 @@ private fun TriagePlacesSheet(
             // The groups as on the Feeds page (one joined list; a group's row with its icon tile,
             // count pill and arrow, its feeds under it lined up with the row), and the feeds
             // of a group open in place to start Triage on just that feed.
-            val feedsByGroup = remember(places, isFeeds) { if (isFeeds) emptyMap() else places.associate { it.id to feedsOf(it.id) } }
             var openGroups by remember { mutableStateOf(setOf<String>()) }
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
