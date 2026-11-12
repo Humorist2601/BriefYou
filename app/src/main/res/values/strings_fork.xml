@@ -490,7 +490,7 @@
     <string name="translate_to_hint">Used for every article you translate.</string>
     <string name="translate_phone_language">Phone language</string>
     <string name="translate_running">Translating to %1$s</string>
-    <string name="translate_progress">Part %1$d of %2$d · by your AI model</string>
+    <string name="translate_progress">%1$d of %2$d paragraphs · by your AI model</string>
     <string name="translate_done">Translated to %1$s</string>
     <string name="translate_by_ai">By your AI model, may contain mistakes</string>
     <string name="translate_failed">Translation stopped</string>

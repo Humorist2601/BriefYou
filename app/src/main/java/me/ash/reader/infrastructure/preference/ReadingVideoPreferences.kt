@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION") // Read You's DataStoreKey is deprecated; every preference here must still use it
+
 package me.ash.reader.infrastructure.preference
 
 import android.content.Context

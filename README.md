@@ -42,7 +42,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
   - it stays loaded while the app is open and unloads 3 minutes after you leave it;
   - it only loads ahead when the phone can afford it (not in battery saver, with battery to spare or charging, and enough free memory); otherwise it loads on first use;
   - if your phone's GPU can't run it (Pixels' Tensor chips can't), the app goes straight to the CPU, trying the GPU again after a month.
-- Translate: the translate button in the reading page's top bar translates the article with your AI model, a few paragraphs at a time (a wavy bar shows the parts), into your phone's language. Tap again to flip between the original and the translation; hold it to pick another language. Links inside a paragraph become plain text in the translation. It is slower than an online translator, and it may make mistakes.
+- Translate: the translate button in the reading page's top bar translates the article with your AI model, into your phone's language. Each paragraph replaces its original as soon as it is written, the ones still waiting are dimmed, and a wavy bar counts the paragraphs. Tap again to flip between the original and the translation; hold it to pick another language. Links inside a paragraph become plain text in the translation. It is slower than an online translator, and it may make mistakes.
 - Summaries open in a sheet at 70% of the screen. Each key point slides in as a card as it's written, and "Why it matters" gets its own accent card.
 - Regenerate, Ask and Read are three connected buttons at the bottom of the sheet.
 - Gists: tap **AI gist** in the floating button at the bottom of an *Unread* list. One tap marks all of them as read.

@@ -269,13 +269,21 @@ private fun AddFeedDialogContent(
             viewModel.hideRenameDialog()
         },
     )
+    // The dialog's TextFieldState version (the value/onValueChange one is deprecated); the view model
+    // still gets the name as it is typed, and the field starts empty each time the dialog opens.
+    val groupName = androidx.compose.foundation.text.input.rememberTextFieldState()
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        androidx.compose.runtime.snapshotFlow { groupName.text.toString() }.collect { viewModel.inputNewGroup(it) }
+    }
+    androidx.compose.runtime.LaunchedEffect(uiState.newGroupDialogVisible) {
+        if (!uiState.newGroupDialogVisible) groupName.clearText()
+    }
     TextFieldDialog(
+        textFieldState = groupName,
         visible = uiState.newGroupDialogVisible,
         title = stringResource(R.string.create_new_group),
         icon = Icons.Outlined.CreateNewFolder,
-        value = uiState.newGroupContent,
         placeholder = stringResource(R.string.name),
-        onValueChange = { viewModel.inputNewGroup(it) },
         onDismissRequest = { viewModel.hideNewGroupDialog() },
         onConfirm = { viewModel.addNewGroup() },
     )

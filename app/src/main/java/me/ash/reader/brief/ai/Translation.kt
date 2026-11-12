@@ -54,6 +54,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.ash.reader.R
@@ -118,6 +119,7 @@ class TranslationState {
 
     /** Back to the original (a new article, or after stopping with nothing translated). */
     fun reset() {
+        generation++
         job?.cancel()
         job = null
         status = Status.Idle
@@ -129,60 +131,103 @@ class TranslationState {
     }
 
     fun stop() {
+        if (status != Status.Running) return
+        // Nothing translated yet: back to the plain article. Otherwise keep what is done.
+        if (done == 0) {
+            reset()
+            return
+        }
         job?.cancel()
         job = null
-        if (status == Status.Running) status = if (html != null) Status.Done else Status.Idle
+        status = Status.Done
     }
+
+    /** Bumped by every start and reset, so a run that was replaced can't publish its leftovers. */
+    private var generation = 0
 
     fun start(scope: CoroutineScope, summarizer: GemmaSummarizer, articleTitle: String?, source: String, tag: String) {
         reset()
+        val gen = ++generation
         status = Status.Running
         language = tag
         job =
             scope.launch {
+                var doc: org.jsoup.nodes.Document? = null
+                val dimmed = mutableMapOf<Element, String?>() // block -> its own style, to put back
                 try {
                     val name = TranslationPrefs.englishName(tag)
-                    val doc = withContext(Dispatchers.Default) { Jsoup.parseBodyFragment(source) }
+                    val parsed = withContext(Dispatchers.Default) { Jsoup.parseBodyFragment(source) }
+                    doc = parsed
                     // The text blocks that hold text directly (not a list item that holds paragraphs).
                     val blocks =
                         withContext(Dispatchers.Default) {
-                            doc.body().select(BLOCKS).filter { it.select(BLOCKS).size == 1 && it.text().length > 1 }
+                            parsed.body().select(BLOCKS).filter { it.select(BLOCKS).size == 1 && it.text().length > 1 }
                         }
-                    // Index 0 is the title; the blocks follow. Each batch is a few paragraphs.
+                    // Index 0 is the title; the blocks follow.
                     val items = buildList<Pair<Int, Element?>> {
                         if (!articleTitle.isNullOrBlank()) add(0 to null)
                         blocks.forEachIndexed { i, b -> add((i + 1) to b) }
                     }
-                    fun textOf(index: Int, e: Element?) = if (e == null) articleTitle.orEmpty() else e.text()
+                    fun textOf(e: Element?) = if (e == null) articleTitle.orEmpty() else e.text()
+                    // The first batch is small, so the first words show within seconds.
                     val batches = mutableListOf<MutableList<Pair<Int, Element?>>>()
                     var size = 0
                     for (item in items) {
-                        val len = textOf(item.first, item.second).length
-                        if (batches.isEmpty() || size + len > BATCH_CHARS) {
+                        val len = textOf(item.second).length
+                        val limit = if (batches.size <= 1) FIRST_BATCH_CHARS else BATCH_CHARS
+                        if (batches.isEmpty() || size + len > limit) {
                             batches += mutableListOf<Pair<Int, Element?>>()
                             size = 0
                         }
                         batches.last() += item
                         size += len
                     }
-                    total = batches.size.coerceAtLeast(1)
-                    for (batch in batches) {
-                        val prompt = batch.joinToString("\n") { "[${it.first}] " + textOf(it.first, it.second) }
-                        var out = ""
-                        summarizer.translate(name, prompt).collect { out = it }
-                        val marks = MARKER.findAll(out).toList()
+                    total = items.size.coerceAtLeast(1)
+                    // What isn't translated yet is shown dimmed, the translated text at full strength.
+                    blocks.forEach {
+                        dimmed[it] = it.attr("style").ifBlank { null }
+                        it.attr("style", (it.attr("style") + ";opacity:.45").trim(';'))
+                    }
+                    html = withContext(Dispatchers.Default) { parsed.body().html() }
+
+                    val applied = mutableSetOf<Int>()
+                    suspend fun apply(batch: List<Pair<Int, Element?>>, out: String, finished: Boolean) {
                         val byIndex = batch.associate { it.first to it.second }
+                        val marks = MARKER.findAll(out).toList()
+                        var changed = false
                         for ((k, m) in marks.withIndex()) {
+                            val last = k == marks.lastIndex
+                            if (last && !finished) break // still being written
                             val idx = m.groupValues[1].toIntOrNull() ?: continue
-                            if (!byIndex.containsKey(idx)) continue
-                            val end = marks.getOrNull(k + 1)?.range?.first ?: out.length
+                            if (!byIndex.containsKey(idx) || idx in applied) continue
+                            val end = if (last) out.length else marks[k + 1].range.first
                             val text = out.substring(m.range.last + 1, end).trim()
                             if (text.isBlank()) continue
                             val element = byIndex[idx]
-                            if (element == null) title = text else element.text(text)
+                            if (element == null) title = text
+                            else {
+                                element.text(text)
+                                if (dimmed.containsKey(element)) {
+                                    val own = dimmed.remove(element)
+                                    if (own == null) element.removeAttr("style") else element.attr("style", own)
+                                }
+                            }
+                            applied += idx
+                            changed = true
                         }
-                        html = withContext(Dispatchers.Default) { doc.body().html() }
-                        done++
+                        if (changed) {
+                            done = applied.size
+                            html = withContext(Dispatchers.Default) { parsed.body().html() }
+                        }
+                    }
+                    for (batch in batches) {
+                        val prompt = batch.joinToString("\n") { "[${it.first}] " + textOf(it.second) }
+                        var out = ""
+                        summarizer.translate(name, prompt).collect {
+                            out = it
+                            apply(batch, out, finished = false) // each paragraph shows once the next begins
+                        }
+                        apply(batch, out, finished = true)
                     }
                     status = Status.Done
                 } catch (e: CancellationException) {
@@ -190,6 +235,15 @@ class TranslationState {
                 } catch (e: Throwable) {
                     error = e.message ?: e.javaClass.simpleName
                     status = Status.Failed
+                } finally {
+                    // Stopped or finished: nothing stays dimmed.
+                    val d = doc
+                    if (d != null && gen == generation) {
+                        withContext(NonCancellable + Dispatchers.Default) {
+                            dimmed.forEach { (el, own) -> if (own == null) el.removeAttr("style") else el.attr("style", own) }
+                            if (html != null) html = d.body().html()
+                        }
+                    }
                 }
             }
     }
@@ -197,6 +251,7 @@ class TranslationState {
     private companion object {
         const val BLOCKS = "p, h1, h2, h3, h4, h5, h6, li, figcaption, blockquote, td, th"
         const val BATCH_CHARS = 1_800
+        const val FIRST_BATCH_CHARS = 450
         val MARKER = Regex("""(?m)^\s*\[(\d+)]\s*""")
     }
 }
@@ -305,7 +360,7 @@ fun TranslationBanner(controller: TranslateController) {
                 text =
                     when (t.status) {
                         TranslationState.Status.Running ->
-                            stringResource(R.string.translate_progress, (t.done + 1).coerceAtMost(t.total), t.total)
+                            stringResource(R.string.translate_progress, t.done.coerceAtMost(t.total), t.total)
                         TranslationState.Status.Failed -> t.error.orEmpty()
                         else -> stringResource(R.string.translate_by_ai)
                     },
