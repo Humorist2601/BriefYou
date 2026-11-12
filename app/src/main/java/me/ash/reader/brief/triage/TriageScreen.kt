@@ -130,6 +130,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -2455,9 +2456,7 @@ private fun TriagePlacesSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         // The app's sheet design: title, muted subtitle, divider, 24 dp sides, a connected list.
         val feedsByGroup = remember(places, isFeeds) { if (isFeeds) emptyMap() else places.associate { it.id to feedsOf(it.id) } }
-        // Brief You: opening a group's feeds makes the sheet taller; its height eases with them
-        // instead of the top edge jumping up.
-        Column(modifier = Modifier.animateContentSize().padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
             Text(
                 text = stringResource(if (isFeeds) R.string.triage_places_feeds else R.string.triage_places_groups),
                 style = MaterialTheme.typography.titleLarge,
@@ -2476,8 +2475,26 @@ private fun TriagePlacesSheet(
             // count pill and arrow, its feeds under it lined up with the row), and the feeds
             // of a group open in place to start Triage on just that feed.
             var openGroups by remember { mutableStateOf(setOf<String>()) }
+            // Brief You: the sheet sits on the bottom, so a list that grew with a group's feeds pushed the
+            // heading up (and back down once the sheet was full). The list keeps the height it has
+            // collapsed; a group's feeds open inside it and it scrolls to them, so nothing else moves.
+            val density = LocalDensity.current
+            var collapsedPx by remember(places.size) { mutableStateOf<Int?>(null) }
+            val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+            LaunchedEffect(openGroups) {
+                val last = openGroups.lastOrNull() ?: return@LaunchedEffect
+                val at = places.indexOfFirst { it.id == last }
+                if (at >= 0) listState.animateScrollToItem(at)
+            }
             LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+                state = listState,
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .onSizeChanged { if (openGroups.isEmpty()) collapsedPx = it.height }
+                        .then(
+                            collapsedPx?.let { Modifier.height(with(density) { it.toDp() }) }
+                                ?: Modifier.weight(1f, fill = false)
+                        ),
                 verticalArrangement = Arrangement.spacedBy(me.ash.reader.brief.ui.Group.Gap),
             ) {
                 itemsIndexed(places, key = { _, it -> it.id }) { index, place ->
