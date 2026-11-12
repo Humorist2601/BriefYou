@@ -30,6 +30,8 @@ EXEMPT = [
     r"^app/src/main/res/mipmap[^/]*/",
     r"^app/src/main/res/values/ic_launcher_background\.xml$",
     r"^app/src/main/baseline-prof\.txt$",
+    r"^app/src/test/java/me/ash/reader/ExampleUnitTest\.kt$",
+    r"^app/src/androidTest/java/me/ash/reader/ExampleInstrumentedTest\.kt$",
 ]
 
 
