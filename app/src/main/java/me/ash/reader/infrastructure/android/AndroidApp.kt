@@ -126,6 +126,7 @@ class AndroidApp : Application(), Configuration.Provider {
                 me.ash.reader.brief.offline.OfflineCopies.schedule(this@AndroidApp) // Brief You
             } // Brief You
         } // Brief You
+        me.ash.reader.brief.backup.AutoBackup.schedule(this) // Brief You
     }
 
     /** Override the [Configuration.Builder] to provide the [HiltWorkerFactory]. */

@@ -258,6 +258,7 @@ fun AccountDetailsPage(
                         onClick = { exportOPMLModeDialogVisible = true },
                     ) {}
                     selectedAccount?.id?.let { me.ash.reader.brief.backup.BackupSettingItems(it) } // Brief You
+                    selectedAccount?.id?.let { me.ash.reader.brief.backup.AutoBackupSettingItems(it) } // Brief You
                     SettingItem(
                         title = stringResource(R.string.clear_all_articles),
                         onClick = { viewModel.showClearDialog() },

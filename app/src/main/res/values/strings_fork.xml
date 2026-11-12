@@ -467,4 +467,36 @@
     <string name="install_update">Install</string>
     <string name="update_check_on_start">Check for updates</string>
     <string name="update_check_on_start_desc">When the app starts</string>
+
+    <!-- Automatic backup -->
+    <string name="auto_backup_title">Automatic backup</string>
+    <string name="auto_backup_off">Off</string>
+    <string name="auto_backup_daily">Daily</string>
+    <string name="auto_backup_weekly">Weekly</string>
+    <string name="auto_backup_folder">Backup folder</string>
+    <string name="auto_backup_no_folder">Choose a folder</string>
+    <string name="auto_backup_keep">Keep the latest</string>
+    <plurals name="auto_backup_keep_n">
+        <item quantity="one">%1$d backup</item>
+        <item quantity="other">%1$d backups</item>
+    </plurals>
+    <string name="auto_backup_now">Back up now</string>
+    <string name="auto_backup_none">No backup yet</string>
+    <string name="auto_backup_failed">Backup failed. Check the folder.</string>
+
+    <!-- Translate an article -->
+    <string name="translate_action">Translate</string>
+    <string name="translate_to">Translate to</string>
+    <string name="translate_to_hint">Used for every article you translate.</string>
+    <string name="translate_phone_language">Phone language</string>
+    <string name="translate_running">Translating to %1$s</string>
+    <string name="translate_progress">Part %1$d of %2$d · by your AI model</string>
+    <string name="translate_done">Translated to %1$s</string>
+    <string name="translate_by_ai">By your AI model, may contain mistakes</string>
+    <string name="translate_failed">Translation stopped</string>
+    <string name="translate_stop">Stop</string>
+    <string name="translate_dismiss">Dismiss</string>
+    <string name="translate_show_original">Show original</string>
+    <string name="translate_show_translation">Show translation</string>
+    <string name="translate_needs_model">Download the AI model first (AI settings).</string>
 </resources>

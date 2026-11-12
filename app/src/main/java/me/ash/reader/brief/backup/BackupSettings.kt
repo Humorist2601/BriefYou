@@ -43,6 +43,7 @@ import me.ash.reader.ui.page.settings.SettingItem
 class BackupViewModel
 @Inject
 constructor(
+    @param:dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val backupService: BackupService,
     @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
     @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
@@ -55,6 +56,14 @@ constructor(
         viewModelScope.launch(defaultDispatcher) {
             val bytes = runCatching { backupService.create(accountId) }.getOrNull()
             withContext(mainDispatcher) { callback(bytes ?: ByteArray(0)) }
+        }
+    }
+
+    /** One automatic-style backup into the chosen folder now; [callback] gets whether it worked. */
+    fun backupNow(accountId: Int, callback: (Boolean) -> Unit) {
+        applicationScope.launch(ioDispatcher) {
+            val ok = AutoBackup.run(appContext, backupService, accountId)
+            withContext(mainDispatcher) { callback(ok) }
         }
     }
 

@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuOpen
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.rounded.Close
@@ -81,6 +82,10 @@ fun BriefTopBar(
     onNavButtonClick: (NavigationAction) -> Unit = {},
     onNavigateToStylePage: () -> Unit,
     onSummarize: (() -> Unit)? = null,
+    /** Translate the article: a tap translates or flips to the original, a long press picks the language. */
+    onTranslate: (() -> Unit)? = null,
+    onTranslateLong: (() -> Unit)? = null,
+    translateSelected: Boolean = false,
     /** A long press on Share: the article as a newspaper. */
     onShareNewspaper: (() -> Unit)? = null,
 ) {
@@ -173,6 +178,18 @@ fun BriefTopBar(
                                             stringResource(R.string.ai_summarize),
                                         ) {
                                             onSummarize()
+                                        }
+                                    )
+                                }
+                                if (onTranslate != null) {
+                                    add(
+                                        TopBarAction(
+                                            Icons.Outlined.Translate,
+                                            stringResource(R.string.translate_action),
+                                            selected = translateSelected,
+                                            onLongClick = onTranslateLong,
+                                        ) {
+                                            onTranslate()
                                         }
                                     )
                                 }

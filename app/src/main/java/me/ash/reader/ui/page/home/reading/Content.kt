@@ -53,6 +53,7 @@ fun Content(
     contentPadding: PaddingValues = PaddingValues(),
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
     afterArticle: (@Composable () -> Unit)? = null, // Brief You: the next article card
+    afterHeadline: (@Composable () -> Unit)? = null, // Brief You: the translation banner
 ) {
     val context = LocalContext.current
     val subheadUpperCase = LocalReadingSubheadUpperCase.current
@@ -101,6 +102,7 @@ fun Content(
                             Spacer(modifier = Modifier.height(64.dp))
                             // padding
                             headline()
+                            afterHeadline?.invoke() // Brief You
 
                             RYWebView(
                                 modifier = Modifier.fillMaxSize(),
@@ -132,6 +134,7 @@ fun Content(
                             // padding
                             Spacer(modifier = Modifier.height(contentPadding.calculateTopPadding()))
                             headline()
+                            afterHeadline?.invoke() // Brief You
                         }
 
                         Reader(

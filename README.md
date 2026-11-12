@@ -42,6 +42,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
   - it stays loaded while the app is open and unloads 3 minutes after you leave it;
   - it only loads ahead when the phone can afford it (not in battery saver, with battery to spare or charging, and enough free memory); otherwise it loads on first use;
   - if your phone's GPU can't run it (Pixels' Tensor chips can't), the app goes straight to the CPU, trying the GPU again after a month.
+- Translate: the translate button in the reading page's top bar translates the article with your AI model, a few paragraphs at a time (a wavy bar shows the parts), into your phone's language. Tap again to flip between the original and the translation; hold it to pick another language. Links inside a paragraph become plain text in the translation. It is slower than an online translator, and it may make mistakes.
 - Summaries open in a sheet at 70% of the screen. Each key point slides in as a card as it's written, and "Why it matters" gets its own accent card.
 - Regenerate, Ask and Read are three connected buttons at the bottom of the sheet.
 - Gists: tap **AI gist** in the floating button at the bottom of an *Unread* list. One tap marks all of them as read.
@@ -190,6 +191,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 <summary>More details</summary>
 
 - The backup also has sync settings and AI instructions.
+- *Account → Advanced → Automatic backup* saves the same backup into a folder you pick, daily or weekly (off by default), while the phone charges. It keeps the newest 5 files (1 to 30), and *Back up now* makes one right away. The files outlive the app.
 - Every other branch is built as **Brief You Nightly**, with a night-sky icon, published as the one *Nightly* prerelease.
 - Back up in *Account → Advanced → Back up everything*. It also includes custom feed and group icons, feed and group order, the Triage delay and the read-aloud speed.
 - Restore adds everything back on any phone: feeds you already have are kept, feeds go into your existing groups, and starred articles come back even if their feed dropped them. Server logins and the AI model aren't included.
