@@ -25,13 +25,15 @@ fun StickyHeader(
     // Brief You: a faint hairline under the pinned day only while articles pass under it.
     val lineAlpha by androidx.compose.animation.core.animateFloatAsState(if (line) 1f else 0f, label = "dayLine") // Brief You
     androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxWidth()) { // Brief You
+    // Brief You: once articles pass under it, the pinned day takes the top bar's colour (the
+    // lifted one when the bar has tonal elevation), so the two read as one block.
+    val listColor = MaterialTheme.colorScheme.surfaceColorAtElevation(articleListTonalElevation.dp) onDark MaterialTheme.colorScheme.surface // Brief You
+    val barColor = with(MaterialTheme.colorScheme) { if (me.ash.reader.infrastructure.preference.LocalFlowTopBarTonalElevation.current.value > 0) surfaceContainer else surface } // Brief You
+    val headerColor by androidx.compose.animation.animateColorAsState(if (line) barColor else listColor, label = "dayColor") // Brief You
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.surfaceColorAtElevation(articleListTonalElevation.dp)
-                        onDark MaterialTheme.colorScheme.surface
-            ),
+            .background(headerColor), // Brief You
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -54,7 +56,7 @@ fun StickyHeader(
     }
     androidx.compose.material3.HorizontalDivider( // Brief You: on the header's colour, so nothing shows through
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f * lineAlpha), // Brief You: lighter than a divider
-        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceColorAtElevation(articleListTonalElevation.dp) onDark MaterialTheme.colorScheme.surface), // Brief You
+        modifier = Modifier.background(headerColor), // Brief You
     ) // Brief You
     } // Brief You
 }

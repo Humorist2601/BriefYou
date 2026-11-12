@@ -43,34 +43,16 @@ fun UpdateDialog(
     updateViewModel: UpdateViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    val updateUiState = updateViewModel.updateUiState.collectAsStateValue()
-    val downloadState = updateUiState.downloadFlow.collectAsState(initial = Download.NotYet).value
+    val updateUiState = updateViewModel.updateUiState.collectAsStateValue() // Brief You: the old download state is replaced below
     val scope = rememberCoroutineScope { Dispatchers.IO }
     val newVersionNumber = LocalNewVersionNumber.current
     val newVersionPublishDate = LocalNewVersionPublishDate.current
     val newVersionLog = LocalNewVersionLog.current
     val newVersionSize = LocalNewVersionSize.current
 
-    val settings = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) {
-        context.installLatestApk()
-    }
-
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { result ->
-        if (result) {
-            context.installLatestApk()
-        } else {
-            settings.launch(
-                Intent(
-                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                    Uri.parse("package:${context.packageName}"),
-                ),
-            )
-        }
-    }
+    // Brief You: the update downloads in the background, like the AI model; then Install.
+    val newVersionDownloadUrl = LocalNewVersionDownloadUrl.current // Brief You
+    val downloadingState = androidx.compose.runtime.remember(context) { me.ash.reader.brief.update.UpdateDownload.state(context) }.collectAsState(initial = me.ash.reader.brief.update.UpdateDownload.State.Idle).value // Brief You
 
     RYDialog(
         modifier = Modifier.heightIn(max = 400.dp),
@@ -105,41 +87,29 @@ fun UpdateDialog(
             }
         },
         confirmButton = {
+            // Brief You: Download (in the background), its percent, then Install.
+            val downloading = downloadingState as? me.ash.reader.brief.update.UpdateDownload.State.Downloading // Brief You
             TextButton(
+                enabled = downloading == null, // Brief You
                 onClick = {
-                    context.openURL("${context.getString(R.string.github_link)}/releases/latest", OpenLinkPreference.AutoPreferCustomTabs)
-                    // Disable automatic updates in F-Droid
-//                    if (downloadState !is Download.Progress) {
-//                        updateViewModel.dispatch(
-//                            UpdateViewAction.DownloadUpdate(
-//                                url = context.newVersionDownloadUrl,
-//                            )
-//                        )
-//                    }
+                    when (downloadingState) { // Brief You
+                        is me.ash.reader.brief.update.UpdateDownload.State.Ready -> context.installLatestApk() // Brief You
+                        else -> if (newVersionDownloadUrl.isNotBlank()) me.ash.reader.brief.update.UpdateDownload.start(context, newVersionDownloadUrl) // Brief You
+                        else context.openURL("${context.getString(R.string.github_link)}/releases/latest", OpenLinkPreference.AutoPreferCustomTabs) // Brief You
+                    }
                 }
             ) {
                 Text(
-                    text = stringResource(R.string.update) + when (downloadState) {
-                        is Download.NotYet -> ""
-                        is Download.Progress -> " ${downloadState.percent}%"
-                        is Download.Finished -> {
-                            if (context.packageManager.canRequestPackageInstalls()) {
-                                Log.i(
-                                    "RLog",
-                                    "Download.Finished: ${downloadState.file.absolutePath}"
-                                )
-                                context.installLatestApk()
-                            } else {
-                                launcher.launch(Manifest.permission.REQUEST_INSTALL_PACKAGES)
-                            }
-                            ""
-                        }
+                    text = when { // Brief You
+                        downloading != null -> downloading.percent?.let { "$it%" } ?: stringResource(R.string.download_update) // Brief You
+                        downloadingState is me.ash.reader.brief.update.UpdateDownload.State.Ready -> stringResource(R.string.install_update) // Brief You
+                        else -> stringResource(R.string.download_update) // Brief You
                     }
                 )
             }
         },
         dismissButton = {
-            if (downloadState !is Download.Progress) {
+            if (downloadingState !is me.ash.reader.brief.update.UpdateDownload.State.Downloading) { // Brief You
                 TextButton(
                     onClick = {
                         SkipVersionNumberPreference.put(context, scope, newVersionNumber.toString())

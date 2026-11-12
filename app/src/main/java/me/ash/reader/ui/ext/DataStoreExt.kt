@@ -184,6 +184,9 @@ sealed interface PreferencesKey {
         const val readingImageMaximize = "readingImageMaximize"
         const val readingImageHorizontalPadding = "readingImageHorizontalPadding"
         const val readingImageRoundedCorners = "readingImageRoundedCorners"
+        const val readingVideoRoundedCorners = "readingVideoRoundedCorners" // Brief You
+        const val readingVideoHorizontalPadding = "readingVideoHorizontalPadding" // Brief You
+        const val readingVideoMaximize = "readingVideoMaximize" // Brief You
 
         // Interaction
         const val initialPage = "initialPage"
@@ -261,6 +264,9 @@ sealed interface PreferencesKey {
                 BooleanKey(readingImageMaximize),
                 IntKey(readingImageHorizontalPadding),
                 IntKey(readingImageRoundedCorners),
+                IntKey(readingVideoRoundedCorners), // Brief You
+                IntKey(readingVideoHorizontalPadding), // Brief You
+                BooleanKey(readingVideoMaximize), // Brief You
                 // Interaction
                 IntKey(initialPage),
                 IntKey(initialFilter),
@@ -346,6 +352,9 @@ data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
         const val readingImageMaximize = "readingImageMaximize"
         const val readingImageHorizontalPadding = "readingImageHorizontalPadding"
         const val readingImageRoundedCorners = "readingImageRoundedCorners"
+        const val readingVideoRoundedCorners = "readingVideoRoundedCorners" // Brief You
+        const val readingVideoHorizontalPadding = "readingVideoHorizontalPadding" // Brief You
+        const val readingVideoMaximize = "readingVideoMaximize" // Brief You
 
         // Interaction
         const val initialPage = "initialPage"
@@ -490,6 +499,9 @@ data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
                     DataStoreKey(intPreferencesKey(readingImageHorizontalPadding), Int::class.java),
                 readingImageRoundedCorners to
                     DataStoreKey(intPreferencesKey(readingImageRoundedCorners), Int::class.java),
+                readingVideoRoundedCorners to DataStoreKey(intPreferencesKey(readingVideoRoundedCorners), Int::class.java), // Brief You
+                readingVideoHorizontalPadding to DataStoreKey(intPreferencesKey(readingVideoHorizontalPadding), Int::class.java), // Brief You
+                readingVideoMaximize to DataStoreKey(booleanPreferencesKey(readingVideoMaximize), Boolean::class.java), // Brief You
                 // Interaction
                 initialPage to DataStoreKey(intPreferencesKey(initialPage), Int::class.java),
                 initialFilter to DataStoreKey(intPreferencesKey(initialFilter), Int::class.java),

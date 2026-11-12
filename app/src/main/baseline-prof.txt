@@ -14,3 +14,7 @@ Lme/ash/reader/**;
 
 # All of the app's methods.
 HSPLme/ash/reader/**;->**(**)**
+
+# Compose and Material 3 (animations, sheets, sliders, the Expressive shapes and loading indicator).
+Landroidx/compose/**;
+HSPLandroidx/compose/**;->**(**)**

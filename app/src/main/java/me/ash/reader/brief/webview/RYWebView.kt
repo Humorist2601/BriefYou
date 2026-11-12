@@ -23,7 +23,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import me.ash.reader.infrastructure.preference.LocalReadingBoldCharacters
 import me.ash.reader.infrastructure.preference.LocalReadingFonts
 import me.ash.reader.infrastructure.preference.LocalReadingImageHorizontalPadding
+import me.ash.reader.infrastructure.preference.LocalReadingImageMaximize
 import me.ash.reader.infrastructure.preference.LocalReadingImageRoundedCorners
+import me.ash.reader.infrastructure.preference.LocalReadingSubheadAlign
+import me.ash.reader.infrastructure.preference.LocalReadingVideoHorizontalPadding
+import me.ash.reader.infrastructure.preference.LocalReadingVideoMaximize
+import me.ash.reader.infrastructure.preference.LocalReadingVideoRoundedCorners
 import me.ash.reader.infrastructure.preference.LocalReadingPageTonalElevation
 import me.ash.reader.infrastructure.preference.LocalReadingSubheadBold
 import me.ash.reader.infrastructure.preference.LocalReadingSubheadUpperCase
@@ -77,6 +82,11 @@ fun RYWebView(
     val lineHeight: Float = LocalReadingTextLineHeight.current
     val imgMargin: Int = LocalReadingImageHorizontalPadding.current
     val imgBorderRadius: Int = LocalReadingImageRoundedCorners.current
+    val imgMaximize: Boolean = LocalReadingImageMaximize.current.value
+    val subheadAlign: String = LocalReadingSubheadAlign.current.toTextAlignCSS()
+    val videoCorners: Int = LocalReadingVideoRoundedCorners.current
+    val videoPadding: Int = LocalReadingVideoHorizontalPadding.current
+    val videoMaximize: Boolean = LocalReadingVideoMaximize.current
     val codeTextColor: Int = colorScheme.tertiary.toArgb()
     val codeBgColor: Int =
         colorScheme.surfaceColorAtElevation((tonalElevation.value + 6).dp).toArgb()
@@ -98,7 +108,7 @@ fun RYWebView(
             fontSize, fontPath, lineHeight, letterSpacing, textMargin, textColor, textBold,
             textAlign, boldTextColor, subheadBold, subheadUpperCase, imgMargin, imgBorderRadius,
             linkTextColor, codeTextColor, codeBgColor, selectionTextColor, selectionBgColor,
-            isDarkBackground,
+            isDarkBackground, subheadAlign, imgMaximize, videoCorners, videoPadding, videoMaximize,
         ) {
             WebViewStyle.get(
                 fontSize = fontSize,
@@ -121,7 +131,9 @@ fun RYWebView(
                 selectionTextColor = selectionTextColor,
                 selectionBgColor = selectionBgColor,
                 isDark = isDarkBackground,
+                subheadAlign = subheadAlign,
             ) +
+                MediaStyle.css(imgMaximize, videoCorners, videoPadding, videoMaximize) +
                 // Boxes with a loading indicator for the pictures still loading (no jumping text).
                 // (the same tonal colour as code blocks, and the accent colour).
                 ImagePlaceholders.css(boxColor = codeBgColor, indicatorColor = linkTextColor)

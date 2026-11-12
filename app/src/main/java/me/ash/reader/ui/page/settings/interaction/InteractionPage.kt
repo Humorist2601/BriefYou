@@ -248,6 +248,7 @@ fun InteractionPage(
                     ) {}
                     } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
+                    me.ash.reader.brief.triage.TriageSettings() // Brief You: Triage's auto-advance
                 }
                 item {
                     Spacer(modifier = Modifier.height(24.dp))

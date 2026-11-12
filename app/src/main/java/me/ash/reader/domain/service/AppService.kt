@@ -57,8 +57,9 @@ class AppService @Inject constructor(
 //            val latestVersion = "1.0.0".toVersion()
             val latestLog = latest.body ?: ""
             val latestPublishDate = latest.published_at ?: latest.created_at ?: ""
-            val latestSize = latest.assets?.first()?.size ?: 0
-            val latestDownloadUrl = latest.assets?.first()?.browser_download_url ?: ""
+            val latestAsset = latest.assets?.firstOrNull { it.name?.endsWith(".apk") == true } ?: latest.assets?.firstOrNull() // Brief You: the APK, not just the first file
+            val latestSize = latestAsset?.size ?: 0
+            val latestDownloadUrl = latestAsset?.browser_download_url ?: ""
 
             Log.i("RLog", "current version $currentVersion")
             if (latestVersion.whetherNeedUpdate(currentVersion, skipVersion)) {

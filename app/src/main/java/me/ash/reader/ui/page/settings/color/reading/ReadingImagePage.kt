@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.settings.color.reading
 
+import kotlin.math.roundToInt // Brief You: the number sheet
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
@@ -118,14 +119,12 @@ fun ReadingImagePage(
                         onClick = { roundedCornersDialogVisible = true },
                     ) {}
                     SettingItem(
-                        enabled = renderer == ReadingRendererPreference.NativeComponent,
-                        title = stringResource(R.string.horizontal_padding),
+                        title = stringResource(R.string.horizontal_padding), // Brief You: works in the web view too
                         desc = "${horizontalPadding}dp",
                         onClick = { horizontalPaddingDialogVisible = true },
                     ) {}
                     SettingItem(
-                        enabled = renderer == ReadingRendererPreference.NativeComponent,
-                        title = stringResource(R.string.maximize),
+                        title = stringResource(R.string.maximize), // Brief You: works in the web view too
                         onClick = {
                             (!maximize).put(context, scope)
                             ReadingThemePreference.Custom.put(context, scope)
@@ -147,39 +146,32 @@ fun ReadingImagePage(
         }
     )
 
-    TextFieldDialog(
-        visible = roundedCornersDialogVisible,
+    // Brief You: number settings are a slider sheet (NumberSheet)
+    if (roundedCornersDialogVisible) me.ash.reader.brief.ui.NumberSheet(
         title = stringResource(R.string.rounded_corners),
-        value = (roundedCornersValue ?: "").toString(),
-        placeholder = stringResource(R.string.value),
-        onValueChange = {
-            roundedCornersValue = it.filter { it.isDigit() }.toIntOrNull()
-        },
-        onDismissRequest = {
-            roundedCornersDialogVisible = false
-        },
-        onConfirm = {
-            ReadingImageRoundedCornersPreference.put(context, scope, roundedCornersValue ?: 0)
+        value = roundedCorners.toFloat(),
+        range = 0f..48f,
+        step = 4f,
+        default = ReadingImageRoundedCornersPreference.default.toFloat(),
+        suffix = "dp",
+        onSave = {
+            ReadingImageRoundedCornersPreference.put(context, scope, it.roundToInt())
             ReadingThemePreference.Custom.put(context, scope)
-            roundedCornersDialogVisible = false
-        }
+        },
+        onDismiss = { roundedCornersDialogVisible = false },
     )
 
-    TextFieldDialog(
-        visible = horizontalPaddingDialogVisible,
+    if (horizontalPaddingDialogVisible) me.ash.reader.brief.ui.NumberSheet( // Brief You
         title = stringResource(R.string.horizontal_padding),
-        value = (horizontalPaddingValue ?: "").toString(),
-        placeholder = stringResource(R.string.value),
-        onValueChange = {
-            horizontalPaddingValue = it.filter { it.isDigit() }.toIntOrNull()
-        },
-        onDismissRequest = {
-            horizontalPaddingDialogVisible = false
-        },
-        onConfirm = {
-            ReadingImageHorizontalPaddingPreference.put(context, scope, horizontalPaddingValue ?: 0)
+        value = horizontalPadding.toFloat(),
+        range = 0f..64f,
+        step = 4f,
+        default = ReadingImageHorizontalPaddingPreference.default.toFloat(),
+        suffix = "dp",
+        onSave = {
+            ReadingImageHorizontalPaddingPreference.put(context, scope, it.roundToInt())
             ReadingThemePreference.Custom.put(context, scope)
-            horizontalPaddingDialogVisible = false
-        }
+        },
+        onDismiss = { horizontalPaddingDialogVisible = false },
     )
 }

@@ -97,6 +97,8 @@ interface ArticleDao {
             title LIKE '%' || :text || '%'
             OR shortDescription LIKE '%' || :text || '%'
             OR fullContent LIKE '%' || :text || '%'
+            OR author LIKE '%' || :text || '%' /* Brief You: the author, */
+            OR feedId IN (SELECT id FROM feed WHERE name LIKE '%' || :text || '%') /* and the feed's name */
         )
         ORDER BY
             CASE WHEN :sortAscending = 1 THEN date END ASC,
@@ -124,6 +126,8 @@ interface ArticleDao {
             title LIKE '%' || :text || '%'
             OR shortDescription LIKE '%' || :text || '%'
             OR fullContent LIKE '%' || :text || '%'
+            OR author LIKE '%' || :text || '%' /* Brief You: the author, */
+            OR feedId IN (SELECT id FROM feed WHERE name LIKE '%' || :text || '%') /* and the feed's name */
         )
         ORDER BY
             CASE WHEN :sortAscending = 1 THEN date END ASC,
@@ -150,6 +154,8 @@ interface ArticleDao {
             title LIKE '%' || :text || '%'
             OR shortDescription LIKE '%' || :text || '%'
             OR fullContent LIKE '%' || :text || '%'
+            OR author LIKE '%' || :text || '%' /* Brief You: the author, */
+            OR feedId IN (SELECT id FROM feed WHERE name LIKE '%' || :text || '%') /* and the feed's name */
         )
         ORDER BY
             CASE WHEN :sortAscending = 1 THEN date END ASC,
@@ -171,6 +177,8 @@ interface ArticleDao {
             title LIKE '%' || :text || '%'
             OR shortDescription LIKE '%' || :text || '%'
             OR fullContent LIKE '%' || :text || '%'
+            OR author LIKE '%' || :text || '%' /* Brief You: the author, */
+            OR feedId IN (SELECT id FROM feed WHERE name LIKE '%' || :text || '%') /* and the feed's name */
         )
         ORDER BY
             CASE WHEN :sortAscending = 1 THEN date END ASC,
@@ -196,6 +204,8 @@ interface ArticleDao {
             title LIKE '%' || :text || '%'
             OR shortDescription LIKE '%' || :text || '%'
             OR fullContent LIKE '%' || :text || '%'
+            OR author LIKE '%' || :text || '%' /* Brief You: the author, */
+            OR feedId IN (SELECT id FROM feed WHERE name LIKE '%' || :text || '%') /* and the feed's name */
         )
         ORDER BY
             CASE WHEN :sortAscending = 1 THEN date END ASC,
@@ -220,6 +230,8 @@ interface ArticleDao {
             title LIKE '%' || :text || '%'
             OR shortDescription LIKE '%' || :text || '%'
             OR fullContent LIKE '%' || :text || '%'
+            OR author LIKE '%' || :text || '%' /* Brief You: the author, */
+            OR feedId IN (SELECT id FROM feed WHERE name LIKE '%' || :text || '%') /* and the feed's name */
         )
         ORDER BY
             CASE WHEN :sortAscending = 1 THEN date END ASC,
@@ -240,6 +252,8 @@ interface ArticleDao {
             title LIKE '%' || :text || '%'
             OR shortDescription LIKE '%' || :text || '%'
             OR fullContent LIKE '%' || :text || '%'
+            OR author LIKE '%' || :text || '%' /* Brief You: the author, */
+            OR feedId IN (SELECT id FROM feed WHERE name LIKE '%' || :text || '%') /* and the feed's name */
         )
         ORDER BY
             CASE WHEN :sortAscending = 1 THEN date END ASC,
@@ -260,6 +274,8 @@ interface ArticleDao {
             title LIKE '%' || :text || '%'
             OR shortDescription LIKE '%' || :text || '%'
             OR fullContent LIKE '%' || :text || '%'
+            OR author LIKE '%' || :text || '%' /* Brief You: the author, */
+            OR feedId IN (SELECT id FROM feed WHERE name LIKE '%' || :text || '%') /* and the feed's name */
         )
         ORDER BY
             CASE WHEN :sortAscending = 1 THEN date END ASC,
@@ -279,6 +295,8 @@ interface ArticleDao {
             title LIKE '%' || :text || '%'
             OR shortDescription LIKE '%' || :text || '%'
             OR fullContent LIKE '%' || :text || '%'
+            OR author LIKE '%' || :text || '%' /* Brief You: the author, */
+            OR feedId IN (SELECT id FROM feed WHERE name LIKE '%' || :text || '%') /* and the feed's name */
         )
         ORDER BY
             CASE WHEN :sortAscending = 1 THEN date END ASC,

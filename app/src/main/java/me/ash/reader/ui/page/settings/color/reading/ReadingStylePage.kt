@@ -199,11 +199,8 @@ fun ReadingStylePage(
                             (!autoHideToolbar).put(context, scope)
                         }
                     }
-                    SettingItem(
-                        title = stringResource(R.string.rearrange_buttons),
-                        enabled = false,
-                        onClick = {},
-                    ) {}
+                    me.ash.reader.brief.reading.NewsletterSettingItem() // Brief You
+                    // Brief You: "Rearrange buttons" is hidden until it works
 
                     SettingItem(
                         title = stringResource(id = R.string.pull_to_switch_article),
@@ -259,8 +256,7 @@ fun ReadingStylePage(
                         title = stringResource(R.string.videos),
                         desc = stringResource(R.string.videos_desc),
                         icon = Icons.Outlined.Movie,
-                        enabled = false,
-                        onClick = navigateToReadingPageVideo,
+                        onClick = navigateToReadingPageVideo, // Brief You: the Videos page works now
                     ) {}
                     } // Brief You
                 }

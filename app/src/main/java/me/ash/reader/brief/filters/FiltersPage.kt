@@ -166,6 +166,8 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
     // until tapped; an open group shows a few articles at a time. Today's are always shown.
     var openGroups by rememberSaveable { mutableStateOf(setOf<String>()) }
     var shownInGroup by remember { mutableStateOf(mapOf<String, Int>()) }
+    // Earlier days sit under their month; this month starts open, older ones closed.
+    var openMonths by rememberSaveable { mutableStateOf(setOf(java.time.YearMonth.now().toString())) }
     val mutedCount = log.count { it.reason == FilterReason.MutedKeyword }
     val duplicateCount = log.count { it.reason == FilterReason.Duplicate }
     // The filtered articles, newest first, under Today / Yesterday / a date.
@@ -756,7 +758,22 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         )
                     }
                 }
-                earlier.forEach { (day, entries) -> reasonGroups(day, entries) }
+                // A layer of months over the earlier days, so a long list stays short: a row per
+                // month with its count, opening to that month's days.
+                earlier.entries.groupBy { java.time.YearMonth.from(java.time.LocalDate.ofEpochDay(it.key)) }.forEach { (month, monthDays) ->
+                    val monthKey = month.toString()
+                    val monthOpen = monthKey in openMonths
+                    item(key = "month-$monthKey") {
+                        ReasonGroupRow(
+                            title = monthLabel(month),
+                            count = monthDays.sumOf { (_, rows) -> rows.sumOf { if (it is LogRow.Duplicates) it.copies.size else 1 } },
+                            open = monthOpen,
+                            modifier = Modifier.animateItem(),
+                            onClick = { openMonths = if (monthOpen) openMonths - monthKey else openMonths + monthKey },
+                        )
+                    }
+                    if (monthOpen) monthDays.forEach { (day, entries) -> reasonGroups(day, entries) }
+                }
                 item {
                     Spacer(Modifier.height(8.dp))
                     Surface(
@@ -1009,7 +1026,7 @@ private fun FilterLogCard(
                     }
                     // The feed this copy came from (the chip names the feed that had it first).
                     Text(
-                        text = stringResource(R.string.filters_from_feed, entry.feedName),
+                        text = stringResource(R.string.filters_from_feed, entry.feedName) + " · " + timeOf(entry.at), // Brief You: when it was filtered
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -1160,7 +1177,7 @@ private fun DuplicateGroupCard(
                     // The hidden copy: which feed it came from, and its own title.
                     Column(modifier = Modifier.weight(1f).padding(vertical = 8.dp)) {
                         Text(
-                            text = stringResource(R.string.filters_hidden_from, copy.feedName),
+                            text = stringResource(R.string.filters_hidden_from, copy.feedName) + " · " + timeOf(copy.at), // when it was hidden
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.tertiary,
                             maxLines = 1,
@@ -1270,6 +1287,17 @@ private fun dayOf(millis: Long): Long =
         .atZone(java.time.ZoneId.systemDefault())
         .toLocalDate()
         .toEpochDay()
+
+/** The time of day a filtered article was caught, in the phone's own style (14:32 or 2:32 PM). */
+private fun timeOf(millis: Long): String =
+    java.time.Instant.ofEpochMilli(millis)
+        .atZone(java.time.ZoneId.systemDefault())
+        .toLocalTime()
+        .format(java.time.format.DateTimeFormatter.ofLocalizedTime(java.time.format.FormatStyle.SHORT))
+
+/** "November 2026". */
+private fun monthLabel(month: java.time.YearMonth): String =
+    month.month.getDisplayName(java.time.format.TextStyle.FULL_STANDALONE, java.util.Locale.getDefault()) + " " + month.year
 
 @Composable
 private fun dayLabel(day: Long): String {

@@ -219,6 +219,15 @@
     <string name="triage_auto_start">Start auto-advance</string>
     <string name="triage_auto_stop">Stop auto-advance</string>
     <string name="triage_auto_paused">Auto-advance paused</string>
+    <string name="triage_settings_title">Triage</string>
+    <string name="triage_auto_action">When auto-advance\'s time is up</string>
+    <string name="triage_auto_action_skip">Skip the card</string>
+    <string name="triage_auto_action_read">Mark it as read</string>
+    <string name="triage_auto_action_save">Save it</string>
+    <string name="triage_auto_delay_setting">Auto-advance delay</string>
+    <string name="triage_auto_delay_read">Mark as read after</string>
+    <string name="triage_auto_delay_save">Save after</string>
+    <string name="triage_mark_place_read">Mark as read</string>
     <string name="triage_auto_delay">Skip after</string>
     <string name="triage_auto_seconds">%d seconds</string>
 
@@ -396,6 +405,7 @@
     <string name="triage_skip_place">Skip %1$s</string>
     <string name="triage_jump_hint">The cards you leave here stay unread.</string>
     <string name="triage_summary_working">Summarising…</string>
+    <string name="triage_summary_label">Summary</string>
     <string name="triage_summary_done">Summary · tap for the article</string>
     <string name="triage_summary_tap_for_summary">Tap for the summary</string>
     <string name="triage_summary_no_model_title">AI summary</string>
@@ -437,4 +447,20 @@
         <item quantity="one">watched</item>
         <item quantity="other">watched</item>
     </plurals>
+    <string name="number_custom">Custom value</string>
+    <string name="number_reset">Reset to %1$s</string>
+    <string name="number_done">Done</string>
+    <string name="number_past_slider">Past the slider (%1$s–%2$s), a custom value</string>
+    <string name="same_as_images">Same as images</string>
+    <string name="tidy_newsletters">Tidy newsletters</string>
+    <string name="tidy_newsletters_desc">Outlined buttons, boxed notes and divider lines, without the sender\'s logo or a repeated headline. Off shows the plain article.</string>
+    <string name="offline_copies_wifi">Starred downloads only on Wi-Fi</string>
+    <string name="update_download_channel">App update download</string>
+    <string name="update_download_title">Downloading the update</string>
+    <string name="update_ready">The update is ready. Tap to install.</string>
+    <string name="update_download_failed">The update could not be downloaded.</string>
+    <string name="download_update">Download</string>
+    <string name="install_update">Install</string>
+    <string name="update_check_on_start">Check for updates</string>
+    <string name="update_check_on_start_desc">When the app starts</string>
 </resources>

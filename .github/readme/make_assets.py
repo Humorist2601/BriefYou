@@ -262,7 +262,7 @@ TABLES = {
         ('Summary on the card', 'Long-press a card for 3 key points from the on-device AI.'),
         ('Auto-advance', 'Skips each card after a few seconds, with a wavy countdown ring.'),
         ('Next group', 'When a group is done, the next one follows; a bar shows the whole run.'),
-        ('Jump between groups', 'Tap the group name under "Triage" to pick another.'),
+        ('Jump between groups', 'Tap the group name under "Triage" to pick another, or open a group to Triage just one feed.'),
         ('Share', 'Tap Share for the link; hold it to share the card as a picture.'),
         ('Inbox zero', 'A little celebration when you’re all caught up.'),
     ],

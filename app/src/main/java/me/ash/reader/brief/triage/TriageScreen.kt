@@ -41,6 +41,8 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.util.lerp
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -89,6 +91,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.zIndex
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -351,6 +355,9 @@ class TriageSession(
         val swipedSkipsBefore: Int,
         val notReachedIn: Map<String, Int>,
         val doneBeforeIn: Map<String, Int>,
+        val knownPlaces: List<TriageNext>, // Brief You: a run of groups can turn into a run of feeds
+        val startUnread: Int,
+        val startPlaces: Int,
     )
 
     private val previous = ArrayDeque<Saved>()
@@ -386,6 +393,9 @@ class TriageSession(
         swipedSkipsBefore = saved.swipedSkipsBefore
         notReachedIn = saved.notReachedIn
         doneBeforeIn = saved.doneBeforeIn
+        knownPlaces = saved.knownPlaces
+        startUnread = saved.startUnread
+        startPlaces = saved.startPlaces
         previousCount = previous.size
         return true
     }
@@ -400,12 +410,48 @@ class TriageSession(
         (feedId ?: groupId)?.let { here -> placeSizes = placeSizes + (here to ((placeSizes[here] ?: 0) + more.size)) }
     }
 
+    /**
+     * From a run of groups to one feed's Triage (picked in the groups sheet): a new run of feeds
+     * starts here, carrying on with the next feed when this one is done. The group you came from
+     * is kept for Undo on this feed's first card, and its unread cards stay unread.
+     */
+    fun startFeedRun(feed: TriageNext, cards: List<ArticleWithFeed>, unread: Int, places: Int) {
+        previous.addLast(
+            Saved(
+                articles, groupId, feedId, title, visited, placeSizes, index, history.toList(),
+                skippedBefore, readBefore, savedBefore, placesWithSkips, leftIn,
+                swipedSkipsBefore, notReachedIn, doneBeforeIn,
+                knownPlaces, startUnread, startPlaces,
+            )
+        )
+        previousCount = previous.size
+        skippedBefore = 0
+        readBefore = 0
+        savedBefore = 0
+        placesWithSkips = 0
+        swipedSkipsBefore = 0
+        leftIn = emptyMap()
+        notReachedIn = emptyMap()
+        doneBeforeIn = emptyMap()
+        knownPlaces = emptyList()
+        setStart(unread, places)
+        visited = setOf(feed.id)
+        placeSizes = mapOf(feed.id to cards.size)
+        groupId = null
+        feedId = feed.id
+        title = feed.name
+        articles = cards
+        index = 0
+        history.clear()
+    }
+
     fun startNext(next: TriageNext, cards: List<ArticleWithFeed>) {
         previous.addLast(
             Saved(
                 articles, groupId, feedId, title, visited, placeSizes, index, history.toList(),
                 skippedBefore, readBefore, savedBefore, placesWithSkips, leftIn,
                 swipedSkipsBefore, notReachedIn, doneBeforeIn,
+                knownPlaces, startUnread, startPlaces,
             )
         )
         previousCount = previous.size
@@ -466,6 +512,8 @@ fun TriageScreen(
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
     listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext> = { _, _ -> emptyList() },
+    /** The feeds of a group with unread articles, for the groups sheet to open a group to its feeds. */
+    feedsOf: (groupId: String) -> List<TriageNext> = { emptyList() }, // Brief You
 ) {
     val scope = rememberCoroutineScope()
     val enter = remember { Animatable(0f) }
@@ -602,6 +650,7 @@ fun TriageScreen(
             findLeft,
             loadNext,
             listPlaces,
+            feedsOf, // Brief You
         )
     }
     }
@@ -654,6 +703,7 @@ private fun TriageContent(
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
     loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
     listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext>,
+    feedsOf: (groupId: String) -> List<TriageNext>, // Brief You
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -669,6 +719,8 @@ private fun TriageContent(
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("triage", android.content.Context.MODE_PRIVATE) }
     var autoSeconds by remember { mutableIntStateOf(prefs.getInt("auto_seconds", 5)) }
+    // What auto-advance does when the time is up (Usage settings): skip, mark as read or save.
+    val autoAction = remember { TriageAuto.action(context) }
     val autoProgress = remember { mutableFloatStateOf(0f) }
     // A finger on the card pauses auto-advance; the button at the top shows it.
     var autoHeld by remember { mutableStateOf(false) }
@@ -806,7 +858,7 @@ private fun TriageContent(
     val next = nextNew ?: backTo
     // Carries on with [target]: the end screen floats away (or the cards drop out of the way when
     // jumping from the middle of a group), then the new stack swipes up from the bottom.
-    fun goTo(target: TriageNext) {
+    fun goTo(target: TriageNext, fromGroup: Boolean = false) {
         if (loadingNext) return
         loadingNext = true
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -817,11 +869,31 @@ private fun TriageContent(
             else stackRise.animateTo(1f, tween(200, easing = FastOutLinearInEasing))
             val cards = loading.await()
             stackRise.snapTo(1f)
-            session.startNext(target, cards)
+            if (fromGroup && target.isFeed && session.feedId == null) {
+                // Brief You: a feed picked in a group's run: the run turns into one of feeds.
+                val all = listPlaces(true, setOf(target.id))
+                session.startFeedRun(target, cards, all.sumOf { it.unread }, all.count { it.unread > 0 })
+            } else {
+                session.startNext(target, cards)
+            }
             doneExit.snapTo(0f)
             stackRise.animateTo(0f, riseSpec)
             loadingNext = false
         }
+    }
+
+    // The cards left in this group (or feed) are marked as read, then on to the next one. Each is a
+    // step in the history, so Undo takes them back one by one.
+    fun markRestRead() {
+        val rest = articles.drop(index)
+        if (rest.isEmpty()) return
+        ReadingStats.triaged(context, rest.size)
+        rest.forEach {
+            onRead(it)
+            history += TriageStep(it, TriageAction.Read)
+        }
+        session.index = total
+        findNext(session.groupId, session.feedId, session.visited)?.let { goTo(it) }
     }
 
     // A confirming tap when the last card is dealt with.
@@ -975,6 +1047,7 @@ private fun TriageContent(
                 )
                 AutoDelayMenu(
                     expanded = delayMenuOpen,
+                    action = autoAction,
                     seconds = autoSeconds,
                     onSeconds = {
                         autoSeconds = it
@@ -1052,6 +1125,7 @@ private fun TriageContent(
                 current = current,
                 next = articles.getOrNull(index + 1),
                 autoSeconds = if (session.autoRunning && !loadingNext) autoSeconds else 0,
+                autoAction = autoAction,
                 paused = sheetOpen,
                 onAutoProgress = { autoProgress.floatValue = it },
                 onDecide = { decide(it) },
@@ -1077,6 +1151,12 @@ private fun TriageContent(
                 sheetOpen = false
                 goTo(it)
             },
+            onMarkRead = if (total - index > 0) ({ sheetOpen = false; markRestRead() }) else null, // Brief You
+            feedsOf = feedsOf, // Brief You
+            onPickFeed = { // Brief You: one feed of a group, from the sheet
+                sheetOpen = false
+                goTo(it, fromGroup = true)
+            },
             onDismiss = { sheetOpen = false },
         )
     }
@@ -1088,6 +1168,8 @@ private fun TriageStack(
     current: ArticleWithFeed,
     next: ArticleWithFeed?,
     autoSeconds: Int,
+    /** What happens to a card when its countdown ends. */
+    autoAction: TriageAction = TriageAction.Skip,
     /** Paused from outside the card (the groups sheet is open): the countdown stops where it is. */
     paused: Boolean = false,
     onAutoProgress: (Float) -> Unit,
@@ -1249,7 +1331,7 @@ private fun TriageStack(
                     countdown.animateTo(1f, tween(remaining, easing = LinearEasing)) {
                         onAutoProgress(value)
                     }
-                    trigger(TriageAction.Skip)
+                    trigger(autoAction)
                 }
             }
 
@@ -1279,7 +1361,8 @@ private fun TriageStack(
             }
 
             Column(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                // Above the buttons below it, so a card dragged down passes over them, not under.
+                Box(modifier = Modifier.weight(1f).fillMaxWidth().zIndex(1f)) {
                     val backModifier =
                         Modifier.fillMaxSize().graphicsLayer {
                             // The next card waits behind and grows as you drag.
@@ -1553,8 +1636,15 @@ private fun TriageCard(
                         modifier =
                             Modifier.size(34.dp)
                                 .clip(CircleShape)
-                                // The same neutral grey as Skip.
-                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                // Between the neutral grey of Skip (too faint on the card) and the
+                                // tonal colour (too strong): a step and a bit up, in both themes.
+                                .background(
+                                    androidx.compose.ui.graphics.lerp(
+                                        MaterialTheme.colorScheme.surfaceContainerHighest,
+                                        MaterialTheme.colorScheme.secondaryContainer,
+                                        0.4f,
+                                    )
+                                )
                                 .combinedClickable(
                                     onClickLabel = stringResource(R.string.share),
                                     onLongClickLabel = stringResource(R.string.triage_share_picture),
@@ -1609,16 +1699,28 @@ private fun TriageCard(
                     SummaryHint()
                     Spacer(Modifier.height(8.dp))
                 }
-                if (summary != null) {
-                    CardSummaryContent(summary, onOpenAiSettings)
-                } else if (item.shortDescription.isNotBlank()) {
-                    Text(
-                        text = item.shortDescription,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 8,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                // The points and the description trade places with a fade and a fold, like the picture
+                // above them folds away (not a cut).
+                androidx.compose.animation.AnimatedContent(
+                    targetState = summary,
+                    contentKey = { it != null },
+                    transitionSpec = {
+                        (androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically())
+                            .togetherWith(androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically())
+                    },
+                    label = "points",
+                ) { shown ->
+                    if (shown != null) {
+                        CardSummaryContent(shown, onOpenAiSettings)
+                    } else if (item.shortDescription.isNotBlank()) {
+                        Text(
+                            text = item.shortDescription,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 8,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
 
@@ -2073,12 +2175,22 @@ private fun NextCard(
                     // shape, so the shape's clip cuts it into the cookie.
                     FeedIcon(feedName = next.name, iconUrl = next.icon, size = 52.dp)
                 } else {
-                    Icon(
-                        Icons.Rounded.Folder,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(26.dp),
-                    )
+                    // The group's own icon (what you chose on the Feeds page), else a folder.
+                    val iconContext = androidx.compose.ui.platform.LocalContext.current
+                    LaunchedEffect(Unit) { me.ash.reader.brief.feeds.GroupIcons.load(iconContext) }
+                    val chosen = me.ash.reader.brief.feeds.GroupIcons.icons[next.id]
+                    val symbol = me.ash.reader.brief.feeds.SymbolIcons.of(chosen)
+                    if (chosen != null && symbol == null) {
+                        // An emoji or a picture fills the shape, like a feed's icon.
+                        FeedIcon(feedName = next.name, iconUrl = chosen, size = 52.dp)
+                    } else {
+                        Icon(
+                            symbol ?: Icons.Rounded.Folder,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(26.dp),
+                        )
+                    }
                 }
                 }
             }
@@ -2213,6 +2325,7 @@ private fun AutoRing(progress: () -> Float, playing: Boolean, alpha: () -> Float
 @Composable
 private fun AutoDelayMenu(
     expanded: Boolean,
+    action: TriageAction,
     seconds: Int,
     onSeconds: (Int) -> Unit,
     onDismiss: () -> Unit,
@@ -2225,7 +2338,14 @@ private fun AutoDelayMenu(
         alignToAnchorEnd = true,
     ) {
             Text(
-                text = stringResource(R.string.triage_auto_delay),
+                text =
+                    stringResource(
+                        when (action) {
+                            TriageAction.Read -> R.string.triage_auto_delay_read
+                            TriageAction.Save -> R.string.triage_auto_delay_save
+                            else -> R.string.triage_auto_delay
+                        }
+                    ),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -2278,6 +2398,11 @@ private fun TriagePlacesSheet(
     title: String?,
     skipTarget: TriageNext?,
     onPick: (TriageNext) -> Unit,
+    /** Marks the cards left here as read and carries on (null when none are left). */
+    onMarkRead: (() -> Unit)? = null,
+    /** A group's feeds with unread articles (groups only), to open a group to them. */
+    feedsOf: (groupId: String) -> List<TriageNext> = { emptyList() },
+    onPickFeed: (TriageNext) -> Unit = {},
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -2305,6 +2430,11 @@ private fun TriagePlacesSheet(
             Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(14.dp))
+            // The groups as on the Feeds page (one joined list; a group's row with its icon tile,
+            // count pill and arrow, its feeds under it lined up with the row), and the feeds
+            // of a group open in place to start Triage on just that feed.
+            val feedsByGroup = remember(places, isFeeds) { if (isFeeds) emptyMap() else places.associate { it.id to feedsOf(it.id) } }
+            var openGroups by remember { mutableStateOf(setOf<String>()) }
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                 verticalArrangement = Arrangement.spacedBy(me.ash.reader.brief.ui.Group.Gap),
@@ -2314,96 +2444,178 @@ private fun TriagePlacesSheet(
                     // A group you moved on from with cards still unread can be opened again.
                     val leftBehind = if (here) 0 else leftIn[place.id] ?: 0
                     val doneHere = !here && place.id in visited && leftBehind == 0
-                    Surface(
-                        onClick = { close { onPick(place) } },
-                        enabled = !here && !doneHere,
-                        // One connected list: rounded at its outer corners only.
-                        shape = me.ash.reader.brief.ui.groupShape(index, places.size),
-                        color =
-                            if (here) MaterialTheme.colorScheme.secondaryContainer
-                            else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor =
-                            if (here) MaterialTheme.colorScheme.onSecondaryContainer
-                            else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth(),
+                    val feeds = feedsByGroup[place.id].orEmpty()
+                    val open = place.id in openGroups && feeds.isNotEmpty()
+                    Column(
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .clip(me.ash.reader.brief.ui.groupShape(index, places.size))
+                                // One shade up from the sheet, so the feeds under a group show.
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            modifier =
+                                Modifier.fillMaxWidth()
+                                    .background(
+                                        if (here) MaterialTheme.colorScheme.secondaryContainer
+                                        else MaterialTheme.colorScheme.surfaceContainerHigh
+                                    )
+                                    .then(
+                                        if (!here && !doneHere)
+                                            Modifier.clickable { close { onPick(place) } }
+                                        else Modifier
+                                    )
+                                    .padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            // A group's chosen icon (from its options): a Material icon goes in the
-                            // circle like the folder; an emoji or image is drawn as it is.
+                            // The group's icon tile (36 dp, rounded square) like the Feeds page: the
+                            // chosen icon, a folder, or a tick once done; the one you're in is lit.
                             val chosen = if (!isFeeds) me.ash.reader.brief.feeds.GroupIcons.icons[place.id] else null
                             val symbol = me.ash.reader.brief.feeds.SymbolIcons.of(chosen)
-                            if (isFeeds && !doneHere) {
-                                // The feed's own icon; done ones get the tick like groups.
-                                FeedIcon(feedName = place.name, iconUrl = place.icon, size = 26.dp)
-                            } else if (!doneHere && chosen != null && symbol == null) {
-                                FeedIcon(feedName = place.name, iconUrl = chosen, size = 26.dp)
-                            } else {
-                                Box(
-                                    modifier =
-                                        Modifier.size(26.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (here || doneHere) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.surfaceContainerHighest
-                                            ),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        if (doneHere) Icons.Rounded.Check else symbol ?: Icons.Rounded.Folder,
-                                        contentDescription = null,
-                                        tint =
-                                            if (here || doneHere) MaterialTheme.colorScheme.onPrimary
-                                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(15.dp),
-                                    )
+                            val lit = here || doneHere
+                            Box(
+                                modifier =
+                                    Modifier.padding(start = 14.dp)
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            if (lit) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.secondaryContainer
+                                        ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                val tint =
+                                    if (lit) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSecondaryContainer
+                                when {
+                                    doneHere -> Icon(Icons.Rounded.Check, null, tint = tint, modifier = Modifier.size(20.dp))
+                                    isFeeds -> FeedIcon(feedName = place.name, iconUrl = place.icon, size = 24.dp)
+                                    chosen != null && symbol == null ->
+                                        FeedIcon(feedName = place.name, iconUrl = chosen, size = 22.dp)
+                                    else ->
+                                        Icon(
+                                            symbol ?: Icons.Rounded.Folder,
+                                            contentDescription = null,
+                                            tint = tint,
+                                            modifier = Modifier.size(20.dp),
+                                        )
                                 }
                             }
-                            Spacer(Modifier.width(12.dp))
                             Text(
                                 text = place.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = if (here) FontWeight.SemiBold else FontWeight.Normal,
+                                style = MaterialTheme.typography.titleLarge.copy(fontSize = 16.sp),
+                                fontWeight = if (here) FontWeight.SemiBold else null,
                                 color =
-                                    if (doneHere) MaterialTheme.colorScheme.onSurfaceVariant
-                                    else androidx.compose.ui.graphics.Color.Unspecified,
+                                    when {
+                                        doneHere -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        here -> MaterialTheme.colorScheme.onSecondaryContainer
+                                        else -> MaterialTheme.colorScheme.onSurface
+                                    },
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.weight(1f).padding(horizontal = 14.dp),
                             )
+                            val label =
+                                when {
+                                    here -> pluralStringResource(R.plurals.triage_left, currentLeft, currentLeft)
+                                    doneHere -> stringResource(R.string.triage_place_done)
+                                    leftBehind > 0 -> leftBehind.toString()
+                                    else -> place.unread.toString()
+                                }
+                            // The count in a pill, as on the Feeds page.
                             Text(
-                                text =
-                                    when {
-                                        // The highlight already says it's the one you're in.
-                                        here -> pluralStringResource(R.plurals.triage_left, currentLeft, currentLeft)
-                                        doneHere -> stringResource(R.string.triage_place_done)
-                                        // Only the group you're in says "N left"; the others just show a count.
-                                        leftBehind > 0 -> leftBehind.toString()
-                                        else -> place.unread.toString()
-                                    },
-                                style = MaterialTheme.typography.labelLarge,
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium,
                                 color =
                                     if (here) MaterialTheme.colorScheme.onSecondaryContainer
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier =
+                                    Modifier.padding(end = if (doneHere) 20.dp else 10.dp)
+                                        .then(
+                                            if (doneHere) Modifier
+                                            else
+                                                Modifier.clip(RoundedCornerShape(50))
+                                                    .background(
+                                                        if (here) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.16f)
+                                                        else MaterialTheme.colorScheme.surfaceContainerHighest
+                                                    )
+                                                    .padding(horizontal = 10.dp, vertical = 3.dp)
+                                        ),
                             )
+                            if (!isFeeds && !doneHere && feeds.isNotEmpty()) {
+                                // The arrow button, as on the Feeds page: opens the group's feeds.
+                                Row(
+                                    modifier =
+                                        Modifier.padding(end = 20.dp)
+                                            .size(24.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                            .clickable {
+                                                openGroups = if (place.id in openGroups) openGroups - place.id else openGroups + place.id
+                                            },
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector =
+                                            if (open) androidx.compose.material.icons.Icons.Rounded.ExpandLess
+                                            else androidx.compose.material.icons.Icons.Rounded.ExpandMore,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    )
+                                }
+                            } else {
+                                Spacer(Modifier.width(if (doneHere) 0.dp else 44.dp))
+                            }
+                        }
+                        androidx.compose.animation.AnimatedVisibility(visible = open) {
+                            Column {
+                                feeds.forEachIndexed { i, feed ->
+                                    Row(
+                                        modifier =
+                                            Modifier.fillMaxWidth()
+                                                .clickable { close { onPickFeed(feed) } }
+                                                .padding(
+                                                    top = 8.dp,
+                                                    bottom = if (i == feeds.lastIndex) 12.dp else 8.dp,
+                                                    end = 14.dp,
+                                                )
+                                                .padding(start = 14.dp, end = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        // Lined up with the group's row: the icon under its tile,
+                                        // the name under its name.
+                                        Box(Modifier.size(width = 36.dp, height = 24.dp), contentAlignment = Alignment.Center) {
+                                            FeedIcon(feedName = feed.name, iconUrl = feed.icon)
+                                        }
+                                        Text(
+                                            text = feed.name,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f).padding(start = 14.dp, end = 6.dp),
+                                        )
+                                        androidx.compose.material3.Badge(
+                                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            contentColor = MaterialTheme.colorScheme.outline,
+                                        ) {
+                                            Text(text = feed.unread.toString(), style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (skipTarget != null) {
-                    FilledTonalButton(onClick = { close { onPick(skipTarget) } }, modifier = Modifier.weight(1f)) {
-                        Text(
-                            stringResource(R.string.triage_skip_place, title ?: ""),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
+            // Skip (the cards stay unread) and Mark as read, side by side like the feed sheet's actions.
+            val skip = skipTarget?.let { stringResource(R.string.triage_skip_place, title ?: "") to { close { onPick(it) } } }
+            val mark = onMarkRead?.let { stringResource(R.string.triage_mark_place_read) to { close { it() } } }
+            val first = skip ?: mark
+            val second = if (skip != null) mark else null
+            if (first != null) me.ash.reader.brief.ui.SheetActions(first, second, dangerSecond = false) // Brief You
         }
     }
 }
@@ -2598,7 +2810,8 @@ private fun SharePicture(article: ArticleWithFeed, summary: CardSummary?, modifi
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(16.dp))
                         Text(
-                            text = stringResource(R.string.triage_summary_done),
+                            // Just "Summary": nothing can be tapped in a picture.
+                            text = stringResource(R.string.triage_summary_label),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = scheme.primary,

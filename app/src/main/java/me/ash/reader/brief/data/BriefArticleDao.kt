@@ -20,6 +20,19 @@ import me.ash.reader.infrastructure.db.AndroidDatabase
 @Dao
 interface BriefArticleDao {
 
+    /** Starred articles of an account, newest first, for their offline copies. */
+    @Transaction
+    @Query("SELECT * FROM article WHERE accountId = :accountId AND isStarred = 1 ORDER BY date DESC")
+    suspend fun queryStarred(accountId: Int): List<ArticleWithFeed>
+
+    /** The starred articles' ids as they change, to keep their offline copies in step. */
+    @Query("SELECT id FROM article WHERE isStarred = 1")
+    fun starredIdsFlow(): kotlinx.coroutines.flow.Flow<List<String>>
+
+    /** Every starred article's id (all accounts), so copies of unstarred ones can go. */
+    @Query("SELECT id FROM article WHERE isStarred = 1")
+    suspend fun queryStarredIds(): List<String>
+
     /** Every article id, so the filters' log can drop entries whose article is gone. */
     @Query("SELECT id FROM article")
     suspend fun queryAllIds(): List<String>

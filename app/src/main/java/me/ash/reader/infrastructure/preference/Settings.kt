@@ -66,6 +66,9 @@ data class Settings(
     val readingImageHorizontalPadding: Int = ReadingImageHorizontalPaddingPreference.default,
     val readingImageRoundedCorners: Int = ReadingImageRoundedCornersPreference.default,
     val readingImageMaximize: ReadingImageMaximizePreference = ReadingImageMaximizePreference.default,
+    val readingVideoRoundedCorners: Int = ReadingVideoRoundedCornersPreference.default, // Brief You
+    val readingVideoHorizontalPadding: Int = ReadingVideoHorizontalPaddingPreference.default, // Brief You
+    val readingVideoMaximize: Boolean = ReadingVideoMaximizePreference.default, // Brief You
 
     // Interaction
     val initialPage: InitialPagePreference = InitialPagePreference.default,

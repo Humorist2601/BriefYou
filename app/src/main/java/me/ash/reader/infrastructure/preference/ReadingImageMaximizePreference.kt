@@ -25,7 +25,7 @@ sealed class ReadingImageMaximizePreference(val value: Boolean) : Preference() {
 
     companion object {
 
-        val default = ON
+        val default = OFF // Brief You: pictures keep their own size until you turn Maximize on
         val values = listOf(ON, OFF)
 
         fun fromPreferences(preferences: Preferences) =

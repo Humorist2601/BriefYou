@@ -228,6 +228,7 @@ fun AccountDetailsPage(
                             }
                         }
                     }
+                    me.ash.reader.brief.offline.OfflineSettingsItem() // Brief You
                     SettingItem(
                         title = stringResource(R.string.keep_archived_articles),
                         desc = selectedAccount?.keepArchived?.toDesc(context),

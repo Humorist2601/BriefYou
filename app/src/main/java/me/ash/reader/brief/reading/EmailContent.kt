@@ -27,8 +27,29 @@ object EmailContent {
     /** Marks content tidied as an email (the first thing in it), so no lead picture is split off. */
     const val MARK = "<!--brief-email-->"
 
+    private const val PREFS = "newsletters"
+    private const val KEY_TIDY_MORE = "tidy_more"
+
+    /**
+     * The "Tidy newsletters" setting (Reading page): on, emails also get outlined buttons, boxed
+     * notes, divider lines, and lose the sender's logo and the headline the article already shows;
+     * off, they're only turned into a plain article. Loaded when the app starts.
+     */
+    @Volatile var tidyMore: Boolean = true
+        private set
+
+    fun load(context: android.content.Context) {
+        tidyMore = context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE).getBoolean(KEY_TIDY_MORE, true)
+    }
+
+    fun setTidyMore(context: android.content.Context, value: Boolean) {
+        context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE).edit().putBoolean(KEY_TIDY_MORE, value).apply()
+        tidyMore = value
+    }
+
     /** The email in [doc] as a plain article. */
-    fun tidy(doc: Document) {
+    fun tidy(doc: Document, title: String? = null) {
+        val more = tidyMore
         val body = doc.body()
         // What isn't shown in any inbox: Outlook's settings, styles, the head.
         body.select("head, style, script, title, meta, link, xml, noscript").remove()
@@ -50,14 +71,20 @@ object EmailContent {
                 (link ?: img).drop()
             }
         }
+        // What the email draws with styles, noted before they're stripped: buttons (dark pills),
+        // boxes (a bordered callout) and divider lines.
+        val buttons = if (more) body.select("a[href]").filter { isButton(it) } else emptyList()
+        val boxes = if (more) body.select("td, div").filter { isBox(it) } else emptyList()
+        if (more) body.select("td, div").filter { isDividerLine(it) }.forEach { it.empty(); it.tagName("hr") }
         // The footer's own links (preferences, unsubscribe, the feed service's settings) are
         // kept, as one short line at the very end.
         val keep = footerLinks(body)
         removeFooters(body)
         removeSocialLinks(body)
-        removeMastheadLogo(body)
+        removeMastheadLogo(body, more)
         // Headings: emails draw them as big text, not as headings.
         markHeadings(body)
+        if (more) dropRepeatedHeadline(body, title)
         // Layout tables become plain blocks, so the text flows down the page.
         for (table in body.select("table").reversed()) {
             if (isDataTable(table)) continue
@@ -77,6 +104,8 @@ object EmailContent {
                 }
             el.attributes().asList().map { it.key }.filterNot { it in keep }.forEach { el.removeAttr(it) }
         }
+        buttons.forEach { if (it.parent() != null) it.addClass("brief-button") }
+        boxes.forEach { if (it.parent() != null) it.addClass("brief-note") }
         body.select("font, center, span").forEach { it.unwrap() }
         // Blocks left empty (spacers, removed icons) and runs of empty lines.
         removeEmpty(body)
@@ -90,6 +119,48 @@ object EmailContent {
             }
         }
         body.prepend(MARK)
+    }
+
+    /** A link drawn as a button: a coloured pill (background and rounded corners or padding) or a "button" class. */
+    private fun isButton(a: Element): Boolean {
+        val styled =
+            listOf(a) + a.select("[style], [class]")
+        return styled.any { el ->
+            val st = el.attr("style").lowercase().replace(" ", "")
+            val bg = Regex("(^|;)background(-color)?:([^;]+)").find(st)?.groupValues?.get(3).orEmpty()
+            val colored = bg.isNotEmpty() && bg != "transparent" && bg != "none" && bg != "#fff" && bg != "#ffffff" && bg != "white"
+            (colored && (st.contains("border-radius") || st.contains("padding"))) ||
+                el.className().split(" ").any { it.equals("button", true) || it.equals("btn", true) }
+        }
+    }
+
+    /** A box with a border on (at least three) sides: the email's callout, such as "Press Reply". */
+    private fun isBox(el: Element): Boolean {
+        val st = el.attr("style").lowercase().replace(" ", "")
+        val sides = listOf("border-top", "border-right", "border-bottom", "border-left").count {
+            Regex("$it:[1-9]\\d*px(solid|dashed)").containsMatchIn(st)
+        }
+        return sides >= 3 && el.text().length > 20
+    }
+
+    /** An empty cell that only draws a line (a divider): it becomes a line. */
+    private fun isDividerLine(el: Element): Boolean {
+        val st = el.attr("style").lowercase().replace(" ", "")
+        return Regex("border-top:[1-9]\\d*px(solid|dashed|dotted)").containsMatchIn(st) &&
+            !st.contains("border-left") && !st.contains("border-right") &&
+            el.text().replace(BLANK, "").isEmpty() && el.select("img, table, a").isEmpty()
+    }
+
+    /** The first heading, when it only repeats the article's title shown above (before real text). */
+    private fun dropRepeatedHeadline(body: Element, title: String?) {
+        if (title.isNullOrBlank()) return
+        fun norm(t: String) = t.lowercase().filter { it.isLetterOrDigit() }
+        val first = body.selectFirst("h1, h2, h3") ?: return
+        val h = norm(first.text())
+        if (h.length < 8 || !norm(title).contains(h)) return
+        // Only when little text comes before it (a date line, a byline), not a later section.
+        val before = body.allElements.takeWhile { it != first }.sumOf { it.ownText().length }
+        if (before < 120) first.drop()
     }
 
     /**
@@ -170,12 +241,22 @@ object EmailContent {
      * The sender's logo above everything (a small picture before any text): the article already
      * shows who it's from, and a logo drawn for a white page is often unreadable on a dark one.
      */
-    private fun removeMastheadLogo(body: Element) {
+    private fun removeMastheadLogo(body: Element, more: Boolean) {
         var text = 0
         for (el in body.allElements) {
             if (el.tagName() == "img") {
                 val w = el.attr("width").toFloatOrNull()
-                if (w != null && w < 400) (el.parent()?.takeIf { it.tagName() == "a" && it.text().isBlank() } ?: el).drop()
+                val h = el.attr("height").toFloatOrNull()
+                val src = el.attr("src")
+                val drop = { (el.parent()?.takeIf { it.tagName() == "a" && it.text().isBlank() } ?: el).drop() }
+                // An unsized picture before everything is a tracking image: gone, and look on.
+                if (more && w == null && h == null && src.substringBefore('?').endsWith(".gif")) {
+                    drop()
+                    continue
+                }
+                // The logo: narrow, or named like one (a banner of the sender's name can be wide).
+                val named = more && LOGO.containsMatchIn(src) || LOGO.containsMatchIn(el.attr("alt")) || LOGO.containsMatchIn(el.attr("title"))
+                if ((w != null && w < 400) || named) drop()
                 return
             }
             text += el.ownText().replace(BLANK, "").length
@@ -322,7 +403,7 @@ object EmailContent {
         if (!fold) return
         // Divs holding only one div are folded into it.
         for (el in body.select("div").reversed()) {
-            if (el.parent() == null) continue
+            if (el.parent() == null || el.hasClass("brief-note")) continue
             val only = el.children().singleOrNull()
             if (only != null && el.textNodes().all { it.isBlank } && only.tagName() == "div") el.unwrap()
         }
@@ -336,6 +417,7 @@ object EmailContent {
         }
     }
 
+    private val LOGO = Regex("(?i)logo|banner|masthead|wordmark|newsletter[_-]?header")
     private val BLANK = Regex("[\\s\\u00A0\\u200A\\u200B\\u200C\\u2007\\u034F\\uFEFF]")
     private val SEPARATORS = Regex("[\\s\\u00A0|·•,/–—-]")
     private val HAIR = Regex("[\\u200A\\u200B\\u200C\\u034F\\uFEFF]")
