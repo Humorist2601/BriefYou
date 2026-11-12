@@ -800,14 +800,13 @@ private fun TriageContent(
     // and which way it left.
     var returning by remember { mutableStateOf<TriageStep?>(null) }
 
-    fun undo() {
-        // On the first card of a group (or feed): back into the one before, then take back its
-        // last card as usual.
-        if (history.isEmpty() && !session.goBack()) return
+    // Takes back the last card. [flyBack]: it comes back from where it went (not when the whole
+    // group is coming back, which swipes up as one).
+    fun undoCard(flyBack: Boolean) {
         val step = history.removeLastOrNull() ?: return
         if (step.action != TriageAction.Skip) ReadingStats.triaged(context, -1) // Reading stats
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-        returning = step
+        if (flyBack) returning = step
         when (step.action) {
             TriageAction.Read,
             TriageAction.Open -> onUnread(step.article)
@@ -818,6 +817,27 @@ private fun TriageContent(
             else -> {}
         }
         session.index = (session.index - 1).coerceAtLeast(0)
+    }
+
+    fun undo() {
+        if (history.isNotEmpty()) {
+            undoCard(flyBack = true)
+            return
+        }
+        // On the first card of a group (or feed): back into the one before, then take back its last
+        // card as usual. The group you came from swipes up from the bottom, as going to a group does.
+        if (!session.canGoBack || loadingNext) return
+        loadingNext = true
+        scope.launch {
+            if (done) doneExit.animateTo(1f, tween(180))
+            else stackRise.animateTo(1f, tween(200, easing = FastOutLinearInEasing))
+            session.goBack()
+            undoCard(flyBack = false)
+            doneExit.snapTo(0f)
+            stackRise.snapTo(1f)
+            stackRise.animateTo(0f, riseSpec)
+            loadingNext = false
+        }
     }
 
     // The run's groups (or feeds), for the header's sheet and the end screen's choices. Only for a
@@ -1704,6 +1724,7 @@ private fun TriageCard(
                 // The points and the description trade places with a fade and a fold, like the picture
                 // above them folds away (not a cut).
                 androidx.compose.animation.AnimatedContent(
+                    modifier = Modifier.fillMaxWidth(), // as wide as both, so only the height animates (top to bottom)
                     targetState = summary,
                     contentKey = { it != null },
                     transitionSpec = {
@@ -1721,6 +1742,7 @@ private fun TriageCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 8,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
@@ -2569,7 +2591,12 @@ private fun TriagePlacesSheet(
                                 Spacer(Modifier.width(if (doneHere) 0.dp else 44.dp))
                             }
                         }
-                        androidx.compose.animation.AnimatedVisibility(visible = open) {
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = open,
+                            // Down from the group's row (not growing in from the corner, which slid the feeds in from the left).
+                            enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
+                            exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
+                        ) {
                             Column {
                                 feeds.forEachIndexed { i, feed ->
                                     Row(

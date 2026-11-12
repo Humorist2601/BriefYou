@@ -454,7 +454,11 @@
     <string name="same_as_images">Same as images</string>
     <string name="tidy_newsletters">Tidy newsletters</string>
     <string name="tidy_newsletters_desc">Outlined buttons, boxed notes and divider lines, without the sender\'s logo or a repeated headline. Off shows the plain article.</string>
-    <string name="offline_copies_wifi">Starred downloads only on Wi-Fi</string>
+    <string name="offline_copies_title">Starred downloads</string>
+    <string name="offline_mode_off">Off</string>
+    <string name="offline_mode_mobile">Mobile data only</string>
+    <string name="offline_mode_wifi">Wi-Fi only</string>
+    <string name="offline_mode_both">Wi-Fi and mobile data</string>
     <string name="update_download_channel">App update download</string>
     <string name="update_download_title">Downloading the update</string>
     <string name="update_ready">The update is ready. Tap to install.</string>

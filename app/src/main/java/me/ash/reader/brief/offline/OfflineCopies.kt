@@ -27,11 +27,13 @@ import org.jsoup.Jsoup
  * - The full text goes in `files/offline/text`, read when the full-text cache has none.
  * - [OfflineWorker] keeps copies in step with the stars: downloads what's missing, removes what's
  *   no longer starred. [schedule] runs it (on starring, after a save, and when the app starts).
- *   It waits for Wi-Fi unless the setting says any connection ([wifiOnly]).
+ *   Which connections it may use is the setting [mode]: off, mobile data only, Wi-Fi only (the
+ *   default) or both.
  */
 object OfflineCopies {
     private const val PREFS = "offline_copies"
-    private const val KEY_WIFI_ONLY = "wifi_only"
+    private const val KEY_WIFI_ONLY = "wifi_only" // the older on/off setting
+    private const val KEY_MODE = "mode"
     private const val WORK = "offline_copies"
 
     /** At most this many pictures per article, each at most [MAX_IMAGE_BYTES]. */
@@ -49,22 +51,39 @@ object OfflineCopies {
     @OptIn(ExperimentalStdlibApi::class)
     private fun hash(s: String): String = MessageDigest.getInstance("SHA-256").digest(s.toByteArray()).toHexString()
 
-    /** Downloads only on Wi-Fi (the default) or on any connection. */
-    fun wifiOnly(context: Context): Boolean =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_WIFI_ONLY, true)
+    /** When copies download: never, on mobile data only, on Wi-Fi only (the default), or on both. */
+    enum class Mode { Off, Mobile, Wifi, Both }
 
-    fun setWifiOnly(context: Context, value: Boolean) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(KEY_WIFI_ONLY, value) }
+    fun mode(context: Context): Mode {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.getInt(KEY_MODE, -1).let { if (it in Mode.values().indices) return Mode.values()[it] }
+        // Before there were four choices: "Wi-Fi only" on (the default) or off (any connection).
+        return if (prefs.getBoolean(KEY_WIFI_ONLY, true)) Mode.Wifi else Mode.Both
+    }
+
+    fun setMode(context: Context, mode: Mode) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putInt(KEY_MODE, mode.ordinal) }
         schedule(context)
     }
 
-    /** Brings the copies in step with the stars, when the network allows. */
+    /** Brings the copies in step with the stars, when the network allows (not at all when off). */
     fun schedule(context: Context) {
+        val mode = mode(context)
+        if (mode == Mode.Off) {
+            WorkManager.getInstance(context).cancelUniqueWork(WORK)
+            return
+        }
         val request =
             OneTimeWorkRequestBuilder<OfflineWorker>()
                 .setConstraints(
                     Constraints.Builder()
-                        .setRequiredNetworkType(if (wifiOnly(context)) NetworkType.UNMETERED else NetworkType.CONNECTED)
+                        .setRequiredNetworkType(
+                                when (mode) {
+                                    Mode.Wifi -> NetworkType.UNMETERED
+                                    Mode.Mobile -> NetworkType.METERED
+                                    else -> NetworkType.CONNECTED
+                                }
+                            )
                         .build()
                 )
                 .setInitialDelay(3, TimeUnit.SECONDS) // a few stars in a row make one run
