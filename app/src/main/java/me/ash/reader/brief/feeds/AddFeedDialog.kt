@@ -1,5 +1,6 @@
 package me.ash.reader.brief.feeds
 
+import androidx.compose.foundation.text.input.clearText
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
