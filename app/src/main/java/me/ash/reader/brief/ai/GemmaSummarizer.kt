@@ -313,7 +313,9 @@ constructor(
                 "a number in square brackets. Translate every paragraph into $language and reply with " +
                 "the same numbers in square brackets, one paragraph after each number, in the same " +
                 "order. Keep names, numbers and quotes accurate. If a paragraph is already in " +
-                "$language, repeat it as it is. Do not add notes, explanations or anything else.",
+                "$language, repeat it as it is. Some paragraphs contain numbered tags such as <1>words</1>. " +
+                "Keep every tag pair exactly as written, around the words that translate the tagged " +
+                "words, and never explain the tags. Do not add notes, explanations or anything else.",
             numbered,
         )
 

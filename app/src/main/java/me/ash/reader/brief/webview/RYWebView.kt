@@ -167,6 +167,33 @@ fun RYWebView(
         // What the web view currently shows: its content, styles and script (kept apart, so a
         // redraw doesn't join the whole article into a new string just to compare it).
         val shown = remember { arrayOfNulls<String>(3) }
+        // Translation: paragraphs are swapped into the page in place (no reload, so no flicker).
+        val translation = me.ash.reader.brief.ai.LocalTranslation.current
+        val appliedPatches = remember { intArrayOf(0) }
+        val patchCount = translation?.patches?.size ?: 0
+        androidx.compose.runtime.LaunchedEffect(webView, patchCount, content) {
+            if (translation == null) return@LaunchedEffect
+            while (appliedPatches[0] < translation.patches.size) {
+                kotlinx.coroutines.delay(80) // also lets a page that was just loaded replace the old one
+                val ready =
+                    kotlinx.coroutines.suspendCancellableCoroutine<Boolean> { c ->
+                        webView.evaluateJavascript("document.readyState") {
+                            c.resumeWith(Result.success(it == "\"complete\"" || it == "\"interactive\""))
+                        }
+                    }
+                if (!ready) continue
+                val upto = translation.patches.size
+                for (i in appliedPatches[0] until upto) {
+                    val (block, html) = translation.patches[i]
+                    webView.evaluateJavascript(
+                        if (block < 0) "document.querySelectorAll('[data-bt]').forEach(function(e){e.style.opacity='';});"
+                        else "(function(){var e=document.querySelector('[data-bt=\"$block\"]');if(e){e.innerHTML=${JSONObject.quote(html)};e.style.opacity='';}})();",
+                        null,
+                    )
+                }
+                appliedPatches[0] = upto
+            }
+        }
 
         AndroidView(
             modifier = modifier,
@@ -195,6 +222,8 @@ fun RYWebView(
                     shown[0] = content
                     shown[1] = css
                     shown[2] = script
+                    // The page starts from what the translation had made when this content was set.
+                    appliedPatches[0] = translation?.shownPatchCount ?: 0
                 } else if (shown[1] != css) {
                     it.evaluateJavascript(
                         "document.querySelector('style').textContent = ${JSONObject.quote(css)};",

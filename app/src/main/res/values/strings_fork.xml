@@ -482,6 +482,7 @@
     </plurals>
     <string name="auto_backup_now">Back up now</string>
     <string name="auto_backup_none">No backup yet</string>
+    <string name="auto_backup_last_failed">Last backup failed (%1$s). Check the folder.</string>
     <string name="auto_backup_failed">Backup failed. Check the folder.</string>
 
     <!-- Translate an article -->
@@ -494,6 +495,8 @@
     <string name="translate_done">Translated to %1$s</string>
     <string name="translate_by_ai">By your AI model, may contain mistakes</string>
     <string name="translate_failed">Translation stopped</string>
+    <string name="translate_nothing">The model didn\'t return a translation. Try again.</string>
+    <string name="translate_skipped">%1$d paragraphs left in the original · by your AI model</string>
     <string name="translate_stop">Stop</string>
     <string name="translate_dismiss">Dismiss</string>
     <string name="translate_show_original">Show original</string>

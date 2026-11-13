@@ -55,8 +55,8 @@ object FeedAccent {
         val color =
             withContext(Dispatchers.IO) {
                 val key = hash(iconUrl)
-                // v2: pale icon colours are picked up too (the old cache said "no colour").
-                val prefs = context.getSharedPreferences("feed_accent_v2", Context.MODE_PRIVATE)
+                // v3: white and grey icons keep their own faint tint (the old cache said "no colour").
+                val prefs = context.getSharedPreferences("feed_accent_v3", Context.MODE_PRIVATE)
                 if (prefs.contains(key)) {
                     prefs.getInt(key, NONE)
                 } else {
@@ -77,7 +77,7 @@ object FeedAccent {
         // Saved Articles' bookmark is drawn in the theme's colour: no colour of its own.
         if (iconUrl == me.ash.reader.ui.component.SAVED_ARTICLES_ICON) return null
         if (iconUrl.startsWith(SymbolIcons.PREFIX)) return null // a Material icon: the theme's colour
-        if (iconUrl.startsWith(EMOJI_PREFIX)) return dominantColor(renderEmoji(iconUrl.removePrefix(EMOJI_PREFIX)))
+        if (iconUrl.startsWith(EMOJI_PREFIX)) return colorOf(renderEmoji(iconUrl.removePrefix(EMOJI_PREFIX)))
         val bitmap: Bitmap =
             if ("^image/.*;base64,.*".toRegex().matches(iconUrl)) {
                 val bytes = Base64.decode(iconUrl.substringAfter("base64,"), Base64.DEFAULT)
@@ -101,7 +101,7 @@ object FeedAccent {
                     )
                 (result as? SuccessResult)?.drawable?.toBitmapOrNull() ?: return null
             }
-        return dominantColor(bitmap)
+        return colorOf(bitmap)
     }
 
     /** Draws an emoji with the system emoji font so its colors can be sampled like an icon. */
@@ -122,8 +122,10 @@ object FeedAccent {
     private val pictureMemory = android.util.LruCache<String, Int>(200)
 
     /**
-     * The main colour of a picture (an article's), or null when it has no clear colour (black and
-     * white photos, for example). Remembered while the app runs.
+     * The main colour of a picture (an article's); for black and white or white pictures, their
+     * faint tint (grey when there is none), so the reading page turns muted with them; null when
+     * the picture could not be read (the reading page then keeps Brief You's own colours).
+     * Remembered while the app runs.
      */
     suspend fun pictureColor(context: Context, url: String): Int? {
         pictureMemory.get(url)?.let { return it.takeIf { c -> c != NONE } }
@@ -138,12 +140,37 @@ object FeedAccent {
                                     .allowHardware(false)
                                     .build()
                             )
-                        (result as? SuccessResult)?.drawable?.toBitmapOrNull()?.let(::dominantColor)
+                        (result as? SuccessResult)?.drawable?.toBitmapOrNull()?.let { colorOf(it) }
                     }
                     .getOrNull()
             }
         pictureMemory.put(url, color ?: NONE)
         return color
+    }
+
+    /**
+     * The icon's colour: its strongest hue, or, for white, grey and black icons, the faint tint
+     * they have (a warm white, a cool grey), which [themed] keeps muted. Null only when there is
+     * no picture to read.
+     */
+    private fun colorOf(src: Bitmap): Int? = dominantColor(src) ?: mutedAverage(src)
+
+    /** The average tint of the visible, not-black pixels, at a middle lightness; null with none. */
+    private fun mutedAverage(src: Bitmap): Int? {
+        val bmp = if (src.width > 64 || src.height > 64) Bitmap.createScaledBitmap(src, 64, 64, true) else src
+        var n = 0
+        var a = 0.0
+        var b = 0.0
+        for (y in 0 until bmp.height) for (x in 0 until bmp.width) {
+            val p = bmp.getPixel(x, y)
+            if ((p ushr 24) < 128) continue
+            val lab = argbToLab(p)
+            if (lab[0] < 12) continue
+            a += lab[1]
+            b += lab[2]
+            n++
+        }
+        return if (n == 0) null else labToArgb(60.0, a / n, b / n)
     }
 
     /** Chroma-weighted hue histogram; returns the average color of the strongest hue bucket. */
@@ -176,19 +203,12 @@ object FeedAccent {
         return labToArgb(sumL[best] / w, sumA[best] / w, sumB[best] / w)
     }
 
-    /**
-     * A colour for a feed whose icon has none (white, grey or black icons): a hue picked from the
-     * icon's address, the same every time, so every feed name still gets a colour of its own.
-     */
-    fun fallbackSource(iconUrl: String): Int {
-        val hue = ((iconUrl.hashCode().toLong() and 0x7FFFFFFF) % 360) * PI / 180
-        return labToArgb(60.0, 40.0 * cos(hue), 40.0 * sin(hue))
-    }
-
     /** The source color adapted to the current theme, as described on [FeedAccent]. */
     fun themed(source: Int, primary: Color, dark: Boolean): Color {
         val s = argbToLab(source)
         val p = argbToLab(primary.toArgb())
+        // A grey source stays a grey, at the same tones as the other accents.
+        if (sqrt(s[1] * s[1] + s[2] * s[2]) < 4.0) return Color(labToArgb(if (dark) 80.0 else 40.0, 0.0, 0.0))
         val sHue = atan2(s[2], s[1]) * 180 / PI
         val pHue = atan2(p[2], p[1]) * 180 / PI
         val diff = ((pHue - sHue + 540) % 360) - 180 // signed shortest distance to primary
@@ -196,7 +216,9 @@ object FeedAccent {
         val rotation = minOf(abs(diff) * 0.5, 15.0) * Math.signum(diff)
         val hue = (sHue + rotation) * PI / 180
         // Pale icons: their hue is lifted to a readable accent (at least MIN_CHROMA).
-        var chroma = sqrt(s[1] * s[1] + s[2] * s[2]).coerceIn(MIN_CHROMA, MAX_CHROMA)
+        // A faint tint (white and grey icons) stays faint: muted, not lifted to a vivid colour.
+        val sourceChroma = sqrt(s[1] * s[1] + s[2] * s[2])
+        var chroma = if (sourceChroma < MUTED_BELOW) sourceChroma else sourceChroma.coerceIn(MIN_CHROMA, MAX_CHROMA)
         val l = if (dark) 80.0 else 40.0
         // Reduce chroma until the color fits in sRGB.
         while (chroma > 0) {
@@ -274,9 +296,12 @@ object FeedAccent {
 
     /** Colourful enough to read as the feed's colour, even from a pale icon. */
     private const val MIN_CHROMA = 24.0
+
+    /** Below this, an icon's tint is too faint to be a colour: it is kept as it is. */
+    private const val MUTED_BELOW = 8.0
 }
 
-/** The themed accent color for a feed's icon, or null (use the default) while unknown or grey. */
+/** The themed accent color for a feed's icon, or null (Brief You's own colour) while unknown or when the icon can't be read. */
 @Composable
 fun rememberFeedAccent(iconUrl: String?): Color? {
     val context = LocalContext.current
@@ -286,7 +311,7 @@ fun rememberFeedAccent(iconUrl: String?): Color? {
         produceState<Int?>(null, iconUrl) {
             value =
                 iconUrl?.takeIf { it.isNotBlank() }?.let {
-                    FeedAccent.sourceColor(context, it) ?: FeedAccent.fallbackSource(it)
+                    FeedAccent.sourceColor(context, it)
                 }
         }
     return remember(source, primary, dark) {

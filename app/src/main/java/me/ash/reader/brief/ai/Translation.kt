@@ -87,6 +87,9 @@ object TranslationPrefs {
     fun englishName(tag: String): String = Locale.forLanguageTag(tag).getDisplayLanguage(Locale.ENGLISH)
 }
 
+/** The translation of the article on screen, for the web view to patch its page in place. */
+val LocalTranslation = androidx.compose.runtime.compositionLocalOf<TranslationState?> { null }
+
 /** What translating the article being read has done so far. */
 @Stable
 class TranslationState {
@@ -103,14 +106,50 @@ class TranslationState {
     var error by mutableStateOf<String?>(null)
         private set
 
+    /** Paragraphs the model left in the original (it skipped their numbers), when the run ended. */
+    var skipped by mutableIntStateOf(0)
+        private set
+
+    /** The article text this translation was made from, to notice when the article changes under it. */
+    var source by mutableStateOf<String?>(null)
+        private set
+
     /** The article's text, translated so far (the rest still in the original). */
     var html by mutableStateOf<String?>(null)
         private set
     var title by mutableStateOf<String?>(null)
         private set
 
+    /**
+     * What the web view is given: the page as it was when the run began, with each text block
+     * marked (`data-bt`). Later paragraphs reach it as [patches] (swapped in place, so the page
+     * doesn't reload and flicker); it only changes when the translation is switched back on.
+     */
+    var shownHtml by mutableStateOf<String?>(null)
+        private set
+
+    /** How many [patches] [shownHtml] already includes. */
+    var shownPatchCount by mutableIntStateOf(0)
+        private set
+
+    /** Finished paragraphs as (block number, inner HTML); (-1, "") means the run ended: nothing dimmed. */
+    val patches = androidx.compose.runtime.mutableStateListOf<Pair<Int, String>>()
+
+    private var showingState by mutableStateOf(true)
+
     /** Showing the translation (true) or the original, with the translation kept (false). */
-    var showing by mutableStateOf(true)
+    var showing: Boolean
+        get() = showingState
+        set(value) {
+            if (value && !showingState) {
+                shownHtml = html
+                shownPatchCount = patches.size
+            }
+            showingState = value
+        }
+
+    /** The page to show: the web view takes the stable one (it is patched in place), the native reader the latest. */
+    fun htmlFor(webView: Boolean): String? = if (webView) shownHtml else html
 
     val progress: Float
         get() = if (total <= 0) 0f else done.toFloat() / total
@@ -124,10 +163,15 @@ class TranslationState {
         job = null
         status = Status.Idle
         html = null
+        shownHtml = null
+        shownPatchCount = 0
+        patches.clear()
         title = null
         error = null
         done = 0
-        showing = true
+        skipped = 0
+        source = null
+        showingState = true
     }
 
     fun stop() {
@@ -150,6 +194,7 @@ class TranslationState {
         val gen = ++generation
         status = Status.Running
         language = tag
+        this.source = source
         job =
             scope.launch {
                 var doc: org.jsoup.nodes.Document? = null
@@ -163,12 +208,15 @@ class TranslationState {
                         withContext(Dispatchers.Default) {
                             parsed.body().select(BLOCKS).filter { it.select(BLOCKS).size == 1 && it.text().length > 1 }
                         }
+                    // Each block's text with its links and bold/italic words as numbered tags (<1>…</1>),
+                    // so the translation can put them back around the translated words.
+                    val tagged = withContext(Dispatchers.Default) { blocks.associateWith { tag(it) } }
                     // Index 0 is the title; the blocks follow.
                     val items = buildList<Pair<Int, Element?>> {
                         if (!articleTitle.isNullOrBlank()) add(0 to null)
                         blocks.forEachIndexed { i, b -> add((i + 1) to b) }
                     }
-                    fun textOf(e: Element?) = if (e == null) articleTitle.orEmpty() else e.text()
+                    fun textOf(e: Element?) = if (e == null) articleTitle.orEmpty() else tagged.getValue(e).text
                     // The first batch is small, so the first words show within seconds.
                     val batches = mutableListOf<MutableList<Pair<Int, Element?>>>()
                     var size = 0
@@ -184,11 +232,14 @@ class TranslationState {
                     }
                     total = items.size.coerceAtLeast(1)
                     // What isn't translated yet is shown dimmed, the translated text at full strength.
-                    blocks.forEach {
+                    blocks.forEachIndexed { i, it ->
                         dimmed[it] = it.attr("style").ifBlank { null }
                         it.attr("style", (it.attr("style") + ";opacity:.45").trim(';'))
+                        it.attr("data-bt", (i + 1).toString())
                     }
                     html = withContext(Dispatchers.Default) { parsed.body().html() }
+                    shownHtml = html
+                    shownPatchCount = 0
 
                     val applied = mutableSetOf<Int>()
                     suspend fun apply(batch: List<Pair<Int, Element?>>, out: String, finished: Boolean) {
@@ -204,13 +255,17 @@ class TranslationState {
                             val text = out.substring(m.range.last + 1, end).trim()
                             if (text.isBlank()) continue
                             val element = byIndex[idx]
-                            if (element == null) title = text
+                            if (element == null) title = stripTags(text)
                             else {
-                                element.text(text)
+                                // Links and bold words come back around the translated words; if the
+                                // model broke the tags, it is plain text.
+                                val rebuilt = rebuild(text, tagged.getValue(element).marks)
+                                if (rebuilt != null) element.html(rebuilt) else element.text(stripTags(text))
                                 if (dimmed.containsKey(element)) {
                                     val own = dimmed.remove(element)
                                     if (own == null) element.removeAttr("style") else element.attr("style", own)
                                 }
+                                patches += idx to element.html()
                             }
                             applied += idx
                             changed = true
@@ -229,7 +284,14 @@ class TranslationState {
                         }
                         apply(batch, out, finished = true)
                     }
-                    status = Status.Done
+                    skipped = items.size - applied.size
+                    if (applied.isEmpty() && items.isNotEmpty()) {
+                        // The model answered, but not in the numbered form: nothing could be used.
+                        error = null
+                        status = Status.Failed
+                    } else {
+                        status = Status.Done
+                    }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
@@ -241,7 +303,10 @@ class TranslationState {
                     if (d != null && gen == generation) {
                         withContext(NonCancellable + Dispatchers.Default) {
                             dimmed.forEach { (el, own) -> if (own == null) el.removeAttr("style") else el.attr("style", own) }
-                            if (html != null) html = d.body().html()
+                            if (html != null) {
+                                html = d.body().html()
+                                patches += -1 to ""
+                            }
                         }
                     }
                 }
@@ -254,6 +319,68 @@ class TranslationState {
         const val FIRST_BATCH_CHARS = 450
         val MARKER = Regex("""(?m)^\s*\[(\d+)]\s*""")
     }
+}
+
+private val INLINE = setOf("a", "b", "strong", "i", "em")
+private val TAG = Regex("""<(/?)(\d+)>""")
+
+/** A block's text, with its links and bold/italic words wrapped in numbered tags, and those words' elements. */
+private class Tagged(val text: String, val marks: List<Element>)
+
+private fun tag(block: Element): Tagged {
+    val marks = mutableListOf<Element>()
+    val sb = StringBuilder()
+    fun walk(n: org.jsoup.nodes.Node) {
+        when (n) {
+            is org.jsoup.nodes.TextNode -> sb.append(n.text())
+            is Element ->
+                if (n.normalName() in INLINE && n.text().isNotBlank()) {
+                    marks += n
+                    val id = marks.size
+                    sb.append("<$id>")
+                    n.childNodes().forEach { walk(it) }
+                    sb.append("</$id>")
+                } else if (n.normalName() == "br") sb.append(' ') else n.childNodes().forEach { walk(it) }
+        }
+    }
+    block.childNodes().forEach { walk(it) }
+    return Tagged(sb.toString().replace(Regex("\\s+"), " ").trim(), marks)
+}
+
+private fun stripTags(text: String) = text.replace(TAG, "").replace(Regex("\\s+"), " ").trim()
+
+private fun openTag(e: Element): String {
+    val attrs = e.attributes().html()
+    return "<${e.normalName()}" + (if (attrs.isBlank()) "" else " $attrs") + ">"
+}
+
+/**
+ * The translated text with its tags turned back into the original links and bold/italic elements,
+ * as HTML; null when the model left the tags out or broke them (the caller then uses plain text).
+ */
+private fun rebuild(translated: String, marks: List<Element>): String? {
+    if (marks.isEmpty()) return null
+    val out = StringBuilder()
+    val open = ArrayDeque<Int>()
+    val seen = mutableSetOf<Int>()
+    var pos = 0
+    for (m in TAG.findAll(translated)) {
+        out.append(org.jsoup.nodes.Entities.escape(translated.substring(pos, m.range.first)))
+        pos = m.range.last + 1
+        val id = m.groupValues[2].toIntOrNull() ?: return null
+        if (id < 1 || id > marks.size) return null
+        if (m.groupValues[1].isEmpty()) {
+            if (!seen.add(id)) return null
+            open.addLast(id)
+            out.append(openTag(marks[id - 1]))
+        } else {
+            if (open.lastOrNull() != id) return null
+            open.removeLast()
+            out.append("</${marks[id - 1].normalName()}>")
+        }
+    }
+    out.append(org.jsoup.nodes.Entities.escape(translated.substring(pos)))
+    return if (open.isEmpty()) out.toString() else null
 }
 
 @EntryPoint
@@ -361,8 +488,10 @@ fun TranslationBanner(controller: TranslateController) {
                     when (t.status) {
                         TranslationState.Status.Running ->
                             stringResource(R.string.translate_progress, t.done.coerceAtMost(t.total), t.total)
-                        TranslationState.Status.Failed -> t.error.orEmpty()
-                        else -> stringResource(R.string.translate_by_ai)
+                        TranslationState.Status.Failed -> t.error ?: stringResource(R.string.translate_nothing)
+                        else ->
+                            if (t.skipped > 0) stringResource(R.string.translate_skipped, t.skipped)
+                            else stringResource(R.string.translate_by_ai)
                     },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

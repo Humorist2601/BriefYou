@@ -129,6 +129,11 @@ fun rememberBriefReadingState(
             if (!changing && articleId != null && tts.sourceKey == articleId) tts.stop()
         }
     }
+    // Full content on or off changes the text under a translation: start over from the original.
+    LaunchedEffect(readerState.content.text) {
+        val made = state.translation.source
+        if (made != null && made != readerState.content.text) state.translation.reset()
+    }
     LaunchedEffect(articleId) {
         state.progress = 0f
         state.translation.reset() // a new article starts in its own language

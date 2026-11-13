@@ -250,6 +250,7 @@ fun ReadingPage(
                                 BriefTrackReadingProgress(brief, scrollState, listState) // Brief You
 
                                 CompositionLocalProvider(
+                                    me.ash.reader.brief.ai.LocalTranslation provides brief.translation, // Brief You
                                     LocalTextStyle provides
                                         LocalTextStyle.current.run {
                                             merge(
@@ -277,7 +278,7 @@ fun ReadingPage(
                                                     enabled = isPullToSwitchArticleEnabled,
                                                 ),
                                             contentPadding = paddings,
-                                            content = (if (brief.translation.showing) brief.translation.html else null) ?: content.text ?: "", // Brief You: the translation
+                                            content = (if (brief.translation.showing) brief.translation.htmlFor(me.ash.reader.infrastructure.preference.LocalReadingRenderer.current == me.ash.reader.infrastructure.preference.ReadingRendererPreference.WebView) else null) ?: content.text ?: "", // Brief You: the translation
                                             feedName = feedName,
                                             title = ((if (brief.translation.showing) brief.translation.title else null) ?: title).toString(), // Brief You
                                             author = author,

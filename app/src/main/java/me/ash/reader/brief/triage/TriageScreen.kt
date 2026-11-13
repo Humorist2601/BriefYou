@@ -105,6 +105,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -112,6 +113,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
@@ -2456,7 +2458,16 @@ private fun TriagePlacesSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         // The app's sheet design: title, muted subtitle, divider, 24 dp sides, a connected list.
         val feedsByGroup = remember(places, isFeeds) { if (isFeeds) emptyMap() else places.associate { it.id to feedsOf(it.id) } }
-        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
+        // Brief You: with many rows the sheet nearly fills the screen anyway, so it gets that height from the
+        // start. (Sized by its rows, it opened about 50 dp too low and then rose as it settled.)
+        val screenDp = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp
+        val tall = places.size * 56 + 230 > screenDp * 0.8f
+        Column(
+            modifier =
+                Modifier.then(if (tall) Modifier.fillMaxHeight(0.9f) else Modifier)
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 16.dp)
+        ) {
             Text(
                 text = stringResource(if (isFeeds) R.string.triage_places_feeds else R.string.triage_places_groups),
                 style = MaterialTheme.typography.titleLarge,
@@ -2481,20 +2492,52 @@ private fun TriagePlacesSheet(
             val density = LocalDensity.current
             var collapsedPx by remember(places.size) { mutableStateOf<Int?>(null) }
             val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+            // Opening a group makes its feeds slide in below it. If they would end below the visible
+            // part of the list, the list follows them as they grow, only as far as needed (and never
+            // past the group's own row), instead of jumping the group to the top.
             LaunchedEffect(openGroups) {
                 val last = openGroups.lastOrNull() ?: return@LaunchedEffect
                 val at = places.indexOfFirst { it.id == last }
-                if (at >= 0) listState.animateScrollToItem(at)
+                if (at < 0) return@LaunchedEffect
+                kotlinx.coroutines.withTimeoutOrNull(700) {
+                    snapshotFlow { listState.layoutInfo }
+                        .collect { info ->
+                            val item = info.visibleItemsInfo.firstOrNull { it.index == at } ?: return@collect
+                            val over = item.offset + item.size - info.viewportEndOffset
+                            if (over > 0 && item.offset > 0) listState.dispatchRawDelta(minOf(over, item.offset).toFloat())
+                        }
+                }
+            }
+            // Brief You: what the list can't scroll up any more is not passed on to the sheet. The sheet
+            // is already at its top, and its springy settle overshot upward and bounced back and forth.
+            val keepSheetStill = remember {
+                object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+                    override fun onPostScroll(
+                        consumed: Offset,
+                        available: Offset,
+                        source: androidx.compose.ui.input.nestedscroll.NestedScrollSource,
+                    ): Offset = if (available.y < 0f) Offset(0f, available.y) else Offset.Zero
+
+                    override suspend fun onPostFling(
+                        consumed: androidx.compose.ui.unit.Velocity,
+                        available: androidx.compose.ui.unit.Velocity,
+                    ): androidx.compose.ui.unit.Velocity =
+                        if (available.y < 0f) androidx.compose.ui.unit.Velocity(0f, available.y)
+                        else androidx.compose.ui.unit.Velocity.Zero
+                }
             }
             LazyColumn(
                 state = listState,
                 modifier =
-                    Modifier.fillMaxWidth()
-                        .onSizeChanged { if (openGroups.isEmpty()) collapsedPx = it.height }
-                        .then(
-                            collapsedPx?.let { Modifier.height(with(density) { it.toDp() }) }
-                                ?: Modifier.weight(1f, fill = false)
-                        ),
+                    Modifier.nestedScroll(keepSheetStill).then(
+                    if (tall) Modifier.fillMaxWidth().weight(1f)
+                    else
+                        Modifier.fillMaxWidth()
+                            .onSizeChanged { if (openGroups.isEmpty()) collapsedPx = it.height }
+                            .then(
+                                collapsedPx?.let { Modifier.height(with(density) { it.toDp() }) }
+                                    ?: Modifier.weight(1f, fill = false)
+                            )),
                 verticalArrangement = Arrangement.spacedBy(me.ash.reader.brief.ui.Group.Gap),
             ) {
                 itemsIndexed(places, key = { _, it -> it.id }) { index, place ->

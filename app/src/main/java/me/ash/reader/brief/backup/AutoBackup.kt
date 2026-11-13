@@ -87,6 +87,12 @@ object AutoBackup {
             if (p.contains("last_time")) p.getLong("last_time", 0) to p.getLong("last_size", 0) else null
         }
 
+    /** When the last attempt failed, if it is newer than the last good backup; else null. */
+    fun failedAt(context: Context): Long? =
+        prefs(context).let { p ->
+            p.getLong("fail_time", 0).takeIf { it > 0 && it > p.getLong("last_time", 0) }
+        }
+
     /** The folder's name for display ("Documents/BriefYou"). */
     fun folderLabel(uri: Uri): String =
         runCatching { DocumentsContract.getTreeDocumentId(uri).substringAfter(':') }.getOrNull()
@@ -113,7 +119,11 @@ object AutoBackup {
     /** Makes one backup into the folder, then deletes the oldest beyond [keep]. False when it failed. */
     suspend fun run(context: Context, service: BackupService, accountId: Int): Boolean =
         withContext(Dispatchers.IO) {
-            val tree = folder(context) ?: return@withContext false
+            val tree =
+                folder(context)
+                    ?: return@withContext false.also {
+                        prefs(context).edit { putLong("fail_time", System.currentTimeMillis()) }
+                    }
             runCatching {
                     val bytes = service.create(accountId)
                     check(bytes.isNotEmpty())
@@ -133,6 +143,10 @@ object AutoBackup {
                     true
                 }
                 .getOrDefault(false)
+                .also { ok ->
+                    // A failed run is remembered, so the settings can say so.
+                    if (!ok) prefs(context).edit { putLong("fail_time", System.currentTimeMillis()) }
+                }
         }
 
     private fun prune(context: Context, tree: Uri) {
@@ -198,6 +212,7 @@ fun AutoBackupSettingItems(accountId: Int, viewModel: BackupViewModel = hiltView
     var folder by remember { mutableStateOf(AutoBackup.folder(context)) }
     var keep by remember { mutableStateOf(AutoBackup.keep(context)) }
     var last by remember { mutableStateOf(AutoBackup.last(context)) }
+    var failedAt by remember { mutableStateOf(AutoBackup.failedAt(context)) }
     var running by remember { mutableStateOf(false) }
     var frequencyDialog by remember { mutableStateOf(false) }
     var keepSheet by remember { mutableStateOf(false) }
@@ -211,6 +226,10 @@ fun AutoBackupSettingItems(accountId: Int, viewModel: BackupViewModel = hiltView
                     frequency = AutoBackup.Frequency.Weekly
                     AutoBackup.setFrequency(context, frequency)
                 }
+            } else if (AutoBackup.folder(context) == null) {
+                // Cancelled with no folder yet: nothing could run, so it goes back to Off.
+                frequency = AutoBackup.Frequency.Off
+                AutoBackup.setFrequency(context, frequency)
             }
         }
 
@@ -233,7 +252,16 @@ fun AutoBackupSettingItems(accountId: Int, viewModel: BackupViewModel = hiltView
         SettingItem(
             title = stringResource(R.string.auto_backup_now),
             desc =
-                last?.let { (time, size) ->
+                failedAt?.let {
+                    stringResource(
+                        R.string.auto_backup_last_failed,
+                        DateUtils.formatDateTime(
+                            context,
+                            it,
+                            DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_ABBREV_MONTH,
+                        ),
+                    )
+                } ?: last?.let { (time, size) ->
                     DateUtils.formatDateTime(
                         context,
                         time,
@@ -247,6 +275,7 @@ fun AutoBackupSettingItems(accountId: Int, viewModel: BackupViewModel = hiltView
                     viewModel.backupNow(accountId) { ok ->
                         running = false
                         last = AutoBackup.last(context)
+                        failedAt = AutoBackup.failedAt(context)
                         context.showToast(
                             context.getString(if (ok) R.string.backup_saved else R.string.auto_backup_failed)
                         )
