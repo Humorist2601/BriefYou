@@ -115,6 +115,26 @@ img.brief-center {
         while (column && column.clientWidth === 0) column = column.parentElement;
         if (column && width >= MIN && width < column.clientWidth - 1) el.classList.add("brief-center");
     }
+    // A picture that can't load tries the address in its data-fallback (see FeedContent). This
+    // replaces an inline onerror, which the page's content policy blocks.
+    document.addEventListener("error", function (e) {
+        var img = e.target;
+        if (img && img.tagName === "IMG" && img.dataset.fallback) {
+            var next = img.dataset.fallback;
+            delete img.dataset.fallback;
+            img.dataset.retrying = "1";
+            img.src = next;
+        }
+    }, true);
+    // One that had already failed before this script ran (no event is coming for it).
+    document.querySelectorAll("img[data-fallback]").forEach(function (img) {
+        if (img.complete && img.naturalWidth === 0) {
+            var next = img.dataset.fallback;
+            delete img.dataset.fallback;
+            img.dataset.retrying = "2";
+            img.src = next;
+        }
+    });
     document.querySelectorAll("article img").forEach(function (img) {
         if (img.closest("table") || img.closest(".brief-box")) return;
         // The size the page gives the picture: its width and height, or a pixel size in its style.
@@ -165,7 +185,8 @@ img.brief-center {
         img.addEventListener("load", reveal);
         img.addEventListener("error", function () {
             // A picture with its own fallback tries that next (see FeedContent); others go.
-            if (!img.getAttribute("onerror")) unbox();
+            if (img.dataset.retrying === "1") img.dataset.retrying = "2";
+            else unbox();
         });
         if (img.complete && img.naturalWidth > 0) reveal();
     });

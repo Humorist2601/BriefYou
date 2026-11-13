@@ -38,11 +38,15 @@ constructor(
     private suspend fun bestRaw(article: Article, shown: String?): String =
         withContext(Dispatchers.IO) {
             val candidates = listOfNotNull(shown, article.rawDescription).filter { it.isNotBlank() }
-            val longest = candidates.maxByOrNull { textLength(it) }.orEmpty()
-            if (textLength(longest) >= TEASER_CHARS || !article.link.startsWith("http")) return@withContext longest
+            // Each text is read once (it used to be read again for every comparison).
+            val measured = candidates.map { it to textLength(it) }
+            val best = measured.maxByOrNull { it.second }
+            val longest = best?.first.orEmpty()
+            val longestLength = best?.second ?: 0
+            if (longestLength >= TEASER_CHARS || !article.link.startsWith("http")) return@withContext longest
             val full =
                 withTimeoutOrNull(FETCH_TIMEOUT_MS) { readerCache.readOrFetchFullContent(article).getOrNull() }
-            if (full != null && textLength(full) > textLength(longest)) full else longest
+            if (full != null && textLength(full) > longestLength) full else longest
         }
 
     /** Whether [best] would fetch the full article (all the text at hand is a teaser). */

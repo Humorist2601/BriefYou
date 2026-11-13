@@ -227,8 +227,17 @@ constructor(
     /** Moves the downloaded file into place (the same folder, so no second copy). */
     internal suspend fun installDownloaded(part: File) {
         unload(force = true)
-        modelFile.delete()
-        if (!part.renameTo(modelFile)) error("Could not save the model")
+        // The working model stays until the new one is in place.
+        val old = File(modelFile.path + ".old")
+        if (modelFile.exists()) {
+            old.delete()
+            modelFile.renameTo(old)
+        }
+        if (!part.renameTo(modelFile)) {
+            if (old.exists()) old.renameTo(modelFile)
+            error("Could not save the model")
+        }
+        old.delete()
         _modelState.value = currentFileState()
     }
 

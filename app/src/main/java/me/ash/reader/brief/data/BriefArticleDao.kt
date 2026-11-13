@@ -25,6 +25,11 @@ interface BriefArticleDao {
     @Query("SELECT * FROM article WHERE accountId = :accountId AND isStarred = 1 ORDER BY date DESC")
     suspend fun queryStarred(accountId: Int): List<ArticleWithFeed>
 
+    /** A page of [queryStarred], so a big library is never held in memory at once. */
+    @Transaction
+    @Query("SELECT * FROM article WHERE accountId = :accountId AND isStarred = 1 ORDER BY date DESC LIMIT :limit OFFSET :offset")
+    suspend fun queryStarredPage(accountId: Int, limit: Int, offset: Int): List<ArticleWithFeed>
+
     /** The starred articles' ids as they change, to keep their offline copies in step. */
     @Query("SELECT id FROM article WHERE isStarred = 1")
     fun starredIdsFlow(): kotlinx.coroutines.flow.Flow<List<String>>

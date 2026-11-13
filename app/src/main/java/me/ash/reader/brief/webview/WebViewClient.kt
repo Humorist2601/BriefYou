@@ -13,7 +13,6 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import me.ash.reader.ui.ext.isUrl
-import java.io.DataInputStream
 import java.net.HttpURLConnection
 import java.net.URI
 
@@ -46,32 +45,23 @@ class WebViewClient(
             } catch (e: Exception) {
                 Log.e("RLog", "WebView shouldInterceptRequest: $e")
             }
-        } else if (url != null && request.method == "GET" &&
-            me.ash.reader.brief.offline.OfflineCopies.imageFile(context, url) != null) {
+        } else if (url != null && request.method == "GET" && stored(url) != null) {
             // A starred article's picture, kept on the phone: shown without the internet.
-            val (file, type) = me.ash.reader.brief.offline.OfflineCopies.imageFile(context, url)!!
+            val (file, type) = stored(url)!!
             return WebResourceResponse(type, null, 200, "OK", emptyMap(), file.inputStream())
         } else if (url != null && url.isUrl() && request.method == "GET" && isImage(request)) {
             // Pictures are fetched here like a browser would (no app header, the article as the
             // referrer, then without one), since some image hosts and proxies (Kagi News, for
             // one) refuse the web view's own request. If both fail, the web view tries itself.
             fetchImage(url)?.let { return it }
-        } else if (url != null && url.isUrl()) {
-            try {
-                var connection = URI.create(url).toURL().openConnection() as HttpURLConnection
-                if (connection.responseCode == 403) {
-                    connection.disconnect()
-                    connection = URI.create(url).toURL().openConnection() as HttpURLConnection
-                    connection.setRequestProperty("Referer", refererDomain)
-                    val inputStream = DataInputStream(connection.inputStream)
-                    return WebResourceResponse(connection.contentType, "UTF-8", inputStream)
-                }
-            } catch (e: Exception) {
-                Log.e("RLog", "shouldInterceptRequest url: $e")
-            }
         }
+        // Brief You: other requests (scripts, styles, embeds) are left to the web view. They were
+        // fetched here first just to look at the answer, then fetched again by the web view.
         return super.shouldInterceptRequest(view, request)
     }
+
+    // Brief You: looked up once per request (it was looked up twice).
+    private fun stored(url: String) = me.ash.reader.brief.offline.OfflineCopies.imageFile(context, url)
 
     private fun isImage(request: WebResourceRequest): Boolean {
         val accept = request.requestHeaders["Accept"] ?: request.requestHeaders["accept"]
@@ -122,7 +112,7 @@ class WebViewClient(
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
-        view!!.evaluateJavascript(OnImgClickScript, null)
+        view?.evaluateJavascript(OnImgClickScript, null)
     }
 
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {

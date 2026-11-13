@@ -21,7 +21,7 @@ object EmailContent {
         val host = link?.let { runCatching { URI(it).host }.getOrNull() }.orEmpty()
         if (host.endsWith("kill-the-newsletter.com")) return true
         if (html.contains("<!--[if mso") || html.contains("x-apple-data-detectors")) return true
-        return Regex("role=\"presentation\"").findAll(html).take(3).count() >= 3
+        return PRESENTATION.findAll(html).take(3).count() >= 3
     }
 
     /** Marks content tidied as an email (the first thing in it), so no lead picture is split off. */
@@ -127,7 +127,7 @@ object EmailContent {
             listOf(a) + a.select("[style], [class]")
         return styled.any { el ->
             val st = el.attr("style").lowercase().replace(" ", "")
-            val bg = Regex("(^|;)background(-color)?:([^;]+)").find(st)?.groupValues?.get(3).orEmpty()
+            val bg = BACKGROUND.find(st)?.groupValues?.get(3).orEmpty()
             val colored = bg.isNotEmpty() && bg != "transparent" && bg != "none" && bg != "#fff" && bg != "#ffffff" && bg != "white"
             (colored && (st.contains("border-radius") || st.contains("padding"))) ||
                 el.className().split(" ").any { it.equals("button", true) || it.equals("btn", true) }
@@ -137,16 +137,14 @@ object EmailContent {
     /** A box with a border on (at least three) sides: the email's callout, such as "Press Reply". */
     private fun isBox(el: Element): Boolean {
         val st = el.attr("style").lowercase().replace(" ", "")
-        val sides = listOf("border-top", "border-right", "border-bottom", "border-left").count {
-            Regex("$it:[1-9]\\d*px(solid|dashed)").containsMatchIn(st)
-        }
+        val sides = BOX_SIDES.count { it.containsMatchIn(st) }
         return sides >= 3 && el.text().length > 20
     }
 
     /** An empty cell that only draws a line (a divider): it becomes a line. */
     private fun isDividerLine(el: Element): Boolean {
         val st = el.attr("style").lowercase().replace(" ", "")
-        return Regex("border-top:[1-9]\\d*px(solid|dashed|dotted)").containsMatchIn(st) &&
+        return DIVIDER_BORDER.containsMatchIn(st) &&
             !st.contains("border-left") && !st.contains("border-right") &&
             el.text().replace(BLANK, "").isEmpty() && el.select("img, table, a").isEmpty()
     }
@@ -178,7 +176,7 @@ object EmailContent {
                 val img = doc.body().selectFirst("img[src]")?.absUrl("src")?.takeIf { it.startsWith("http") }
                 doc.body().select("h1, h2, h3").remove()
                 article.copy(
-                    shortDescription = doc.body().text().replace(Regex("\\s+"), " ").trim().take(280),
+                    shortDescription = doc.body().text().replace(SPACES, " ").trim().take(280),
                     author = readableAuthor(article.author),
                     img = img ?: article.img,
                     link = webLink(html) ?: article.link,
@@ -216,7 +214,7 @@ object EmailContent {
         val s = style.lowercase().replace(" ", "")
         return s.contains("display:none") || s.contains("mso-hide:all") || s.contains("visibility:hidden") ||
             s.contains("max-height:0;") || s.endsWith("max-height:0") || s.contains("max-height:0px") ||
-            Regex("(^|;)opacity:0(;|$)").containsMatchIn(s) || Regex("(^|;)font-size:0(px)?(;|$)").containsMatchIn(s)
+            HIDDEN_OPACITY.containsMatchIn(s) || HIDDEN_FONT.containsMatchIn(s)
     }
 
     /** "Follow us" links (Instagram, LinkedIn, X…), with what's left of their line. */
@@ -318,9 +316,9 @@ object EmailContent {
             val text = a.text()
             val label =
                 when {
-                    Regex("(?i)prefer|manage (your )?subscription").containsMatchIn(text) -> "Email preferences"
-                    Regex("(?i)unsubscribe").containsMatchIn(text) -> "Unsubscribe"
-                    Regex("(?i)kill the newsletter").containsMatchIn(text) -> "Feed settings"
+                    PREFERENCES.containsMatchIn(text) -> "Email preferences"
+                    UNSUBSCRIBE.containsMatchIn(text) -> "Unsubscribe"
+                    KILL_NEWSLETTER.containsMatchIn(text) -> "Feed settings"
                     else -> continue
                 }
             found.putIfAbsent(label, href)
@@ -361,7 +359,7 @@ object EmailContent {
             val size = biggestSize(el) ?: continue
             val level =
                 when {
-                    el.tagName().matches(Regex("h[1-4]")) -> if (size >= 22) "h2" else "h3"
+                    el.tagName().matches(HEADING_TAG) -> if (size >= 22) "h2" else "h3"
                     size >= 22 -> "h2"
                     size >= 17 -> "h3"
                     else -> continue
@@ -374,7 +372,7 @@ object EmailContent {
 
     private fun biggestSize(el: Element): Float? =
         (listOf(el) + el.select("[style]"))
-            .mapNotNull { Regex("font-size:\\s*([\\d.]+)px").find(it.attr("style"))?.groupValues?.get(1)?.toFloatOrNull() }
+            .mapNotNull { FONT_SIZE.find(it.attr("style"))?.groupValues?.get(1)?.toFloatOrNull() }
             .maxOrNull()
 
     /** A real table of data (headers, or a grid of short text), kept as a table. */
@@ -417,6 +415,20 @@ object EmailContent {
         }
     }
 
+    // Built once (they were built again for every element of an email).
+    private val PRESENTATION = Regex("role=\"presentation\"")
+    private val BACKGROUND = Regex("(^|;)background(-color)?:([^;]+)")
+    private val BOX_SIDES =
+        listOf("border-top", "border-right", "border-bottom", "border-left").map { Regex("$it:[1-9]\\d*px(solid|dashed)") }
+    private val DIVIDER_BORDER = Regex("border-top:[1-9]\\d*px(solid|dashed|dotted)")
+    private val SPACES = Regex("\\s+")
+    private val HIDDEN_OPACITY = Regex("(^|;)opacity:0(;|$)")
+    private val HIDDEN_FONT = Regex("(^|;)font-size:0(px)?(;|$)")
+    private val PREFERENCES = Regex("(?i)prefer|manage (your )?subscription")
+    private val UNSUBSCRIBE = Regex("(?i)unsubscribe")
+    private val KILL_NEWSLETTER = Regex("(?i)kill the newsletter")
+    private val HEADING_TAG = Regex("h[1-4]")
+    private val FONT_SIZE = Regex("font-size:\\s*([\\d.]+)px")
     private val LOGO = Regex("(?i)logo|banner|masthead|wordmark|newsletter[_-]?header")
     private val BLANK = Regex("[\\s\\u00A0\\u200A\\u200B\\u200C\\u2007\\u034F\\uFEFF]")
     private val SEPARATORS = Regex("[\\s\\u00A0|·•,/–—-]")

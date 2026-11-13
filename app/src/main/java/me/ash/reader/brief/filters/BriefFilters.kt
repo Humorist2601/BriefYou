@@ -79,10 +79,6 @@ constructor(
     private val json = Json { ignoreUnknownKeys = true }
     private val lock = Mutex()
 
-    init {
-        WatchedWords.load(context)
-    }
-
     private val _mutedKeywords =
         MutableStateFlow(prefs.getStringSet(KEY_MUTED, emptySet()).orEmpty().sorted())
     val mutedKeywords: StateFlow<List<String>> = _mutedKeywords.asStateFlow()
@@ -95,9 +91,10 @@ constructor(
     /** How many articles were brought back with Undo, which the filters now skip. */
     val exemptCount: StateFlow<Int> = _exemptCount.asStateFlow()
 
-    private val _log = MutableStateFlow(readLog())
+    // Brief You: read from its file the first time it is needed (not when the app starts).
+    private val _log by lazy { MutableStateFlow(readLog()) }
     /** Recently filtered articles, newest first. */
-    val log: StateFlow<List<FilterLogEntry>> = _log.asStateFlow()
+    val log: StateFlow<List<FilterLogEntry>> by lazy { _log.asStateFlow() }
 
     fun addKeyword(word: String) {
         val w = word.trim()
@@ -121,6 +118,7 @@ constructor(
     /** Applies the filters to recent articles. Returns how many were marked read. */
     suspend fun apply(accountId: Int): Int =
         withContext(Dispatchers.IO) {
+            WatchedWords.load(context) // Brief You: no longer loaded when the app starts
             lock.withLock {
                 val keywords = _mutedKeywords.value
                 val dedupe = _hideDuplicates.value
@@ -231,6 +229,7 @@ constructor(
         withContext(Dispatchers.IO) {
             if (pruned) return@withContext
             pruned = true
+            WatchedWords.load(context) // Brief You
             val exempt = prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty()
             val watched = WatchedWords.log.map { it.articleId }
             if (_log.value.isEmpty() && exempt.isEmpty() && watched.isEmpty()) return@withContext
@@ -239,8 +238,10 @@ constructor(
         }
 
     /** The recently filtered list and the undone articles, for a backup. */
-    fun exportState(): Pair<List<FilterLogEntry>, List<String>> =
-        _log.value to prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty().toList()
+    fun exportState(): Pair<List<FilterLogEntry>, List<String>> {
+        WatchedWords.load(context) // Brief You: the backup also reads the watched words
+        return _log.value to prefs.getStringSet(KEY_EXEMPT, emptySet()).orEmpty().toList()
+    }
 
     /**
      * Merges a backup's recently filtered list and undone articles into this phone's. Entries for

@@ -65,7 +65,7 @@ object FeedContent {
         if (url.isNullOrBlank()) return url
         val u = url.trim()
         if (u.startsWith("//")) return "https:$u"
-        if (u.startsWith("data:") || Regex("^[a-zA-Z][a-zA-Z0-9+.-]*:").containsMatchIn(u)) {
+        if (u.startsWith("data:") || SCHEME.containsMatchIn(u)) {
             return u
         }
         if (base.isNullOrBlank()) return u
@@ -276,7 +276,8 @@ object FeedContent {
             img.attr("src", sharp)
             if (sharp != original) {
                 // If the sharper size can't be loaded, the feed's own one is used.
-                img.attr("onerror", "this.onerror=null;this.src='" + original.replace("'", "%27") + "'")
+                // (a data attribute the page's own script reads: scripts written inline are blocked)
+                img.attr("data-fallback", original)
             }
             img.removeAttr("srcset")
             img.removeAttr("width")
@@ -315,7 +316,7 @@ object FeedContent {
         val candidates = mutableListOf<String>()
         candidates += img.attr("src")
         img.attr("srcset").split(",").forEach { part ->
-            part.trim().split(Regex("\\s+")).firstOrNull()?.takeIf { it.isNotBlank() }?.let(candidates::add)
+            part.trim().split(SPACES).firstOrNull()?.takeIf { it.isNotBlank() }?.let(candidates::add)
         }
         val fileWidth = img.attr("data-file-width").toIntOrNull()
         val thumb = THUMB.find(img.attr("src"))
@@ -332,6 +333,9 @@ object FeedContent {
     private val THUMB =
         Regex("^(https://(?:upload|thumb)\\.wikimedia\\.org/.+/thumb/.+/)(\\d+)px-([^/?]+)(\\?.*)?$")
 
+    private val SCHEME = Regex("^[a-zA-Z][a-zA-Z0-9+.-]*:")
+    private val SPACES = Regex("\\s+")
+
     private val STANDARD_WIDTHS = listOf(330, 500, 960)
 
     // ---- xkcd ----
@@ -343,7 +347,7 @@ object FeedContent {
             if (sharp != null) {
                 img.attr("src", sharp.groupValues[1] + "_2x.png")
                 // A few comics have no double-size version: fall back to the normal one.
-                img.attr("onerror", "this.onerror=null;this.src='" + src.replace("'", "%27") + "'")
+                img.attr("data-fallback", src)
             }
             img.addClass("brief-full")
             val hover = img.attr("title").ifBlank { img.attr("alt") }

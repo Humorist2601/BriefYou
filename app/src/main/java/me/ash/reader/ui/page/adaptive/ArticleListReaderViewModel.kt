@@ -338,10 +338,10 @@ constructor(
     }
 
     fun renderDescriptionContent() {
-        _readerState.update {
-            it.copy(
-                content = ReaderState.Description(content = FeedContent.forReader(currentArticle?.rawDescription ?: "", currentArticle?.link, currentArticle?.title)) // Brief You
-            )
+        // Brief You: tidied off the main thread (it was done where the button was tapped)
+        viewModelScope.launch {
+            val tidied = FeedContent.forReaderInBackground(currentArticle?.rawDescription ?: "", currentArticle?.link, currentArticle?.title)
+            _readerState.update { it.copy(content = ReaderState.Description(content = tidied)) }
         }
     }
 

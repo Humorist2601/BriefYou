@@ -23,6 +23,7 @@ import okhttp3.Request
 import okhttp3.executeAsync
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Entities
 
 /**
  * Read later: a web page shared to Brief You from another app is saved as a starred article, with
@@ -111,7 +112,7 @@ constructor(
                 Readability.parseToElement(html, url)
                     ?.apply { selectFirst("h1")?.takeIf { it.text() == title }?.remove() }
                     ?.toString()
-                    ?: description?.let { "<p>$it</p>" }
+                    ?: description?.let { "<p>${Entities.escape(it)}</p>" }
                     ?: ""
             val now = Date()
             val article =
@@ -157,7 +158,7 @@ constructor(
                 feedId = feed.id,
                 date = now,
                 title = title,
-                rawDescription = "<p><a href=\"$url\">$url</a></p>",
+                rawDescription = "<p><a href=\"${Entities.escape(url)}\">${Entities.escape(url)}</a></p>",
                 shortDescription = url,
                 link = url,
                 isUnread = true,
