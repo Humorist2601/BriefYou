@@ -23,7 +23,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import me.ash.reader.infrastructure.preference.LocalReadingBoldCharacters
 import me.ash.reader.infrastructure.preference.LocalReadingFonts
 import me.ash.reader.infrastructure.preference.LocalReadingImageHorizontalPadding
+import me.ash.reader.infrastructure.preference.LocalReadingImageMaximize
 import me.ash.reader.infrastructure.preference.LocalReadingImageRoundedCorners
+import me.ash.reader.infrastructure.preference.LocalReadingSubheadAlign
+import me.ash.reader.infrastructure.preference.LocalReadingVideoHorizontalPadding
+import me.ash.reader.infrastructure.preference.LocalReadingVideoMaximize
+import me.ash.reader.infrastructure.preference.LocalReadingVideoRoundedCorners
 import me.ash.reader.infrastructure.preference.LocalReadingPageTonalElevation
 import me.ash.reader.infrastructure.preference.LocalReadingSubheadBold
 import me.ash.reader.infrastructure.preference.LocalReadingSubheadUpperCase
@@ -77,6 +82,11 @@ fun RYWebView(
     val lineHeight: Float = LocalReadingTextLineHeight.current
     val imgMargin: Int = LocalReadingImageHorizontalPadding.current
     val imgBorderRadius: Int = LocalReadingImageRoundedCorners.current
+    val imgMaximize: Boolean = LocalReadingImageMaximize.current.value
+    val subheadAlign: String = LocalReadingSubheadAlign.current.toTextAlignCSS()
+    val videoCorners: Int = LocalReadingVideoRoundedCorners.current
+    val videoPadding: Int = LocalReadingVideoHorizontalPadding.current
+    val videoMaximize: Boolean = LocalReadingVideoMaximize.current
     val codeTextColor: Int = colorScheme.tertiary.toArgb()
     val codeBgColor: Int =
         colorScheme.surfaceColorAtElevation((tonalElevation.value + 6).dp).toArgb()
@@ -98,7 +108,7 @@ fun RYWebView(
             fontSize, fontPath, lineHeight, letterSpacing, textMargin, textColor, textBold,
             textAlign, boldTextColor, subheadBold, subheadUpperCase, imgMargin, imgBorderRadius,
             linkTextColor, codeTextColor, codeBgColor, selectionTextColor, selectionBgColor,
-            isDarkBackground,
+            isDarkBackground, subheadAlign, imgMaximize, videoCorners, videoPadding, videoMaximize,
         ) {
             WebViewStyle.get(
                 fontSize = fontSize,
@@ -121,7 +131,9 @@ fun RYWebView(
                 selectionTextColor = selectionTextColor,
                 selectionBgColor = selectionBgColor,
                 isDark = isDarkBackground,
+                subheadAlign = subheadAlign,
             ) +
+                MediaStyle.css(imgMaximize, videoCorners, videoPadding, videoMaximize) +
                 // Boxes with a loading indicator for the pictures still loading (no jumping text).
                 // (the same tonal colour as code blocks, and the accent colour).
                 ImagePlaceholders.css(boxColor = codeBgColor, indicatorColor = linkTextColor)
@@ -155,6 +167,33 @@ fun RYWebView(
         // What the web view currently shows: its content, styles and script (kept apart, so a
         // redraw doesn't join the whole article into a new string just to compare it).
         val shown = remember { arrayOfNulls<String>(3) }
+        // Translation: paragraphs are swapped into the page in place (no reload, so no flicker).
+        val translation = me.ash.reader.brief.ai.LocalTranslation.current
+        val appliedPatches = remember { intArrayOf(0) }
+        val patchCount = translation?.patches?.size ?: 0
+        androidx.compose.runtime.LaunchedEffect(webView, patchCount, content) {
+            if (translation == null) return@LaunchedEffect
+            while (appliedPatches[0] < translation.patches.size) {
+                kotlinx.coroutines.delay(80) // also lets a page that was just loaded replace the old one
+                val ready =
+                    kotlinx.coroutines.suspendCancellableCoroutine<Boolean> { c ->
+                        webView.evaluateJavascript("document.readyState") {
+                            c.resumeWith(Result.success(it == "\"complete\"" || it == "\"interactive\""))
+                        }
+                    }
+                if (!ready) continue
+                val upto = translation.patches.size
+                for (i in appliedPatches[0] until upto) {
+                    val (block, html) = translation.patches[i]
+                    webView.evaluateJavascript(
+                        if (block < 0) "document.querySelectorAll('[data-bt]').forEach(function(e){e.style.opacity='';});"
+                        else "(function(){var e=document.querySelector('[data-bt=\"$block\"]');if(e){e.innerHTML=${JSONObject.quote(html)};e.style.opacity='';}})();",
+                        null,
+                    )
+                }
+                appliedPatches[0] = upto
+            }
+        }
 
         AndroidView(
             modifier = modifier,
@@ -183,6 +222,8 @@ fun RYWebView(
                     shown[0] = content
                     shown[1] = css
                     shown[2] = script
+                    // The page starts from what the translation had made when this content was set.
+                    appliedPatches[0] = translation?.shownPatchCount ?: 0
                 } else if (shown[1] != css) {
                     it.evaluateJavascript(
                         "document.querySelector('style').textContent = ${JSONObject.quote(css)};",

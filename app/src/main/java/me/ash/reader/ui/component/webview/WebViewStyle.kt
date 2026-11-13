@@ -41,6 +41,8 @@ object WebViewStyle {
         selectionBgColor: Int,
         /** Dark theme: pictures are dimmed a little so they don't glare. */ // Brief You
         isDark: Boolean = false,
+        /** Subheads' own alignment (the Title page's setting). */ // Brief You
+        subheadAlign: String = "left", // Brief You
     ): String = """
 ${applyFontFace(fontPath)}
 :root {
@@ -58,6 +60,7 @@ ${applyFontFace(fontPath)}
     --selection-bg-color: ${argbToCssColor(selectionBgColor)};
     --subhead-bold: ${if (subheadBold) "600" else "normal"};
     --subhead-upper-case: ${if (subheadUpperCase) "uppercase" else "none"};
+    --subhead-align: ${subheadAlign}; /* Brief You */
     --img-margin: ${imgMargin}px;
     --img-border-radius: ${imgBorderRadius}px;
     --content-padding;
@@ -119,7 +122,7 @@ h6 {
     line-height: calc(min(1.2, var(--line-height))) !important;
     letter-spacing: var(--letter-spacing) !important;
     color: var(--bold-text-color) !important;
-    text-align: var(--text-align) !important;
+    text-align: var(--subhead-align) !important; /* Brief You: the subhead alignment setting */
 }
 
 /* Paragraph */
@@ -211,6 +214,27 @@ img + small {
     letter-spacing: var(--letter-spacing) !important;
     margin-top: var(--image-caption-margin) !important;
     text-align: var(--text-align) !important;
+}
+
+/* Brief You: newsletters (EmailContent, when "Tidy newsletters" is on): buttons as outlined pills, callout boxes */
+a.brief-button {
+    display: inline-block !important;
+    padding: 0.5em 1.3em !important;
+    margin: 0.4em 0 !important;
+    border: 1.5px solid var(--link-text-color) !important;
+    border-radius: 999px !important;
+    text-decoration: none !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+}
+a.brief-button strong {
+    font-weight: 600 !important;
+}
+.brief-note {
+    border: 1px solid rgba(128, 128, 128, 0.45) !important;
+    border-radius: 16px !important;
+    padding: 0.2em 1.1em !important;
+    margin: 1.4em 0 !important;
 }
 
 /* Brief You: wide tables scroll inside their own box (added by FeedContent) */

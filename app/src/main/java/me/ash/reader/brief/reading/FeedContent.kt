@@ -57,8 +57,8 @@ object FeedContent {
      * article three times on the main thread (tidying it, then splitting off its lead picture
      * twice) while its opening animation ran.
      */
-    suspend fun forReaderInBackground(html: String, link: String?): String =
-        withContext(Dispatchers.Default) { forReader(html, link).also { prepared(it) } }
+    suspend fun forReaderInBackground(html: String, link: String?, title: String? = null): String =
+        withContext(Dispatchers.Default) { forReader(html, link, title).also { prepared(it) } }
 
     /** A complete address for [url], read against the article's [base] address. */
     fun absoluteUrl(url: String?, base: String?): String? {
@@ -76,14 +76,15 @@ object FeedContent {
     fun listImage(img: String?, link: String?): String? = absoluteUrl(img, link)
 
     /** The article's HTML, tidied for the reader. [link] is the article's address. */
-    fun forReader(html: String, link: String?): String {
+    fun forReader(html: String, link: String?, title: String? = null): String {
         if (html.isBlank()) return html
         return runCatching {
                 val doc = Jsoup.parseBodyFragment(html, link ?: "")
                 makeAddressesComplete(doc, link)
                 // A newsletter read as a feed: the whole email, made a plain article first.
-                if (EmailContent.isEmail(html, link)) EmailContent.tidy(doc)
-                tidyGeneral(doc)
+                val email = EmailContent.isEmail(html, link)
+                if (email) EmailContent.tidy(doc, title)
+                tidyGeneral(doc, keepReadMore = email && EmailContent.tidyMore) // an email's "Read more" is a button to the story
                 val host = link?.let { runCatching { URI(it).host }.getOrNull() }.orEmpty()
                 when {
                     host.endsWith("wikipedia.org") -> tidyWikipedia(doc)
@@ -143,7 +144,7 @@ object FeedContent {
      * For every feed: tracking pixels, share and "related posts" widgets, "Read more" links and
      * "The post … appeared first on …" lines are removed; tables get a box that scrolls sideways.
      */
-    private fun tidyGeneral(doc: Document) {
+    private fun tidyGeneral(doc: Document, keepReadMore: Boolean = false) {
         // Tracking pixels: tiny or hidden images, and feed tracker images.
         for (img in doc.select("img")) {
             val w = img.attr("width").toIntOrNull()
@@ -168,7 +169,7 @@ object FeedContent {
         val readMore =
             Regex("(?i)^\\s*(read more|continue reading|keep reading|read the (full|rest of the) (story|article|post)|weiterlesen)\\b.*")
         for (a in doc.select("a")) {
-            if (!readMore.matches(a.text())) continue
+            if (keepReadMore || !readMore.matches(a.text())) continue
             val parent = a.parent()
             a.remove()
             if (parent != null && parent.tagName() == "p" && parent.text().isBlank() &&

@@ -148,9 +148,8 @@ fun ReadingTitlePage(
                     SettingItem(
                         title = stringResource(R.string.alignment),
                         desc = subtitleAlign.toDesc(context),
-                        enabled = false,
                         onClick = {
-//                            subtitleAlignDialogVisible = true
+                            subtitleAlignDialogVisible = true // Brief You: works in the web view
                         },
                     ) {}
                     } // Brief You

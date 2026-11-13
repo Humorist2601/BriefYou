@@ -96,6 +96,17 @@ constructor(
         }
     }
 
+    /** A group's feeds with unread articles, in the Feeds page order, for Triage's groups sheet. */
+    fun triageFeedsOf(groupId: String): List<TriageNext> {
+        if (!filterStateUseCase.filterStateFlow.value.filter.isUnread()) return emptyList()
+        return groupWithFeedsListUseCase.groupWithFeedListFlow.value
+            .firstOrNull { it.group.id == groupId }
+            ?.feeds
+            .orEmpty()
+            .filter { it.important > 0 }
+            .map { TriageNext(it.id, it.name, it.important, isFeed = true, icon = it.icon) }
+    }
+
     /**
      * Everything unread when a Triage run starts, for its progress ring: the unread articles in all
      * groups (or, for a run started from a feed, all feeds), and how many of them have any.

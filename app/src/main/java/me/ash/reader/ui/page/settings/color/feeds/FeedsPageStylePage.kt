@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.settings.color.feeds
 
+import kotlin.math.roundToInt // Brief You: the number sheet
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -187,21 +188,16 @@ fun FeedsPageStylePage(
         filterBarStyleDialogVisible = false
     }
 
-    TextFieldDialog(
-        visible = filterBarPaddingDialogVisible,
+    // Brief You: number settings are a slider sheet (NumberSheet)
+    if (filterBarPaddingDialogVisible) me.ash.reader.brief.ui.NumberSheet(
         title = stringResource(R.string.horizontal_padding),
-        value = (filterBarPaddingValue ?: "").toString(),
-        placeholder = stringResource(R.string.value),
-        onValueChange = {
-            filterBarPaddingValue = it.filter { it.isDigit() }.toIntOrNull()
-        },
-        onDismissRequest = {
-            filterBarPaddingDialogVisible = false
-        },
-        onConfirm = {
-            FeedsFilterBarPaddingPreference.put(context, scope, filterBarPaddingValue ?: 0)
-            filterBarPaddingDialogVisible = false
-        }
+        value = filterBarPadding.toFloat(),
+        range = 0f..120f,
+        step = 4f,
+        default = FeedsFilterBarPaddingPreference.default.toFloat(),
+        suffix = "dp",
+        onSave = { FeedsFilterBarPaddingPreference.put(context, scope, it.roundToInt()) },
+        onDismiss = { filterBarPaddingDialogVisible = false },
     )
 
     RadioDialog(

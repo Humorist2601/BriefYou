@@ -327,12 +327,12 @@ constructor(
             if (articleWithFeed.feed.isFullContent) {
                 val fullContent =
                     readerCacheHelper.readFullContent(articleWithFeed.article.id).getOrNull()
-                if (fullContent != null) ReaderState.FullContent(FeedContent.forReaderInBackground(fullContent, articleWithFeed.article.link)) // Brief You: tidied, off the main thread
+                if (fullContent != null) ReaderState.FullContent(FeedContent.forReaderInBackground(fullContent, articleWithFeed.article.link, articleWithFeed.article.title)) // Brief You: tidied, off the main thread
                 else {
                     renderFullContent()
                     ReaderState.Loading
                 }
-            } else ReaderState.Description(FeedContent.forReaderInBackground(articleWithFeed.article.rawDescription, articleWithFeed.article.link)) // Brief You: off the main thread
+            } else ReaderState.Description(FeedContent.forReaderInBackground(articleWithFeed.article.rawDescription, articleWithFeed.article.link, articleWithFeed.article.title)) // Brief You: off the main thread
 
         return copy(content = contentState)
     }
@@ -340,7 +340,7 @@ constructor(
     fun renderDescriptionContent() {
         _readerState.update {
             it.copy(
-                content = ReaderState.Description(content = FeedContent.forReader(currentArticle?.rawDescription ?: "", currentArticle?.link)) // Brief You
+                content = ReaderState.Description(content = FeedContent.forReader(currentArticle?.rawDescription ?: "", currentArticle?.link, currentArticle?.title)) // Brief You
             )
         }
     }
@@ -352,7 +352,7 @@ constructor(
                     .readOrFetchFullContent(currentArticle!!)
                     .onSuccess { content ->
                         _readerState.update {
-                            it.copy(content = ReaderState.FullContent(content = FeedContent.forReaderInBackground(content, currentArticle?.link))) // Brief You: off the main thread
+                            it.copy(content = ReaderState.FullContent(content = FeedContent.forReaderInBackground(content, currentArticle?.link, currentArticle?.title))) // Brief You: off the main thread
                         }
                     }
                     .onFailure { th ->

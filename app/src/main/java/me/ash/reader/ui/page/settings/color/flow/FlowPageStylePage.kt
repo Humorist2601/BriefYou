@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.settings.color.flow
 
+import kotlin.math.roundToInt // Brief You: the number sheet
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -108,12 +109,7 @@ fun FlowPageStylePage(
                         text = stringResource(R.string.top_bar)
                     )
                     me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
-                    SettingItem(
-                        title = stringResource(R.string.mark_as_read_button_position),
-                        desc = stringResource(R.string.top),
-                        enabled = false,
-                        onClick = {},
-                    ) {}
+                    // Brief You: "Mark as read button position" is hidden until it works
                     SettingItem(
                         title = stringResource(R.string.tonal_elevation),
                         desc = "${topBarTonalElevation.value}dp",
@@ -280,21 +276,16 @@ fun FlowPageStylePage(
         filterBarStyleDialogVisible = false
     }
 
-    TextFieldDialog(
-        visible = filterBarPaddingDialogVisible,
+    // Brief You: number settings are a slider sheet (NumberSheet)
+    if (filterBarPaddingDialogVisible) me.ash.reader.brief.ui.NumberSheet(
         title = stringResource(R.string.horizontal_padding),
-        value = (filterBarPaddingValue ?: "").toString(),
-        placeholder = stringResource(R.string.value),
-        onValueChange = {
-            filterBarPaddingValue = it.filter { it.isDigit() }.toIntOrNull()
-        },
-        onDismissRequest = {
-            filterBarPaddingDialogVisible = false
-        },
-        onConfirm = {
-            FlowFilterBarPaddingPreference.put(context, scope, filterBarPaddingValue ?: 0)
-            filterBarPaddingDialogVisible = false
-        }
+        value = filterBarPadding.toFloat(),
+        range = 0f..120f,
+        step = 4f,
+        default = FlowFilterBarPaddingPreference.default.toFloat(),
+        suffix = "dp",
+        onSave = { FlowFilterBarPaddingPreference.put(context, scope, it.roundToInt()) },
+        onDismiss = { filterBarPaddingDialogVisible = false },
     )
 
     RadioDialog(

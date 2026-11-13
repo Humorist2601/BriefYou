@@ -303,6 +303,22 @@ constructor(
         return generate(ASK_GIST_PROMPT, prompt)
     }
 
+    /**
+     * Streams a translation of numbered paragraphs ("[1] text", one per line) into [language]
+     * (its English name), with the same numbers. Each emission is the full text so far.
+     */
+    fun translate(language: String, numbered: String): Flow<String> =
+        generate(
+            "You translate text for a news reader app. The user sends paragraphs, each starting with " +
+                "a number in square brackets. Translate every paragraph into $language and reply with " +
+                "the same numbers in square brackets, one paragraph after each number, in the same " +
+                "order. Keep names, numbers and quotes accurate. If a paragraph is already in " +
+                "$language, repeat it as it is. Some paragraphs contain numbered tags such as <1>words</1>. " +
+                "Keep every tag pair exactly as written, around the words that translate the tagged " +
+                "words, and never explain the tags. Do not add notes, explanations or anything else.",
+            numbered,
+        )
+
     /** Streams a gist of many articles (for example everything in a group). */
     fun gist(groupName: String?, items: List<GistItem>): Flow<String> {
         return generate(gistPrompt.value, buildGistPrompt(groupName, items))

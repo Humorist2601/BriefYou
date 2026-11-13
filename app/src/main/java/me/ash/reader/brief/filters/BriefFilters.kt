@@ -70,7 +70,7 @@ data class FilterLogEntry(
 class BriefFilters
 @Inject
 constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val articleDao: BriefArticleDao,
     private val rssService: RssService,
 ) {

@@ -54,7 +54,11 @@ constructor(
         return withContext(ioDispatcher) {
             runCatching {
                 val file = currentCacheDir.resolve(getFileNameFor(articleId))
-                if (!file.exists()) return@withContext Result.failure(FileNotFoundException())
+                if (!file.exists()) {
+                    // Brief You: a starred article's offline copy (kept when the cache is cleared)
+                    me.ash.reader.brief.offline.OfflineCopies.fullText(context, articleId)?.let { return@withContext Result.success(it) } // Brief You
+                    return@withContext Result.failure(FileNotFoundException())
+                }
                 file.readText()
             }
         }

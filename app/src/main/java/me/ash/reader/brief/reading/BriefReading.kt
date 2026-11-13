@@ -102,6 +102,10 @@ class BriefReadingState internal constructor() {
 
     var showSummary by mutableStateOf(false)
     var showTextSheet by mutableStateOf(false)
+    var showTranslateSheet by mutableStateOf(false)
+
+    /** Translating the article being read (see [TranslationState]). */
+    val translation = me.ash.reader.brief.ai.TranslationState()
     internal var showSpeedSheet by mutableStateOf(false)
 }
 
@@ -125,7 +129,15 @@ fun rememberBriefReadingState(
             if (!changing && articleId != null && tts.sourceKey == articleId) tts.stop()
         }
     }
-    LaunchedEffect(articleId) { state.progress = 0f }
+    // Full content on or off changes the text under a translation: start over from the original.
+    LaunchedEffect(readerState.content.text) {
+        val made = state.translation.source
+        if (made != null && made != readerState.content.text) state.translation.reset()
+    }
+    LaunchedEffect(articleId) {
+        state.progress = 0f
+        state.translation.reset() // a new article starts in its own language
+    }
     TrackReadingStats(articleId, readerState.feedName)
     return state
 }
@@ -332,6 +344,11 @@ fun BriefReadingSheets(
             heading = stringResource(R.string.ai_summary),
             onDismissRequest = { state.showSummary = false },
         )
+    }
+    if (state.showTranslateSheet) {
+        val translate =
+            me.ash.reader.brief.ai.rememberTranslateController(state.translation, { readerState.title }, { readerState.content.text })
+        me.ash.reader.brief.ai.TranslateLanguageSheet(translate) { state.showTranslateSheet = false }
     }
     if (state.showSpeedSheet) {
         val speed = viewModel.textToSpeechManager.speed.collectAsStateValue()

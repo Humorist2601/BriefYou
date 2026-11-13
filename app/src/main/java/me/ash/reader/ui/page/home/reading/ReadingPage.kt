@@ -92,6 +92,7 @@ fun ReadingPage(
     var isReaderScrollingDown by remember { mutableStateOf(false) }
     var showFullScreenImageViewer by remember { mutableStateOf(false) }
     val brief = rememberBriefReadingState(viewModel, readerState) // Brief You
+    val translate = me.ash.reader.brief.ai.rememberTranslateController(brief.translation, { readerState.title }, { readerState.content.text }) // Brief You
 
     var currentImageData by remember { mutableStateOf(ImageData()) }
 
@@ -129,6 +130,9 @@ fun ReadingPage(
                         onNavButtonClick = onNavAction,
                         onNavigateToStylePage = { brief.showTextSheet = true }, // Brief You: quick text sheet
                         onSummarize = null, // Brief You: the AI button is in the reading bar
+                        onTranslate = translate::tap, // Brief You
+                        onTranslateLong = { brief.showTranslateSheet = true }, // Brief You
+                        translateSelected = brief.translation.status != me.ash.reader.brief.ai.TranslationState.Status.Idle && brief.translation.showing, // Brief You
                         onShareNewspaper = briefNewspaper(readingUiState.articleWithFeed, readerState.content.text), // Brief You
                     )
                 }
@@ -246,6 +250,7 @@ fun ReadingPage(
                                 BriefTrackReadingProgress(brief, scrollState, listState) // Brief You
 
                                 CompositionLocalProvider(
+                                    me.ash.reader.brief.ai.LocalTranslation provides brief.translation, // Brief You
                                     LocalTextStyle provides
                                         LocalTextStyle.current.run {
                                             merge(
@@ -273,9 +278,9 @@ fun ReadingPage(
                                                     enabled = isPullToSwitchArticleEnabled,
                                                 ),
                                             contentPadding = paddings,
-                                            content = content.text ?: "",
+                                            content = (if (brief.translation.showing) brief.translation.htmlFor(me.ash.reader.infrastructure.preference.LocalReadingRenderer.current == me.ash.reader.infrastructure.preference.ReadingRendererPreference.WebView) else null) ?: content.text ?: "", // Brief You: the translation
                                             feedName = feedName,
-                                            title = title.toString(),
+                                            title = ((if (brief.translation.showing) brief.translation.title else null) ?: title).toString(), // Brief You
                                             author = author,
                                             link = link,
                                             publishedDate = publishedDate,
@@ -287,6 +292,7 @@ fun ReadingPage(
                                                 showFullScreenImageViewer = true
                                             },
                                             afterArticle = { BriefNextArticle(nextArticle, viewModel, onLoadArticle) }, // Brief You
+                                            afterHeadline = { me.ash.reader.brief.ai.TranslationBanner(translate) }, // Brief You
                                         )
                                         PullToLoadIndicator(
                                             state = state,

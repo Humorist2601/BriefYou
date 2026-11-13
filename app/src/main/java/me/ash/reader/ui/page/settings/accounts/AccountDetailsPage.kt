@@ -228,6 +228,7 @@ fun AccountDetailsPage(
                             }
                         }
                     }
+                    me.ash.reader.brief.offline.OfflineSettingsItem() // Brief You
                     SettingItem(
                         title = stringResource(R.string.keep_archived_articles),
                         desc = selectedAccount?.keepArchived?.toDesc(context),
@@ -257,6 +258,7 @@ fun AccountDetailsPage(
                         onClick = { exportOPMLModeDialogVisible = true },
                     ) {}
                     selectedAccount?.id?.let { me.ash.reader.brief.backup.BackupSettingItems(it) } // Brief You
+                    selectedAccount?.id?.let { me.ash.reader.brief.backup.AutoBackupSettingItems(it) } // Brief You
                     SettingItem(
                         title = stringResource(R.string.clear_all_articles),
                         onClick = { viewModel.showClearDialog() },

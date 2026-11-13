@@ -46,6 +46,11 @@ class WebViewClient(
             } catch (e: Exception) {
                 Log.e("RLog", "WebView shouldInterceptRequest: $e")
             }
+        } else if (url != null && request.method == "GET" &&
+            me.ash.reader.brief.offline.OfflineCopies.imageFile(context, url) != null) {
+            // A starred article's picture, kept on the phone: shown without the internet.
+            val (file, type) = me.ash.reader.brief.offline.OfflineCopies.imageFile(context, url)!!
+            return WebResourceResponse(type, null, 200, "OK", emptyMap(), file.inputStream())
         } else if (url != null && url.isUrl() && request.method == "GET" && isImage(request)) {
             // Pictures are fetched here like a browser would (no app header, the article as the
             // referrer, then without one), since some image hosts and proxies (Kagi News, for

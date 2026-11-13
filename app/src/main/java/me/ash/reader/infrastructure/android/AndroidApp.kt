@@ -1,6 +1,9 @@
 package me.ash.reader.infrastructure.android
 
 import me.ash.reader.brief.notifications.NotificationHelper // Brief You
+import kotlinx.coroutines.flow.map // Brief You
+import kotlinx.coroutines.flow.distinctUntilChanged // Brief You
+import kotlinx.coroutines.flow.debounce // Brief You
 
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
@@ -89,6 +92,8 @@ class AndroidApp : Application(), Configuration.Provider {
 
     @Inject lateinit var diffMapHolder: DiffMapHolder
 
+    @Inject lateinit var briefArticleDao: me.ash.reader.brief.data.BriefArticleDao // Brief You
+
     /**
      * When the application startup.
      * 1. Set the uncaught exception handler
@@ -99,6 +104,7 @@ class AndroidApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         CrashHandler(this)
+        me.ash.reader.brief.reading.EmailContent.load(this) // Brief You: the Tidy newsletters setting
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
@@ -112,6 +118,15 @@ class AndroidApp : Application(), Configuration.Provider {
             runCatching { java.io.File(filesDir, "ai_cache").deleteRecursively() }
         }
         Coil.setImageLoader(imageLoader)
+        // Brief You: offline copies of starred articles follow the stars (from anywhere: a tap,
+        // Read later, Triage, a sync); the first look also downloads stars from before.
+        applicationScope.launch(ioDispatcher) { // Brief You
+            @OptIn(kotlinx.coroutines.FlowPreview::class) // Brief You
+            briefArticleDao.starredIdsFlow().map { it.toSet() }.distinctUntilChanged().debounce(2_000).collect { // Brief You
+                me.ash.reader.brief.offline.OfflineCopies.schedule(this@AndroidApp) // Brief You
+            } // Brief You
+        } // Brief You
+        me.ash.reader.brief.backup.AutoBackup.schedule(this) // Brief You
     }
 
     /** Override the [Configuration.Builder] to provide the [HiltWorkerFactory]. */
@@ -140,9 +155,12 @@ class AndroidApp : Application(), Configuration.Provider {
 
     private suspend fun checkUpdate() {
         if (!isGitHub) return
+        // Brief You: a downloaded update waits for Install; only one that's no longer newer (or
+        // isn't this app) is removed. Off in Tips & support: no check when the app starts.
         withContext(ioDispatcher) {
-            applicationContext.getLatestApk().let { if (it.exists()) it.del() }
+            me.ash.reader.brief.update.UpdateDownload.readyApk(applicationContext) // Brief You
         }
+        if (!me.ash.reader.brief.update.UpdateCheck.onStart(applicationContext)) return // Brief You
         appService.checkUpdate(showToast = false)
     }
 }

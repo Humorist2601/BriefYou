@@ -1,5 +1,6 @@
 package me.ash.reader.ui.page.settings.color.reading
 
+import kotlin.math.roundToInt // Brief You: the number sheet
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -172,85 +173,62 @@ fun ReadingTextPage(
         }
     )
 
-    TextFieldDialog(
-        visible = fontSizeDialogVisible,
+    // Brief You: number settings are a slider sheet (NumberSheet)
+    if (fontSizeDialogVisible) me.ash.reader.brief.ui.NumberSheet(
         title = stringResource(R.string.font_size),
-        value = (fontSizeValue ?: "").toString(),
-        placeholder = stringResource(R.string.value),
-        onValueChange = {
-            fontSizeValue = it.filter { it.isDigit() }.toIntOrNull()
-        },
-        onDismissRequest = {
-            fontSizeDialogVisible = false
-        },
-        onConfirm = {
-            ReadingTextFontSizePreference.put(context, scope, fontSizeValue ?: 0)
+        value = fontSize.toFloat(),
+        range = 12f..28f,
+        step = 1f,
+        default = ReadingTextFontSizePreference.default.toFloat(),
+        suffix = "sp",
+        onSave = {
+            ReadingTextFontSizePreference.put(context, scope, it.roundToInt())
             ReadingThemePreference.Custom.put(context, scope)
-            fontSizeDialogVisible = false
-        }
+        },
+        onDismiss = { fontSizeDialogVisible = false },
     )
 
-    TextFieldDialog(
-        visible = lineHeightDialogVisible,
+    if (lineHeightDialogVisible) me.ash.reader.brief.ui.NumberSheet( // Brief You
         title = stringResource(R.string.line_height_multiple),
-        value = lineHeightMultipleValue,
-        placeholder = stringResource(R.string.value),
-        onValueChange = {
-            lineHeightMultipleValue = it
-        },
-        onDismissRequest = {
-            lineHeightDialogVisible = false
-        },
-        onConfirm = {
-            ReadingTextLineHeightPreference.put(
-                context,
-                scope,
-                (lineHeightMultipleValue.toFloatOrNull()
-                    ?: ReadingTextLineHeightPreference.default).coerceToRange()
-            )
+        value = lineHeight,
+        range = 0.8f..2f,
+        step = 0.1f,
+        default = ReadingTextLineHeightPreference.default,
+        decimals = 1,
+        onSave = {
+            ReadingTextLineHeightPreference.put(context, scope, it.coerceToRange())
             ReadingThemePreference.Custom.put(context, scope)
-            lineHeightDialogVisible = false
-        }
+        },
+        onDismiss = { lineHeightDialogVisible = false },
     )
 
-    TextFieldDialog(
-        visible = letterSpacingDialogVisible,
+    if (letterSpacingDialogVisible) me.ash.reader.brief.ui.NumberSheet( // Brief You
         title = stringResource(R.string.letter_spacing),
-        value = (letterSpacingValue ?: "").toString(),
-        placeholder = stringResource(R.string.value),
-        onValueChange = {
-            letterSpacingValue = it
-        },
-        onDismissRequest = {
-            letterSpacingDialogVisible = false
-        },
-        onConfirm = {
-            ReadingTextLetterSpacingPreference.put(
-                context,
-                scope,
-                letterSpacingValue?.toFloatOrNull() ?: 0F
-            )
+        value = letterSpacing,
+        range = 0f..2f,
+        step = 0.1f,
+        default = ReadingTextLetterSpacingPreference.default,
+        decimals = 1,
+        suffix = "sp",
+        onSave = {
+            ReadingTextLetterSpacingPreference.put(context, scope, it)
             ReadingThemePreference.Custom.put(context, scope)
-            letterSpacingDialogVisible = false
-        }
+        },
+        onDismiss = { letterSpacingDialogVisible = false },
     )
 
-    TextFieldDialog(
-        visible = horizontalPaddingDialogVisible,
+    if (horizontalPaddingDialogVisible) me.ash.reader.brief.ui.NumberSheet( // Brief You
         title = stringResource(R.string.horizontal_padding),
-        value = (horizontalPaddingValue ?: "").toString(),
-        placeholder = stringResource(R.string.value),
-        onValueChange = {
-            horizontalPaddingValue = it.filter { it.isDigit() }.toIntOrNull()
-        },
-        onDismissRequest = {
-            horizontalPaddingDialogVisible = false
-        },
-        onConfirm = {
-            ReadingTextHorizontalPaddingPreference.put(context, scope, horizontalPaddingValue ?: 0)
+        value = horizontalPadding.toFloat(),
+        range = 0f..64f,
+        step = 4f,
+        default = ReadingTextHorizontalPaddingPreference.default.toFloat(),
+        suffix = "dp",
+        onSave = {
+            ReadingTextHorizontalPaddingPreference.put(context, scope, it.roundToInt())
             ReadingThemePreference.Custom.put(context, scope)
-            horizontalPaddingDialogVisible = false
-        }
+        },
+        onDismiss = { horizontalPaddingDialogVisible = false },
     )
 
     RadioDialog(
