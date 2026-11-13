@@ -1,6 +1,5 @@
 package me.ash.reader.brief.webview
 
-import me.ash.reader.ui.component.webview.WebViewHtml // Brief You
 import me.ash.reader.ui.component.webview.WebViewScript // Brief You
 import me.ash.reader.ui.component.webview.WebViewStyle // Brief You
 
@@ -207,7 +206,7 @@ fun RYWebView(
                 if (pageChanged || (shown[1] != css && it.progress < 100)) {
                     it.loadDataWithBaseURL(
                         null,
-                        WebViewHtml.HTML.format(
+                        BriefWebViewHtml.page(
                             css,
                             // The article's address (this used to read the web view's own, empty
                             // one, so relative images and links didn't work).

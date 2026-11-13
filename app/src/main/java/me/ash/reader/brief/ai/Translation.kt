@@ -323,6 +323,7 @@ class TranslationState {
 
 private val INLINE = setOf("a", "b", "strong", "i", "em")
 private val TAG = Regex("""<(/?)(\d+)>""")
+private val SPACES = Regex("\\s+")
 
 /** A block's text, with its links and bold/italic words wrapped in numbered tags, and those words' elements. */
 private class Tagged(val text: String, val marks: List<Element>)
@@ -344,10 +345,10 @@ private fun tag(block: Element): Tagged {
         }
     }
     block.childNodes().forEach { walk(it) }
-    return Tagged(sb.toString().replace(Regex("\\s+"), " ").trim(), marks)
+    return Tagged(sb.toString().replace(SPACES, " ").trim(), marks)
 }
 
-private fun stripTags(text: String) = text.replace(TAG, "").replace(Regex("\\s+"), " ").trim()
+private fun stripTags(text: String) = text.replace(TAG, "").replace(SPACES, " ").trim()
 
 private fun openTag(e: Element): String {
     val attrs = e.attributes().html()

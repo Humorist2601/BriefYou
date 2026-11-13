@@ -173,17 +173,24 @@ constructor(
                     log = log,
                     undone = undone,
                 )
+            // Full text is kept for the newest starred articles up to a size budget; beyond it only
+            // the summary is kept, so a backup always stays small enough to be restored (restore
+            // refuses files over 64 MB). An article without its text shows its summary, and its
+            // full text again when its feed is set to Full content.
+            var textBudget = MAX_TEXT_CHARS
             val starred =
                 briefArticleDao
                     .queryForGist(accountId, unreadOnly = false, starredOnly = true, limit = MAX_STARRED)
                     .map {
+                        val keepText = it.article.rawDescription.length <= textBudget
+                        if (keepText) textBudget -= it.article.rawDescription.length
                         StarredArticleBackup(
                             feedUrl = it.feed.url,
                             title = it.article.title,
                             author = it.article.author,
                             link = it.article.link,
                             date = it.article.date.time,
-                            rawDescription = it.article.rawDescription,
+                            rawDescription = if (keepText) it.article.rawDescription else "",
                             shortDescription = it.article.shortDescription,
                             img = it.article.img,
                             isUnread = it.article.isUnread,
@@ -342,7 +349,11 @@ constructor(
                         date = Date(item.date),
                         title = item.title,
                         author = item.author,
-                        rawDescription = item.rawDescription,
+                        rawDescription =
+                            item.rawDescription.ifBlank {
+                                // Saved without its text (a very big backup): the summary stands in.
+                                "<p>" + org.jsoup.nodes.Entities.escape(item.shortDescription) + "</p>"
+                            },
                         shortDescription = item.shortDescription,
                         img = item.img,
                         link = item.link,
@@ -481,7 +492,11 @@ constructor(
         const val GROUP_ICONS = "group_icons.json"
         private const val TRIAGE_SECONDS = "auto_seconds"
         private const val READ_ALOUD_SPEED = "speed"
-        private const val MAX_STARRED = 100_000
+        // With up to ~600 bytes of details each, 30,000 starred articles are about 18 MB; the text kept
+        // for the newest ones is held to 12 million characters (at most about 36 MB), so the whole
+        // file stays well under the 64 MB limit on restore.
+        private const val MAX_STARRED = 30_000
+        private const val MAX_TEXT_CHARS = 12_000_000
 
         /** Value of the "external font" choice in the reading and basic font settings. */
         private const val EXTERNAL_FONT = 5

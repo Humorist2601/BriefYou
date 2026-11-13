@@ -29,6 +29,7 @@ import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -52,6 +53,9 @@ object FeedAccent {
         // scroll, and this answers at once without any work on the main thread. Only a colour
         // not known yet in memory goes to the saved ones and the icon (in the background).
         memory[iconUrl]?.let { return it.takeIf { c -> c != NONE } }
+        // An icon that couldn't be fetched a moment ago (offline, a slow host) isn't asked again at
+        // once, and isn't remembered as "no colour": it is tried again later.
+        failedAt[iconUrl]?.let { if (System.currentTimeMillis() - it < RETRY_MS) return null }
         val color =
             withContext(Dispatchers.IO) {
                 val key = hash(iconUrl)
@@ -60,7 +64,14 @@ object FeedAccent {
                 if (prefs.contains(key)) {
                     prefs.getInt(key, NONE)
                 } else {
-                    val found = runCatching { extract(context, iconUrl) }.getOrNull() ?: NONE
+                    val found =
+                        try {
+                            extract(context, iconUrl) ?: NONE
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            return@withContext null // not read this time: nothing is saved
+                        }
                     // Old icons' colours are never needed again; start over now and then rather
                     // than keep every icon a feed ever had (the current ones are worked out again
                     // when shown).
@@ -69,9 +80,17 @@ object FeedAccent {
                     found
                 }
             }
+        if (color == null) {
+            failedAt[iconUrl] = System.currentTimeMillis()
+            return null
+        }
+        failedAt.remove(iconUrl)
         memory[iconUrl] = color
         return color.takeIf { it != NONE }
     }
+
+    private val failedAt = ConcurrentHashMap<String, Long>()
+    private const val RETRY_MS = 60_000L
 
     private suspend fun extract(context: Context, iconUrl: String): Int? {
         // Saved Articles' bookmark is drawn in the theme's colour: no colour of its own.
@@ -99,7 +118,8 @@ object FeedAccent {
                             .allowHardware(false)
                             .build()
                     )
-                (result as? SuccessResult)?.drawable?.toBitmapOrNull() ?: return null
+                // Not fetched (offline, a failing host): raised, so it isn't saved as "no colour".
+                (result as? SuccessResult)?.drawable?.toBitmapOrNull() ?: error("icon not fetched")
             }
         return colorOf(bitmap)
     }
@@ -144,7 +164,8 @@ object FeedAccent {
                     }
                     .getOrNull()
             }
-        pictureMemory.put(url, color ?: NONE)
+        // Only a colour that was read is remembered, so a picture that failed to load is tried again.
+        if (color != null) pictureMemory.put(url, color)
         return color
     }
 

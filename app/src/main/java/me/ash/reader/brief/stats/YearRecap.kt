@@ -166,7 +166,7 @@ private fun shortMonth(month: Int) = Month.of(month + 1).getDisplayName(TextStyl
 
 /**
  * The year in review, on the primary container like the monthly recap. Closed: the year's
- * articles (no comparison with the year before: stats keep about 400 days), twelve month bars and four tiles. Tap it and it opens in place: each month's bar
+ * articles (no comparison with the year before: stats keep only back to the start of last year), twelve month bars and four tiles. Tap it and it opens in place: each month's bar
  * breaks into its days, which fly to that month's little calendar (three across, Monday first),
  * and the tiles give way to every highlight; tap a day for its numbers. ✕ hides it ([onHide]);
  * Share makes a picture of the card as it is.
@@ -266,8 +266,8 @@ private fun YearHeader(recap: YearRecap, tint: Color) {
         title = stringResource(R.string.recap_title, recap.year.toString()),
         since = recap.since,
         articles = recap.articles,
-        // No "vs last year": stats keep about 400 days, so most of the year before is gone by
-        // January and the comparison would be wrong.
+        // No "vs last year": stats keep only back to the start of last year, so the year before
+        // is gone by January and the comparison would be wrong.
         vs = null,
         tint = tint,
     )

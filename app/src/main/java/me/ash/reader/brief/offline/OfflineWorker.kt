@@ -29,21 +29,33 @@ constructor(
     private val cacheHelper: ReaderCacheHelper,
 ) : CoroutineWorker(context, params) {
 
+    private companion object {
+        const val PAGE = 40
+    }
+
     override suspend fun doWork(): Result =
         withContext(Dispatchers.IO) {
             val context = applicationContext
-            val starred = articles.queryStarred(accountService.getCurrentAccountId())
+            val accountId = accountService.getCurrentAccountId()
             OfflineCopies.prune(context, articles.queryStarredIds())
             var complete = true
-            for (item in starred) {
-                ensureActive()
-                val fullText =
-                    if (item.feed.isFullContent) {
-                        OfflineCopies.fullText(context, item.article.id)
-                            ?: cacheHelper.readOrFetchFullContent(item.article).getOrNull()
-                    } else null
-                val ok = runCatching { OfflineCopies.download(context, item, fullText) }.getOrDefault(false)
-                if (!ok) complete = false
+            // A page at a time (newest first), so thousands of stars never sit in memory together.
+            var offset = 0
+            while (true) {
+                val page = articles.queryStarredPage(accountId, PAGE, offset)
+                if (page.isEmpty()) break
+                for (item in page) {
+                    ensureActive()
+                    val fullText =
+                        if (item.feed.isFullContent) {
+                            OfflineCopies.fullText(context, item.article.id)
+                                ?: cacheHelper.readOrFetchFullContent(item.article).getOrNull()
+                        } else null
+                    val ok = runCatching { OfflineCopies.download(context, item, fullText) }.getOrDefault(false)
+                    if (!ok) complete = false
+                }
+                if (page.size < PAGE) break
+                offset += PAGE
             }
             // A few tries for what failed (a site down for a while); after that, the next star or
             // app start tries again.

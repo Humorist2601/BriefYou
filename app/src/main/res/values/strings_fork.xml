@@ -501,5 +501,5 @@
     <string name="translate_dismiss">Dismiss</string>
     <string name="translate_show_original">Show original</string>
     <string name="translate_show_translation">Show translation</string>
-    <string name="translate_needs_model">Download the AI model first (AI settings).</string>
+    <string name="translate_needs_model">Set up the AI model first (Settings → AI model).</string>
 </resources>

@@ -64,17 +64,19 @@ jobs:
               run: echo "CI_BUILD_NUMBER=${{ github.run_number }}" >> "$GITHUB_ENV"
 
             - name: Use Brief You's signing key
-              # With the key in the repo's secrets, builds are signed with it instead of Read
-              # You's public key (which anyone could sign an "update" with). The build reads
-              # signature/keystore_release.properties first when it exists.
+              # Builds are signed with the key in the repo's secrets, never with Read You's public
+              # key (which anyone could sign an "update" with): without the secret, the build
+              # stops. The build reads signature/keystore_release.properties first when it exists.
               env:
                   KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
                   KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
                   KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
               run: |
                   if [ -z "$KEYSTORE_BASE64" ]; then
-                      echo "::warning title=Signing::No KEYSTORE_BASE64 secret: signed with Read You's public key."
-                      exit 0
+                      # Stops here instead of signing with Read You's public key, which anyone
+                      # could use to sign a look-alike that installs over the app.
+                      echo "::error title=Signing::No KEYSTORE_BASE64 secret: the build stops instead of using Read You's public key."
+                      exit 1
                   fi
                   echo "$KEYSTORE_BASE64" | base64 -d > signature/briefyou-release.jks
                   {

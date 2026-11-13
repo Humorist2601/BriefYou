@@ -216,6 +216,8 @@ private fun HapticFeedback.commit(action: TriageAction) =
         }
     )
 
+private const val LOAD_SIZE = 200 // Brief You: the cards one load brings (see BriefListViewModel.loadTriage)
+
 internal data class TriageStep(val article: ArticleWithFeed, val action: TriageAction)
 
 /** What triage can continue with once the current group or feed is done. */
@@ -289,6 +291,17 @@ class TriageSession(
         val added = live.filter { l -> knownPlaces.none { it.id == l.id } }
         knownPlaces = known + added
         return knownPlaces
+    }
+
+    /**
+     * Groups (or feeds) whose cards were all loaded (a load that comes back with fewer than a full
+     * page has nothing more behind it), so they aren't loaded again at their first card and near
+     * their end just to look for more. Brief You.
+     */
+    internal var fullyLoaded: Set<String> = emptySet()
+
+    internal fun noteLoaded(id: String, loaded: Int) {
+        if (loaded < LOAD_SIZE) fullyLoaded = fullyLoaded + id
     }
 
     var index by mutableIntStateOf(0)
@@ -417,11 +430,12 @@ class TriageSession(
     }
 
     /**
-     * From a run of groups to one feed's Triage (picked in the groups sheet): a new run of feeds
-     * starts here, carrying on with the next feed when this one is done. The group you came from
-     * is kept for Undo on this feed's first card, and its unread cards stay unread.
+     * From a run of groups to one feed's Triage (picked in the groups sheet), or from a run of
+     * feeds back to a group: a new run of that kind starts here, carrying on with the next one when
+     * this is done. What you came from is kept for Undo on its first card, and its unread cards
+     * stay unread.
      */
-    fun startFeedRun(feed: TriageNext, cards: List<ArticleWithFeed>, unread: Int, places: Int) {
+    fun startFeedRun(feed: TriageNext, cards: List<ArticleWithFeed>, unread: Int, places: Int) { // Brief You
         previous.addLast(
             Saved(
                 articles, groupId, feedId, title, visited, placeSizes, index, history.toList(),
@@ -443,8 +457,9 @@ class TriageSession(
         setStart(unread, places)
         visited = setOf(feed.id)
         placeSizes = mapOf(feed.id to cards.size)
-        groupId = null
-        feedId = feed.id
+        noteLoaded(feed.id, cards.size) // Brief You
+        groupId = if (feed.isFeed) null else feed.id // Brief You
+        feedId = if (feed.isFeed) feed.id else null // Brief You
         title = feed.name
         articles = cards
         index = 0
@@ -493,6 +508,7 @@ class TriageSession(
         savedBefore += history.count { it.action == TriageAction.Save }
         visited = visited + next.id
         if (next.id !in placeSizes) placeSizes = placeSizes + (next.id to cards.size)
+        noteLoaded(next.id, cards.size) // Brief You
         groupId = if (next.isFeed) null else next.id
         feedId = if (next.isFeed) next.id else null
         title = next.name
@@ -864,14 +880,18 @@ private fun TriageContent(
     val wantMore = current != null && (index == 0 || total - index <= 3)
     LaunchedEffect(hereId, wantMore, total) {
         val here = hereId
-        if (!wantMore || !hasPlaces || here == null) return@LaunchedEffect
+        if (!wantMore || !hasPlaces || here == null || here in session.fullyLoaded) return@LaunchedEffect // Brief You: nothing more to load
         val seen = session.articles.mapTo(HashSet()) { it.article.id }
         val more =
             runCatching { loadNext(TriageNext(here, session.title.orEmpty(), 0, isFeed = isFeeds)) }
                 .getOrDefault(emptyList())
                 .filter { it.article.id !in seen }
         // Still in the same group (not moved on while loading).
-        if ((session.feedId ?: session.groupId) == here) session.appendCards(more)
+        if ((session.feedId ?: session.groupId) == here) {
+            session.appendCards(more)
+            // Brief You: nothing new and fewer cards than a full load: nothing more behind them.
+            if (more.isEmpty()) session.noteLoaded(here, session.articles.size)
+        }
     }
     // When no group of the run is still untouched: back to one you left cards in (jumped away
     // from, or skipped some), in the Feeds order, with how many are left there.
@@ -884,7 +904,7 @@ private fun TriageContent(
     val next = nextNew ?: backTo
     // Carries on with [target]: the end screen floats away (or the cards drop out of the way when
     // jumping from the middle of a group), then the new stack swipes up from the bottom.
-    fun goTo(target: TriageNext, fromGroup: Boolean = false) {
+    fun goTo(target: TriageNext) {
         if (loadingNext) return
         loadingNext = true
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -895,9 +915,9 @@ private fun TriageContent(
             else stackRise.animateTo(1f, tween(200, easing = FastOutLinearInEasing))
             val cards = loading.await()
             stackRise.snapTo(1f)
-            if (fromGroup && target.isFeed && session.feedId == null) {
-                // Brief You: a feed picked in a group's run: the run turns into one of feeds.
-                val all = listPlaces(true, setOf(target.id))
+            if (hasPlaces && target.isFeed != isFeeds) {
+                // Brief You: a feed picked in a group's run (or a group picked in a feed's run): the run turns into the other kind.
+                val all = listPlaces(target.isFeed, setOf(target.id))
                 session.startFeedRun(target, cards, all.sumOf { it.unread }, all.count { it.unread > 0 })
             } else {
                 session.startNext(target, cards)
@@ -1162,15 +1182,19 @@ private fun TriageContent(
         }
     }
 
+    // Brief You: the groups with unread articles, listed in a run of feeds so you can go back to a group.
+    val sheetGroups = remember(sheetOpen, isFeeds) { if (sheetOpen && isFeeds) listPlaces(false, emptySet()) else emptyList() }
     if (sheetOpen) {
         TriagePlacesSheet(
             // The run's groups, finished ones included (ticked "Done").
-            places = runPlaces,
-            currentId = session.feedId ?: session.groupId,
+            // Brief You: in a run of feeds the sheet lists the groups too, with this feed open in its group.
+            places = if (isFeeds) sheetGroups else runPlaces,
+            currentId = if (isFeeds) null else session.feedId ?: session.groupId,
+            currentFeedId = if (isFeeds) session.feedId else null,
             currentLeft = (total - index).coerceAtLeast(0),
-            visited = session.visited,
-            leftIn = session.leftIn,
-            isFeeds = isFeeds,
+            visited = if (isFeeds) emptySet() else session.visited,
+            leftIn = if (isFeeds) emptyMap() else session.leftIn,
+            isFeeds = false,
             title = session.title,
             skipTarget = remember(session.visited) { findNext(session.groupId, session.feedId, session.visited) },
             onPick = {
@@ -1181,7 +1205,7 @@ private fun TriageContent(
             feedsOf = feedsOf, // Brief You
             onPickFeed = { // Brief You: one feed of a group, from the sheet
                 sheetOpen = false
-                goTo(it, fromGroup = true)
+                goTo(it)
             },
             onDismiss = { sheetOpen = false },
         )
@@ -2438,6 +2462,7 @@ private fun TriagePlacesSheet(
     leftIn: Map<String, Int>,
     isFeeds: Boolean,
     title: String?,
+    currentFeedId: String? = null, // Brief You: the feed being triaged, shown inside its group
     skipTarget: TriageNext?,
     onPick: (TriageNext) -> Unit,
     /** Marks the cards left here as read and carries on (null when none are left). */
@@ -2485,7 +2510,13 @@ private fun TriagePlacesSheet(
             // The groups as on the Feeds page (one joined list; a group's row with its icon tile,
             // count pill and arrow, its feeds under it lined up with the row), and the feeds
             // of a group open in place to start Triage on just that feed.
-            var openGroups by remember { mutableStateOf(setOf<String>()) }
+            var openGroups by remember {
+                mutableStateOf(
+                    // Brief You: the group of the feed you're in starts open.
+                    if (currentFeedId == null) setOf()
+                    else places.filter { g -> feedsByGroup[g.id].orEmpty().any { it.id == currentFeedId } }.map { it.id }.toSet()
+                )
+            }
             // Brief You: the sheet sits on the bottom, so a list that grew with a group's feeds pushed the
             // heading up (and back down once the sheet was full). The list keeps the height it has
             // collapsed; a group's feeds open inside it and it scrolls to them, so nothing else moves.
@@ -2650,7 +2681,12 @@ private fun TriagePlacesSheet(
                                         Modifier.padding(end = 20.dp)
                                             .size(24.dp)
                                             .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                            .background(
+                                                // Brief You: on the lit row, the same soft tint as its count pill.
+                                                if (here)
+                                                    MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.16f)
+                                                else MaterialTheme.colorScheme.surfaceContainerHighest
+                                            )
                                             .clickable {
                                                 openGroups = if (place.id in openGroups) openGroups - place.id else openGroups + place.id
                                             },
@@ -2676,10 +2712,12 @@ private fun TriagePlacesSheet(
                         ) {
                             Column {
                                 feeds.forEachIndexed { i, feed ->
+                                    val hereFeed = feed.id == currentFeedId // Brief You
                                     Row(
                                         modifier =
                                             Modifier.fillMaxWidth()
-                                                .clickable { close { onPickFeed(feed) } }
+                                                .background(if (hereFeed) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+                                                .clickable(enabled = !hereFeed) { close { onPickFeed(feed) } }
                                                 .padding(
                                                     top = 8.dp,
                                                     bottom = if (i == feeds.lastIndex) 12.dp else 8.dp,
@@ -2705,7 +2743,10 @@ private fun TriagePlacesSheet(
                                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                                             contentColor = MaterialTheme.colorScheme.outline,
                                         ) {
-                                            Text(text = feed.unread.toString(), style = MaterialTheme.typography.labelSmall)
+                                            Text(
+                                                text = if (hereFeed) currentLeft.toString() else feed.unread.toString(),
+                                                style = MaterialTheme.typography.labelSmall,
+                                            )
                                         }
                                     }
                                 }

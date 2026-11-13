@@ -48,7 +48,10 @@ object ReadingStats {
     private const val KEY = "data"
     private const val KEY_RECAP_HIDDEN = "recap_hidden"
     private const val KEY_RECAP_HOME = "recap_on_home"
-    /** Days kept: a bit over a year, so the file stays small. */
+    /**
+     * Days kept: at least 400, and always back to 1 January of last year, so last year's recap
+     * (shown under Past months all year) stays complete (it lost its early months after February).
+     */
     private const val KEEP_DAYS = 400L
     /** Time is written every this many seconds while reading, and when the article closes. */
     const val FLUSH_SECONDS = 15
@@ -227,11 +230,25 @@ object ReadingStats {
     }
 
     private fun save(context: Context, new: ReadingStatsData) {
-        val oldest = LocalDate.now().minusDays(KEEP_DAYS).toString()
+        val now = LocalDate.now()
+        val oldest = minOf(now.minusDays(KEEP_DAYS), LocalDate.of(now.year - 1, 1, 1)).toString()
         val trimmed = new.copy(days = new.days.filterKeys { it >= oldest })
         data = trimmed
         loaded = true
-        prefs(context).edit().putString(KEY, json.encodeToString(ReadingStatsData.serializer(), trimmed)).apply()
+        // Written after a short pause, so a run of swipes saves once, not on every card.
+        writeContext = context.applicationContext
+        handler.removeCallbacks(write)
+        handler.postDelayed(write, WRITE_DELAY_MS)
+    }
+
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var writeContext: Context? = null
+    private const val WRITE_DELAY_MS = 1500L
+    private val write = Runnable {
+        synchronized(this) {
+            val context = writeContext ?: return@Runnable
+            prefs(context).edit().putString(KEY, json.encodeToString(ReadingStatsData.serializer(), data)).apply()
+        }
     }
 
     private fun prefs(context: Context) =

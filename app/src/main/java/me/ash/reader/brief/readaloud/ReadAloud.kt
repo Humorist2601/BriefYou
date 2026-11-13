@@ -55,7 +55,14 @@ class TextToSpeechManager @Inject constructor(
             _stateFlow.value = value
         }
 
-    private val tts: TextToSpeech = initTts()
+    // Brief You: the engine connects the first time it is needed, not when the app starts.
+    private val ttsDelegate = lazy { initTts() }
+    private val tts: TextToSpeech by ttsDelegate
+    private val ttsOrNull: TextToSpeech? get() = if (ttsDelegate.isInitialized()) tts else null
+
+    /** The engine has answered that it is ready; a reading asked for before that waits here. */
+    @Volatile private var ttsReady = false
+    private var whenReady: (() -> Unit)? = null
 
     /** The reading that is running; callbacks from an older one are ignored. */
     @Volatile private var currentRun: Any? = null
@@ -94,8 +101,16 @@ class TextToSpeechManager @Inject constructor(
     private fun initTts(): TextToSpeech {
         return TextToSpeech(context, TextToSpeech.OnInitListener {
             when (it) {
-                TextToSpeech.SUCCESS -> tts.setSpeechRate(_speed.value)
+                TextToSpeech.SUCCESS -> {
+                    tts.setSpeechRate(_speed.value)
+                    ttsReady = true
+                    whenReady?.let {
+                        whenReady = null
+                        it()
+                    }
+                }
                 else -> {
+                    whenReady = null
                     state = State.Error
                     Timber.e("TextToSpeech initialization failed $it")
                 }
@@ -161,7 +176,7 @@ class TextToSpeechManager @Inject constructor(
         if (new == old) return
         _speed.value = new
         prefs.edit().putFloat(KEY_SPEED, new).apply()
-        tts.setSpeechRate(new)
+        ttsOrNull?.setSpeechRate(new)
         msPerChar = msPerChar * old / new
         (state as? State.Reading)?.let { speakFrom(it.spoken) }
     }
@@ -175,6 +190,12 @@ class TextToSpeechManager @Inject constructor(
     private fun read(parts: List<String>, title: String?, key: String?) {
         stop()
         if (state != State.Idle) return
+        if (!ttsReady) {
+            // The engine connects the first time it is needed: the reading starts once it has.
+            whenReady = { read(parts, title, key) }
+            ttsDelegate.value // connects the engine
+            return
+        }
 
         state = State.Preparing
         this.title = title
@@ -214,7 +235,7 @@ class TextToSpeechManager @Inject constructor(
     fun pause() {
         val s = state as? State.Reading ?: return
         currentRun = null
-        tts.stop()
+        ttsOrNull?.stop()
         state = State.Paused(s.spoken, s.total)
     }
 
@@ -240,7 +261,7 @@ class TextToSpeechManager @Inject constructor(
     /** Starts speaking at character [offset] (from the start of its word). */
     private fun speakFrom(offset: Int) {
         if (pieces.isEmpty()) return
-        tts.stop()
+        ttsOrNull?.stop()
         val run = Any().also { currentRun = it }
         val runId = ++runCounter
         val first = pieceAt(offset)
@@ -362,7 +383,8 @@ class TextToSpeechManager @Inject constructor(
 
     fun stop() {
         currentRun = null
-        tts.stop()
+        whenReady = null
+        ttsOrNull?.stop()
         state = State.Idle
     }
 

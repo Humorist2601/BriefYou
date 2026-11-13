@@ -88,8 +88,28 @@ data class PhoneCheck(
  * there's no second 2.6 GB copy as with an import.
  */
 object ModelDownload {
+    // Fixed to one version of the repository (its commit), with that file's SHA-256, so a changed
+    // file on the server is rejected instead of being loaded by the app's native model code. To
+    // move to a newer model: take the new commit and the file's "oid sha256" from its Hugging Face
+    // page (the file's raw view shows both) and change these two together.
+    private const val COMMIT = "b3ca0d2f076785a8f4b2219ddbd2bdb99954eae1"
     const val URL =
-        "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm"
+        "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/$COMMIT/gemma-4-E2B-it.litertlm"
+    const val SHA256 = "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c"
+
+    /** The file's SHA-256 as lowercase hex, read in pieces (the file is gigabytes). */
+    fun sha256Of(file: File): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buf = ByteArray(1 shl 16)
+            while (true) {
+                val n = input.read(buf)
+                if (n < 0) break
+                digest.update(buf, 0, n)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
 
     /** About 2.6 GB, as the file's page and the model card show it (the real size comes from the server). */
     const val MODEL_BYTES = 2_583_000_000L
@@ -151,7 +171,17 @@ class ModelDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
                         when (response.code) {
                             206 -> true
                             200 -> false.also { have = 0 }
-                            416 -> true // Nothing left to fetch: the part is the whole file.
+                            416 -> {
+                                // Nothing left to fetch, if the part is exactly the whole file
+                                // ("Content-Range: bytes */total"). Otherwise it is wrong (a bigger or
+                                // damaged file): thrown away and downloaded again from the start.
+                                val whole = response.header("Content-Range")?.substringAfter("*/", "")?.toLongOrNull()
+                                if (whole == null || whole != part.length()) {
+                                    part.delete()
+                                    throw java.io.IOException("The partly downloaded file was wrong; starting again")
+                                }
+                                true
+                            }
                             else -> error("The download failed (HTTP ${response.code})")
                         }
                     if (response.code != 416) {
@@ -181,8 +211,14 @@ class ModelDownloadWorker(context: Context, params: WorkerParameters) : Coroutin
                                 }
                             }
                         }
-                        if (total != null && have < total) error("The download stopped early")
+                        // An IOException, so it is tried again and carries on from where it stopped.
+                        if (total != null && have < total) throw java.io.IOException("The download stopped early")
                     }
+                }
+                // Only the file that was expected is installed.
+                if (ModelDownload.sha256Of(part) != ModelDownload.SHA256) {
+                    part.delete()
+                    error("The downloaded model was not the expected file, so it was removed. Try the download again.")
                 }
                 summarizer.installDownloaded(part)
                 Result.success()
