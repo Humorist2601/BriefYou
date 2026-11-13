@@ -334,13 +334,13 @@ private fun tag(block: Element): Tagged {
         when (n) {
             is org.jsoup.nodes.TextNode -> sb.append(n.text())
             is Element ->
-                if (n.normalName() in INLINE && n.text().isNotBlank()) {
+                if (n.tagName() in INLINE && n.text().isNotBlank()) {
                     marks += n
                     val id = marks.size
                     sb.append("<$id>")
                     n.childNodes().forEach { walk(it) }
                     sb.append("</$id>")
-                } else if (n.normalName() == "br") sb.append(' ') else n.childNodes().forEach { walk(it) }
+                } else if (n.tagName() == "br") sb.append(' ') else n.childNodes().forEach { walk(it) }
         }
     }
     block.childNodes().forEach { walk(it) }
@@ -351,7 +351,7 @@ private fun stripTags(text: String) = text.replace(TAG, "").replace(Regex("\\s+"
 
 private fun openTag(e: Element): String {
     val attrs = e.attributes().html()
-    return "<${e.normalName()}" + (if (attrs.isBlank()) "" else " $attrs") + ">"
+    return "<${e.tagName()}" + (if (attrs.isBlank()) "" else " $attrs") + ">"
 }
 
 /**
@@ -376,7 +376,7 @@ private fun rebuild(translated: String, marks: List<Element>): String? {
         } else {
             if (open.lastOrNull() != id) return null
             open.removeLast()
-            out.append("</${marks[id - 1].normalName()}>")
+            out.append("</${marks[id - 1].tagName()}>")
         }
     }
     out.append(org.jsoup.nodes.Entities.escape(translated.substring(pos)))
