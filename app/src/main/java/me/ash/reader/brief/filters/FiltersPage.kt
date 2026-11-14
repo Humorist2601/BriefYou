@@ -7,12 +7,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import me.ash.reader.brief.ui.GoogleSansWideFontFamily
 import me.ash.reader.brief.ui.StatTile
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.toShape
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Button
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.width
@@ -166,8 +168,8 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
     // until tapped; an open group shows a few articles at a time. Today's are always shown.
     var openGroups by rememberSaveable { mutableStateOf(setOf<String>()) }
     var shownInGroup by remember { mutableStateOf(mapOf<String, Int>()) }
-    // Earlier days sit under their month; this month starts open, older ones closed.
-    var openMonths by rememberSaveable { mutableStateOf(setOf(java.time.YearMonth.now().toString())) }
+    // Earlier days sit under their month; every month starts closed. // Brief You
+    var openMonths by rememberSaveable { mutableStateOf(setOf<String>()) }
     val mutedCount = log.count { it.reason == FilterReason.MutedKeyword }
     val duplicateCount = log.count { it.reason == FilterReason.Duplicate }
     // The filtered articles, newest first, under Today / Yesterday / a date.
@@ -670,79 +672,6 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         }
                     }
                 }
-                // An earlier day: one closed row per reason, with its count. Opening one shows its
-                // first few articles and "Show more"; rows slide and fade in and out.
-                fun reasonGroups(day: Long, entries: List<LogRow>) {
-                    item(key = "day-$day") {
-                        Text(
-                            text = dayLabel(day),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.animateItem().padding(start = 24.dp, top = 12.dp, bottom = 8.dp),
-                        )
-                    }
-                    val groups = buildList {
-                        val dupes = entries.filterIsInstance<LogRow.Duplicates>()
-                        if (dupes.isNotEmpty()) add(Triple("$day-dupes", null as String?, dupes as List<LogRow>))
-                        entries
-                            .filterIsInstance<LogRow.Single>()
-                            .groupBy { it.entry.detail }
-                            .forEach { (word, rows) -> add(Triple("$day-kw-$word", word, rows as List<LogRow>)) }
-                    }
-                    groups.forEach { (key, word, rows) ->
-                        val isOpen = key in openGroups
-                        val count = rows.sumOf { if (it is LogRow.Duplicates) it.copies.size else 1 }
-                        item(key = "group-$key") {
-                            ReasonGroupRow(
-                                title =
-                                    if (word == null) stringResource(R.string.filters_group_duplicates)
-                                    else stringResource(R.string.filters_group_keyword, word),
-                                count = count,
-                                open = isOpen,
-                                modifier = Modifier.animateItem(),
-                                onClick = {
-                                    openGroups = if (isOpen) openGroups - key else openGroups + key
-                                    if (isOpen) shownInGroup = shownInGroup - key
-                                },
-                            )
-                        }
-                        if (isOpen) {
-                            val shown = rows.take(shownInGroup[key] ?: GROUP_PAGE)
-                            itemsIndexed(shown, key = { _, it -> "$key-" + it.key }) { index, row ->
-                                Box(Modifier.animateItem()) {
-                                    val shape = groupShape(index, shown.size)
-                                    when (row) {
-                                        is LogRow.Single ->
-                                            FilterLogCard(
-                                                entry = row.entry,
-                                                shape = shape,
-                                                onOpen = { open(row.entry.articleId) },
-                                                onUndo = { viewModel.undo(row.entry) },
-                                            )
-                                        is LogRow.Duplicates ->
-                                            DuplicateGroupCard(
-                                                group = row,
-                                                shape = shape,
-                                                onOpen = open,
-                                                onUndo = { viewModel.undo(it) },
-                                            )
-                                    }
-                                }
-                            }
-                            val more = rows.size - shown.size
-                            if (more > 0) {
-                                item(key = "more-$key") {
-                                    TextButton(
-                                        onClick = { shownInGroup = shownInGroup + (key to shown.size + GROUP_PAGE * 4) },
-                                        modifier = Modifier.animateItem().fillMaxWidth().padding(horizontal = 16.dp),
-                                    ) {
-                                        Text(stringResource(R.string.filters_show_more, more))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
                 val today = java.time.LocalDate.now().toEpochDay()
                 val earlier = days.filterKeys { it != today }
                 val todayRows = days[today]
@@ -758,21 +687,98 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         )
                     }
                 }
-                // A layer of months over the earlier days, so a long list stays short: a row per
-                // month with its count, opening to that month's days.
-                earlier.entries.groupBy { java.time.YearMonth.from(java.time.LocalDate.ofEpochDay(it.key)) }.forEach { (month, monthDays) ->
+                // Earlier days: a row per month (closed to start), opening to a row per day, and a
+                // day opening to its articles. Neighbouring closed rows join into one group. // Brief You
+                val months = earlier.entries.groupBy { java.time.YearMonth.from(java.time.LocalDate.ofEpochDay(it.key)) }.entries.toList()
+                if (months.isNotEmpty()) {
+                    item(key = "earlier-label") {
+                        Text(
+                            text = stringResource(R.string.filters_earlier),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 8.dp),
+                        )
+                    }
+                }
+                fun filteredIn(rows: List<LogRow>) = rows.sumOf { if (it is LogRow.Duplicates) it.copies.size else 1 }
+                months.forEachIndexed { mi, (month, monthDays) ->
                     val monthKey = month.toString()
                     val monthOpen = monthKey in openMonths
+                    // The run of closed months this row belongs to (an open month stands alone).
+                    var from = mi
+                    while (from > 0 && months[from - 1].key.toString() !in openMonths) from--
+                    var to = mi
+                    while (to < months.lastIndex && months[to + 1].key.toString() !in openMonths) to++
+                    val shape = if (monthOpen) groupShape(0, 1) else groupShape(mi - from, to - from + 1)
                     item(key = "month-$monthKey") {
-                        ReasonGroupRow(
+                        FilterRow(
                             title = monthLabel(month),
-                            count = monthDays.sumOf { (_, rows) -> rows.sumOf { if (it is LogRow.Duplicates) it.copies.size else 1 } },
+                            count = monthDays.sumOf { (_, rows) -> filteredIn(rows) },
                             open = monthOpen,
+                            shape = shape,
                             modifier = Modifier.animateItem(),
                             onClick = { openMonths = if (monthOpen) openMonths - monthKey else openMonths + monthKey },
                         )
                     }
-                    if (monthOpen) monthDays.forEach { (day, entries) -> reasonGroups(day, entries) }
+                    if (monthOpen) {
+                        item(key = "month-gap-$monthKey") { Spacer(Modifier.height(10.dp)) }
+                        monthDays.forEachIndexed { di, (day, entries) ->
+                            val dayKey = "day-$day"
+                            val dayOpen = dayKey in openGroups
+                            item(key = "daygroup-$day") {
+                                FilterRow(
+                                    title = dayLabel(day),
+                                    count = filteredIn(entries),
+                                    open = dayOpen,
+                                    shape = if (dayOpen) groupShape(0, 1) else groupShape(di, monthDays.size),
+                                    raised = true,
+                                    modifier = Modifier.animateItem(),
+                                    onClick = {
+                                        openGroups = if (dayOpen) openGroups - dayKey else openGroups + dayKey
+                                        if (dayOpen) shownInGroup = shownInGroup - dayKey
+                                    },
+                                )
+                            }
+                            if (dayOpen) {
+                                item(key = "daygap-$day") { Spacer(Modifier.height(6.dp)) }
+                                val shown = entries.take(shownInGroup[dayKey] ?: GROUP_PAGE)
+                                itemsIndexed(shown, key = { _, it -> "$dayKey-" + it.key }) { index, row ->
+                                    Box(Modifier.animateItem()) {
+                                        val cardShape = groupShape(index, shown.size)
+                                        when (row) {
+                                            is LogRow.Single ->
+                                                FilterLogCard(
+                                                    entry = row.entry,
+                                                    shape = cardShape,
+                                                    onOpen = { open(row.entry.articleId) },
+                                                    onUndo = { viewModel.undo(row.entry) },
+                                                )
+                                            is LogRow.Duplicates ->
+                                                DuplicateGroupCard(
+                                                    group = row,
+                                                    shape = cardShape,
+                                                    onOpen = open,
+                                                    onUndo = { viewModel.undo(it) },
+                                                )
+                                        }
+                                    }
+                                }
+                                val more = entries.size - shown.size
+                                if (more > 0) {
+                                    item(key = "more-$dayKey") {
+                                        TextButton(
+                                            onClick = { shownInGroup = shownInGroup + (dayKey to shown.size + GROUP_PAGE * 4) },
+                                            modifier = Modifier.animateItem().fillMaxWidth().padding(horizontal = 16.dp),
+                                        ) {
+                                            Text(stringResource(R.string.filters_show_more, more))
+                                        }
+                                    }
+                                }
+                                item(key = "dayend-$day") { Spacer(Modifier.height(6.dp)) }
+                            }
+                        }
+                        item(key = "month-end-$monthKey") { Spacer(Modifier.height(10.dp)) }
+                    }
                 }
                 item {
                     Spacer(Modifier.height(8.dp))
@@ -1244,6 +1250,61 @@ private fun ReasonGroupRow(title: String, count: Int, open: Boolean, modifier: M
                 contentDescription = null,
                 modifier = Modifier.graphicsLayer { rotationZ = turn },
             )
+        }
+    }
+}
+
+/**
+ * A month or a day in the log: a calendar icon on a cookie, the name, how many were filtered and an
+ * arrow. Neighbours join into a group by [shape]; [raised] is the paler tone used for days. // Brief You
+ */
+@Composable
+private fun FilterRow(
+    title: String,
+    count: Int,
+    open: Boolean,
+    shape: RoundedCornerShape,
+    modifier: Modifier = Modifier,
+    raised: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val turn by animateFloatAsState(if (open) 180f else 0f, label = "filter row arrow")
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        color =
+            when {
+                open -> scheme.secondaryContainer
+                raised -> scheme.surfaceContainerHigh
+                else -> scheme.surfaceContainer
+            },
+        contentColor = if (open) scheme.onSecondaryContainer else scheme.onSurface,
+        shape = shape,
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.5.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ShapeIcon(Icons.Outlined.CalendarMonth, MaterialShapes.Cookie7Sided, tonal = open)
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    text = stringResource(R.string.filters_n_filtered, count),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (open) scheme.onSecondaryContainer else scheme.onSurfaceVariant,
+                )
+            }
+            Box(
+                modifier =
+                    Modifier.size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (open) scheme.onSecondaryContainer.copy(alpha = 0.16f) else Color.Transparent),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.ExpandMore, contentDescription = null, modifier = Modifier.graphicsLayer { rotationZ = turn })
+            }
         }
     }
 }

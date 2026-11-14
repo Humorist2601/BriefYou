@@ -67,7 +67,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Number settings (font size, line height, letter spacing, paddings, rounded corners) open as a slider sheet like the read-aloud speed one, with **Custom value** (type a number, even past the slider) and **Reset to the default**.
 - **Usage → Triage**: choose what auto-advance does when a card's time is up (skip, mark as read or save) and how long it waits. In Triage, the groups sheet also has **Mark as read** beside Skip (marks the cards left in the group as read, then goes on), the next-up card shows the group's own icon, and the card passes over the buttons when you drag it down.
 - Searching articles also matches the feed's name and the article's author, not just its title and text.
-- The filtered list (Settings → Filters) shows when each article was caught, and earlier days sit under a row per month (this month open, older ones closed).
+- The filtered list (Settings → Filters) shows when each article was caught, and earlier days sit under a row per month, all closed to start; a month opens to its days and a day opens to its articles.
 - Tidier articles also drop "appeared first on" lines.
 - Large header picture; feed, date and reading time as chips; title, time left and a wavy progress bar in the top bar once you scroll.
 - Pictures: drag one away to close it; Save and Share in its menu; slightly dimmed in dark mode.
