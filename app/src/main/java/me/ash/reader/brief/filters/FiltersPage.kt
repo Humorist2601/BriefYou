@@ -732,6 +732,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                                     open = dayOpen,
                                     shape = if (dayOpen) groupShape(0, 1) else groupShape(di, monthDays.size),
                                     raised = true,
+                                    label = java.time.LocalDate.ofEpochDay(day).dayOfMonth.toString(),
                                     modifier = Modifier.animateItem(),
                                     onClick = {
                                         openGroups = if (dayOpen) openGroups - dayKey else openGroups + dayKey
@@ -1266,6 +1267,7 @@ private fun FilterRow(
     shape: RoundedCornerShape,
     modifier: Modifier = Modifier,
     raised: Boolean = false,
+    label: String? = null, // Brief You: the day's date number on its icon (months keep the calendar)
     onClick: () -> Unit,
 ) {
     val turn by animateFloatAsState(if (open) 180f else 0f, label = "filter row arrow")
@@ -1286,7 +1288,7 @@ private fun FilterRow(
             modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ShapeIcon(Icons.Outlined.CalendarMonth, MaterialShapes.Cookie7Sided, tonal = open)
+            ShapeIcon(Icons.Outlined.CalendarMonth, MaterialShapes.Cookie7Sided, tonal = open, label = label)
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1318,6 +1320,7 @@ private fun ShapeIcon(
     icon: ImageVector,
     shape: androidx.graphics.shapes.RoundedPolygon,
     tonal: Boolean = false,
+    label: String? = null, // Brief You: a number on the shape instead of the icon (days in the log)
 ) {
     Box(
         modifier =
@@ -1329,12 +1332,21 @@ private fun ShapeIcon(
                 ),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = if (tonal) LocalContentColor.current else MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.size(20.dp),
-        )
+        if (label != null) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                color = if (tonal) LocalContentColor.current else MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        } else {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (tonal) LocalContentColor.current else MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 
