@@ -188,8 +188,9 @@ constructor(
     }
 
     /** The unread articles of a group or feed, newest first like the list, for triage to continue. */
-    suspend fun loadTriage(next: TriageNext): List<ArticleWithFeed> =
+    suspend fun loadTriage(next: TriageNext, size: Int = 200): List<ArticleWithFeed> = // Brief You: the first load is small
         withContext(ioDispatcher) {
+            val began = me.ash.reader.brief.perf.PerfLog.mark() // Brief You
             val source =
                 rssService
                     .get()
@@ -204,7 +205,7 @@ constructor(
                 source.load(
                     PagingSource.LoadParams.Refresh(
                         key = null,
-                        loadSize = 200,
+                        loadSize = size, // Brief You
                         placeholdersEnabled = false,
                     )
                 )
@@ -220,7 +221,10 @@ constructor(
                             date = it.article.date,
                             onlyHourMinute = true,
                         )
+                    // Brief You: the card's reading time, worked out here and not when it is first shown
+                    me.ash.reader.brief.reading.cachedReadingMinutes(it.article.id, it.article.rawDescription)
                 }
+                .also { me.ash.reader.brief.perf.PerfLog.since("Triage load of ${it.size} cards (asked $size)", began) } // Brief You
         }
 
     /** An article's title, feed and picture, for the next article card at the end of an article. */

@@ -273,6 +273,7 @@ constructor(
         get() = readingUiState.value.articleWithFeed?.feed
 
     fun initData(articleId: String, listIndex: Int? = null) {
+        val tapped = me.ash.reader.brief.perf.PerfLog.mark() // Brief You
         viewModelScope.launch {
             val snapshotList = articleListUseCase.itemSnapshotList
 
@@ -313,6 +314,7 @@ constructor(
                         .prefetchArticleId()
                         .renderContent(this)
                 }
+                me.ash.reader.brief.perf.PerfLog.since("Article opened, tap to text ready", tapped) // Brief You
             }
         }
     }

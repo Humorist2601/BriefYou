@@ -84,6 +84,9 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
         )
 
     val backPreviewRunning = rememberBackPreviewRunning() // Brief You
+    androidx.compose.runtime.LaunchedEffect(backStack.lastOrNull()) { // Brief You: the timing log's screen name
+        me.ash.reader.brief.perf.PerfLog.screen = backStack.lastOrNull()?.let { it::class.simpleName } ?: "?"
+    }
     BriefNavigationHost(backStack) { // Brief You: back preview, shared filter bar
     SharedTransitionLayout {
         NavDisplay(

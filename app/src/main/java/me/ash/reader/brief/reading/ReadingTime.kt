@@ -97,3 +97,19 @@ internal fun countWords(html: String, limit: Int): Pair<Int, Int> {
 
 private fun isCjk(c: Char): Boolean =
     c in '\u3040'..'\u30ff' || c in '\u3400'..'\u4dbf' || c in '\u4e00'..'\u9fff' || c in '\uac00'..'\ud7af'
+
+
+// Brief You: reading times already worked out (in Triage's load), so a card doesn't count its words
+// on the main thread when it first shows. Newest 500 are kept.
+private val minutesCache =
+    object : LinkedHashMap<String, Int>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Int>?) = size > 500
+    }
+
+/** [estimateReadingMinutes] of [html], remembered by the article's [id] (-1 stands for none). */
+fun cachedReadingMinutes(id: String, html: String): Int? {
+    synchronized(minutesCache) { minutesCache[id] }?.let { return it.takeIf { m -> m >= 0 } }
+    val minutes = estimateReadingMinutes(html)
+    synchronized(minutesCache) { minutesCache[id] = minutes ?: -1 }
+    return minutes
+}

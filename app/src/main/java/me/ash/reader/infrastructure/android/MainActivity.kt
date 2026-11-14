@@ -70,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         val playSplash = BriefActivity.onCreate(this, savedInstanceState) // Brief You
+        me.ash.reader.brief.perf.PerfLog.attach(this) // Brief You: Nightly only
 
         // Set the language
         if (Build.VERSION.SDK_INT < 33) {

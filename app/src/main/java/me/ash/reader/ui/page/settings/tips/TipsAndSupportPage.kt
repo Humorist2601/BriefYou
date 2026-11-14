@@ -318,6 +318,7 @@ fun TipsAndSupportPage(
                     }
                     Spacer(modifier = Modifier.height(12.dp)) // Brief You
                     me.ash.reader.brief.tour.ShowHintsAgain() // Brief You
+                    me.ash.reader.brief.perf.PerfLogButton() // Brief You: Nightly only
                     if (me.ash.reader.ui.ext.isGitHub) me.ash.reader.brief.update.UpdateCheckSetting() // Brief You: look for updates on start
                     Spacer(modifier = Modifier.height(36.dp)) // Brief You: 48 with the line above
                 }

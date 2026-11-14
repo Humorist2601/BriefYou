@@ -216,6 +216,7 @@ private fun HapticFeedback.commit(action: TriageAction) =
         }
     )
 
+private const val FIRST_LOAD = 40 // Brief You: a group's first cards come quickly, the rest behind them
 private const val LOAD_SIZE = 200 // Brief You: the cards one load brings (see BriefListViewModel.loadTriage)
 
 internal data class TriageStep(val article: ArticleWithFeed, val action: TriageAction)
@@ -300,8 +301,8 @@ class TriageSession(
      */
     internal var fullyLoaded: Set<String> = emptySet()
 
-    internal fun noteLoaded(id: String, loaded: Int) {
-        if (loaded < LOAD_SIZE) fullyLoaded = fullyLoaded + id
+    internal fun noteLoaded(id: String, loaded: Int, asked: Int = LOAD_SIZE) {
+        if (loaded < asked) fullyLoaded = fullyLoaded + id
     }
 
     var index by mutableIntStateOf(0)
@@ -457,7 +458,7 @@ class TriageSession(
         setStart(unread, places)
         visited = setOf(feed.id)
         placeSizes = mapOf(feed.id to cards.size)
-        noteLoaded(feed.id, cards.size) // Brief You
+        noteLoaded(feed.id, cards.size, FIRST_LOAD) // Brief You
         groupId = if (feed.isFeed) null else feed.id // Brief You
         feedId = if (feed.isFeed) feed.id else null // Brief You
         title = feed.name
@@ -508,7 +509,7 @@ class TriageSession(
         savedBefore += history.count { it.action == TriageAction.Save }
         visited = visited + next.id
         if (next.id !in placeSizes) placeSizes = placeSizes + (next.id to cards.size)
-        noteLoaded(next.id, cards.size) // Brief You
+        noteLoaded(next.id, cards.size, FIRST_LOAD) // Brief You
         groupId = if (next.isFeed) null else next.id
         feedId = if (next.isFeed) next.id else null
         title = next.name
@@ -532,7 +533,7 @@ fun TriageScreen(
     onClose: () -> Unit,
     findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
-    loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
+    loadNext: suspend (TriageNext, Int) -> List<ArticleWithFeed>,
     listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext> = { _, _ -> emptyList() },
     /** The feeds of a group with unread articles, for the groups sheet to open a group to its feeds. */
     feedsOf: (groupId: String, visited: Set<String>) -> List<TriageNext> = { _, _ -> emptyList() }, // Brief You
@@ -555,6 +556,11 @@ fun TriageScreen(
     val settleSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
     val tossSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
     LaunchedEffect(Unit) { enter.animateTo(1f, tween(220)) }
+    androidx.compose.runtime.DisposableEffect(Unit) { // Brief You: the timing log counts these frames as Triage's
+        val before = me.ash.reader.brief.perf.PerfLog.screen
+        me.ash.reader.brief.perf.PerfLog.screen = "Triage"
+        onDispose { me.ash.reader.brief.perf.PerfLog.screen = before }
+    }
 
     // Finishes the exit and only then removes Triage, so it never vanishes in a single frame.
     suspend fun playExit() {
@@ -723,7 +729,7 @@ private fun TriageContent(
     onClose: () -> Unit,
     findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
-    loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
+    loadNext: suspend (TriageNext, Int) -> List<ArticleWithFeed>,
     listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext>,
     feedsOf: (groupId: String, visited: Set<String>) -> List<TriageNext>, // Brief You
 ) {
@@ -882,15 +888,14 @@ private fun TriageContent(
         val here = hereId
         if (!wantMore || !hasPlaces || here == null || here in session.fullyLoaded) return@LaunchedEffect // Brief You: nothing more to load
         val seen = session.articles.mapTo(HashSet()) { it.article.id }
-        val more =
-            runCatching { loadNext(TriageNext(here, session.title.orEmpty(), 0, isFeed = isFeeds)) }
-                .getOrDefault(emptyList())
-                .filter { it.article.id !in seen }
+        val loaded = runCatching { loadNext(TriageNext(here, session.title.orEmpty(), 0, isFeed = isFeeds), LOAD_SIZE) }.getOrDefault(emptyList())
+        val more = loaded.filter { it.article.id !in seen }
         // Still in the same group (not moved on while loading).
         if ((session.feedId ?: session.groupId) == here) {
             session.appendCards(more)
             // Brief You: nothing new and fewer cards than a full load: nothing more behind them.
             if (more.isEmpty()) session.noteLoaded(here, session.articles.size)
+            else if (loaded.size < LOAD_SIZE) session.noteLoaded(here, loaded.size) // Brief You: a short load has nothing behind it
         }
     }
     // When no group of the run is still untouched: back to one you left cards in (jumped away
@@ -908,9 +913,10 @@ private fun TriageContent(
         if (loadingNext) return
         loadingNext = true
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+        val tapped = me.ash.reader.brief.perf.PerfLog.mark() // Brief You
         scope.launch {
             // Load the cards while the current screen moves out of the way.
-            val loading = async { runCatching { loadNext(target) }.getOrDefault(emptyList()) }
+            val loading = async { runCatching { loadNext(target, FIRST_LOAD) }.getOrDefault(emptyList()) } // Brief You
             if (done) doneExit.animateTo(1f, tween(180))
             else stackRise.animateTo(1f, tween(200, easing = FastOutLinearInEasing))
             val cards = loading.await()
@@ -922,6 +928,7 @@ private fun TriageContent(
             } else {
                 session.startNext(target, cards)
             }
+            me.ash.reader.brief.perf.PerfLog.since("Triage switch to ${target.name}, tap to cards shown", tapped) // Brief You
             doneExit.snapTo(0f)
             stackRise.animateTo(0f, riseSpec)
             loadingNext = false
@@ -1625,7 +1632,7 @@ private fun TriageCard(
 ) {
     val feed = article.feed
     val item = article.article
-    val minutes = remember(item.id) { estimateReadingMinutes(item.rawDescription) }
+    val minutes = remember(item.id) { me.ash.reader.brief.reading.cachedReadingMinutes(item.id, item.rawDescription) } // Brief You
     // Hold Share to share the card as a picture: a card drawn just for sharing (see SharePicture),
     // off screen at this card's width, then taken as an image.
     val context = LocalContext.current
