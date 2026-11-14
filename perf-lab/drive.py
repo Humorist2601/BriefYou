@@ -1,8 +1,9 @@
-"""Stage 1: only looks around (the screens' texts), so the real scenarios can be written from it."""
-import subprocess, sys, re, time
+"""Drives the app through the screens. Stage 2: gets past the tour, then looks at each screen
+(screenshots and texts) so the real scenarios can be written from them."""
+import re, subprocess, sys, time
 pkg, out = sys.argv[1], sys.argv[2]
 
-def adb(*a, check=False):
+def adb(*a):
     return subprocess.run(["adb", *a], capture_output=True, text=True).stdout
 
 def dump():
@@ -13,9 +14,51 @@ def nodes(xml):
     for m in re.finditer(r'<node [^>]*?text="([^"]*)"[^>]*?content-desc="([^"]*)"[^>]*?clickable="(\w+)"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml):
         yield m.group(1), m.group(2), m.group(3) == "true", tuple(int(x) for x in m.groups()[3:])
 
-xml = dump()
-with open(f"{out}/screen_texts.txt", "w") as f:
-    for text, desc, clickable, b in nodes(xml):
-        if text or desc:
-            f.write(f"{b} text={text!r} desc={desc!r} clickable={clickable}\n")
-print(open(f"{out}/screen_texts.txt").read()[:3000])
+def find(xml, needle):
+    for text, desc, _, b in nodes(xml):
+        if needle.lower() in text.lower() or needle.lower() in desc.lower():
+            return b
+    return None
+
+def tap(b):
+    adb("shell", "input", "tap", str((b[0] + b[2]) // 2), str((b[1] + b[3]) // 2))
+
+def tap_text(needle, wait=8):
+    end = time.time() + wait
+    while time.time() < end:
+        b = find(dump(), needle)
+        if b:
+            tap(b)
+            return True
+        time.sleep(1)
+    return False
+
+def look(name):
+    """Screenshot and a list of the texts on screen."""
+    with open(f"{out}/{name}.png", "wb") as f:
+        f.write(subprocess.run(["adb", "exec-out", "screencap", "-p"], capture_output=True).stdout)
+    xml = dump()
+    with open(f"{out}/{name}.txt", "w") as f:
+        for text, desc, clickable, b in nodes(xml):
+            if text or desc:
+                f.write(f"{b} text={text!r} desc={desc!r} clickable={clickable}\n")
+    return xml
+
+look("10_start")
+for step in ("Allow", "Skip"):
+    if tap_text(step, wait=4):
+        time.sleep(2)
+look("11_after_tour")
+for i in range(3):   # the tour has a few more cards, hints and prompts
+    if tap_text("Skip", wait=3) or tap_text("Got it", wait=2) or tap_text("Close", wait=2):
+        time.sleep(1.5)
+time.sleep(4)
+xml = look("12_home")
+for label in ("Games", "News", "Technology"):
+    b = find(xml, label)
+    if b:
+        tap(b); time.sleep(3)
+        xml = look(f"13_after_tap_{label}")
+        break
+adb("shell", "input", "keyevent", "KEYCODE_BACK"); time.sleep(2)
+look("14_after_back")

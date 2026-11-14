@@ -10,7 +10,7 @@ adb wait-for-device
 adb shell settings put global window_animation_scale 1
 adb shell settings put global transition_animation_scale 1
 adb shell settings put global animator_duration_scale 1
-adb install -r "$APK"
+adb install -r -g "$APK"
 
 # First start: the app makes its own folders and settings.
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
