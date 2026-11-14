@@ -2664,18 +2664,18 @@ private fun TriagePlacesSheet(
                                 color =
                                     if (here) MaterialTheme.colorScheme.onSecondaryContainer
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
+                                // Brief You: "Done" sits in a pill too, like the other counts (and like a done feed's).
                                 modifier =
-                                    Modifier.padding(end = if (doneHere) 20.dp else 10.dp)
-                                        .then(
-                                            if (doneHere) Modifier
-                                            else
-                                                Modifier.clip(RoundedCornerShape(50))
-                                                    .background(
-                                                        if (here) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.16f)
-                                                        else MaterialTheme.colorScheme.surfaceContainerHighest
-                                                    )
-                                                    .padding(horizontal = 10.dp, vertical = 3.dp)
-                                        ),
+                                    Modifier.padding(
+                                            end =
+                                                if (doneHere && !(inFeedRun && feeds.isNotEmpty())) 20.dp else 10.dp
+                                        )
+                                        .clip(RoundedCornerShape(50))
+                                        .background(
+                                            if (here) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.16f)
+                                            else MaterialTheme.colorScheme.surfaceContainerHighest
+                                        )
+                                        .padding(horizontal = 10.dp, vertical = 3.dp),
                             )
                             if (!isFeeds && (!doneHere || inFeedRun) && feeds.isNotEmpty()) { // Brief You
                                 // The arrow button, as on the Feeds page: opens the group's feeds.
