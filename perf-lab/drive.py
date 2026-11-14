@@ -16,8 +16,13 @@ def nodes(xml):
         yield m.group(1), m.group(2), m.group(3) == "true", tuple(int(x) for x in m.groups()[3:])
 
 def find(xml, needle):
+    """Exact label match first (so 'Skip' is the button, not a sentence containing 'skip')."""
+    n = needle.lower()
     for text, desc, _, b in nodes(xml):
-        if needle.lower() in text.lower() or needle.lower() in desc.lower():
+        if n == text.lower() or n == desc.lower():
+            return b
+    for text, desc, _, b in nodes(xml):
+        if n in text.lower() or n in desc.lower():
             return b
     return None
 
