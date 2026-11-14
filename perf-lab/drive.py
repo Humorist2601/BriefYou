@@ -45,13 +45,18 @@ def look(name):
     return xml
 
 look("10_start")
-for step in ("Allow", "Skip"):
-    if tap_text(step, wait=4):
-        time.sleep(2)
+def clear_blockers():
+    for label in ("Wait", "Allow", "Got it", "Close"):
+        if tap_text(label, wait=1):
+            time.sleep(1)
+for i in range(8):   # system dialogs, notification prompt, then the tour pages
+    clear_blockers()
+    xml = dump()
+    if find(xml, "Skip"):
+        tap(find(xml, "Skip")); time.sleep(2)
+    elif not find(xml, "Next"):
+        break
 look("11_after_tour")
-for i in range(3):   # the tour has a few more cards, hints and prompts
-    if tap_text("Skip", wait=3) or tap_text("Got it", wait=2) or tap_text("Close", wait=2):
-        time.sleep(1.5)
 time.sleep(4)
 xml = look("12_home")
 for label in ("Games", "News", "Technology"):
