@@ -22,7 +22,7 @@ jobs:
                   distribution: temurin
                   java-version: 17
             - uses: gradle/actions/setup-gradle@v6
-            - name: Build the Nightly app (signed with Read You's public test key: never published)
+            - name: Build the Nightly app (signed with Read You's public test key, never published)
               run: ./gradlew assembleGithubNightly --stacktrace
             - name: Make the test database
               run: python3 perf-lab/make_db.py perf-lab/Reader.db 12000 60
