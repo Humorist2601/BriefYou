@@ -261,7 +261,7 @@ fun BriefFlowOverlays(
             findLeft = { groupId, feedId, visited -> briefViewModel.triageLeft(groupId, feedId, visited) },
             loadNext = { next -> briefViewModel.loadTriage(next) },
             listPlaces = { feeds, visited -> briefViewModel.triagePlaces(feeds, visited) },
-            feedsOf = { briefViewModel.triageFeedsOf(it) },
+            feedsOf = { group, visited -> briefViewModel.triageFeedsOf(group, visited) }, // Brief You
         )
     }
 

@@ -91,19 +91,19 @@ constructor(
                 .map { TriageNext(it.id, it.name, it.important, isFeed = true, icon = it.icon) }
         } else {
             groups
+                .filter { g -> g.feeds.sumOf { it.important } > 0 || g.group.id in visited || g.feeds.any { it.id in visited } } // Brief You: a group whose feeds were done in a run of feeds stays
                 .map { g -> TriageNext(g.group.id, g.group.name, g.feeds.sumOf { it.important }) }
-                .filter { it.unread > 0 || it.id in visited }
         }
     }
 
     /** A group's feeds with unread articles, in the Feeds page order, for Triage's groups sheet. */
-    fun triageFeedsOf(groupId: String): List<TriageNext> {
+    fun triageFeedsOf(groupId: String, visited: Set<String> = emptySet()): List<TriageNext> { // Brief You: finished feeds stay, ticked
         if (!filterStateUseCase.filterStateFlow.value.filter.isUnread()) return emptyList()
         return groupWithFeedsListUseCase.groupWithFeedListFlow.value
             .firstOrNull { it.group.id == groupId }
             ?.feeds
             .orEmpty()
-            .filter { it.important > 0 }
+            .filter { it.important > 0 || it.id in visited } // Brief You
             .map { TriageNext(it.id, it.name, it.important, isFeed = true, icon = it.icon) }
     }
 
