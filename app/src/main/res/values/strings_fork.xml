@@ -131,6 +131,8 @@
     <string name="filters_group_duplicates">Duplicate stories</string>
     <string name="filters_group_keyword">“%1$s”</string>
     <string name="filters_show_more">Show %1$d more</string>
+    <string name="filters_earlier">Earlier</string>
+    <string name="filters_n_filtered">%1$d filtered</string>
     <string name="filters_nothing_today">Nothing filtered today</string>
     <string name="filters_from_feed">from %1$s</string>
     <string name="filters_original_story">Original: %1$s</string>
