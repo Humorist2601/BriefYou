@@ -2744,15 +2744,22 @@ private fun TriagePlacesSheet(
                                             overflow = TextOverflow.Ellipsis,
                                             modifier = Modifier.weight(1f).padding(start = 14.dp, end = 6.dp),
                                         )
-                                        androidx.compose.material3.Badge(
-                                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                            contentColor = MaterialTheme.colorScheme.outline,
-                                        ) {
-                                            Text(
-                                                text = if (feedDone) stringResource(R.string.triage_place_done) else if (hereFeed) currentLeft.toString() else feed.unread.toString(), // Brief You
-                                                style = MaterialTheme.typography.labelSmall,
-                                            )
-                                        }
+                                        // Brief You: the same pill as the group's count (it was a dark, hard to read badge).
+                                        Text(
+                                            text = if (feedDone) stringResource(R.string.triage_place_done) else if (hereFeed) currentLeft.toString() else feed.unread.toString(),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color =
+                                                if (hereFeed) MaterialTheme.colorScheme.onSecondaryContainer
+                                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier =
+                                                Modifier.padding(end = 6.dp)
+                                                    .clip(RoundedCornerShape(50))
+                                                    .background(
+                                                        if (hereFeed) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.16f)
+                                                        else MaterialTheme.colorScheme.surfaceContainerHighest
+                                                    )
+                                                    .padding(horizontal = 10.dp, vertical = 3.dp),
+                                        )
                                     }
                                 }
                             }
