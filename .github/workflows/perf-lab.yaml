@@ -8,6 +8,10 @@ on:
         branches:
             - perf-lab
     workflow_dispatch:
+        inputs:
+            mode:
+                description: "scenarios (timings) or readme (clean light and dark screenshots)"
+                default: scenarios
 
 jobs:
     lab:
@@ -39,7 +43,7 @@ jobs:
                   target: google_apis
                   profile: pixel_6
                   disable-animations: false
-                  script: bash perf-lab/run.sh
+                  script: env LAB_MODE=${{ inputs.mode }} bash perf-lab/run.sh
             - uses: actions/upload-artifact@v7
               if: always()
               with:

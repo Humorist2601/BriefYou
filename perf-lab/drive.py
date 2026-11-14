@@ -2,6 +2,7 @@
 (screenshots and texts) so the real scenarios can be written from them."""
 import re, subprocess, sys, time
 pkg, out = sys.argv[1], sys.argv[2]
+mode = sys.argv[3] if len(sys.argv) > 3 else "scenarios"   # "scenarios" or "readme"
 
 def adb(*a):
     return subprocess.run(["adb", *a], capture_output=True, text=True).stdout
@@ -49,13 +50,20 @@ def clear_blockers():
     for label in ("Wait", "Allow", "Got it", "Close"):
         if tap_text(label, wait=1):
             time.sleep(1)
-for i in range(8):   # system dialogs, notification prompt, then the tour pages
+log = open(f"{out}/drive.log", "w")
+def say(*a):
+    log.write(" ".join(str(x) for x in a) + "\n"); log.flush()
+for i in range(10):   # system dialogs, notification prompt, then the tour pages
     clear_blockers()
     xml = dump()
-    if find(xml, "Skip"):
-        tap(find(xml, "Skip")); time.sleep(2)
-    elif not find(xml, "Next"):
+    texts = [t for t, d, c, b in nodes(xml) if t]
+    say("round", i, texts[:6])
+    target = find(xml, "Skip") or find(xml, "Next")
+    if not target:
         break
+    tap(target); say("tapped", target)
+    time.sleep(2)
+    look(f"10_round{i}")
 look("11_after_tour")
 time.sleep(4)
 xml = look("12_home")
@@ -67,3 +75,24 @@ for label in ("Games", "News", "Technology"):
         break
 adb("shell", "input", "keyevent", "KEYCODE_BACK"); time.sleep(2)
 look("14_after_back")
+
+
+if mode == "readme":
+    # Clean light and dark screenshots of the main screens for the README (out/readme/).
+    import os
+    os.makedirs(f"{out}/readme", exist_ok=True)
+    def shot(name):
+        with open(f"{out}/readme/{name}.png", "wb") as f:
+            f.write(subprocess.run(["adb", "exec-out", "screencap", "-p"], capture_output=True).stdout)
+    for night in ("no", "yes"):
+        adb("shell", "cmd", "uimode", "night", night); time.sleep(3)
+        tag = "dark" if night == "yes" else "light"
+        adb("shell", "am", "start", "-n", pkg + "/me.ash.reader.infrastructure.android.MainActivity"); time.sleep(3)
+        shot(f"home-{tag}")
+        xml = dump()
+        for label in ("Games", "News", "Technology"):
+            b = find(xml, label)
+            if b:
+                tap(b); time.sleep(3); shot(f"list-{tag}")
+                break
+        adb("shell", "input", "keyevent", "KEYCODE_BACK"); time.sleep(2)
