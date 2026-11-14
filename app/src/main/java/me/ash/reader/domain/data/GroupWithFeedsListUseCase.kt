@@ -42,6 +42,19 @@ class GroupWithFeedsListUseCase @Inject constructor(
     private var currentJob: Job? = null
     private val accountFlow = accountService.currentAccountFlow.mapNotNull { it }
 
+    private val _groupWithFeedsListFlow: MutableStateFlow<List<GroupWithFeed>> =
+        MutableStateFlow<List<GroupWithFeed>>(emptyList())
+    val groupWithFeedListFlow: StateFlow<List<GroupWithFeed>> = feedOrdering.sorted(_groupWithFeedsListFlow, applicationScope, ioDispatcher) // Brief You: in the user's order
+
+    private val feedsFlow: MutableStateFlow<List<GroupWithFeed>> = MutableStateFlow(emptyList())
+
+    private val defaultGroupId get() = accountService.getCurrentAccountId().getDefaultGroupId()
+
+    private val hideEmptyGroups get() = settingsProvider.settings.hideEmptyGroups.value
+
+    // Brief You: this block used to sit above the fields it uses. The coroutines it starts can run
+    // on another thread before the constructor reaches `feedsFlow`, which then was still null
+    // (a crash in `combine`), so it comes after them.
     init {
         applicationScope.launch {
             accountFlow.collectLatest {
@@ -63,15 +76,7 @@ class GroupWithFeedsListUseCase @Inject constructor(
         }
     }
 
-    private val _groupWithFeedsListFlow: MutableStateFlow<List<GroupWithFeed>> =
-        MutableStateFlow<List<GroupWithFeed>>(emptyList())
-    val groupWithFeedListFlow: StateFlow<List<GroupWithFeed>> = feedOrdering.sorted(_groupWithFeedsListFlow, applicationScope, ioDispatcher) // Brief You: in the user's order
-
-    private val feedsFlow: MutableStateFlow<List<GroupWithFeed>> = MutableStateFlow(emptyList())
-
-    private val defaultGroupId get() = accountService.getCurrentAccountId().getDefaultGroupId()
-
-    private val hideEmptyGroups get() = settingsProvider.settings.hideEmptyGroups.value
+    // Brief You: the fields that used to be here now sit above the init block.
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun pullAllFeeds(): Job {
