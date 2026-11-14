@@ -90,21 +90,52 @@ constructor(
                 .filter { it.important > 0 || it.id in visited }
                 .map { TriageNext(it.id, it.name, it.important, isFeed = true, icon = it.icon) }
         } else {
-            groups
-                .filter { g -> g.feeds.sumOf { it.important } > 0 || g.group.id in visited || g.feeds.any { it.id in visited } } // Brief You: a group whose feeds were done in a run of feeds stays
-                .map { g -> TriageNext(g.group.id, g.group.name, g.feeds.sumOf { it.important }) }
+            // Brief You: groups (and, below, feeds) done in this run are no longer in the live list
+            // (empty ones are hidden), so they come from what was seen earlier, with 0 unread.
+            noteSeen(groups)
+            val live = groups.associateBy { it.group.id }
+            fun unreadOf(id: String) = live[id]?.feeds?.sumOf { it.important } ?: 0
+            val result = mutableListOf<TriageNext>()
+            for (g in groups) {
+                val unread = unreadOf(g.group.id)
+                if (unread > 0 || g.group.id in visited || g.feeds.any { it.id in visited })
+                    result += TriageNext(g.group.id, g.group.name, unread)
+            }
+            var before: String? = null
+            for ((id, seen) in seenGroups) {
+                if (id !in live && (id in visited || seen.feeds.keys.any { it in visited })) {
+                    val at = before?.let { b -> result.indexOfFirst { it.id == b } + 1 } ?: 0
+                    result.add(at, TriageNext(id, seen.name, 0))
+                }
+                before = id
+            }
+            result
+        }
+    }
+
+    /** What was seen of a group while triaging: its name and its feeds, kept after they empty out. */
+    private class SeenGroup(var name: String, val feeds: LinkedHashMap<String, TriageNext>)
+
+    private val seenGroups = LinkedHashMap<String, SeenGroup>()
+
+    private fun noteSeen(groups: List<me.ash.reader.domain.model.group.GroupWithFeed>) {
+        for (g in groups) {
+            val seen = seenGroups.getOrPut(g.group.id) { SeenGroup(g.group.name, LinkedHashMap()) }
+            seen.name = g.group.name
+            for (f in g.feeds) seen.feeds[f.id] = TriageNext(f.id, f.name, f.important, isFeed = true, icon = f.icon)
         }
     }
 
     /** A group's feeds with unread articles, in the Feeds page order, for Triage's groups sheet. */
     fun triageFeedsOf(groupId: String, visited: Set<String> = emptySet()): List<TriageNext> { // Brief You: finished feeds stay, ticked
         if (!filterStateUseCase.filterStateFlow.value.filter.isUnread()) return emptyList()
-        return groupWithFeedsListUseCase.groupWithFeedListFlow.value
-            .firstOrNull { it.group.id == groupId }
-            ?.feeds
-            .orEmpty()
-            .filter { it.important > 0 || it.id in visited } // Brief You
-            .map { TriageNext(it.id, it.name, it.important, isFeed = true, icon = it.icon) }
+        val groups = groupWithFeedsListUseCase.groupWithFeedListFlow.value
+        noteSeen(groups) // Brief You
+        val live = groups.firstOrNull { it.group.id == groupId }?.feeds.orEmpty().associateBy { it.id }
+        return seenGroups[groupId]?.feeds?.values.orEmpty().mapNotNull { f -> // Brief You
+            val unread = live[f.id]?.important ?: 0
+            if (unread > 0 || f.id in visited) f.copy(unread = unread) else null
+        }
     }
 
     /**
