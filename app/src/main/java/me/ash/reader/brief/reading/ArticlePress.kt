@@ -30,6 +30,7 @@ object ArticlePress {
     @Volatile var onPress: ((ArticleWithFeed) -> Unit)? = null
 
     fun pressed(context: Context, item: ArticleWithFeed) {
+        me.ash.reader.brief.perf.PerfLog.note("press: article row") // Nightly stutter log
         onPress?.invoke(item)
         val url =
             FeedContent.listImage(item.article.img, item.article.link)?.takeIf { it.isNotBlank() }
@@ -45,10 +46,29 @@ object ArticlePress {
                 .size(me.ash.reader.ui.component.base.SIZE_1000)
                 .scale(coil.size.Scale.FILL)
                 .precision(coil.size.Precision.INEXACT)
+                .apply {
+                    if (me.ash.reader.brief.perf.PerfLog.enabled) {
+                        val asked = android.os.SystemClock.uptimeMillis()
+                        listener(
+                            onSuccess = { _, r ->
+                                me.ash.reader.brief.perf.PerfLog.note(
+                                    "press: top picture ready from ${r.dataSource.name.lowercase()} after ${android.os.SystemClock.uptimeMillis() - asked} ms"
+                                )
+                            },
+                            onError = { _, _ -> me.ash.reader.brief.perf.PerfLog.note("press: top picture FAILED") },
+                        )
+                    }
+                }
                 .build()
         )
         if (!FeedAccent.knownPictureColor(url).first) {
-            scope.launch { FeedAccent.pictureColor(appContext, url) }
+            scope.launch {
+                val asked = android.os.SystemClock.uptimeMillis()
+                FeedAccent.pictureColor(appContext, url)
+                me.ash.reader.brief.perf.PerfLog.note("press: picture colour ready after ${android.os.SystemClock.uptimeMillis() - asked} ms")
+            }
+        } else {
+            me.ash.reader.brief.perf.PerfLog.note("press: picture colour already known")
         }
     }
 }

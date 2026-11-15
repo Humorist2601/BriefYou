@@ -53,6 +53,16 @@ object WebViewLayout {
                     },
                     JavaScriptInterface.NAME,
                 )
+                // Nightly stutter log: the page reports when its fonts load and when it first draws.
+                if (me.ash.reader.brief.perf.PerfLog.enabled) {
+                    addJavascriptInterface(
+                        object {
+                            @JavascriptInterface
+                            fun note(message: String) = me.ash.reader.brief.perf.PerfLog.note(message)
+                        },
+                        "BriefPerf",
+                    )
+                }
                 setSupportZoom(false)
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                     isAlgorithmicDarkeningAllowed = true

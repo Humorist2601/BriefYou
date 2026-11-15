@@ -81,6 +81,13 @@ fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composabl
     val instant = known?.first == true
     var seed by remember(pictureUrl) { mutableStateOf(known?.second?.let { Color(it) }) }
     LaunchedEffect(pictureUrl) {
+        me.ash.reader.brief.perf.PerfLog.note( // Nightly stutter log
+            when {
+                pictureUrl == null -> "reading colours: no picture (app colours)"
+                instant -> "reading colours: picture colour known, used at once"
+                else -> "reading colours: picture colour not known yet, will fade in"
+            }
+        )
         if (pictureUrl == null || instant) return@LaunchedEffect
         seed = FeedAccent.pictureColor(context, pictureUrl)?.let { Color(it) }
     }

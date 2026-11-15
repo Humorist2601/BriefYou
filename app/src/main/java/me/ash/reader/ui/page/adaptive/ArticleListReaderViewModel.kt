@@ -309,7 +309,25 @@ constructor(
     private val currentFeed: Feed?
         get() = readingUiState.value.articleWithFeed?.feed
 
+    /** Brief You: the article already started by [openNow] (the pane asks again when it opens). */
+    private var openedEarly: String? = null
+
+    /**
+     * Brief You: starts the article as it is tapped, before its page is made, so with a prepared
+     * article the page has it in its first frame (it was started a few frames later, once the
+     * page was there, from the page itself).
+     */
+    fun openNow(articleId: String, listIndex: Int?) {
+        openedEarly = articleId
+        initData(articleId, listIndex)
+    }
+
     fun initData(articleId: String, listIndex: Int? = null) {
+        if (openedEarly != null) { // Brief You
+            val early = openedEarly // Brief You
+            openedEarly = null // Brief You
+            if (early == articleId) return // Brief You: already started on the tap
+        } // Brief You
         viewModelScope.launch {
             val snapshotList = articleListUseCase.itemSnapshotList
 
@@ -333,7 +351,16 @@ constructor(
             val targetId = listItem?.article?.id ?: articleId // Brief You
             val ready = preparedArticle?.takeIf { it.first == targetId }?.second // Brief You
             preparedArticle = null // Brief You
+            val waitFrom = android.os.SystemClock.uptimeMillis() // Brief You: Nightly stutter log
+            val wasReady = ready?.isCompleted == true // Brief You
             val readyArticle = ready?.let { runCatching { it.await() }.getOrNull() } // Brief You
+            me.ash.reader.brief.perf.PerfLog.note( // Brief You: Nightly stutter log
+                when { // Brief You
+                    ready == null -> "open: not prepared, reading it now" // Brief You
+                    wasReady -> "open: prepared article ready" // Brief You
+                    else -> "open: waited ${android.os.SystemClock.uptimeMillis() - waitFrom} ms for the prepared article" // Brief You
+                } // Brief You
+            ) // Brief You
             val item =
                 readyArticle?.first // Brief You
                     ?: rssService.get().findArticleById(targetId) ?: listItem!! // Brief You
@@ -358,6 +385,7 @@ constructor(
                         .let { state -> // Brief You: the text tidied on the press when it was
                             readyArticle?.second?.let { state.copy(content = it) } ?: state.renderContent(this)
                         }
+                        .also { me.ash.reader.brief.perf.PerfLog.note("open: article on the page (${if (it.content is ReaderState.Loading) "text still loading" else "with its text"})") } // Brief You: Nightly stutter log
                 }
             }
         }
@@ -378,7 +406,9 @@ constructor(
         preparedArticle =
             id to
                 viewModelScope.async {
+                    val started = android.os.SystemClock.uptimeMillis()
                     val item = rssService.get().findArticleById(id) ?: listItem
+                    val read = android.os.SystemClock.uptimeMillis()
                     val content =
                         if (item.feed.isFullContent) {
                             // Only a full text already kept; one still to fetch is fetched on opening.
@@ -388,6 +418,10 @@ constructor(
                         } else {
                             ReaderState.Description(FeedContent.forReaderInBackground(item.article.rawDescription, item.article.link, item.article.title))
                         }
+                    me.ash.reader.brief.perf.PerfLog.note(
+                        "prepared: read in ${read - started} ms, text tidied in ${android.os.SystemClock.uptimeMillis() - read} ms" +
+                            if (content == null) " (full text still to fetch)" else ""
+                    ) // Nightly stutter log
                     item to content
                 }
     }

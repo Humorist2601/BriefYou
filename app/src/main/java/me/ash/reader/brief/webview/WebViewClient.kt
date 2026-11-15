@@ -24,6 +24,8 @@ class WebViewClient(
     /** The article's own address, sent as the referrer when fetching its pictures. */
     private val pageUrl: String? = null,
     private val onOpenLink: (url: String) -> Unit,
+    /** The page's first frame with its content is on screen (see [onPageCommitVisible]). */
+    private val onFirstVisible: () -> Unit = {},
 ) : WebViewClient() {
 
     override fun shouldInterceptRequest(
@@ -173,6 +175,7 @@ class WebViewClient(
 
     override fun onPageCommitVisible(view: WebView?, url: String?) {
         super.onPageCommitVisible(view, url)
+        onFirstVisible()
         me.ash.reader.brief.perf.PerfLog.note("page first visible") // Nightly stutter log
     }
 

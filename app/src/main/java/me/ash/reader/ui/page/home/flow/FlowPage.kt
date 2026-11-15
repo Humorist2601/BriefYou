@@ -241,7 +241,7 @@ fun FlowPage(
                 viewModel.diffMapHolder.updateDiff(articleWithFeed, isUnread = false) // Brief You
                 context.openURL(articleWithFeed.article.link, openLink, openLinkSpecificBrowser) // Brief You
             } else { // Brief You
-                me.ash.reader.brief.perf.PerfLog.action("Open an article") // Brief You: Nightly stutter log
+                me.ash.reader.brief.perf.PerfLog.action("Open an article", windowMs = 3_000) // Brief You: Nightly stutter log
                 navigateToArticle(articleWithFeed.article.id, index) // Brief You
             } // Brief You
         } // Brief You

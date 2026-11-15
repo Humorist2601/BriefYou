@@ -154,6 +154,7 @@ fun ArticleListReaderPage(
                                 navigator.scaffoldValue[ListDetailPaneScaffoldRole.List] ==
                                     PaneAdaptedValue.Expanded,
                             navigateToArticle = { id, index ->
+                                viewModel.openNow(id, index) // Brief You: started on the tap
                                 scope.launch {
                                     navigator.navigateTo(
                                         pane = ListDetailPaneScaffoldRole.Detail,
@@ -172,6 +173,10 @@ fun ArticleListReaderPage(
                 enterTransition = motionDataProvider.briefEnterTransition(paneRole, !isTwoPane),
                 exitTransition = motionDataProvider.briefExitTransition(paneRole, !isTwoPane),
             ) {
+                if (me.ash.reader.brief.perf.PerfLog.enabled) { // Brief You: Nightly stutter log
+                    val paneMoving = transition.currentState != transition.targetState // Brief You
+                    LaunchedEffect(paneMoving) { me.ash.reader.brief.perf.PerfLog.note(if (paneMoving) "article pane: slide" else "article pane: slide done") } // Brief You
+                } // Brief You
                 val contentKey = navigator.currentDestination?.contentKey
                 LaunchedEffect(contentKey) {
                     if (contentKey == null) {

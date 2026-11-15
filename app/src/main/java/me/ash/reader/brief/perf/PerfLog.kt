@@ -45,7 +45,7 @@ object PerfLog {
     /** Kept per kind of action, so many of one kind don't push out the others. */
     private const val ACTIONS_KEPT_PER_KIND = 12
 
-    private class Action(val name: String, val at: Long) {
+    private class Action(val name: String, val at: Long, val window: Long) {
         val frames = ArrayList<String>()
         var frameCount = 0
         var lateCount = 0
@@ -67,10 +67,13 @@ object PerfLog {
     private var ticking = false
 
     /** An action whose frames are worth looking at starts now (call it on the main thread). */
-    fun action(name: String) {
+    fun action(name: String, windowMs: Long = WINDOW_MS) {
         if (!enabled) return
-        val a = Action(name, SystemClock.uptimeMillis())
+        val a = Action(name, SystemClock.uptimeMillis(), windowMs)
         synchronized(this) {
+            // What happened just before (a press prepares what the tap opens): kept with the action.
+            loose.filter { a.at - it.first <= 1_500 }.forEach { (at, event) -> a.events += "${at - a.at} ms: $event" }
+            loose.clear()
             actions.addLast(a)
             // The oldest of this kind goes once there are too many of it.
             if (actions.count { it.name == name } > ACTIONS_KEPT_PER_KIND) {
@@ -87,7 +90,10 @@ object PerfLog {
         }
     }
 
-    private fun live(now: Long): Action? = current?.takeIf { now - it.at <= WINDOW_MS }
+    private fun live(now: Long): Action? = current?.takeIf { now - it.at <= it.window }
+
+    /** Notes from outside any action, handed to the next action that starts soon after. */
+    private val loose = ArrayDeque<Pair<Long, String>>()
 
     /**
      * Something happened that may explain a slow frame (any thread). The same event again within
@@ -96,7 +102,14 @@ object PerfLog {
     fun note(event: String) {
         if (!enabled) return
         val now = SystemClock.uptimeMillis()
-        val a = live(now) ?: return
+        val a = live(now)
+        if (a == null) {
+            synchronized(this) {
+                loose.addLast(now to event)
+                while (loose.size > 40) loose.removeFirst()
+            }
+            return
+        }
         synchronized(this) {
             if (event == a.lastEvent && now - a.lastEventAt <= 30 && a.events.isNotEmpty()) {
                 a.lastEventRepeats++
@@ -208,7 +221,7 @@ object PerfLog {
         appendLine("main thread busy before the frame could start.")
         for (a in actions) {
             appendLine()
-            appendLine("== ${a.name} (${a.lateCount} of ${a.frameCount} frames late, stuck ~${a.sampleCount * SAMPLE_EVERY_MS} ms)")
+            appendLine("== ${a.name} (${a.window / 1000.0} s, ${a.lateCount} of ${a.frameCount} frames late, stuck ~${a.sampleCount * SAMPLE_EVERY_MS} ms)")
             a.frames.forEach { appendLine("  $it") }
             if (a.events.isNotEmpty()) {
                 appendLine("  what happened:")

@@ -30,9 +30,15 @@ object WebViewPool {
     fun take(context: Context): WebView {
         val ready = spare
         spare = null
-        if (ready != null && ready.context === context) return ready
+        if (ready != null && ready.context === context) {
+            me.ash.reader.brief.perf.PerfLog.note("web view: the spare one") // Nightly stutter log
+            return ready
+        }
         ready?.destroy()
-        return WebView(context)
+        val started = android.os.SystemClock.uptimeMillis()
+        return WebView(context).also {
+            me.ash.reader.brief.perf.PerfLog.note("web view: made new in ${android.os.SystemClock.uptimeMillis() - started} ms (no spare)") // Nightly stutter log
+        }
     }
 
     /** Makes a spare web view for [context] soon, when the app has nothing else to do. */
