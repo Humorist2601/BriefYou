@@ -56,6 +56,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics // Brief You
+import androidx.compose.ui.semantics.contentDescription // Brief You
+import androidx.compose.ui.semantics.onClick // Brief You
+import androidx.compose.ui.semantics.onLongClick // Brief You
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
@@ -148,6 +152,17 @@ fun ArticleItem(
     val readingLabel = readingMinutes?.let { stringResource(R.string.reading_time_min, it) }
     val timeLabel = listOfNotNull(readingLabel, timeString?.takeIf { it.isNotBlank() })
         .joinToString(" · ")
+    // Brief You: the row is one element for accessibility (read as one item, like Android's own
+    // lists), so accessibility services don't walk its every text and icon after each change.
+    val unreadLabel = stringResource(R.string.unread) // Brief You
+    val starredLabel = stringResource(R.string.starred) // Brief You
+    val rowDescription = // Brief You
+        listOfNotNull( // Brief You
+            feedName.takeIf { it.isNotBlank() }, title, shortDescription.takeIf { it.isNotBlank() }, // Brief You
+            timeLabel.takeIf { it.isNotBlank() }, unreadLabel.takeIf { isUnread }, starredLabel.takeIf { isStarred }, // Brief You
+        ).joinToString(", ") // Brief You
+    val rowClick = onClick // Brief You
+    val rowLongClick = onLongClick // Brief You
 
     Column(
         modifier =
@@ -169,6 +184,11 @@ fun ArticleItem(
                         }
                     }
                 )
+                .clearAndSetSemantics { // Brief You
+                    contentDescription = rowDescription // Brief You
+                    this.onClick(label = null) { rowClick(); true } // Brief You
+                    if (rowLongClick != null) this.onLongClick(label = null) { rowLongClick(); true } // Brief You
+                } // Brief You
     ) {
         // Top
         Row(

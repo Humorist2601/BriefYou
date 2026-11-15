@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.runtime.remember // Brief You
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
@@ -42,9 +43,12 @@ fun LazyListScope.ArticleList(
         ) { index ->
             when (val item = pagingItems[index]) {
                 is ArticleFlowItem.Article -> {
-                    val article = item.articleWithFeed.article
+                    // Brief You: a reload that brings the same article keeps the row as it is (articles
+                    // are compared as objects, so a reload rebuilt every row on screen).
+                    val articleWithFeed = remember(item.articleWithFeed) { item.articleWithFeed } // Brief You
+                    val article = articleWithFeed.article // Brief You
                     SwipeableArticleItem(
-                        articleWithFeed = item.articleWithFeed,
+                        articleWithFeed = articleWithFeed, // Brief You
                         isUnread = diffMap[article.id]?.isUnread ?: article.isUnread,
                         articleListTonalElevation = articleListTonalElevation,
                         onClick = { onClick(it, index) },
@@ -76,9 +80,10 @@ fun LazyListScope.ArticleList(
             when (val item = pagingItems.peek(index)) {
                 is ArticleFlowItem.Article -> {
                     item(key = key(item), contentType = contentType(item)) {
-                        val article = item.articleWithFeed.article
+                        val articleWithFeed = remember(item.articleWithFeed) { item.articleWithFeed } // Brief You: see above
+                        val article = articleWithFeed.article // Brief You
                         SwipeableArticleItem(
-                            articleWithFeed = item.articleWithFeed,
+                            articleWithFeed = articleWithFeed, // Brief You
                             isUnread = diffMap[article.id]?.isUnread ?: article.isUnread,
                             articleListTonalElevation = articleListTonalElevation,
                             onClick = { onClick(it, index) },
