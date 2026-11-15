@@ -3,6 +3,7 @@
 package me.ash.reader.brief.feeds
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -35,6 +36,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.ash.reader.R
 
@@ -72,12 +74,38 @@ fun IconSourceButtons(
     val second = remember { MutableInteractionSource() }
     val firstPressed by first.collectIsPressedAsState()
     val secondPressed by second.collectIsPressedAsState()
-    val spatial = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
-    val firstWeight by animateFloatAsState(if (firstPressed) 1.08f else if (secondPressed) 0.92f else 1f, spatial, label = "first")
-    val secondWeight by animateFloatAsState(if (secondPressed) 1.08f else if (firstPressed) 0.92f else 1f, spatial, label = "second")
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        Half(Icons.Rounded.RssFeed, feedPainter, null, feedName, stringResource(R.string.feed_icon_feed_picture), feedPicture == true, true, first, onFeedPicture, Modifier.weight(firstWeight))
-        Half(Icons.Outlined.Public, null, websiteIconUrl, feedName, stringResource(R.string.feed_icon_website_short), feedPicture == false, false, second, onWebsiteIcon, Modifier.weight(secondWeight))
+    val feedLabel = stringResource(R.string.feed_icon_feed_picture)
+    val websiteLabel = stringResource(R.string.feed_icon_website_short)
+    // Pressed, a half widens and squeezes the other, but only as far as the other's label still
+    // fits: the labels keep their size and are never cut short.
+    val style = MaterialTheme.typography.labelLarge
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    fun need(label: String) =
+        with(density) { measurer.measure(label, style).size.width.toDp() } + HALF_PADDING * 2 + PREVIEW_SIZE + PREVIEW_GAP
+    val feedNeeds = remember(feedLabel, style) { need(feedLabel) }
+    val websiteNeeds = remember(websiteLabel, style) { need(websiteLabel) }
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val total = maxWidth - GAP
+        // Halves are equal, unless a narrow screen can't fit a label in half: then each gets
+        // its share of the room by how much it needs.
+        val roomy = total / 2 >= feedNeeds && total / 2 >= websiteNeeds
+        val firstBase = if (roomy) total / 2 else total * (feedNeeds / (feedNeeds + websiteNeeds))
+        val secondBase = total - firstBase
+        val grow = total / 2 * 0.08f
+        fun widthOf(pressed: Boolean, otherPressed: Boolean, base: Dp, ownNeeds: Dp, otherNeeds: Dp): Dp =
+            when {
+                pressed -> minOf(base + grow, total - otherNeeds).coerceAtLeast(base)
+                otherPressed -> maxOf(base - grow, ownNeeds).coerceAtMost(base)
+                else -> base
+            }
+        val spatial = MaterialTheme.motionScheme.fastSpatialSpec<Dp>()
+        val firstWidth by animateDpAsState(widthOf(firstPressed, secondPressed, firstBase, feedNeeds, websiteNeeds), spatial, label = "first")
+        val secondWidth by animateDpAsState(widthOf(secondPressed, firstPressed, secondBase, websiteNeeds, feedNeeds), spatial, label = "second")
+        Row(horizontalArrangement = Arrangement.spacedBy(GAP)) {
+            Half(Icons.Rounded.RssFeed, feedPainter, null, feedName, feedLabel, feedPicture == true, true, first, onFeedPicture, Modifier.width(firstWidth))
+            Half(Icons.Outlined.Public, null, websiteIconUrl, feedName, websiteLabel, feedPicture == false, false, second, onWebsiteIcon, Modifier.width(secondWidth))
+        }
     }
 }
 
@@ -130,7 +158,7 @@ private fun Half(
         modifier = modifier.height(40.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp),
+            modifier = Modifier.padding(horizontal = HALF_PADDING),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -149,18 +177,14 @@ private fun Half(
                     )
                 }
             }
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(PREVIEW_GAP))
             // Shrinks a little instead of being cut short while the other half is pressed.
-            androidx.compose.foundation.text.BasicText(
-                label,
-                style = MaterialTheme.typography.labelLarge.copy(color = androidx.compose.material3.LocalContentColor.current),
-                maxLines = 1,
-                autoSize =
-                    androidx.compose.foundation.text.TextAutoSize.StepBased(
-                        minFontSize = 11.sp,
-                        maxFontSize = MaterialTheme.typography.labelLarge.fontSize,
-                    ),
-            )
+            Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false)
         }
     }
 }
+
+private val HALF_PADDING = 10.dp
+private val PREVIEW_SIZE = 22.dp
+private val PREVIEW_GAP = 8.dp
+private val GAP = 2.dp
