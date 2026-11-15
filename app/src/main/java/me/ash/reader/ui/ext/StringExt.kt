@@ -51,13 +51,16 @@ fun String?.orNotEmpty(l: (value: String) -> String): String =
 
 fun String.requiresBidi(): Boolean = Bidi.requiresBidi(this.toCharArray(), 0, this.length)
 
+// Brief You: made once (this runs for every feed icon in a list, and making them took time).
+private val urlHostRegex = Regex("(?<=://)([\\w\\d.-]+)") // Brief You
+private val domainRegex = Regex("[\\w\\d.-]+\\.[\\w\\d.-]+") // Brief You
+
 fun String?.extractDomain(): String? {
     if (this.isNullOrBlank()) return null
-    val urlMatchResult = Regex("(?<=://)([\\w\\d.-]+)").find(this)
+    val urlMatchResult = urlHostRegex.find(this) // Brief You
     if (urlMatchResult != null) {
         return urlMatchResult.value
     }
-    val domainRegex = Regex("[\\w\\d.-]+\\.[\\w\\d.-]+")
-    val domainMatchResult = domainRegex.find(this)
+    val domainMatchResult = domainRegex.find(this) // Brief You
     return domainMatchResult?.value
 }

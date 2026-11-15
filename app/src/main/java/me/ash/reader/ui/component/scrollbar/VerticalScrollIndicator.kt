@@ -15,6 +15,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.graphicsLayer // Brief You
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.unit.Dp
@@ -40,6 +41,7 @@ fun Modifier.drawVerticalScrollIndicator( // Brief You
         scrollState.scrollIndicatorState!!,
         Orientation.Vertical,
     )
+        .contentInItsOwnLayer() // Brief You
 }
 
 @Composable
@@ -49,7 +51,16 @@ fun Modifier.drawVerticalScrollIndicator(listState: LazyListState): Modifier {
         listState.scrollIndicatorState!!,
         Orientation.Vertical,
     )
+        .contentInItsOwnLayer() // Brief You
 }
+
+/**
+ * The scrolled content gets its own drawing layer, under the thumb. The thumb shows, moves and
+ * fades by redrawing itself; without the layer each of those redrew the whole list (every row's
+ * text) as well, which is what made opening a list stutter (the thumb shows when the list opens
+ * and fades a second later). Brief You.
+ */
+private fun Modifier.contentInItsOwnLayer(): Modifier = graphicsLayer() // Brief You
 
 data class VerticalScrollIndicatorFactory(
     val thumbThickness: Dp = 4.dp,

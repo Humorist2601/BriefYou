@@ -234,6 +234,15 @@ You's warnings are left alone on purpose).
 - **Saved articles (Read Later)** are starred, so "Keep archived articles" never removes them
   until they're unstarred and read.
 - The **"Read You update"** PR can change files Brief You copied (`copies.txt`): port the fix.
+- **A draw modifier that wraps a whole list redraws every row when it changes.** The scrollbar
+  thumb (shows on open, moves as rows arrive, fades after 0.8 s) re-recorded the whole article
+  list each time: 10–33 ms draw frames when opening a list. The scrolled content now sits in its
+  own `graphicsLayer()` under the thumb (`VerticalScrollIndicator.kt`). Anything drawn over a big
+  list or page that animates needs the same.
+- **Don't build `Regex(...)` or Coil `ImageRequest`s per row per recomposition** — build once
+  (`extractDomain`) / `remember` them (`RYAsyncImage`).
+- **Nightly stutter log:** Tips & support → *Copy stutter log* (`brief/perf/PerfLog.kt`): slow
+  frames split by part, plus main-thread samples while stuck. Read the draw/compose/layout split first.
 
 ---
 
