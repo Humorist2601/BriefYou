@@ -163,6 +163,17 @@ fun FlowPage(
     val filterUiState = pagerData.filterState
 
     val listState = rememberSaveable(pagerData, saver = LazyListState.Saver) { LazyListState(0, 0) }
+    // Brief You: Nightly stutter log: the list's first row moving by itself (not scrolled by a finger).
+    if (me.ash.reader.brief.perf.PerfLog.enabled) { // Brief You
+        LaunchedEffect(listState) { // Brief You
+            var last = -1 // Brief You
+            androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex to listState.isScrollInProgress }.collect { (row, scrolling) -> // Brief You
+                if (last == -1) me.ash.reader.brief.perf.PerfLog.note("list: shown at row $row") // Brief You
+                else if (!scrolling && kotlin.math.abs(row - last) >= 3) me.ash.reader.brief.perf.PerfLog.note("list: moved by itself from row $last to $row") // Brief You
+                last = row // Brief You
+            } // Brief You
+        } // Brief You
+    } // Brief You
 
     val isTopBarElevated = topBarTonalElevation.value > 0
     val scrolledTopBarContainerColor =
@@ -243,6 +254,7 @@ fun FlowPage(
                 context.openURL(articleWithFeed.article.link, openLink, openLinkSpecificBrowser) // Brief You
             } else { // Brief You
                 viewModel.listPositionAtOpen = Triple(pagerData, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) // Brief You: put back on return
+                me.ash.reader.brief.perf.PerfLog.note("list: article opened from row ${listState.firstVisibleItemIndex}") // Brief You: Nightly stutter log
                 me.ash.reader.brief.perf.PerfLog.action("Open an article", windowMs = 3_000) // Brief You: Nightly stutter log
                 navigateToArticle(articleWithFeed.article.id, index) // Brief You
             } // Brief You
@@ -327,6 +339,7 @@ fun FlowPage(
             // was if it came up somewhere else (laid out before its rows arrived, it lands at the top).
             viewModel.listPositionAtOpen?.let { (list, index, offset) ->
                 viewModel.listPositionAtOpen = null
+                me.ash.reader.brief.perf.PerfLog.note("list: screen back at row ${listState.firstVisibleItemIndex}, ${pagingItems?.itemCount ?: 0} rows (was row $index, same list: ${list === pagerData})") // Nightly stutter log
                 if (list !== pagerData) return@let
                 kotlinx.coroutines.withTimeoutOrNull(1_500) { androidx.compose.runtime.snapshotFlow { pagingItems?.itemCount ?: 0 }.first { it > index } }
                 val cameBackAt = listState.firstVisibleItemIndex

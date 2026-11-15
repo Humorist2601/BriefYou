@@ -57,18 +57,20 @@ a.brief-yt > img {
     border-radius: 0 !important;
     object-fit: cover;
 }
+@font-face {
+    font-family: brief-ui;
+    src: url("file:///android_res/font/google_sans_flex.ttf");
+}
 a.brief-yt > .brief-yt-mark {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 7px;
+    inset: 0;
 }
 /* The video play-button shape, in the accent colour. */
 a.brief-yt .brief-yt-play {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin: -25px 0 0 -36px;
     width: 72px;
     height: 50px;
     border-radius: 15px;
@@ -88,13 +90,19 @@ a.brief-yt .brief-yt-play > svg {
     margin-left: 2px;
     fill: var(--code-bg-color);
 }
-/* "YouTube" under it, on a dark chip (it sits on the picture, whatever the theme). */
+/* "YouTube" under it (the button stays in the very middle), on a dark chip (it sits on the
+   picture, whatever the theme), in the app's own font. */
 a.brief-yt .brief-yt-chip {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + 32px);
+    transform: translateX(-50%);
+    white-space: nowrap;
     padding: 3px 10px;
     border-radius: 10px;
     background: rgba(17, 19, 24, 0.6);
     color: #ffffff !important;
-    font: 600 13px/1.3 sans-serif;
+    font: 600 13px/1.3 brief-ui, sans-serif;
     letter-spacing: 0;
 }
 """
