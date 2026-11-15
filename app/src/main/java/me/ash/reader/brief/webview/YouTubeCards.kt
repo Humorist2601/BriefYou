@@ -6,8 +6,8 @@ import androidx.core.net.toUri
 
 /**
  * YouTube videos placed in an article (an embedded player) are shown as a card: the video's
- * thumbnail in the same frame as other videos (the Videos page's corners and padding), the app's
- * play button in the middle and a "YouTube" chip in the corner, like the video card's. A tap opens
+ * thumbnail in the same frame as other videos (the Videos page's corners and padding), with a
+ * video play-button shape in the accent colour in the middle and "YouTube" on a chip under it. A tap opens
  * the video in the YouTube app (or the browser without it).
  *
  * YouTube no longer plays videos embedded in an app's page that doesn't say which app it is
@@ -57,48 +57,45 @@ a.brief-yt > img {
     border-radius: 0 !important;
     object-fit: cover;
 }
-a.brief-yt > .brief-yt-play {
+a.brief-yt > .brief-yt-mark {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 64px;
-    height: 64px;
-    margin: -32px 0 0 -32px;
-    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+}
+/* The video play-button shape, in the accent colour. */
+a.brief-yt .brief-yt-play {
+    width: 72px;
+    height: 50px;
+    border-radius: 15px;
     background: var(--link-text-color);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
     display: flex;
     align-items: center;
     justify-content: center;
     transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
-a.brief-yt:active > .brief-yt-play {
+a.brief-yt:active .brief-yt-play {
     transform: scale(0.92);
 }
-a.brief-yt > .brief-yt-play > svg {
-    width: 30px;
-    height: 30px;
-    margin-left: 3px;
+a.brief-yt .brief-yt-play > svg {
+    width: 28px;
+    height: 28px;
+    margin-left: 2px;
     fill: var(--code-bg-color);
 }
-a.brief-yt > .brief-yt-chip {
-    position: absolute;
-    left: 10px;
-    top: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 9px;
+/* "YouTube" under it, on a dark chip (it sits on the picture, whatever the theme). */
+a.brief-yt .brief-yt-chip {
+    padding: 3px 10px;
     border-radius: 10px;
-    background: color-mix(in srgb, var(--code-bg-color) 85%, transparent);
-    color: var(--text-color) !important;
-    font: 600 12px/1.2 sans-serif;
+    background: rgba(17, 19, 24, 0.6);
+    color: #ffffff !important;
+    font: 600 13px/1.3 sans-serif;
     letter-spacing: 0;
-}
-a.brief-yt > .brief-yt-chip > svg {
-    width: 14px;
-    height: 14px;
-    fill: currentColor;
 }
 """
 
@@ -109,7 +106,6 @@ a.brief-yt > .brief-yt-chip > svg {
 (function () {
     var ID = /(?:youtube(?:-nocookie)?\.com\/(?:embed|v)\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{6,})/i;
     var PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10-6.5a1 1 0 0 0 0-1.7l-10-6.5A1 1 0 0 0 8 5.5z"/></svg>';
-    var LOGO = '<svg viewBox="0 0 24 24"><path d="M10 15l5.2-3L10 9v6zm11.6-7.8c.2.9.4 2.2.4 3.8v2c0 1.6-.2 2.9-.4 3.8-.2.8-.9 1.4-1.7 1.6C18.2 18.8 12 19 12 19s-6.2-.2-7.9-.6c-.8-.2-1.5-.8-1.7-1.6C2.2 15.9 2 14.6 2 13v-2c0-1.6.2-2.9.4-3.8.2-.8.9-1.4 1.7-1.6C5.8 5.2 12 5 12 5s6.2.2 7.9.6c.8.2 1.5.8 1.7 1.6z"/></svg>';
     document.querySelectorAll("article iframe[src]").forEach(function (frame) {
         var src = frame.getAttribute("src") || "";
         var m = ID.exec(src);
@@ -128,7 +124,7 @@ a.brief-yt > .brief-yt-chip > svg {
         img.addEventListener("error", function () { img.style.visibility = "hidden"; });
         card.appendChild(img);
         card.insertAdjacentHTML("beforeend",
-            '<span class="brief-yt-chip">' + LOGO + 'YouTube</span><span class="brief-yt-play">' + PLAY + '</span>');
+            '<span class="brief-yt-mark"><span class="brief-yt-play">' + PLAY + '</span><span class="brief-yt-chip">YouTube</span></span>');
         frame.parentNode.replaceChild(card, frame);
     });
 })();
