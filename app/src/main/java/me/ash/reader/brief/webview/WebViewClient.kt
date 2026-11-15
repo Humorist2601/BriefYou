@@ -31,6 +31,9 @@ class WebViewClient(
         request: WebResourceRequest?,
     ): WebResourceResponse? {
         val url = request?.url?.toString()
+        if (url != null && me.ash.reader.brief.perf.PerfLog.enabled && FONT_FILE.containsMatchIn(url)) {
+            me.ash.reader.brief.perf.PerfLog.note("reading font asked for") // Nightly stutter log
+        }
         if (url != null && url.contains(INJECTION_TOKEN)) {
             try {
                 val assetPath = url.substring(
@@ -52,8 +55,12 @@ class WebViewClient(
         } else if (url != null && url.isUrl() && request.method == "GET" && isImage(request)) {
             // Pictures are fetched here like a browser would (no app header, the article as the
             // referrer, then without one), since some image hosts and proxies (Kagi News, for
-            // one) refuse the web view's own request. If both fail, the web view tries itself.
-            fetchImage(url)?.let { return it }
+            // one) refuse the web view's own request.
+            // The answer is given at once and the picture fetched in the background, several at a
+            // time: waiting here for each picture's server held up the page's other requests,
+            // the reading font among them, so on a page full of pictures from a slow site the
+            // text stayed invisible for seconds (and the pictures came one by one).
+            return streamImage(url)
         }
         // Brief You: other requests (scripts, styles, embeds) are left to the web view. They were
         // fetched here first just to look at the answer, then fetched again by the web view.
@@ -68,6 +75,47 @@ class WebViewClient(
         if (accept != null && accept.startsWith("image/")) return true
         val path = request.url.path?.lowercase() ?: return false
         return IMAGE_EXTENSIONS.any { path.endsWith(it) }
+    }
+
+    /** A picture answered at once; its data follows when [fetchImage] has it (nothing if it fails). */
+    private fun streamImage(url: String): WebResourceResponse {
+        val asked = android.os.SystemClock.uptimeMillis()
+        val fetching =
+            PICTURES.submit<java.io.InputStream?> {
+                fetchImage(url)?.data.also {
+                    me.ash.reader.brief.perf.PerfLog.note(
+                        "picture ${if (it != null) "arrived" else "failed"} after ${android.os.SystemClock.uptimeMillis() - asked} ms"
+                    ) // Nightly stutter log
+                }
+            }
+        val type =
+            java.net.URLConnection.guessContentTypeFromName(url.substringBefore('?').substringBefore('#'))
+                ?.takeIf { it.startsWith("image/") } ?: "image/*"
+        return WebResourceResponse(type, null, 200, "OK", emptyMap(), LateStream(fetching))
+    }
+
+    /** Reads from the picture's own stream once it is there; empty when the fetch failed. */
+    private class LateStream(private val fetching: java.util.concurrent.Future<java.io.InputStream?>) :
+        java.io.InputStream() {
+        private var source: java.io.InputStream? = null
+        private var opened = false
+
+        private fun source(): java.io.InputStream? {
+            if (!opened) {
+                opened = true
+                source = runCatching { fetching.get(40, java.util.concurrent.TimeUnit.SECONDS) }.getOrNull()
+            }
+            return source
+        }
+
+        override fun read(): Int = source()?.read() ?: -1
+
+        override fun read(b: ByteArray, off: Int, len: Int): Int = source()?.read(b, off, len) ?: -1
+
+        override fun close() {
+            if (!opened) fetching.cancel(true)
+            runCatching { source?.close() }
+        }
     }
 
     private fun fetchImage(url: String): WebResourceResponse? {
@@ -149,6 +197,13 @@ class WebViewClient(
     }
 
     companion object {
+        /** Pictures fetched in the background, a few at a time (as a browser does per site). */
+        private val PICTURES =
+            java.util.concurrent.Executors.newFixedThreadPool(6) { r ->
+                Thread(r, "brief-pictures").apply { isDaemon = true }
+            }
+        private val FONT_FILE = Regex("\\.(ttf|otf|woff2?)(\\?|$)", RegexOption.IGNORE_CASE)
+
         private const val OnImgClickScript = """
             javascript:(function() {
                 var imgs = document.getElementsByTagName("img");

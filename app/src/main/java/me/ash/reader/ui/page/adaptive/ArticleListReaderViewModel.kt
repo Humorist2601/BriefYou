@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async // Brief You
+import kotlinx.coroutines.Deferred // Brief You
 import me.ash.reader.domain.data.ArticlePagingListUseCase
 import me.ash.reader.domain.data.DiffMapHolder
 import me.ash.reader.domain.data.FilterState
@@ -327,8 +329,14 @@ constructor(
             // Brief You: list rows leave out the article's text (so lists load quickly), so the
             // article is read here in full, by its id.
             val listItem = itemByIndex?.articleWithFeed ?: itemFromList?.articleWithFeed
+            // Brief You: read already when the row was pressed (see prepareArticle), else now.
+            val targetId = listItem?.article?.id ?: articleId // Brief You
+            val ready = preparedArticle?.takeIf { it.first == targetId }?.second // Brief You
+            preparedArticle = null // Brief You
+            val readyArticle = ready?.let { runCatching { it.await() }.getOrNull() } // Brief You
             val item =
-                rssService.get().findArticleById(listItem?.article?.id ?: articleId) ?: listItem!!
+                readyArticle?.first // Brief You
+                    ?: rssService.get().findArticleById(targetId) ?: listItem!! // Brief You
 
             if (diffMapHolder.checkIfUnread(item)) {
                 diffMapHolder.updateDiff(item, isUnread = false)
@@ -347,10 +355,41 @@ constructor(
                             publishedDate = article.date,
                         )
                         .prefetchArticleId()
-                        .renderContent(this)
+                        .let { state -> // Brief You: the text tidied on the press when it was
+                            readyArticle?.second?.let { state.copy(content = it) } ?: state.renderContent(this)
+                        }
                 }
             }
         }
+    }
+
+    /**
+     * Brief You: an article row is pressed. The article is read and its text tidied now, while the
+     * finger is still down (a tap lasts about 0.1 s), so when it opens the page has its title and
+     * text from its first frame and is seen sliding in (it slid in empty, and everything popped in
+     * as the slide ended). [initData] takes it when the same article is opened.
+     */
+    private var preparedArticle: Pair<String, Deferred<Pair<ArticleWithFeed, ReaderState.ContentState?>>>? = null
+
+    fun prepareArticle(listItem: ArticleWithFeed) {
+        val id = listItem.article.id
+        if (preparedArticle?.first == id) return
+        preparedArticle?.second?.cancel()
+        preparedArticle =
+            id to
+                viewModelScope.async {
+                    val item = rssService.get().findArticleById(id) ?: listItem
+                    val content =
+                        if (item.feed.isFullContent) {
+                            // Only a full text already kept; one still to fetch is fetched on opening.
+                            readerCacheHelper.readFullContent(id).getOrNull()?.let {
+                                ReaderState.FullContent(FeedContent.forReaderInBackground(it, item.article.link, item.article.title))
+                            }
+                        } else {
+                            ReaderState.Description(FeedContent.forReaderInBackground(item.article.rawDescription, item.article.link, item.article.title))
+                        }
+                    item to content
+                }
     }
 
     fun clearReadingData() {

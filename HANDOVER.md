@@ -250,6 +250,17 @@ You's warnings are left alone on purpose).
   opened has its scope cancelled. Rows reuse their article when a reload brings an equal one
   (`remember(item.articleWithFeed)` in `ArticleList`), each row is one accessibility node, and the
   long-press menu is built only once opened.
+- **Articles are prepared on the press** (`brief/reading/ArticlePress.kt`, called from the row's
+  pointer handler in `SwipeableArticleItem`): the view model's `prepareArticle` reads the article
+  and tidies its text (taken by `initData` when the same one opens), the top picture is fetched
+  into Coil's cache at the page's size, and the picture's colour is worked out (the reading theme
+  uses a known colour from its first frame, no fade).
+- **Article pictures are answered at once** (`brief/webview/WebViewClient.streamImage`): fetched on
+  a small pool and streamed in. Waiting in `shouldInterceptRequest` held up the page's other
+  requests (the reading font too: text invisible for seconds on picture-heavy pages).
+- **Callbacks made inside a `LazyListScope` builder are new every time** (it isn't a composable,
+  so nothing is remembered): every row recomposes. Make them in the composable (`onArticleClick`
+  in `FlowPage`).
 - **Don't build `Regex(...)` or Coil `ImageRequest`s per row per recomposition** — build once
   (`extractDomain`) / `remember` them (`RYAsyncImage`).
 - **Nightly stutter log:** Tips & support → *Copy stutter log* (`brief/perf/PerfLog.kt`): slow

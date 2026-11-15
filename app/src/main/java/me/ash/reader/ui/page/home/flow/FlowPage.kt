@@ -233,6 +233,27 @@ fun FlowPage(
         }
     }
 
+    // Brief You: the row tap, made once. Made inside the list's item builder, it was a new one every
+    // time the page recomposed, so every row on screen was rebuilt (behind an open article too).
+    val latestArticleClick =
+        androidx.compose.runtime.rememberUpdatedState { articleWithFeed: ArticleWithFeed, index: Int -> // Brief You
+            if (articleWithFeed.feed.isBrowser) { // Brief You
+                viewModel.diffMapHolder.updateDiff(articleWithFeed, isUnread = false) // Brief You
+                context.openURL(articleWithFeed.article.link, openLink, openLinkSpecificBrowser) // Brief You
+            } else { // Brief You
+                me.ash.reader.brief.perf.PerfLog.action("Open an article") // Brief You: Nightly stutter log
+                navigateToArticle(articleWithFeed.article.id, index) // Brief You
+            } // Brief You
+        } // Brief You
+    val onArticleClick: (ArticleWithFeed, Int) -> Unit = // Brief You
+        remember { { articleWithFeed, index -> latestArticleClick.value(articleWithFeed, index) } } // Brief You
+    // Brief You: a pressed row's article is prepared for opening (see ArticlePress).
+    androidx.compose.runtime.DisposableEffect(viewModel) { // Brief You
+        val prepare: (ArticleWithFeed) -> Unit = { viewModel.prepareArticle(it) } // Brief You
+        me.ash.reader.brief.reading.ArticlePress.onPress = prepare // Brief You
+        onDispose { if (me.ash.reader.brief.reading.ArticlePress.onPress === prepare) me.ash.reader.brief.reading.ArticlePress.onPress = null } // Brief You
+    } // Brief You
+
     LaunchedEffect(onSearch) {
         if (!onSearch) {
             keyboardController?.hide()
@@ -606,6 +627,7 @@ fun FlowPage(
                     }
 
                     val listState = remember(pager) { listState }
+                    val swipeEnabled: () -> Boolean = remember(listState) { { listState.isScrollInProgress } } // Brief You: made once
 
                     val isSyncing by rememberUpdatedState(isSyncing)
 
@@ -715,24 +737,9 @@ fun FlowPage(
                                 isShowFeedIcon = articleListFeedIcon.value,
                                 isShowStickyHeader = articleListDateStickyHeader.value,
                                 articleListTonalElevation = articleListTonalElevation.value,
-                                isSwipeEnabled = { listState.isScrollInProgress },
+                                isSwipeEnabled = swipeEnabled, // Brief You: made once (see onArticleClick)
                                 listState = listState, // Brief You: the pinned day's line
-                                onClick = { articleWithFeed, index ->
-                                    if (articleWithFeed.feed.isBrowser) {
-                                        viewModel.diffMapHolder.updateDiff(
-                                            articleWithFeed,
-                                            isUnread = false,
-                                        )
-                                        context.openURL(
-                                            articleWithFeed.article.link,
-                                            openLink,
-                                            openLinkSpecificBrowser,
-                                        )
-                                    } else {
-                                        me.ash.reader.brief.perf.PerfLog.action("Open an article") // Brief You: Nightly stutter log
-                                        navigateToArticle(articleWithFeed.article.id, index)
-                                    }
-                                },
+                                onClick = onArticleClick, // Brief You: made once
                                 onToggleStarred = onToggleStarred,
                                 onToggleRead = onToggleRead,
                                 onMarkAboveAsRead = onMarkAboveAsRead,
