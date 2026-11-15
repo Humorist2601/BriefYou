@@ -94,6 +94,7 @@ fun rememberBriefFeedsPager(filterState: FilterState, feedsViewModel: FeedsViewM
                     filters[page] != current.filter
                 ) {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    me.ash.reader.brief.perf.PerfLog.action("Feeds: switch filter (swipe)") // Nightly stutter log
                     feedsViewModel.changeFilter(current.copy(filter = filters[page]))
                 }
             }

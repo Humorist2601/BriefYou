@@ -172,6 +172,15 @@ object FeedAccent {
      * the picture could not be read (the reading page then keeps Brief You's own colours).
      * Remembered while the app runs.
      */
+    /**
+     * The picture's colour when already worked out (see [pictureColor]), without waiting: (true,
+     * colour) or (false, null). The reading page takes it from its first frame instead of fading
+     * its colours over 0.4 s (which rebuilt the whole page every frame, and reloaded the article
+     * when its colours changed while it was still loading).
+     */
+    fun knownPictureColor(url: String): Pair<Boolean, Int?> =
+        pictureMemory.get(url)?.let { true to it.takeIf { c -> c != NONE } } ?: (false to null)
+
     suspend fun pictureColor(context: Context, url: String): Int? {
         pictureMemory.get(url)?.let { return it.takeIf { c -> c != NONE } }
         val color =

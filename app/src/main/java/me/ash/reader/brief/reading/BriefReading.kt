@@ -75,9 +75,13 @@ fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composabl
             FeedContent.listImage(article?.img, article?.link)?.takeIf { it.isNotBlank() }
                 ?: html?.let { FeedContent.prepared(it).hero }
         }
-    var seed by remember(pictureUrl) { mutableStateOf<Color?>(null) }
+    // Known already (worked out when the row was pressed, or earlier): used from the first frame,
+    // without fading to it. Only a colour that is still being worked out fades in when it arrives.
+    val known = remember(pictureUrl) { pictureUrl?.let { FeedAccent.knownPictureColor(it) } }
+    val instant = known?.first == true
+    var seed by remember(pictureUrl) { mutableStateOf(known?.second?.let { Color(it) }) }
     LaunchedEffect(pictureUrl) {
-        if (pictureUrl == null) return@LaunchedEffect
+        if (pictureUrl == null || instant) return@LaunchedEffect
         seed = FeedAccent.pictureColor(context, pictureUrl)?.let { Color(it) }
     }
     val isDark = LocalDarkTheme.current.isDarkTheme()
@@ -89,7 +93,7 @@ fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composabl
         }
     val target = scheme ?: MaterialTheme.colorScheme
     CompositionLocalProvider(LocalWebViewColorScheme provides target) {
-        MaterialTheme(colorScheme = animateColorScheme(target), content = content)
+        MaterialTheme(colorScheme = if (instant) target else animateColorScheme(target), content = content)
     }
 }
 

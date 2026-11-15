@@ -385,6 +385,7 @@ fun FeedsPage(
                 filterBarPadding = filterBarPadding.dp,
                 filterBarTonalElevation = filterBarTonalElevation.value.dp,
             ) {
+                me.ash.reader.brief.perf.PerfLog.action("Feeds: switch filter (tap)") // Brief You: Nightly stutter log
                 feedsViewModel.changeFilter(filterState.copy(filter = it))
             }
         },

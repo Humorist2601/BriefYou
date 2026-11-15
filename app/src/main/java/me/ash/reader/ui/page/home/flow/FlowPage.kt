@@ -773,6 +773,7 @@ fun FlowPage(
                     filterBarTonalElevation = filterBarTonalElevation.value.dp,
                 ) {
                     if (filterUiState.filter != it) {
+                        me.ash.reader.brief.perf.PerfLog.action("List: switch filter") // Brief You: Nightly stutter log
                         viewModel.changeFilter(filterUiState.copy(filter = it))
                     } else {
                         scope.launch {

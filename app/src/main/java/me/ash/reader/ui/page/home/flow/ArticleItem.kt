@@ -364,6 +364,8 @@ fun SwipeableArticleItem(
 ) {
 
     var isMenuExpanded by remember { mutableStateOf(false) }
+    val pressContext = androidx.compose.ui.platform.LocalContext.current // Brief You
+    val pressedArticle by androidx.compose.runtime.rememberUpdatedState(articleWithFeed) // Brief You
     // Brief You: the menu is only built once it is first opened (every row built it, closed, as the
     // list appeared), and kept after that so it can animate closed.
     var menuUsed by remember { mutableStateOf(false) } // Brief You
@@ -394,6 +396,7 @@ fun SwipeableArticleItem(
                             while (true) {
                                 awaitFirstDown(requireUnconsumed = false).let {
                                     menuOffset = it.position.round()
+                                    me.ash.reader.brief.reading.ArticlePress.pressed(pressContext, pressedArticle) // Brief You: the article is prepared on the press
                                 }
                             }
                         }
