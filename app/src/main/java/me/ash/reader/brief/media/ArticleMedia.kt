@@ -158,4 +158,15 @@ object MediaFiles {
 
     /** Whether [url] is an audio or video file rather than a picture. */
     fun isMedia(url: String?): Boolean = kindOf(url, null) != null
+
+    /** A web page or a Flash player, not a file a player can play. */
+    fun isPage(url: String?, type: String?): Boolean {
+        val t = type?.lowercase()?.trim().orEmpty()
+        if (t.startsWith("text/") || t.contains("html") || t.contains("shockwave") || t.contains("flash")) return true
+        val ext = url?.substringBefore('#')?.substringBefore('?')?.substringAfterLast('/')
+            ?.substringAfterLast('.', "")?.lowercase().orEmpty()
+        if (ext in setOf("html", "htm", "php", "aspx", "swf")) return true
+        val host = url?.substringAfter("://")?.substringBefore('/')?.lowercase().orEmpty()
+        return listOf("youtube.com", "youtu.be", "vimeo.com", "dailymotion.com").any { host == it || host.endsWith(".$it") }
+    }
 }

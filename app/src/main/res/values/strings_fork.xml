@@ -351,6 +351,7 @@
     <string name="player_read_aloud_voice_desc">Android\'s speech settings</string>
     <string name="player_error_episode">Couldn\'t play this episode</string>
     <string name="player_error_video">Couldn\'t play this video</string>
+    <string name="player_speed_title">Playback speed</string>
     <string name="player_try_again">Try again</string>
     <string name="player_open_browser">Open in browser</string>
     <string name="tour_restore_title">Coming from another phone?</string>

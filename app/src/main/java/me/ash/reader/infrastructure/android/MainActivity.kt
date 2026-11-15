@@ -177,6 +177,8 @@ class MainActivity : AppCompatActivity() {
                                         backStack.removeLastOrNull()
                                     }
                                 }
+                                if (fromPlayer) backStack.add(Reading(articleId = articleId)) // Brief You: straight to it (the wait showed the list for half a second)
+                                else // Brief You
                                 scope.launch {
                                     delay(500L)
                                     backStack.add(Reading(articleId = articleId))

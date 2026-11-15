@@ -208,6 +208,9 @@ private fun AddFeedDialogContent(
                             if (feedPicture != null) {
                                 Spacer(Modifier.height(14.dp))
                                 IconSourceButtons(
+                                    feedPictureUrl = feedPicture,
+                                    websiteIconUrl = websiteIcon,
+                                    feedName = configure.searchedFeed.title,
                                     feedPicture = useFeedPicture,
                                     onFeedPicture = { useFeedPicture = true },
                                     onWebsiteIcon = { useFeedPicture = false },

@@ -47,6 +47,10 @@ fun IconSourceButtons(
     onFeedPicture: () -> Unit,
     onWebsiteIcon: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Small previews of the two icons (a symbol shows when one isn't known). */
+    feedPictureUrl: String? = null,
+    websiteIconUrl: String? = null,
+    feedName: String? = null,
 ) {
     val first = remember { MutableInteractionSource() }
     val second = remember { MutableInteractionSource() }
@@ -56,14 +60,16 @@ fun IconSourceButtons(
     val firstWeight by animateFloatAsState(if (firstPressed) 1.15f else if (secondPressed) 0.85f else 1f, spatial, label = "first")
     val secondWeight by animateFloatAsState(if (secondPressed) 1.15f else if (firstPressed) 0.85f else 1f, spatial, label = "second")
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        Half(Icons.Rounded.RssFeed, stringResource(R.string.feed_icon_feed_picture), feedPicture == true, start = true, first, onFeedPicture, Modifier.weight(firstWeight))
-        Half(Icons.Outlined.Public, stringResource(R.string.feed_icon_website_short), feedPicture == false, start = false, second, onWebsiteIcon, Modifier.weight(secondWeight))
+        Half(Icons.Rounded.RssFeed, feedPictureUrl, feedName, stringResource(R.string.feed_icon_feed_picture), feedPicture == true, start = true, first, onFeedPicture, Modifier.weight(firstWeight))
+        Half(Icons.Outlined.Public, websiteIconUrl, feedName, stringResource(R.string.feed_icon_website_short), feedPicture == false, start = false, second, onWebsiteIcon, Modifier.weight(secondWeight))
     }
 }
 
 @Composable
 private fun Half(
     icon: ImageVector,
+    preview: String?,
+    feedName: String?,
     label: String,
     lit: Boolean,
     start: Boolean,
@@ -105,8 +111,12 @@ private fun Half(
         modifier = modifier.height(40.dp),
     ) {
         Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
+            if (preview != null) {
+                me.ash.reader.ui.component.FeedIcon(feedName = feedName, iconUrl = preview, size = 22.dp)
+            } else {
+                Icon(icon, null, Modifier.size(18.dp))
+            }
+            Spacer(Modifier.width(8.dp))
             Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }

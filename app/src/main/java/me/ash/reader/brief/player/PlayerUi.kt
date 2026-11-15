@@ -548,7 +548,7 @@ private val SIDE_BUTTON_HEIGHT = 36.dp
 
 /** The speed, as a tonal pill; a new speed rolls in over the old one. */
 @Composable
-private fun SpeedPill(speed: Float, onClick: () -> Unit) {
+internal fun SpeedPill(speed: Float, onClick: () -> Unit) {
     val haptic = LocalHapticFeedback.current
     val press = rememberPressFeel(rest = 20.dp, held = 12.dp, squeezeTo = 0.9f)
     val description = stringResource(R.string.player_speed)
@@ -585,7 +585,7 @@ private fun SpeedText(speed: Float, style: androidx.compose.ui.text.TextStyle, c
 }
 
 @Composable
-private fun TonalIcon(icon: ImageVector, description: String, active: Boolean, onClick: () -> Unit) {
+internal fun TonalIcon(icon: ImageVector, description: String, active: Boolean, onClick: () -> Unit) {
     val haptic = LocalHapticFeedback.current
     val press = rememberPressFeel(rest = 20.dp, held = 12.dp, squeezeTo = 0.9f)
     val scheme = MaterialTheme.colorScheme
@@ -687,32 +687,36 @@ fun SpeedSheet(onDismiss: () -> Unit) {
     val haptic = LocalHapticFeedback.current
     val s by BriefPlayer.state.collectAsState()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.player_speed), style = MaterialTheme.typography.titleMedium)
-                SpeedText(s.speed, MaterialTheme.typography.headlineSmall, MaterialTheme.colorScheme.primary)
-            }
+        // The app's sheet design (as read aloud's speed): title, divider, the slider between
+        // its ends, then the speed, large.
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding()) {
+            Text(stringResource(R.string.player_speed_title), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(12.dp))
+            androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(20.dp))
             val speeds = BriefPlayer.SPEEDS
             val index = speeds.indexOfFirst { it >= s.speed - 0.01f }.coerceAtLeast(0)
-            Slider(
-                value = index.toFloat(),
-                onValueChange = {
-                    val speed = speeds[Math.round(it).coerceIn(0, speeds.lastIndex)]
-                    if (speed != s.speed) {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        BriefPlayer.setSpeed(context, speed)
-                    }
-                },
-                valueRange = 0f..speeds.lastIndex.toFloat(),
-                steps = speeds.size - 2,
-            )
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(speedLabel(speeds.first()), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(speedLabel(speeds.last()), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(speedLabel(speeds.first()), style = MaterialTheme.typography.labelLarge)
+                Slider(
+                    value = index.toFloat(),
+                    onValueChange = {
+                        val speed = speeds[Math.round(it).coerceIn(0, speeds.lastIndex)]
+                        if (speed != s.speed) {
+                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            BriefPlayer.setSpeed(context, speed)
+                        }
+                    },
+                    valueRange = 0f..speeds.lastIndex.toFloat(),
+                    steps = speeds.size - 2,
+                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                )
+                Text(speedLabel(speeds.last()), style = MaterialTheme.typography.labelLarge)
             }
+            Box(modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                SpeedText(s.speed, MaterialTheme.typography.headlineSmall, MaterialTheme.colorScheme.primary)
+            }
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -726,11 +730,13 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
     val haptic = LocalHapticFeedback.current
     val s by BriefPlayer.state.collectAsState()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        // The app's sheet design: title, divider, then the choices.
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(stringResource(R.string.player_sleep_timer), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.player_sleep_timer), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+            androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(bottom = 6.dp))
             val options =
                 listOf(
                     0 to stringResource(R.string.player_sleep_off),

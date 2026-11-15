@@ -14,10 +14,11 @@ import me.ash.reader.ui.page.common.ExtraName
 object PlayerIntents {
     private const val FROM_PLAYER = "brief_from_player"
 
-    fun open(context: Context, articleId: String?): PendingIntent =
+    /** [readAloud]: for read aloud's notification (each notification has its own link). */
+    fun open(context: Context, articleId: String?, readAloud: Boolean = false): PendingIntent =
         PendingIntent.getActivity(
             context,
-            REQUEST_CODE,
+            if (readAloud) READ_ALOUD_CODE else PODCAST_CODE,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
                 putExtra(FROM_PLAYER, true)
@@ -34,5 +35,6 @@ object PlayerIntents {
     fun articleOf(readAloudKey: String?): String? =
         readAloudKey?.removePrefix("summary:")?.takeIf { it.isNotBlank() && it != "gist" }
 
-    private const val REQUEST_CODE = 4202
+    private const val PODCAST_CODE = 4202
+    private const val READ_ALOUD_CODE = 4203
 }

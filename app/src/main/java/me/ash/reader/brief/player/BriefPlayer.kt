@@ -135,6 +135,14 @@ object BriefPlayer {
     private var markedRead: String? = null
     // Between asking for an item and it being set (so "nothing loaded" isn't mistaken for a stop).
     private var loading = false
+    // The latest play() (an earlier one that finishes loading later doesn't win).
+    private var playToken = 0
+
+    /**
+     * Connects the app to the player when something plays that the app didn't start (Android's
+     * "resume"), so its place is kept and it is marked as read like any other.
+     */
+    fun attach(context: Context) = withController(context) {}
 
     private fun secure(url: String) = if (url.startsWith("http://", ignoreCase = true)) "https://" + url.substring(7) else url
 
@@ -233,7 +241,11 @@ object BriefPlayer {
         future.addListener(
             {
                 connecting = false
-                val c = runCatching { future.get() }.getOrNull() ?: run { waiting.clear(); return@addListener }
+                val c = runCatching { future.get() }.getOrNull() ?: run {
+                    waiting.clear()
+                    loading = false
+                    return@addListener
+                }
                 controller = c
                 c.addListener(listener)
                 waiting.toList().forEach { it(c) }
@@ -334,12 +346,15 @@ object BriefPlayer {
         _state.update { State(now = now, durationMs = durationHintMs ?: 0, speed = speed, sleep = it.sleep) }
         markedRead = null
         loading = true
+        val token = ++playToken
         main.launch {
             val resumeAt =
                 runCatching { ArticleMedia.dao?.position(now.articleId) }.getOrNull()
                     ?.takeIf { it.durationMs <= 0 || it.positionMs < it.durationMs - 5_000 }
                     ?.positionMs ?: 0L
+            if (token != playToken) return@launch
             withController(context) { c ->
+                if (token != playToken) return@withController
                 val item = mediaItem(now)
                 c.setMediaItem(item, resumeAt)
                 rememberLast(context, now, resumeAt)

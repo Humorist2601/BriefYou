@@ -21,6 +21,8 @@ import androidx.media3.session.SessionResult
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import me.ash.reader.R
 
 /**
@@ -34,6 +36,26 @@ import me.ash.reader.R
 class PlayerService : MediaSessionService() {
     private var session: MediaSession? = null
     private val main = Handler(Looper.getMainLooper())
+    private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main)
+
+    /**
+     * Keeps the place itself when it pauses or stops (also when the app isn't open: Android's
+     * "resume", a headphone button).
+     */
+    private fun savePosition(player: Player) {
+        val id = player.currentMediaItem?.mediaId ?: return
+        if (player.playbackState == Player.STATE_ENDED) return
+        val position =
+            me.ash.reader.brief.media.PlaybackPosition(
+                id,
+                player.currentPosition.coerceAtLeast(0),
+                player.duration.coerceAtLeast(0),
+                System.currentTimeMillis(),
+            )
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { me.ash.reader.brief.media.ArticleMedia.dao?.putPosition(position) }
+        }
+    }
 
     @OptIn(UnstableApi::class)
     override fun onCreate() {
@@ -71,6 +93,10 @@ class PlayerService : MediaSessionService() {
                 override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
                     built.setMediaButtonPreferences(buttons(playbackParameters.speed))
                 }
+
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    if (!isPlaying) savePosition(player)
+                }
             }
         )
     }
@@ -95,6 +121,10 @@ class PlayerService : MediaSessionService() {
             ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
                 val last = BriefPlayer.lastItem(this@PlayerService)
                     ?: return Futures.immediateFailedFuture(UnsupportedOperationException("Nothing played yet"))
+                // At the speed kept for it, and with the app following it (place, marked as read).
+                val video = last.first.mediaMetadata.extras?.getBoolean(BriefPlayer.EXTRA_VIDEO) == true
+                mediaSession.player.playbackParameters = PlaybackParameters(BriefPlayer.savedSpeed(this@PlayerService, video))
+                main.post { BriefPlayer.attach(applicationContext) }
                 return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(listOf(last.first), 0, last.second))
             }
 
@@ -117,16 +147,11 @@ class PlayerService : MediaSessionService() {
                         }
                     }
                     COMMAND_STOP -> {
-                        // Paused first so the app keeps the place, then unloaded (the
-                        // notification goes away).
+                        // The place is kept, then it's unloaded (the notification goes away).
+                        savePosition(player)
                         player.pause()
-                        main.postDelayed(
-                            {
-                                player.stop()
-                                player.clearMediaItems()
-                            },
-                            400,
-                        )
+                        player.stop()
+                        player.clearMediaItems()
                     }
                 }
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
@@ -134,46 +159,35 @@ class PlayerService : MediaSessionService() {
         }
 
     /**
-     * Laid out like read aloud's notification: speed (showing the speed) · play/pause · stop; back
-     * and forward 30 seconds follow where there is room (the expanded notification).
+     * Speed (showing the speed as a number) · back 30 · the progress bar · forward 30 · stop, with
+     * play/pause where Android puts it. Android draws the back and forward buttons on either side
+     * of the progress bar and the two others at the ends.
      */
     @OptIn(UnstableApi::class)
     private fun buttons(speed: Float): ImmutableList<CommandButton> =
         ImmutableList.of(
-            CommandButton.Builder(speedIcon(speed))
-                .setDisplayName(getString(R.string.read_aloud_speed, BriefPlayer.speedLabel(speed)))
-                .setSessionCommand(SessionCommand(COMMAND_SPEED, Bundle.EMPTY))
-                .setSlots(CommandButton.SLOT_BACK)
-                .build(),
-            CommandButton.Builder(CommandButton.ICON_STOP)
-                .setDisplayName(getString(R.string.player_stop))
-                .setSessionCommand(SessionCommand(COMMAND_STOP, Bundle.EMPTY))
-                .setSlots(CommandButton.SLOT_FORWARD)
-                .build(),
             CommandButton.Builder(CommandButton.ICON_SKIP_BACK_30)
                 .setDisplayName(getString(R.string.player_back_30))
                 .setPlayerCommand(Player.COMMAND_SEEK_BACK)
-                .setSlots(CommandButton.SLOT_OVERFLOW)
+                .setSlots(CommandButton.SLOT_BACK)
                 .build(),
             CommandButton.Builder(CommandButton.ICON_SKIP_FORWARD_30)
                 .setDisplayName(getString(R.string.player_forward_30))
                 .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
+                .setSlots(CommandButton.SLOT_FORWARD)
+                .build(),
+            CommandButton.Builder(CommandButton.ICON_UNDEFINED)
+                .setCustomIconResId(SpeedIcons.of(speed))
+                .setDisplayName(getString(R.string.read_aloud_speed, BriefPlayer.speedLabel(speed)))
+                .setSessionCommand(SessionCommand(COMMAND_SPEED, Bundle.EMPTY))
+                .setSlots(CommandButton.SLOT_OVERFLOW)
+                .build(),
+            CommandButton.Builder(CommandButton.ICON_STOP)
+                .setDisplayName(getString(R.string.player_stop))
+                .setSessionCommand(SessionCommand(COMMAND_STOP, Bundle.EMPTY))
                 .setSlots(CommandButton.SLOT_OVERFLOW)
                 .build(),
         )
-
-    /** Android's speed icons show the speed for the common ones. */
-    @OptIn(UnstableApi::class)
-    private fun speedIcon(speed: Float): Int =
-        when (Math.round(speed * 10)) {
-            8 -> CommandButton.ICON_PLAYBACK_SPEED_0_8
-            10 -> CommandButton.ICON_PLAYBACK_SPEED_1_0
-            12 -> CommandButton.ICON_PLAYBACK_SPEED_1_2
-            15 -> CommandButton.ICON_PLAYBACK_SPEED_1_5
-            18 -> CommandButton.ICON_PLAYBACK_SPEED_1_8
-            20 -> CommandButton.ICON_PLAYBACK_SPEED_2_0
-            else -> CommandButton.ICON_PLAYBACK_SPEED
-        }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
 
@@ -187,6 +201,7 @@ class PlayerService : MediaSessionService() {
 
     override fun onDestroy() {
         main.removeCallbacksAndMessages(null)
+        scope.cancel()
         session?.run {
             player.release()
             release()

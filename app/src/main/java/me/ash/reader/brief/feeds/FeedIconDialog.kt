@@ -197,6 +197,9 @@ fun FeedIconDialog(
                 if (feedPicture != null && onFeedPicture != null) {
                     // Lit: the one in use; neither when an icon, emoji or image is.
                     IconSourceButtons(
+                        feedPictureUrl = feedPicture,
+                        // The website's icon is known when it's the one in use.
+                        websiteIconUrl = current?.takeIf { it.startsWith("http", ignoreCase = true) && it != feedPicture },
                         feedPicture =
                             when {
                                 current == feedPicture -> true

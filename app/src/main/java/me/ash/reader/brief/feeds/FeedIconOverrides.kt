@@ -149,8 +149,15 @@ constructor(
                 FeedPictures.unchoose(context, url)
             }
             for ((feedId, value) in prefs.all) {
-                val icon = value as? String ?: continue
+                var icon = value as? String ?: continue
                 val feed = feedDao.queryById(feedId) ?: continue
+                // The feed's picture (an address): follows the feed when it changes its cover.
+                if (icon.startsWith("http", ignoreCase = true)) {
+                    FeedPictures.get(context, feed.url)?.takeIf { it != icon }?.let {
+                        icon = it
+                        prefs.edit { putString(feedId, it) }
+                    }
+                }
                 if (feed.icon != icon) feedDao.update(feed.copy(icon = icon))
             }
         }

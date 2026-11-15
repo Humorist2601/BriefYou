@@ -18,6 +18,8 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -110,9 +112,11 @@ internal fun VideoFrame(
     val context = LocalContext.current
     val s by BriefPlayer.state.collectAsState()
     // Its shape: while loaded, the player's; else the one seen before; else 16:9.
-    val aspect =
-        ((if (current) s.videoAspect else null) ?: BriefPlayer.savedAspect(context, now.articleId))
-            ?.coerceIn(0.75f, 2.4f) ?: (16f / 9f)
+    val saved by
+        androidx.compose.runtime.produceState<Float?>(null, now.articleId) {
+            value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { BriefPlayer.savedAspect(context, now.articleId) }
+        }
+    val aspect = ((if (current) s.videoAspect else null) ?: saved)?.coerceIn(0.75f, 2.4f) ?: (16f / 9f)
     val shown by androidx.compose.animation.core.animateFloatAsState(aspect, label = "video shape")
     Box(
         modifier =
@@ -203,6 +207,10 @@ private fun VideoToolbar(
     onPip: () -> Unit,
     fullscreenIcon: Boolean,
     onFullscreen: () -> Unit,
+    speed: Float,
+    sleepOn: Boolean,
+    onSpeed: () -> Unit,
+    onSleep: () -> Unit,
     modifier: Modifier = Modifier,
     container: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
 ) {
@@ -222,6 +230,9 @@ private fun VideoToolbar(
                 SeekBar(progress = progress, playing = playing && !buffering, enabled = seekable, durationMs = durationMs, onSeek = onSeek)
                 Text(time, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            // Speed and the sleep timer, as on the card.
+            SpeedPill(speed, onSpeed)
+            TonalIcon(Icons.Outlined.Bedtime, stringResource(R.string.player_sleep_timer), sleepOn, onSleep)
             me.ash.reader.brief.ui.TopBarButtonGroup(
                 actions =
                     listOf(
@@ -255,11 +266,19 @@ fun VideoHost(content: @Composable () -> Unit) {
                 VideoWindow.inPip = info.isInPictureInPictureMode
                 // The small window shows only the video: full screen (its own window) closes.
                 if (info.isInPictureInPictureMode) VideoWindow.fullscreen = false
-                // Opened back into the app, the screen is at least started; closed, it is stopped
-                // (checking for "resumed" paused it on the way back in, before it resumed).
-                if (!info.isInPictureInPictureMode && activity?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) != true) {
-                    // The small window was closed (not opened back into the app): stop the video.
-                    if (BriefPlayer.state.value.now?.isVideo == true) BriefPlayer.pause()
+                // Closed (✕), the screen ends up stopped; opened back into the app, it ends up
+                // started. Android reports the two in either order, so it's checked a moment later.
+                if (!info.isInPictureInPictureMode) {
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
+                        {
+                            if (activity?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) != true &&
+                                BriefPlayer.state.value.now?.isVideo == true
+                            ) {
+                                BriefPlayer.pause()
+                            }
+                        },
+                        500,
+                    )
                 }
             }
         activity?.addOnPictureInPictureModeChangedListener(listener)
@@ -342,6 +361,17 @@ private fun FullscreenVideo(onClose: () -> Unit) {
             onDispose { activity?.requestedOrientation = before ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
         }
         var controls by remember { mutableStateOf(true) }
+        var speedSheet by remember { mutableStateOf(false) }
+        var sleepSheet by remember { mutableStateOf(false) }
+        // While it plays, the controls go after 3 seconds (not while a sheet is open).
+        LaunchedEffect(controls, s.isPlaying, speedSheet, sleepSheet) {
+            if (controls && s.isPlaying && !speedSheet && !sleepSheet) {
+                kotlinx.coroutines.delay(3_000)
+                controls = false
+            }
+        }
+        if (speedSheet) SpeedSheet(onDismiss = { speedSheet = false })
+        if (sleepSheet) SleepTimerSheet(onDismiss = { sleepSheet = false })
         Box(
             modifier =
                 Modifier.fillMaxSize()
@@ -352,6 +382,17 @@ private fun FullscreenVideo(onClose: () -> Unit) {
                     ) { controls = !controls },
         ) {
             VideoSurface(Modifier.fillMaxSize())
+            // Couldn't be played: says so, with Try again and Open in browser.
+            if (s.error) {
+                Surface(
+                    modifier = Modifier.align(Alignment.Center).padding(24.dp).widthIn(max = 420.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ) {
+                    Box(Modifier.padding(16.dp)) { PlayError(video = true, url = now.url, onRetry = { BriefPlayer.retry(context) }) }
+                }
+            }
             // The controls slide in from the edges and back out (tap the video).
             val spatial = MaterialTheme.motionScheme.defaultSpatialSpec<androidx.compose.ui.unit.IntOffset>()
             val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
@@ -407,6 +448,10 @@ private fun FullscreenVideo(onClose: () -> Unit) {
                     },
                     fullscreenIcon = true,
                     onFullscreen = onClose,
+                    speed = s.speed,
+                    sleepOn = s.sleep != BriefPlayer.Sleep.Off,
+                    onSpeed = { speedSheet = true },
+                    onSleep = { sleepSheet = true },
                     modifier = Modifier.safeDrawingPadding().padding(horizontal = 24.dp, vertical = 16.dp),
                     container = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f),
                 )

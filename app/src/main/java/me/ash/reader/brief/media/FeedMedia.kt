@@ -31,9 +31,13 @@ object FeedMedia {
             val contents = mediaRss.mediaContents.toList() + mediaRss.mediaGroups.flatMap { it.contents.toList() }
             contents.firstNotNullOfOrNull { c ->
                 val u = (c.reference as? UrlReference)?.url?.toString()
-                val k = when (c.medium) {
-                    "audio" -> ArticleExtras.AUDIO
-                    "video" -> ArticleExtras.VIDEO
+                // "medium" alone isn't trusted for a web page or an old Flash player (Vimeo-style
+                // pages): the card would only say it couldn't play.
+                val page = MediaFiles.isPage(u, c.type)
+                val k = when {
+                    page -> null
+                    c.medium == "audio" -> ArticleExtras.AUDIO
+                    c.medium == "video" -> ArticleExtras.VIDEO
                     else -> MediaFiles.kindOf(u, c.type)
                 }
                 if (u != null && k != null) Triple(u, k, c) else null
