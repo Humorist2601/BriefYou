@@ -113,6 +113,19 @@ class WebViewClient(
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
         view?.evaluateJavascript(OnImgClickScript, null)
+        if (me.ash.reader.brief.perf.PerfLog.enabled && view != null) {
+            // Nightly stutter log: how tall the article is, in screens.
+            val px = view.contentHeight * view.resources.displayMetrics.density
+            val screen = view.resources.displayMetrics.heightPixels.coerceAtLeast(1)
+            me.ash.reader.brief.perf.PerfLog.note(
+                "page finished: ${"%.1f".format(px / screen)} screens tall, web view ${view.height} px high"
+            )
+        }
+    }
+
+    override fun onPageCommitVisible(view: WebView?, url: String?) {
+        super.onPageCommitVisible(view, url)
+        me.ash.reader.brief.perf.PerfLog.note("page first visible") // Nightly stutter log
     }
 
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {

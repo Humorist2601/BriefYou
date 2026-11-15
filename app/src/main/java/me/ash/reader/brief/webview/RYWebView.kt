@@ -204,6 +204,7 @@ fun RYWebView(
                 val pageChanged = shown[0] != content || shown[2] != script
                 // A style change while the page is still loading would be lost, so reload then.
                 if (pageChanged || (shown[1] != css && it.progress < 100)) {
+                    me.ash.reader.brief.perf.PerfLog.note("page load starts (${content.length / 1000} k characters)") // Nightly stutter log
                     it.loadDataWithBaseURL(
                         null,
                         BriefWebViewHtml.page(
