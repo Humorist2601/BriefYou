@@ -316,7 +316,8 @@ private fun MediaControls(
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.Extra(visible: Boolean, content: @Composable () -> Unit) {
     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-        AnimatedVisibility(
+        // The plain one (not the row's, which would grow sideways).
+        androidx.compose.animation.AnimatedVisibility(
             visible = visible,
             enter =
                 fadeIn(spring(stiffness = Spring.StiffnessLow)) +
