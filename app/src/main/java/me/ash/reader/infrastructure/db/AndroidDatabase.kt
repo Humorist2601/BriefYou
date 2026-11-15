@@ -87,8 +87,9 @@ val allMigrations = arrayOf(
 
 /**
  * Brief You: an index on archived_article's feed, so a local feed's sync finds its notes, and
- * deleting a feed finds the notes to remove, without reading the whole table. Written by hand: the
- * version 8 schema file was never kept, so it can't be an AutoMigration.
+ * deleting a feed finds the notes to remove, without reading the whole table. The version 8 schema
+ * file was never kept; app/schemas/…/8.json is rebuilt from 7.json plus 8's two article indexes
+ * (the 7 → 8 AutoMigration needs it once there is a 9).
  */
 @Suppress("ClassName")
 object MIGRATION_8_9 : Migration(8, 9) {
