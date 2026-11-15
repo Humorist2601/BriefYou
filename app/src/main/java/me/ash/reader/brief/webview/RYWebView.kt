@@ -207,14 +207,20 @@ fun RYWebView(
                 shown[1] = wanted
             }
         }
-        // The pictures' loading shapes hold still while the page scrolls, and move again a moment
+        // The pictures' loading shapes hold still while the page scrolls, and move again shortly
         // after it stops (see ImagePlaceholders).
         LaunchedEffect(webView) {
             androidx.compose.runtime.snapshotFlow { scrolling() }
                 .distinctUntilChanged()
                 .collectLatest { now ->
-                    if (!now) kotlinx.coroutines.delay(250)
-                    webView.evaluateJavascript("document.documentElement.classList.toggle('brief-scrolling', $now);", null)
+                    if (!now) kotlinx.coroutines.delay(150)
+                    // Only while a picture is still loading (otherwise there's nothing to hold still).
+                    webView.evaluateJavascript(
+                        "(function(){var r=document.documentElement;" +
+                            "if($now&&!document.querySelector('.brief-box:not(.brief-loaded)'))return;" +
+                            "r.classList.toggle('brief-scrolling',$now);})();",
+                        null,
+                    )
                 }
         }
         // Have the next article's web view ready (made at a quiet moment, see WebViewPool).

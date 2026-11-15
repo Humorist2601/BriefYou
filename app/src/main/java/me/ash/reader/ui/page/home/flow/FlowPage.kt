@@ -579,8 +579,9 @@ fun FlowPage(
                     val pagingItems = pager.collectAsLazyPagingItems().also { pagingItems = it }
                     // Brief You: the first articles of the list tidied ahead, so the first taps open at once.
                     LaunchedEffect(pagingItems) { // Brief You
-                        val first = snapshotFlow { (0 until minOf(3, pagingItems.itemCount)).mapNotNull { (pagingItems.peek(it) as? ArticleFlowItem.Article)?.articleWithFeed } } // Brief You
-                            .first { it.isNotEmpty() } // Brief You
+                        // The first three articles, skipping the date headings between them. // Brief You
+                        val first = snapshotFlow { (0 until minOf(10, pagingItems.itemCount)).mapNotNull { (pagingItems.peek(it) as? ArticleFlowItem.Article)?.articleWithFeed }.take(3) } // Brief You
+                            .first { it.size == 3 || (it.isNotEmpty() && pagingItems.itemCount <= 10) } // Brief You
                         kotlinx.coroutines.delay(600) // Brief You: after the list's opening slide
                         me.ash.reader.brief.reading.FeedContent.prepareAhead(first) // Brief You
                     } // Brief You

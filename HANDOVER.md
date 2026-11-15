@@ -256,9 +256,10 @@ You's warnings are left alone on purpose).
 - **Restyling a long article repaints all of it** (100–240 ms frames). A picture colour that
   arrives after the article was handed to its web view only fades the screen around it; the
   article keeps the colours it opened with (`BriefReadingTheme`).
-- **The first article after a start is cold.** The first spare web view loads a tiny page in the
-  reading fonts (`WebViewPool`), and a list's first three articles are tidied ahead
-  (`FeedContent.prepareAhead`, cached by `forReaderInBackground`).
+- **The first article after a start is cold.** A list's first three articles are tidied ahead
+  (`FeedContent.prepareAhead`, cached by `forReaderInBackground`). Don't warm the spare web view
+  by loading a page into it: tried in 0.16.2.119, it flashed white on the first article and made
+  its frames slower (99–162 ms), without making the page load sooner.
 - **`ModalBottomSheet` opens its own window**; making and tearing it down costs 30–60 ms frames on
   the main thread. Triage's places sheet uses `brief/ui/InWindowSheet.kt` (`InWindowModalSheet`:
   Material's in-window `BottomSheet` + `Scrim`, same look and gestures) — it must sit in a

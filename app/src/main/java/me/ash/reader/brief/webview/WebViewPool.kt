@@ -25,20 +25,6 @@ object WebViewPool {
     private val main = Handler(Looper.getMainLooper())
     private var spare: WebView? = null
     private var preparing = false
-    private var warmed = false
-
-    /**
-     * A tiny page in the reading fonts, loaded once into the first spare: the browser engine's page
-     * process starts and the fonts are read then, at a quiet moment, instead of during the first
-     * article (whose text took about 150 ms longer to appear than later ones).
-     */
-    private const val WARM_PAGE =
-        "<!DOCTYPE html><html><head><style>" +
-            "@font-face{font-family:a;src:url('file:///android_res/font/literata.ttf')}" +
-            "@font-face{font-family:b;src:url('file:///android_res/font/google_sans_flex.ttf')}" +
-            "p{color:transparent}</style></head><body>" +
-            "<p style='font-family:a'>Brief You</p><p style='font-family:b'>Brief You</p>" +
-            "</body></html>"
 
     /** A web view for [context]: the spare one when it was made for the same screen, else new. */
     fun take(context: Context): WebView {
@@ -65,13 +51,6 @@ object WebViewPool {
                     preparing = false
                     val gone = (context as? android.app.Activity)?.isDestroyed == true
                     if (spare == null && !gone) spare = runCatching { WebView(context) }.getOrNull()
-                    if (!warmed) {
-                        spare?.let {
-                            warmed = true
-                            it.loadDataWithBaseURL(null, WARM_PAGE, "text/html", "UTF-8", null)
-                            me.ash.reader.brief.perf.PerfLog.note("web view: warm-up page loaded in the spare") // Nightly stutter log
-                        }
-                    }
                     false
                 }
             },
