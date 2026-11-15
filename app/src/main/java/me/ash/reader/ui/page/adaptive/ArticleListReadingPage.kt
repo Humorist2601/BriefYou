@@ -65,6 +65,11 @@ fun ArticleListReaderPage(
 ) {
 
     val scope = rememberCoroutineScope()
+    // Brief You: one text-measuring thread for the list, made once. Made inside the provider below,
+    // a new one was handed down each time the list pane recomposed (each tap, slide and back step),
+    // which rebuilt every visible row (a new value for the whole list) and left a thread behind.
+    val textMeasureExecutor = remember { Executors.newSingleThreadExecutor() } // Brief You
+    androidx.compose.runtime.DisposableEffect(textMeasureExecutor) { onDispose { textMeasureExecutor.shutdown() } } // Brief You
 
     val backBehavior = BackNavigationBehavior.PopUntilScaffoldValueChange
 
@@ -140,8 +145,7 @@ fun ArticleListReaderPage(
                 exitTransition = motionDataProvider.briefExitTransition(paneRole, !isTwoPane),
             ) {
                 CompositionLocalProvider(
-                    LocalBackgroundTextMeasurementExecutor provides
-                        Executors.newSingleThreadExecutor()
+                    LocalBackgroundTextMeasurementExecutor provides textMeasureExecutor // Brief You: made once (above)
                 ) {
                     Box(modifier = Modifier.alpha(animatedListAlpha)) {
                         FlowPage(

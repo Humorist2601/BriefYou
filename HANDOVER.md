@@ -243,6 +243,12 @@ You's warnings are left alone on purpose).
   the article's full height; while the article grows it can be briefly shorter than its text, and a
   quick fling then scrolled the text inside it, under the heading. `WebViewLayout` puts it back at
   the top and asks for its height again.
+- **Never create a value inside `CompositionLocalProvider(X provides …)`.** Read You's list pane
+  handed down `Executors.newSingleThreadExecutor()` written in the provider: each recomposition of
+  the pane (every tap, slide and back step) made a new executor, a new value for the whole list,
+  so every visible row was rebuilt (and a thread was left behind). It's `remember`ed once in
+  `ArticleListReaderPage` now. A changed handed-down value disables skipping for everything below;
+  the Nightly stutter log's "row input" lines name it (`brief/perf/LocalsDiff.kt`).
 - **`ModalBottomSheet` opens its own window**; making and tearing it down costs 30–60 ms frames on
   the main thread. Triage's places sheet uses `brief/ui/InWindowSheet.kt` (`InWindowModalSheet`:
   Material's in-window `BottomSheet` + `Scrim`, same look and gestures) — it must sit in a
