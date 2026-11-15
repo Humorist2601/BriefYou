@@ -133,17 +133,6 @@ interface BriefArticleDao {
         """
     )
     fun unreadTitles(accountId: Int): kotlinx.coroutines.flow.Flow<List<UnreadTitle>>
-}
-
-/** An unread article's title and where it is. */
-data class UnreadTitle(val feedId: String, val groupId: String?, val title: String)
-
-@Module
-@InstallIn(SingletonComponent::class)
-object BriefDataModule {
-    @Provides
-    fun provideBriefArticleDao(androidDatabase: AndroidDatabase): BriefArticleDao =
-        androidDatabase.briefArticleDao()
 
     /** Which of [ids] are still articles (for the tidy-up of Brief You's own notes). */
     @Query("SELECT id FROM article WHERE id IN (:ids)")
@@ -156,4 +145,16 @@ object BriefDataModule {
     /** Every feed's address, in every account (for the tidy-up of noted feed pictures). */
     @Query("SELECT url FROM feed")
     suspend fun allFeedUrls(): List<String>
+}
+
+/** An unread article's title and where it is. */
+data class UnreadTitle(val feedId: String, val groupId: String?, val title: String)
+
+@Module
+@InstallIn(SingletonComponent::class)
+object BriefDataModule {
+    @Provides
+    fun provideBriefArticleDao(androidDatabase: AndroidDatabase): BriefArticleDao =
+        androidDatabase.briefArticleDao()
+
 }
