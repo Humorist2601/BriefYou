@@ -29,11 +29,9 @@ import kotlinx.coroutines.delay
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import kotlin.math.absoluteValue
 import kotlinx.coroutines.flow.merge
 import me.ash.reader.domain.data.FilterState
 import me.ash.reader.domain.model.general.Filter
@@ -162,21 +160,10 @@ fun BriefFeedsPages(
             // groups, even for a moment while swiping.
             val pageGroups by lists.groups(pageFilter).collectAsState()
             val pageSum by lists.importantSum(pageFilter).collectAsState()
-            Box(
-                modifier =
-                    Modifier.fillMaxSize().graphicsLayer {
-                        // The page you swipe away from shrinks and dims a little, the one coming
-                        // in grows into place.
-                        val offset =
-                            ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
-                                .absoluteValue
-                                .coerceIn(0f, 1f)
-                        val scale = 1f - 0.06f * offset
-                        scaleX = scale
-                        scaleY = scale
-                        alpha = 1f - 0.4f * offset
-                    }
-            ) {
+            // The pages slide side by side at full size and colour, following your finger, as
+            // Material's swipeable tabs do. (They used to shrink and dim as they left: a scaled
+            // layer of text every frame looked blurred, and the two dimmed pages overlapped.)
+            Box(modifier = Modifier.fillMaxSize()) {
                 content(
                     filterState.copy(filter = pageFilter),
                     pageGroups,

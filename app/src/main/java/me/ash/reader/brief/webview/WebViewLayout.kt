@@ -28,6 +28,18 @@ object WebViewLayout {
             isHorizontalScrollBarEnabled = false
             isVerticalScrollBarEnabled = true
             setBackgroundColor(Color.TRANSPARENT)
+            // The page scrolls as a whole (the web view is as tall as the article, inside the
+            // reading page's scroll). While the article grows (pictures, the font), the web view
+            // can be shorter than its text for a moment, and a quick fling then scrolled the text
+            // inside the web view, sliding it under the heading. It stays at the top; the height
+            // is asked for again so the rest of the text is reached through the page's scroll.
+            setOnScrollChangeListener { view, _, y, _, _ ->
+                if (y != 0) {
+                    me.ash.reader.brief.perf.PerfLog.note("web view: scrolled inside by $y px, put back") // Nightly stutter log
+                    view.scrollTo(view.scrollX, 0)
+                    view.requestLayout()
+                }
+            }
             with(this.settings) {
                 standardFontFamily =
                     when (readingFontsPreference) {

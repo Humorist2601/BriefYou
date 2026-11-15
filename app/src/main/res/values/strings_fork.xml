@@ -318,6 +318,11 @@
     <string name="newspaper_continued">Continued at %1$s</string>
 
     <!-- First-run tour and one-time hints -->
+    <string name="tour_restore_title">Coming from another phone?</string>
+    <string name="tour_restore_text">Bring back your settings from a backup: theme, reading style, filters and the rest. On the other phone, make one in Settings → Troubleshooting → Export as JSON. Your feeds come over separately, with Import from OPML when you add a feed.</string>
+    <string name="tour_restore">Restore</string>
+    <string name="tour_restore_done">Settings restored</string>
+    <string name="tour_restore_failed">That file isn\'t a settings backup. Try another one, or tap Later.</string>
     <string name="tour_triage_title">Triage your news</string>
     <string name="tour_triage_text">Swipe through your unread articles like cards: right to read, left to save, up to open, down to skip. Hold a card for a 3-point summary.</string>
     <string name="tour_ai_title">AI on your phone</string>
