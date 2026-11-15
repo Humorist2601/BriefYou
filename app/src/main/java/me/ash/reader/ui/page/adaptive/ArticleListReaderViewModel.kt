@@ -318,18 +318,59 @@ constructor(
      * article the page has it in its first frame (it was started a few frames later, once the
      * page was there, from the page itself).
      */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun openNow(articleId: String, listIndex: Int?) {
-        openedEarly = articleId
         openNowAt = android.os.SystemClock.uptimeMillis() // Nightly stutter log
-        initData(articleId, listIndex)
+        // Prepared on the press and ready: shown right here, so the page has it when it is made.
+        val ready =
+            preparedArticle?.takeIf { it.first == articleId }?.second
+                ?.takeIf { it.isCompleted && !it.isCancelled }
+                ?.let { runCatching { it.getCompleted() }.getOrNull() }
+        val readyContent = ready?.second
+        if (ready != null && readyContent != null) {
+            preparedArticle = null
+            showPrepared(ready.first, readyContent)
+            me.ash.reader.brief.perf.PerfLog.note("open: prepared article shown on the tap") // Nightly stutter log
+        } else {
+            load(articleId, listIndex)
+        }
+        // The page asks again when it is made; that is skipped (see initData).
+        openedEarly = articleId
+    }
+
+    /** The prepared article on the page (what [load] does with it, without waiting). */
+    private fun showPrepared(item: ArticleWithFeed, content: ReaderState.ContentState) {
+        if (diffMapHolder.checkIfUnread(item)) {
+            diffMapHolder.updateDiff(item, isUnread = false)
+        }
+        _readingUiState.update {
+            it.copy(articleWithFeed = item, isStarred = item.article.isStarred, isUnread = false)
+        }
+        _readerState.update {
+            it.copy(
+                    articleId = item.article.id,
+                    feedName = item.feed.name,
+                    title = item.article.title,
+                    author = me.ash.reader.brief.reading.EmailContent.readableAuthor(item.article.author),
+                    link = item.article.link,
+                    publishedDate = item.article.date,
+                )
+                .prefetchArticleId()
+                .copy(content = content)
+        }
     }
 
     fun initData(articleId: String, listIndex: Int? = null) {
         if (openedEarly != null) { // Brief You
             val early = openedEarly // Brief You
             openedEarly = null // Brief You
-            if (early == articleId) return // Brief You: already started on the tap
+            if (early == articleId) return // Brief You: already started on the tap (openNow)
         } // Brief You
+        load(articleId, listIndex) // Brief You
+    }
+
+    // Brief You: what initData did, also started by openNow.
+    private fun load(articleId: String, listIndex: Int?) {
         viewModelScope.launch {
             val snapshotList = articleListUseCase.itemSnapshotList
 
