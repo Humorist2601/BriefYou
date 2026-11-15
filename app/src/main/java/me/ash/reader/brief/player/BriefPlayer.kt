@@ -56,8 +56,13 @@ object BriefPlayer {
         val title: String,
         val feedName: String,
         val artwork: String?,
+        /** The article that is marked as read (a video or audio in an article's text has its own [articleId]). */
+        val readId: String = articleId,
     ) {
         val isVideo get() = kind == ArticleExtras.VIDEO
+
+        /** A video or audio from the article's text (see PageMedia), not its episode. */
+        val inPage get() = readId != articleId
     }
 
     sealed interface Sleep {
@@ -317,7 +322,7 @@ object BriefPlayer {
         val context = appContext ?: return
         val share = markReadAt(context)
         if (share >= 1f || s.progress < share) return
-        markRead(context, now.articleId)
+        markRead(context, now)
     }
 
     private fun finished() {
@@ -325,15 +330,15 @@ object BriefPlayer {
         main.launch(Dispatchers.IO) { runCatching { ArticleMedia.dao?.clearPosition(now.articleId) } }
         if (_state.value.sleep == Sleep.EndOfEpisode) _state.update { it.copy(sleep = Sleep.Off) }
         val context = appContext ?: return
-        if (!now.isVideo && markedRead != now.articleId) markRead(context, now.articleId)
+        if (!now.isVideo && markedRead != now.articleId) markRead(context, now)
     }
 
-    private fun markRead(context: Context, articleId: String) {
-        markedRead = articleId
+    private fun markRead(context: Context, now: Now) {
+        markedRead = now.articleId
         main.launch(Dispatchers.IO) {
             runCatching {
                 EntryPointAccessors.fromApplication(context.applicationContext, Deps::class.java)
-                    .rssService().get().batchMarkAsRead(setOf(articleId), isUnread = false)
+                    .rssService().get().batchMarkAsRead(setOf(now.readId), isUnread = false)
             }
         }
     }

@@ -100,11 +100,13 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 <details>
 <summary>Podcasts and videos</summary>
 
-- A podcast episode or a video attached to a feed item gets a player under the article's title: a wavy progress bar, back and forward 30 seconds, speed (0.8× to 3×, kept for next time) and a sleep timer (15, 30, 45 minutes, an hour, or the end of the episode; it fades out over its last seconds).
+- A podcast episode or a video attached to a feed item gets a player under the article's title: a wavy progress bar, back and forward 30 seconds, speed (0.8× to 3×, kept for next time, in its own sheet) and a sleep timer (its own sheet: 15, 30, 45 minutes, an hour, or the end of the episode; it fades out over its last seconds).
 - Episodes carry on where you stopped, and are marked as read after the share you choose in *Settings → Usage → Audio and video* (90% by default).
 - Episodes and videos have their own media notification (lock screen, Quick Settings, headphone buttons); read aloud keeps its own. Only one plays at a time.
 - While something plays, a pill above the bottom bar shows it with its progress, play/pause and close; tap it for the full controls. Read aloud shows there too.
 - Videos play in the article, full screen (sideways, edge to edge) or in picture-in-picture; leaving the app while a video plays opens picture-in-picture by itself. YouTube videos stay in YouTube's own player.
+- Videos and audio inside an article's text play in the same player instead of the web view's own: a video opens full screen, audio opens the player's sheet.
+- The play button is Expressive: a circle while paused, a slowly turning cookie while playing, with a bounce; the other buttons spring in once an episode is loaded, and dragging the progress ticks once a second. Videos have the same play button, buttons and ticks, and their full-screen controls slide in and out from the edges.
 - A feed item that links to its comments gets a *Comments* chip next to its date.
 - Podcast audio files are no longer taken as a list picture.
 

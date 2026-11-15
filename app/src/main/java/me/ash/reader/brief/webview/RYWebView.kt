@@ -97,6 +97,14 @@ fun RYWebView(
     val codeBgColor: Int =
         colorScheme.surfaceColorAtElevation((tonalElevation.value + 6).dp).toArgb()
     val boldCharacters = LocalReadingBoldCharacters.current
+    // Videos and audio in the text play in the app's player (only where the page can play them).
+    val pageMedia = me.ash.reader.brief.player.LocalPageMedia.current
+    val pageMediaNow = androidx.compose.runtime.rememberUpdatedState(pageMedia)
+    val mediaBox = colorScheme.secondaryContainer.toArgb()
+    val onMediaBox = colorScheme.onSecondaryContainer.toArgb()
+    val onLink = colorScheme.onPrimary.toArgb()
+    val videoLabel = androidx.compose.ui.res.stringResource(me.ash.reader.R.string.player_play_video)
+    val audioLabel = androidx.compose.ui.res.stringResource(me.ash.reader.R.string.player_play_audio)
 
     val fontPath =
         if (readingFonts is ReadingFontsPreference.External)
@@ -115,6 +123,7 @@ fun RYWebView(
             textAlign, boldTextColor, subheadBold, subheadUpperCase, imgMargin, imgBorderRadius,
             linkTextColor, codeTextColor, codeBgColor, selectionTextColor, selectionBgColor,
             isDarkBackground, subheadAlign, imgMaximize, videoCorners, videoPadding, videoMaximize,
+            mediaBox, onMediaBox, onLink,
         ) {
             WebViewStyle.get(
                 fontSize = fontSize,
@@ -140,13 +149,15 @@ fun RYWebView(
                 subheadAlign = subheadAlign,
             ) +
                 MediaStyle.css(imgMaximize, videoCorners, videoPadding, videoMaximize) +
+                PageMedia.css(MediaStyle.corners(videoCorners), MediaStyle.pad(videoPadding), mediaBox, onMediaBox, linkTextColor, onLink) +
                 // Boxes with a loading indicator for the pictures still loading (no jumping text).
                 // (the same tonal colour as code blocks, and the accent colour).
                 ImagePlaceholders.css(boxColor = codeBgColor, indicatorColor = linkTextColor)
         }
     val script =
-        remember(boldCharacters.value) {
+        remember(boldCharacters.value, pageMedia != null, videoLabel, audioLabel) {
             WebViewScript.get(boldCharacters.value) + ImagePlaceholders.SCRIPT + PAGE_READY_SCRIPT +
+                (if (pageMedia != null) PageMedia.script(videoLabel, audioLabel) else "") +
                 (if (me.ash.reader.brief.perf.PerfLog.enabled) PERF_SCRIPT else "")
         }
 
@@ -193,6 +204,7 @@ fun RYWebView(
                     ),
                 onImageClick = onImageClick,
                 onPageReady = { pageReady[0]?.invoke() },
+                onMedia = { url, kind, poster -> pageMediaNow.value?.play(url, kind, poster) },
             )
         }
         pageReady[0] = {

@@ -255,6 +255,7 @@ fun ReadingPage(
                                 CompositionLocalProvider(
                                     me.ash.reader.brief.ai.LocalTranslation provides brief.translation, // Brief You
                                     me.ash.reader.brief.player.LocalArticleExtras provides brief.extras, // Brief You: its episode, video and comments link
+                                    me.ash.reader.brief.player.LocalPageMedia provides me.ash.reader.brief.player.rememberPageMedia(articleId, title.orEmpty(), feedName, me.ash.reader.brief.reading.FeedContent.listImage(readingUiState.articleWithFeed?.article?.img, link)), // Brief You: videos and audio in its text play in the app's player
                                     LocalTextStyle provides
                                         LocalTextStyle.current.run {
                                             merge(

@@ -127,13 +127,16 @@ fun SharedFilterBar(
     ) {
         val s = shown ?: return@AnimatedVisibility
         Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+            // Slides up from behind the bar, and back down behind it when closed. The gap under it
+            // matches the one above it (to the AI gist / Triage button): the bar's own top padding
+            // makes up the rest.
             AnimatedVisibility(
                 visible = rememberNowPlayingShown(),
-                enter = slideInVertically(spatial) { it / 2 } + fadeIn(effects),
-                exit = slideOutVertically(spatial) { it / 2 } + fadeOut(effects),
+                enter = slideInVertically(spatial) { it } + fadeIn(effects),
+                exit = slideOutVertically(spatial) { it } + fadeOut(effects),
             ) {
                 me.ash.reader.brief.player.NowPlayingPill(
-                    modifier = Modifier.padding(bottom = FloatingBarGap).height(NOW_PLAYING_PILL_HEIGHT)
+                    modifier = Modifier.padding(bottom = FloatingBarGap - FILTER_BAR_TOP_PADDING).height(NOW_PLAYING_PILL_HEIGHT)
                 )
             }
             BriefFilterBar(

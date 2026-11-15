@@ -14,14 +14,19 @@ import me.ash.reader.infrastructure.preference.SAME_AS_IMAGES
  */
 object MediaStyle {
 
+    /** A video's corners and side padding as CSS (also for [PageMedia]'s tiles). */
+    fun corners(videoCorners: Int) = if (videoCorners == SAME_AS_IMAGES) "var(--img-border-radius)" else "${videoCorners}px"
+
+    fun pad(videoPadding: Int) = if (videoPadding == SAME_AS_IMAGES) "var(--img-margin)" else "${videoPadding}px"
+
     fun css(
         imageMaximize: Boolean,
         videoCorners: Int,
         videoPadding: Int,
         videoMaximize: Boolean,
     ): String {
-        val corners = if (videoCorners == SAME_AS_IMAGES) "var(--img-border-radius)" else "${videoCorners}px"
-        val pad = if (videoPadding == SAME_AS_IMAGES) "var(--img-margin)" else "${videoPadding}px"
+        val corners = corners(videoCorners)
+        val pad = pad(videoPadding)
         val width = "calc(100% + 2 * var(--text-margin) - 2 * $pad)"
         return buildString {
             append(

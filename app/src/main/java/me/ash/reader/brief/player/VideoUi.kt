@@ -9,6 +9,14 @@ import android.os.Build
 import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -78,6 +86,9 @@ object VideoWindow {
 
     /** The app is in picture-in-picture (only the video is drawn then). */
     var inPip by mutableStateOf(false)
+
+    /** The player's sheet is open (for audio from an article's text, which has no card of its own). */
+    var sheet by mutableStateOf(false)
 }
 
 /** The video in the article: the picture, then an Expressive toolbar under it. */
@@ -112,9 +123,13 @@ internal fun VideoCard(
                     RYAsyncImage(modifier = Modifier.fillMaxSize(), data = it, contentScale = ContentScale.Crop)
                 }
             }
-            if (!current && duration > 0) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = !current && duration > 0,
+                modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+                enter = fadeIn(spring(stiffness = Spring.StiffnessLow)) + scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), initialScale = 0.6f),
+                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) + scaleOut(spring(stiffness = Spring.StiffnessMedium), targetScale = 0.6f),
+            ) {
                 Surface(
-                    modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                 ) {
@@ -133,6 +148,7 @@ internal fun VideoCard(
             progress = if (duration > 0) position.toFloat() / duration else 0f,
             time = if (duration > 0) formatTime(position) + " / " + formatTime(duration) else formatTime(position),
             seekable = current && duration > 0,
+            durationMs = duration,
             onSeek = { BriefPlayer.seekTo((it * duration).toLong()) },
             onPlay = onPlay,
             onPip = {
@@ -167,6 +183,7 @@ private fun VideoToolbar(
     progress: Float,
     time: String,
     seekable: Boolean,
+    durationMs: Long,
     onSeek: (Float) -> Unit,
     onPlay: () -> Unit,
     onPip: () -> Unit,
@@ -175,15 +192,20 @@ private fun VideoToolbar(
     modifier: Modifier = Modifier,
     container: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
 ) {
-    Surface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), color = container) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(32.dp),
+        color = container,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
         Row(
             modifier = Modifier.padding(8.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PlayButton(playing = playing, onClick = onPlay, width = 56.dp, height = 48.dp, corner = 18.dp)
+            PlayButton(playing = playing, buffering = buffering, onClick = onPlay, size = 48.dp)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                SeekBar(progress = progress, playing = playing && !buffering, enabled = seekable, onSeek = onSeek)
+                SeekBar(progress = progress, playing = playing && !buffering, enabled = seekable, durationMs = durationMs, onSeek = onSeek)
                 Text(time, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -208,12 +230,27 @@ private fun VideoToolbar(
 
 @Composable
 private fun JoinedButton(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, start: Dp, end: Dp, onClick: () -> Unit) {
+    // Pressed, it squeezes and its inner corners round off (springing back after), like the
+    // podcast player's buttons.
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val press = me.ash.reader.brief.ui.rememberPressFeel(rest = 0.dp, held = 1.dp, squeezeTo = 0.88f)
+    val inner = 8.dp + (22.dp - 8.dp) * press.progress.coerceIn(0f, 1f)
     Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(topStart = start, bottomStart = start, topEnd = end, bottomEnd = end),
+        onClick = {
+            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.ContextClick)
+            onClick()
+        },
+        shape =
+            RoundedCornerShape(
+                topStart = if (start > end) start else inner,
+                bottomStart = if (start > end) start else inner,
+                topEnd = if (end > start) end else inner,
+                bottomEnd = if (end > start) end else inner,
+            ),
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        modifier = Modifier.size(44.dp),
+        interactionSource = press.interaction,
+        modifier = with(press) { Modifier.size(44.dp).squeeze() },
     ) {
         Box(contentAlignment = Alignment.Center) { Icon(icon, description, modifier = Modifier.size(20.dp)) }
     }
@@ -266,8 +303,17 @@ fun VideoHost(content: @Composable () -> Unit) {
         }
         return
     }
+    if (VideoWindow.sheet && s.now != null) {
+        NowPlayingSheet(onDismiss = { VideoWindow.sheet = false })
+    }
     if (VideoWindow.fullscreen && video) {
-        FullscreenVideo(onClose = { VideoWindow.fullscreen = false })
+        FullscreenVideo(
+            onClose = {
+                VideoWindow.fullscreen = false
+                // A video from the article's text has no card to carry on in: it stops.
+                if (BriefPlayer.state.value.now?.inPage == true) BriefPlayer.pause()
+            }
+        )
     } else if (VideoWindow.fullscreen && !video) {
         LaunchedEffect(Unit) { VideoWindow.fullscreen = false }
     }
@@ -283,6 +329,7 @@ fun enterPip(activity: Activity) {
 
 /** The video sideways and edge to edge, the title at the top and the toolbar along the bottom. */
 @Composable
+@kotlin.OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 private fun FullscreenVideo(onClose: () -> Unit) {
     val context = LocalContext.current
     val s by BriefPlayer.state.collectAsState()
@@ -316,19 +363,29 @@ private fun FullscreenVideo(onClose: () -> Unit) {
                     ) { controls = !controls },
         ) {
             VideoSurface(Modifier.fillMaxSize())
-            if (controls) {
+            // The controls slide in from the edges and back out (tap the video).
+            val spatial = MaterialTheme.motionScheme.defaultSpatialSpec<androidx.compose.ui.unit.IntOffset>()
+            val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+            androidx.compose.animation.AnimatedVisibility(
+                visible = controls,
+                modifier = Modifier.align(Alignment.TopStart),
+                enter = slideInVertically(spatial) { -it } + fadeIn(effects),
+                exit = slideOutVertically(spatial) { -it } + fadeOut(effects),
+            ) {
                 Surface(
                     onClick = onClose,
-                    modifier = Modifier.align(Alignment.TopStart).safeDrawingPadding().padding(16.dp),
+                    modifier = Modifier.safeDrawingPadding().padding(16.dp),
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f),
+                    // A see-through colour has no matching text colour of its own (the title was black).
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                 ) {
                     Row(
                         modifier = Modifier.padding(start = 6.dp, end = 18.dp, top = 6.dp, bottom = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.size(44.dp)) {
+                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(44.dp)) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.player_leave_fullscreen), modifier = Modifier.size(20.dp))
                             }
@@ -339,21 +396,29 @@ private fun FullscreenVideo(onClose: () -> Unit) {
                         }
                     }
                 }
+            }
+            androidx.compose.animation.AnimatedVisibility(
+                visible = controls,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = slideInVertically(spatial) { it } + fadeIn(effects),
+                exit = slideOutVertically(spatial) { it } + fadeOut(effects),
+            ) {
                 VideoToolbar(
                     playing = s.isPlaying,
                     buffering = s.buffering,
                     progress = s.progress,
                     time = formatTime(s.positionMs) + if (s.durationMs > 0) " / " + formatTime(s.durationMs) else "",
                     seekable = s.durationMs > 0,
+                    durationMs = s.durationMs,
                     onSeek = { BriefPlayer.seekTo((it * s.durationMs).toLong()) },
                     onPlay = { BriefPlayer.toggle(context) },
                     onPip = {
-                        onClose()
+                        VideoWindow.fullscreen = false // carries on in the small window
                         context.findActivity()?.let { enterPip(it) }
                     },
                     fullscreenIcon = true,
                     onFullscreen = onClose,
-                    modifier = Modifier.align(Alignment.BottomCenter).safeDrawingPadding().padding(horizontal = 24.dp, vertical = 16.dp),
+                    modifier = Modifier.safeDrawingPadding().padding(horizontal = 24.dp, vertical = 16.dp),
                     container = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f),
                 )
             }

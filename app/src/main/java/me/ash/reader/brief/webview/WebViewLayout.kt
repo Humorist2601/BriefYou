@@ -20,6 +20,8 @@ object WebViewLayout {
         onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
         /** The page's fonts are loaded and its text drawn (see [PAGE_READY_SCRIPT]); on the main thread. */
         onPageReady: () -> Unit = {},
+        /** A video or audio in the text was tapped (see [PageMedia]): its address, "video" or "audio", and its poster; on the main thread. */
+        onMedia: ((url: String, kind: String, poster: String?) -> Unit)? = null,
     ) =
         // The spare one made ahead of time when there is one (see WebViewPool).
         WebViewPool.take(context).apply {
@@ -79,6 +81,20 @@ object WebViewLayout {
                         }
                     },
                     "BriefPage",
+                )
+                // A video or audio in the text plays in the app's player (see PageMedia).
+                addJavascriptInterface(
+                    object {
+                        @JavascriptInterface
+                        fun play(url: String?, kind: String?, poster: String?) {
+                            val handler = onMedia ?: return
+                            if (url.isNullOrBlank()) return
+                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                handler(url, kind ?: "video", poster?.takeIf { it.isNotBlank() })
+                            }
+                        }
+                    },
+                    PageMedia.NAME,
                 )
                 // Nightly stutter log: the page reports when its fonts load and when it first draws.
                 if (me.ash.reader.brief.perf.PerfLog.enabled) {
