@@ -86,6 +86,7 @@ fun FeedOptionDrawer(
                 feedOptionViewModel.setImageIcon(it) { msg -> iconContext.showToast(msg) }
             }
         }
+    val feedPicture = remember(feed?.url, showIconDialog) { me.ash.reader.brief.feeds.FeedPictures.get(iconContext, feed?.url) } // Brief You: the feed's own picture, once noted
     if (showIconDialog) me.ash.reader.brief.ui.OptionSheetDialogs { // Brief You: above the sheet
         FeedIconDialog(
             onSymbol = { feedOptionViewModel.setSymbolIcon(it) }, // Brief You: Material icons
@@ -97,7 +98,7 @@ fun FeedOptionDrawer(
                 )
             },
             onWebsiteIcon = { feedOptionViewModel.reloadIcon() },
-            feedPicture = me.ash.reader.brief.feeds.FeedPictures.get(iconContext, feed?.url), // Brief You: its own picture, when it has one
+            feedPicture = feedPicture, // Brief You: its own picture, when it has one
             onFeedPicture = { feedOptionViewModel.setFeedPicture(it) }, // Brief You
             onDismiss = { showIconDialog = false },
         )

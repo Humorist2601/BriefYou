@@ -25,9 +25,9 @@ import me.ash.reader.R
 
 /**
  * Plays podcast episodes and videos in the background, with their own media notification (lock
- * screen, Quick Settings, headphone and Bluetooth buttons): the episode's title and picture,
- * back and forward 30 seconds, play/pause, speed (steps through the speeds, like read aloud's)
- * and stop, and a progress bar. Tapping it opens the article that is playing. Read aloud keeps
+ * screen, Quick Settings, headphone and Bluetooth buttons), laid out like read aloud's: the
+ * episode's title and picture, speed (steps through the speeds) · play/pause · stop, back and
+ * forward 30 seconds where there is room, and a progress bar. Tapping it opens the article that is playing. Read aloud keeps
  * its own notification (ReadAloudService); only one of them plays at a time. The app talks to it
  * through [BriefPlayer]. Brief You.
  */
@@ -88,6 +88,16 @@ class PlayerService : MediaSessionService() {
                     )
                     .build()
 
+            /** Android's "resume" (lock screen, Quick Settings, after a restart): the last thing played. */
+            override fun onPlaybackResumption(
+                mediaSession: MediaSession,
+                controller: MediaSession.ControllerInfo,
+            ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+                val last = BriefPlayer.lastItem(this@PlayerService)
+                    ?: return Futures.immediateFailedFuture(UnsupportedOperationException("Nothing played yet"))
+                return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(listOf(last.first), 0, last.second))
+            }
+
             override fun onCustomCommand(
                 session: MediaSession,
                 controller: MediaSession.ControllerInfo,
@@ -123,28 +133,31 @@ class PlayerService : MediaSessionService() {
             }
         }
 
-    /** Back 30 · play/pause · forward 30, then speed (showing the speed) and stop. */
+    /**
+     * Laid out like read aloud's notification: speed (showing the speed) · play/pause · stop; back
+     * and forward 30 seconds follow where there is room (the expanded notification).
+     */
     @OptIn(UnstableApi::class)
     private fun buttons(speed: Float): ImmutableList<CommandButton> =
         ImmutableList.of(
-            CommandButton.Builder(CommandButton.ICON_SKIP_BACK_30)
-                .setDisplayName(getString(R.string.player_back_30))
-                .setPlayerCommand(Player.COMMAND_SEEK_BACK)
-                .setSlots(CommandButton.SLOT_BACK)
-                .build(),
-            CommandButton.Builder(CommandButton.ICON_SKIP_FORWARD_30)
-                .setDisplayName(getString(R.string.player_forward_30))
-                .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
-                .setSlots(CommandButton.SLOT_FORWARD)
-                .build(),
             CommandButton.Builder(speedIcon(speed))
                 .setDisplayName(getString(R.string.read_aloud_speed, BriefPlayer.speedLabel(speed)))
                 .setSessionCommand(SessionCommand(COMMAND_SPEED, Bundle.EMPTY))
-                .setSlots(CommandButton.SLOT_OVERFLOW)
+                .setSlots(CommandButton.SLOT_BACK)
                 .build(),
             CommandButton.Builder(CommandButton.ICON_STOP)
                 .setDisplayName(getString(R.string.player_stop))
                 .setSessionCommand(SessionCommand(COMMAND_STOP, Bundle.EMPTY))
+                .setSlots(CommandButton.SLOT_FORWARD)
+                .build(),
+            CommandButton.Builder(CommandButton.ICON_SKIP_BACK_30)
+                .setDisplayName(getString(R.string.player_back_30))
+                .setPlayerCommand(Player.COMMAND_SEEK_BACK)
+                .setSlots(CommandButton.SLOT_OVERFLOW)
+                .build(),
+            CommandButton.Builder(CommandButton.ICON_SKIP_FORWARD_30)
+                .setDisplayName(getString(R.string.player_forward_30))
+                .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
                 .setSlots(CommandButton.SLOT_OVERFLOW)
                 .build(),
         )

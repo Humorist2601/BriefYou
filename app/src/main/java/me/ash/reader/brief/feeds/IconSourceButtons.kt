@@ -1,7 +1,12 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package me.ash.reader.brief.feeds
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,16 +32,14 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.ash.reader.R
-import me.ash.reader.brief.ui.rememberPressFeel
 
 /**
- * "Feed's picture" | "Website icon" as one joined two-part button (like the video player's
- * joined buttons): the half in use is lit in the soft accent colour and its inner corners round
- * off; neither is lit when the feed uses an icon, emoji or image of its own ([feedPicture] null).
- * Used by Add a feed and Change icon. Brief You.
+ * "Feed's picture" | "Website icon" as one joined two-part button, like the top bars' button
+ * groups: pressed, a half widens and squeezes the other; the half in use is lit in the soft
+ * accent colour; neither is lit when the feed uses an icon, emoji or image of its own
+ * ([feedPicture] null). Used by Add a feed and Change icon. Brief You.
  */
 @Composable
 fun IconSourceButtons(
@@ -45,20 +48,31 @@ fun IconSourceButtons(
     onWebsiteIcon: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        Half(Icons.Rounded.RssFeed, stringResource(R.string.feed_icon_feed_picture), feedPicture == true, start = true, onFeedPicture, Modifier.weight(1f))
-        Half(Icons.Outlined.Public, stringResource(R.string.feed_icon_website_short), feedPicture == false, start = false, onWebsiteIcon, Modifier.weight(1f))
+    val first = remember { MutableInteractionSource() }
+    val second = remember { MutableInteractionSource() }
+    val firstPressed by first.collectIsPressedAsState()
+    val secondPressed by second.collectIsPressedAsState()
+    val spatial = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    val firstWeight by animateFloatAsState(if (firstPressed) 1.15f else if (secondPressed) 0.85f else 1f, spatial, label = "first")
+    val secondWeight by animateFloatAsState(if (secondPressed) 1.15f else if (firstPressed) 0.85f else 1f, spatial, label = "second")
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Half(Icons.Rounded.RssFeed, stringResource(R.string.feed_icon_feed_picture), feedPicture == true, start = true, first, onFeedPicture, Modifier.weight(firstWeight))
+        Half(Icons.Outlined.Public, stringResource(R.string.feed_icon_website_short), feedPicture == false, start = false, second, onWebsiteIcon, Modifier.weight(secondWeight))
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun Half(icon: ImageVector, label: String, lit: Boolean, start: Boolean, onClick: () -> Unit, modifier: Modifier) {
+private fun Half(
+    icon: ImageVector,
+    label: String,
+    lit: Boolean,
+    start: Boolean,
+    interaction: MutableInteractionSource,
+    onClick: () -> Unit,
+    modifier: Modifier,
+) {
     val haptic = LocalHapticFeedback.current
-    val press = rememberPressFeel(rest = 0.dp, held = 0.dp, squeezeTo = 0.95f)
-    val spatial = MaterialTheme.motionScheme.fastSpatialSpec<Dp>()
     val effects = MaterialTheme.motionScheme.fastEffectsSpec<androidx.compose.ui.graphics.Color>()
-    val inner by animateDpAsState(if (lit) 12.dp else 6.dp, spatial, label = "inner corner")
     val container by
         animateColorAsState(
             if (lit) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -72,6 +86,7 @@ private fun Half(icon: ImageVector, label: String, lit: Boolean, start: Boolean,
             label = "content",
         )
     val outer = 20.dp
+    val inner = 6.dp
     Surface(
         onClick = {
             haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -86,8 +101,8 @@ private fun Half(icon: ImageVector, label: String, lit: Boolean, start: Boolean,
             ),
         color = container,
         contentColor = content,
-        interactionSource = press.interaction,
-        modifier = with(press) { modifier.height(40.dp).squeeze() },
+        interactionSource = interaction,
+        modifier = modifier.height(40.dp),
     ) {
         Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, Modifier.size(18.dp))

@@ -56,6 +56,8 @@ object BriefPlayer {
         val title: String,
         val feedName: String,
         val artwork: String?,
+        /** The feed's icon: shown when the episode has no picture of its own. */
+        val feedIcon: String? = null,
     ) {
         val isVideo get() = kind == ArticleExtras.VIDEO
     }
@@ -105,6 +107,16 @@ object BriefPlayer {
     /** In a media item's metadata extras: it is a video (for the notification's speed button). */
     const val EXTRA_VIDEO = "brief_video"
     private const val KEY_MARK_READ_AT = "mark_read_at"
+    private const val SHAPES = "brief_video_shapes"
+    private const val KEY_LAST_ID = "last_id"
+    private const val KEY_LAST_URL = "last_url"
+    private const val KEY_LAST_KIND = "last_kind"
+    private const val KEY_LAST_TITLE = "last_title"
+    private const val KEY_LAST_FEED = "last_feed"
+    private const val KEY_LAST_ART = "last_art"
+    private const val KEY_LAST_POSITION = "last_position"
+    private const val EXTRA_URL = "brief_url"
+    private const val EXTRA_ART = "brief_art"
     private const val SAVE_EVERY_MS = 5_000L
     private const val FADE_MS = 6_000L
 
@@ -130,6 +142,76 @@ object BriefPlayer {
     val player: Player? get() = controller
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    private fun shapes(context: Context) = context.getSharedPreferences(SHAPES, Context.MODE_PRIVATE)
+
+    /** A video's shape seen before (width / height), or null. */
+    fun savedAspect(context: Context, articleId: String): Float? =
+        shapes(context).getFloat(articleId, 0f).takeIf { it > 0f }
+
+    /** Forgets the kept shapes of articles that are gone (after a sync's clean-up). */
+    fun forget(context: Context, articleIds: Collection<String>) {
+        if (articleIds.isEmpty()) return
+        shapes(context).edit { articleIds.forEach { remove(it) } }
+    }
+
+    /**
+     * The last thing played, for Android's "resume" (lock screen, Quick Settings after a
+     * restart): see PlayerService.
+     */
+    private fun rememberLast(context: Context, now: Now, positionMs: Long) =
+        prefs(context).edit {
+            putString(KEY_LAST_ID, now.articleId)
+            putString(KEY_LAST_URL, now.url)
+            putString(KEY_LAST_KIND, now.kind)
+            putString(KEY_LAST_TITLE, now.title)
+            putString(KEY_LAST_FEED, now.feedName)
+            putString(KEY_LAST_ART, now.artwork ?: now.feedIcon?.takeIf { it.startsWith("http", ignoreCase = true) })
+            putLong(KEY_LAST_POSITION, positionMs)
+        }
+
+    /** The last thing played as a media item, and where it was left (or null). */
+    fun lastItem(context: Context): Pair<MediaItem, Long>? {
+        val p = prefs(context)
+        val id = p.getString(KEY_LAST_ID, null) ?: return null
+        val url = p.getString(KEY_LAST_URL, null) ?: return null
+        val now =
+            Now(
+                articleId = id,
+                url = url,
+                kind = p.getString(KEY_LAST_KIND, null) ?: ArticleExtras.AUDIO,
+                title = p.getString(KEY_LAST_TITLE, null).orEmpty(),
+                feedName = p.getString(KEY_LAST_FEED, null).orEmpty(),
+                artwork = p.getString(KEY_LAST_ART, null),
+            )
+        return mediaItem(now) to p.getLong(KEY_LAST_POSITION, 0L)
+    }
+
+    private fun mediaItem(now: Now): MediaItem =
+        MediaItem.Builder()
+            .setMediaId(now.articleId)
+            // The app only uses secure addresses: an http:// one is tried as https://
+            // (most hosts have both); if that fails, the card says so.
+            .setUri(secure(now.url))
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(now.title)
+                    .setArtist(now.feedName)
+                    .setExtras(
+                        android.os.Bundle().apply {
+                            putBoolean(EXTRA_VIDEO, now.isVideo)
+                            putString(EXTRA_URL, now.url)
+                            putString(EXTRA_ART, now.artwork)
+                        }
+                    )
+                    .apply {
+                        // The episode's picture, or the feed's icon when that is a picture.
+                        (now.artwork ?: now.feedIcon?.takeIf { it.startsWith("http", ignoreCase = true) })
+                            ?.let { setArtworkUri(Uri.parse(secure(it))) }
+                    }
+                    .build()
+            )
+            .build()
 
     /** The share of a podcast episode after which it is marked as read (1 = when finished). */
     fun markReadAt(context: Context): Float = prefs(context).getFloat(KEY_MARK_READ_AT, 0.9f)
@@ -171,6 +253,8 @@ object BriefPlayer {
                     _state.update { State() }
                     return
                 }
+                // Started by Android's "resume" (not from the app): take it from the player.
+                if (_state.value.now == null && player.mediaItemCount > 0) adopt(player)
                 refresh(player)
                 if (player.isPlaying) startTicker() else {
                     ticker?.cancel()
@@ -189,8 +273,28 @@ object BriefPlayer {
                 if (videoSize.width <= 0 || videoSize.height <= 0) return
                 val aspect = videoSize.width * videoSize.pixelWidthHeightRatio / videoSize.height
                 _state.update { it.copy(videoAspect = aspect) }
+                // Kept, so the video's card keeps its shape once it is no longer loaded.
+                val id = _state.value.now?.articleId ?: return
+                appContext?.let { shapes(it).edit { putFloat(id, aspect) } }
             }
         }
+
+    private fun adopt(player: Player) {
+        val item = player.currentMediaItem ?: return
+        val meta = item.mediaMetadata
+        val extras = meta.extras
+        val video = extras?.getBoolean(EXTRA_VIDEO) == true
+        val now =
+            Now(
+                articleId = item.mediaId,
+                url = extras?.getString(EXTRA_URL) ?: item.localConfiguration?.uri?.toString().orEmpty(),
+                kind = if (video) ArticleExtras.VIDEO else ArticleExtras.AUDIO,
+                title = meta.title?.toString().orEmpty(),
+                feedName = meta.artist?.toString().orEmpty(),
+                artwork = extras?.getString(EXTRA_ART) ?: meta.artworkUri?.toString(),
+            )
+        _state.update { it.copy(now = now) }
+    }
 
     private fun refresh(player: Player) {
         _state.update {
@@ -236,22 +340,9 @@ object BriefPlayer {
                     ?.takeIf { it.durationMs <= 0 || it.positionMs < it.durationMs - 5_000 }
                     ?.positionMs ?: 0L
             withController(context) { c ->
-                val item =
-                    MediaItem.Builder()
-                        .setMediaId(now.articleId)
-                        // The app only uses secure addresses: an http:// one is tried as https://
-                        // (most hosts have both); if that fails, the card says so.
-                        .setUri(secure(now.url))
-                        .setMediaMetadata(
-                            MediaMetadata.Builder()
-                                .setTitle(now.title)
-                                .setArtist(now.feedName)
-                                .setExtras(android.os.Bundle().apply { putBoolean(EXTRA_VIDEO, now.isVideo) })
-                                .apply { now.artwork?.let { setArtworkUri(Uri.parse(secure(it))) } }
-                                .build()
-                        )
-                        .build()
+                val item = mediaItem(now)
                 c.setMediaItem(item, resumeAt)
+                rememberLast(context, now, resumeAt)
                 c.playbackParameters = PlaybackParameters(speed)
                 c.prepare()
                 c.play()
@@ -335,13 +426,22 @@ object BriefPlayer {
         if (sleep !is Sleep.Minutes) return
         sleepJob =
             main.launch {
+                var last = System.currentTimeMillis()
                 while (isActive) {
-                    val left = sleep.endsAt - System.currentTimeMillis()
+                    val time = System.currentTimeMillis()
+                    // Paused, the timer waits too: its end moves on by the paused time.
+                    val current = _state.value.sleep as? Sleep.Minutes ?: break
+                    if (controller?.isPlaying != true) {
+                        _state.update { it.copy(sleep = current.copy(endsAt = current.endsAt + (time - last))) }
+                    }
+                    last = time
+                    val left = (_state.value.sleep as? Sleep.Minutes ?: break).endsAt - time
                     if (left <= 0) break
                     // Fades out over the last seconds instead of stopping mid-sentence.
                     controller?.volume = (left.toFloat() / FADE_MS).coerceIn(0f, 1f)
                     delay(if (left < FADE_MS) 100 else 1_000)
                 }
+                if (_state.value.sleep !is Sleep.Minutes) return@launch
                 controller?.pause()
                 controller?.volume = 1f
                 _state.update { it.copy(sleep = Sleep.Off) }
@@ -370,6 +470,7 @@ object BriefPlayer {
         lastSaved = time
         val position = PlaybackPosition(now.articleId, c.currentPosition.coerceAtLeast(0), c.duration.coerceAtLeast(0), time)
         main.launch(Dispatchers.IO) { runCatching { ArticleMedia.dao?.putPosition(position) } }
+        appContext?.let { prefs(it).edit { putLong(KEY_LAST_POSITION, position.positionMs) } }
     }
 
     /** A podcast episode heard past the chosen share is marked as read (once). */

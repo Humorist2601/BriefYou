@@ -33,6 +33,37 @@ object FeedPictures {
         prefs.edit { if (picture == null) remove(feedUrl) else putString(feedUrl, picture) }
     }
 
+    /** Feed address → when Add a feed chose its picture. */
+    private const val CHOSEN = "brief_feed_pictures_chosen"
+    private const val KEEP_CHOSEN_MS = 7 * 24 * 60 * 60 * 1000L
+
+    private fun chosenPrefs(context: Context) = context.getSharedPreferences(CHOSEN, Context.MODE_PRIVATE)
+
+    /** Add a feed chose the feed's picture: kept as its icon once the feed is there (see FeedIconOverrides.reapply). */
+    fun choose(context: Context, feedUrl: String) = chosenPrefs(context).edit { putLong(feedUrl, System.currentTimeMillis()) }
+
+    /** The addresses still waiting for their feed; ones older than a week (a subscribe that failed) are dropped. */
+    fun chosen(context: Context): Set<String> {
+        val prefs = chosenPrefs(context)
+        val old = System.currentTimeMillis() - KEEP_CHOSEN_MS
+        val (keep, drop) = prefs.all.entries.partition { (it.value as? Long ?: 0L) > old }
+        if (drop.isNotEmpty()) prefs.edit { drop.forEach { remove(it.key) } }
+        return keep.map { it.key }.toSet()
+    }
+
+    fun unchoose(context: Context, feedUrl: String) = chosenPrefs(context).edit { remove(feedUrl) }
+
+    /**
+     * The ways a server may write the same address: http or https, with or without "www." and a
+     * trailing slash.
+     */
+    fun variants(url: String): List<String> {
+        val bare = url.trim().removeSuffix("/").replaceFirst(Regex("^https?://", RegexOption.IGNORE_CASE), "").removePrefix("www.")
+        return listOf("https://", "http://").flatMap { scheme ->
+            listOf(bare, "www.$bare").flatMap { listOf(scheme + it, "$scheme$it/") }
+        }
+    }
+
     fun get(context: Context, feedUrl: String?): String? =
         feedUrl?.let { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(it, null) }
 }

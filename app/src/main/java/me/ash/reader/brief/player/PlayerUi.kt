@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,6 +45,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Forward30
 import androidx.compose.material.icons.rounded.Pause
@@ -88,6 +90,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -146,14 +150,14 @@ fun formatTime(ms: Long): String {
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun ArticleMediaCard(title: String, feedName: String, artwork: String?, modifier: Modifier = Modifier) {
+fun ArticleMediaCard(title: String, feedName: String, artwork: String?, modifier: Modifier = Modifier, feedIcon: String? = null) {
     val extras = LocalArticleExtras.current ?: return
     val url = extras.mediaUrl ?: return
     val context = LocalContext.current
     val s by BriefPlayer.state.collectAsState()
     val current = s.isFor(extras.articleId)
     val now =
-        remember(extras, title, feedName, artwork) {
+        remember(extras, title, feedName, artwork, feedIcon) {
             BriefPlayer.Now(
                 articleId = extras.articleId,
                 url = url,
@@ -161,6 +165,7 @@ fun ArticleMediaCard(title: String, feedName: String, artwork: String?, modifier
                 title = title,
                 feedName = feedName,
                 artwork = extras.image ?: artwork,
+                feedIcon = feedIcon,
             )
         }
     val saved by
@@ -174,8 +179,15 @@ fun ArticleMediaCard(title: String, feedName: String, artwork: String?, modifier
         if (current) BriefPlayer.toggle(context) else BriefPlayer.play(context, now, extras.durationMs)
     }
 
+    // Off screen (scrolled past), nothing in it moves: no redrawing on every frame.
+    var onScreen by remember { mutableStateOf(true) }
     Surface(
-        modifier = modifier.padding(top = 16.dp).fillMaxWidth().padding(horizontal = 16.dp),
+        modifier =
+            modifier
+                .padding(top = 16.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .onGloballyPositioned { onScreen = it.boundsInWindow().height > 0f },
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = RoundedCornerShape(28.dp),
     ) {
@@ -190,7 +202,7 @@ fun ArticleMediaCard(title: String, feedName: String, artwork: String?, modifier
                 )
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Artwork(now.artwork, Modifier.size(44.dp), RoundedCornerShape(14.dp))
+                    Artwork(now.artwork, Modifier.size(44.dp), RoundedCornerShape(14.dp), now.feedName, now.feedIcon)
                     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text(
                             text = feedName,
@@ -225,10 +237,12 @@ fun ArticleMediaCard(title: String, feedName: String, artwork: String?, modifier
                         duration = duration,
                         playing = playing,
                         enabled = current && duration > 0,
+                        moving = onScreen,
                     )
                 }
                 Spacer(Modifier.height(6.dp))
                 MediaControls(
+                    moving = onScreen,
                     current = current,
                     playing = playing,
                     buffering = current && s.buffering,
@@ -243,9 +257,22 @@ fun ArticleMediaCard(title: String, feedName: String, artwork: String?, modifier
 
 /** The progress with the time played before it and the time left after it. */
 @Composable
-internal fun SeekRow(position: Long, duration: Long, playing: Boolean, enabled: Boolean) {
+internal fun SeekRow(position: Long, duration: Long, playing: Boolean, enabled: Boolean, moving: Boolean = true) {
+    // The times keep one width (even-width digits, sized for the longest time this episode can
+    // show), so the progress bar doesn't change length as they tick.
+    val style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val widest = "−" + formatTime(maxOf(duration, position)).replace(Regex("[0-9]"), "0")
+    val timeWidth = remember(widest, style) { with(density) { measurer.measure(widest, style).size.width.toDp() } }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(formatTime(position), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            formatTime(position),
+            style = style,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            modifier = Modifier.width(timeWidth),
+        )
         SeekBar(
             progress = if (duration > 0) position.toFloat() / duration else 0f,
             playing = playing,
@@ -253,11 +280,15 @@ internal fun SeekRow(position: Long, duration: Long, playing: Boolean, enabled: 
             durationMs = duration,
             onSeek = { BriefPlayer.seekTo((it * duration).toLong()) },
             modifier = Modifier.weight(1f),
+            moving = moving,
         )
         Text(
             if (duration > 0) "−" + formatTime(duration - position) else "",
-            style = MaterialTheme.typography.labelMedium,
+            style = style,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            textAlign = TextAlign.End,
+            modifier = Modifier.width(timeWidth),
         )
     }
 }
@@ -306,6 +337,7 @@ private fun speedLabel(speed: Float): String = BriefPlayer.speedLabel(speed)
  */
 @Composable
 private fun MediaControls(
+    moving: Boolean = true,
     current: Boolean,
     playing: Boolean,
     buffering: Boolean,
@@ -318,7 +350,7 @@ private fun MediaControls(
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Extra(current) { SpeedPill(speed) { speedSheet = true } }
         Extra(current) { SkipButton(forward = false, enabled = current) }
-        PlayButton(playing = playing, buffering = buffering, onClick = onPlay, size = 64.dp)
+        PlayButton(playing = playing, buffering = buffering, onClick = onPlay, size = 64.dp, moving = moving)
         Extra(current) { SkipButton(forward = true, enabled = current) }
         Extra(current) {
             TonalIcon(
@@ -349,14 +381,33 @@ private fun androidx.compose.foundation.layout.RowScope.Extra(visible: Boolean, 
     }
 }
 
-/** The episode's picture, or a microphone on the tonal colour. */
+/**
+ * The episode's picture; without one, the feed's icon on the tonal colour; without that, a
+ * microphone (a film for a video).
+ */
 @Composable
-internal fun Artwork(url: String?, modifier: Modifier, shape: Shape) {
-    Box(
+internal fun Artwork(
+    url: String?,
+    modifier: Modifier,
+    shape: Shape,
+    feedName: String? = null,
+    feedIcon: String? = null,
+    video: Boolean = false,
+) {
+    androidx.compose.foundation.layout.BoxWithConstraints(
         modifier = modifier.clip(shape).background(MaterialTheme.colorScheme.secondaryContainer),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Outlined.Mic, null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(26.dp))
+        if (feedIcon != null) {
+            me.ash.reader.ui.component.FeedIcon(feedName = feedName, iconUrl = feedIcon, size = minOf(minOf(maxWidth, maxHeight) * 0.6f, 96.dp))
+        } else {
+            Icon(
+                if (video) Icons.Outlined.Movie else Icons.Outlined.Mic,
+                null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(minOf(26.dp, maxWidth * 0.5f)),
+            )
+        }
         if (url != null) {
             RYAsyncImage(modifier = Modifier.matchParentSize(), data = url, contentScale = ContentScale.Crop, contentDescription = null)
         }
@@ -386,6 +437,10 @@ internal fun PlayButton(
     size: Dp,
     modifier: Modifier = Modifier,
     buffering: Boolean = false,
+    /** It turns only while this is true (off screen, nothing needs to move). */
+    moving: Boolean = true,
+    /** Turns for this long after playing starts and then settles (the pill), instead of all along. */
+    spinFor: Long? = null,
 ) {
     val haptic = LocalHapticFeedback.current
     val scheme = MaterialTheme.colorScheme
@@ -402,12 +457,16 @@ internal fun PlayButton(
     val morph = remember { Morph(MaterialShapes.Circle, MaterialShapes.Cookie9Sided) }
     // The cookie turns slowly while playing, and stops where it is when paused.
     val turn = remember { Animatable(0f) }
-    LaunchedEffect(playing) {
-        if (!playing) return@LaunchedEffect
-        while (true) {
-            turn.animateTo(turn.value + 360f, tween(durationMillis = 6_000, easing = LinearEasing))
+    LaunchedEffect(playing, moving) {
+        if (!playing || !moving) return@LaunchedEffect
+        val until = spinFor?.let { System.currentTimeMillis() + it }
+        while (until == null || System.currentTimeMillis() < until) {
+            turn.animateTo(turn.value + 40f, tween(durationMillis = 667, easing = LinearEasing))
             turn.snapTo(turn.value % 360f)
         }
+        // Settles on one of the cookie's nine turns (it looks the same there), with a bounce.
+        turn.animateTo(turn.value + 40f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
+        turn.snapTo(turn.value % 360f)
     }
     val description = stringResource(if (playing) R.string.player_pause else R.string.player_play)
     Box(
@@ -562,6 +621,8 @@ internal fun SeekBar(
     onSeek: (Float) -> Unit,
     modifier: Modifier = Modifier,
     durationMs: Long = 0,
+    /** The wave moves only while this is true (off screen, it lies flat). */
+    moving: Boolean = true,
 ) {
     val haptic = LocalHapticFeedback.current
     var drag by remember { mutableStateOf<Float?>(null) }
@@ -570,7 +631,10 @@ internal fun SeekBar(
     fun dragTo(share: Float) {
         drag = share
         // A tick per second (per percent when the length isn't known).
-        val step = if (duration > 0) (share * duration / 1000).toLong() else (share * 100).toLong()
+        // A tick per second, but at most about a hundred along the bar (a long episode would
+        // otherwise tick on every pixel and buzz).
+        val unit = if (duration > 0) maxOf(1_000L, duration / 100) else 0L
+        val step = if (unit > 0) (share * duration / unit).toLong() else (share * 100).toLong()
         if (tick[0] >= 0 && step != tick[0]) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         tick[0] = step
     }
@@ -605,7 +669,7 @@ internal fun SeekBar(
                 },
         contentAlignment = Alignment.Center,
     ) {
-        if (playing && drag == null) {
+        if (playing && moving && drag == null) {
             LinearWavyProgressIndicator(progress = { shown }, modifier = Modifier.fillMaxWidth())
         } else {
             LinearProgressIndicator(progress = { shown }, modifier = Modifier.fillMaxWidth())
@@ -617,6 +681,8 @@ internal fun SeekBar(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpeedSheet(onDismiss: () -> Unit) {
+    // Picture-in-picture shows only the video: the sheet (its own window) closes.
+    LaunchedEffect(VideoWindow.inPip) { if (VideoWindow.inPip) onDismiss() }
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val s by BriefPlayer.state.collectAsState()
@@ -655,6 +721,8 @@ fun SpeedSheet(onDismiss: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SleepTimerSheet(onDismiss: () -> Unit) {
+    // Picture-in-picture shows only the video: the sheet (its own window) closes.
+    LaunchedEffect(VideoWindow.inPip) { if (VideoWindow.inPip) onDismiss() }
     val haptic = LocalHapticFeedback.current
     val s by BriefPlayer.state.collectAsState()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -738,6 +806,9 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
 /** What the pill shows (kept while it slides away after its close button). */
 private data class PillContent(
     val episode: Boolean,
+    val feedName: String? = null,
+    val feedIcon: String? = null,
+    val video: Boolean = false,
     val title: String,
     val line: String,
     val artwork: String?,
@@ -773,6 +844,9 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                         else if (s.durationMs > 0) stringResource(R.string.player_feed_left, now.feedName, formatTime(s.durationMs - s.positionMs))
                         else now.feedName,
                     artwork = now.artwork,
+                    feedName = now.feedName,
+                    feedIcon = now.feedIcon,
+                    video = now.isVideo,
                     progress = s.progress,
                     playing = s.isPlaying,
                 )
@@ -819,7 +893,7 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                     strokeWidth = 3.dp,
                 )
                 if (c.episode) {
-                    Artwork(c.artwork, Modifier.size(40.dp), CircleShape)
+                    Artwork(c.artwork, Modifier.size(40.dp), CircleShape, c.feedName, c.feedIcon, c.video)
                 } else {
                     Box(
                         Modifier.size(40.dp).clip(CircleShape).background(scheme.secondaryContainer),
@@ -848,6 +922,8 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                     else if (ttsState is TextToSpeechManager.State.Reading) tts?.pause() else tts?.resume()
                 },
                 size = 48.dp,
+                // Always on screen: turns for a few seconds after play, then settles.
+                spinFor = 4_000,
             )
             IconButton(
                 onClick = { if (c.episode) BriefPlayer.stop() else tts?.stop() },
@@ -868,6 +944,8 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NowPlayingSheet(onDismiss: () -> Unit) {
+    // Picture-in-picture shows only the video: the sheet (its own window) closes.
+    LaunchedEffect(VideoWindow.inPip) { if (VideoWindow.inPip) onDismiss() }
     val context = LocalContext.current
     val s by BriefPlayer.state.collectAsState()
     val now = s.now ?: return
@@ -897,7 +975,7 @@ fun NowPlayingSheet(onDismiss: () -> Unit) {
                     spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
                     label = "artwork",
                 )
-                Artwork(now.artwork, Modifier.size(180.dp).graphicsLayer { scaleX = art; scaleY = art }, RoundedCornerShape(32.dp))
+                Artwork(now.artwork, Modifier.size(180.dp).graphicsLayer { scaleX = art; scaleY = art }, RoundedCornerShape(32.dp), now.feedName, now.feedIcon)
             }
             Spacer(Modifier.height(14.dp))
             Text(now.title, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)

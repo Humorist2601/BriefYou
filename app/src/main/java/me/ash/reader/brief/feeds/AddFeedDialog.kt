@@ -241,7 +241,8 @@ private fun AddFeedDialogContent(
                             focusManager.clearFocus()
                             // The chosen icon: the feed's own picture, or the website's (as found).
                             if (feedPicture != null && useFeedPicture) {
-                                configure?.searchedFeed?.icon?.apply {
+                                FeedPictures.choose(context, configure!!.feedLink)
+                                configure.searchedFeed.icon?.apply {
                                     link = feedPicture
                                     url = feedPicture
                                 }

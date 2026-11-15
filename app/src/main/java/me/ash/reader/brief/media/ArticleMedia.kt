@@ -105,6 +105,15 @@ object ArticleMedia {
 
     val dao: ArticleMediaDao? get() = db?.dao()
 
+    /** Forgets the attachments and places of articles that are gone (after a sync's clean-up). */
+    suspend fun forget(articleIds: List<String>) {
+        val dao = dao ?: return
+        articleIds.chunked(500).forEach {
+            dao.deleteExtras(it)
+            dao.deletePositions(it)
+        }
+    }
+
     /** Saves what feed reading found (in the background; feed reading doesn't wait for it). */
     fun found(items: List<ArticleExtras>) {
         val useful = items.filter { it.mediaUrl != null || it.comments != null || it.image != null }

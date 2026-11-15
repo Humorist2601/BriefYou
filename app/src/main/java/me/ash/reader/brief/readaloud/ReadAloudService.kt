@@ -149,6 +149,10 @@ class ReadAloudService : Service() {
             )
         }
         val playing = state !is TextToSpeechManager.State.Paused
+        // The media controls (Quick Settings, lock screen) open the article being read too.
+        session.setSessionActivity(
+            me.ash.reader.brief.player.PlayerIntents.open(this, me.ash.reader.brief.player.PlayerIntents.articleOf(tts.sourceKey))
+        )
         session.setPlaybackState(
             PlaybackStateCompat.Builder()
                 .setActions(

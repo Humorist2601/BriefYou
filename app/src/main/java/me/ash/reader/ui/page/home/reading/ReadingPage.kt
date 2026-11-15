@@ -298,7 +298,7 @@ fun ReadingPage(
                                             afterArticle = { BriefNextArticle(nextArticle, viewModel, onLoadArticle) }, // Brief You
                                             afterHeadline = { // Brief You
                                                 me.ash.reader.brief.ai.TranslationBanner(translate) // Brief You
-                                                me.ash.reader.brief.player.ArticleMediaCard(title.orEmpty(), feedName, me.ash.reader.brief.reading.FeedContent.listImage(readingUiState.articleWithFeed?.article?.img, link)) // Brief You: its episode or video
+                                                me.ash.reader.brief.player.ArticleMediaCard(title.orEmpty(), feedName, me.ash.reader.brief.reading.FeedContent.listImage(readingUiState.articleWithFeed?.article?.img, link), feedIcon = readingUiState.articleWithFeed?.feed?.icon) // Brief You: its episode or video
                                             }, // Brief You
                                         )
                                         PullToLoadIndicator(

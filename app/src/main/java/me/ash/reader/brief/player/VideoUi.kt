@@ -95,7 +95,7 @@ object VideoWindow {
  * The video, in its own shape (16:9 until it is known; very tall ones are shown 3:4 with bars),
  * for the article's card and the full-controls sheet: the playing picture (or the episode's
  * picture before it starts), its length in one corner until it starts, and picture-in-picture
- * with full screen as a small joined pair in the other. Tapping it before it starts plays it.
+ * with full screen as a small joined pair in the other. Tapping it plays and pauses it.
  */
 @Composable
 internal fun VideoFrame(
@@ -109,7 +109,10 @@ internal fun VideoFrame(
 ) {
     val context = LocalContext.current
     val s by BriefPlayer.state.collectAsState()
-    val aspect = (if (current) s.videoAspect else null)?.coerceIn(0.75f, 2.4f) ?: (16f / 9f)
+    // Its shape: while loaded, the player's; else the one seen before; else 16:9.
+    val aspect =
+        ((if (current) s.videoAspect else null) ?: BriefPlayer.savedAspect(context, now.articleId))
+            ?.coerceIn(0.75f, 2.4f) ?: (16f / 9f)
     val shown by androidx.compose.animation.core.animateFloatAsState(aspect, label = "video shape")
     Box(
         modifier =
@@ -118,17 +121,22 @@ internal fun VideoFrame(
                 .aspectRatio(shown)
                 .clip(RoundedCornerShape(corner))
                 .background(Color.Black)
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                    if (!current) onPlay()
-                },
+                // Tap: plays, or pauses and plays again.
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onPlay() },
         contentAlignment = Alignment.Center,
     ) {
         if (showVideo) {
             VideoSurface(Modifier.fillMaxSize())
         } else {
-            now.artwork?.let {
-                RYAsyncImage(modifier = Modifier.fillMaxSize(), data = it, contentScale = ContentScale.Crop)
-            }
+            // Before it plays: the episode's picture, else the feed's icon, else a film.
+            Artwork(
+                now.artwork,
+                Modifier.fillMaxSize(),
+                RoundedCornerShape(0.dp),
+                now.feedName,
+                now.feedIcon,
+                video = true,
+            )
         }
         androidx.compose.animation.AnimatedVisibility(
             visible = !current && duration > 0,
@@ -149,35 +157,24 @@ internal fun VideoFrame(
                 )
             }
         }
-        val overlay = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f)
-        Row(modifier = Modifier.align(Alignment.TopEnd).padding(10.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            JoinedButton(
-                icon = Icons.Rounded.PictureInPictureAlt,
-                description = stringResource(R.string.player_pip),
-                start = 18.dp,
-                end = 6.dp,
-                container = overlay,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                width = 38.dp,
-                height = 36.dp,
-            ) {
-                if (!current) onPlay()
-                context.findActivity()?.let { enterPip(it) }
-            }
-            JoinedButton(
-                icon = Icons.Rounded.Fullscreen,
-                description = stringResource(R.string.player_fullscreen),
-                start = 6.dp,
-                end = 18.dp,
-                container = overlay,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                width = 38.dp,
-                height = 36.dp,
-            ) {
-                if (!current) onPlay()
-                VideoWindow.fullscreen = true
-            }
-        }
+        // The same joined buttons as the top bars (Feeds, the lists, the article): pressed, one
+        // widens and squeezes the other.
+        val pipLabel = stringResource(R.string.player_pip)
+        val fullscreenLabel = stringResource(R.string.player_fullscreen)
+        me.ash.reader.brief.ui.TopBarButtonGroup(
+            actions =
+                listOf(
+                    me.ash.reader.brief.ui.TopBarAction(Icons.Rounded.PictureInPictureAlt, pipLabel) {
+                        if (!current) onPlay()
+                        context.findActivity()?.let { enterPip(it) }
+                    },
+                    me.ash.reader.brief.ui.TopBarAction(Icons.Rounded.Fullscreen, fullscreenLabel) {
+                        if (!current) onPlay()
+                        VideoWindow.fullscreen = true
+                    },
+                ),
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 2.dp),
+        )
     }
 }
 
@@ -225,62 +222,18 @@ private fun VideoToolbar(
                 SeekBar(progress = progress, playing = playing && !buffering, enabled = seekable, durationMs = durationMs, onSeek = onSeek)
                 Text(time, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                JoinedButton(
-                    icon = Icons.Rounded.PictureInPictureAlt,
-                    description = stringResource(R.string.player_pip),
-                    start = 22.dp,
-                    end = 8.dp,
-                    onClick = onPip,
-                )
-                JoinedButton(
-                    icon = if (fullscreenIcon) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
-                    description = stringResource(if (fullscreenIcon) R.string.player_leave_fullscreen else R.string.player_fullscreen),
-                    start = 8.dp,
-                    end = 22.dp,
-                    onClick = onFullscreen,
-                )
-            }
+            me.ash.reader.brief.ui.TopBarButtonGroup(
+                actions =
+                    listOf(
+                        me.ash.reader.brief.ui.TopBarAction(Icons.Rounded.PictureInPictureAlt, stringResource(R.string.player_pip), onClick = onPip),
+                        me.ash.reader.brief.ui.TopBarAction(
+                            if (fullscreenIcon) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
+                            stringResource(if (fullscreenIcon) R.string.player_leave_fullscreen else R.string.player_fullscreen),
+                            onClick = onFullscreen,
+                        ),
+                    ),
+            )
         }
-    }
-}
-
-@Composable
-private fun JoinedButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    description: String,
-    start: Dp,
-    end: Dp,
-    container: Color = MaterialTheme.colorScheme.secondaryContainer,
-    contentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
-    width: Dp = 44.dp,
-    height: Dp = 44.dp,
-    onClick: () -> Unit,
-) {
-    // Pressed, it squeezes and its inner corners round off (springing back after), like the
-    // podcast player's buttons.
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-    val press = me.ash.reader.brief.ui.rememberPressFeel(rest = 0.dp, held = 1.dp, squeezeTo = 0.88f)
-    val small = minOf(start, end)
-    val inner = small + (maxOf(start, end) - small) * press.progress.coerceIn(0f, 1f)
-    Surface(
-        onClick = {
-            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.ContextClick)
-            onClick()
-        },
-        shape =
-            RoundedCornerShape(
-                topStart = if (start > end) start else inner,
-                bottomStart = if (start > end) start else inner,
-                topEnd = if (end > start) end else inner,
-                bottomEnd = if (end > start) end else inner,
-            ),
-        color = container,
-        contentColor = contentColor,
-        interactionSource = press.interaction,
-        modifier = with(press) { Modifier.size(width, height).squeeze() },
-    ) {
-        Box(contentAlignment = Alignment.Center) { Icon(icon, description, modifier = Modifier.size(20.dp)) }
     }
 }
 
@@ -300,6 +253,8 @@ fun VideoHost(content: @Composable () -> Unit) {
         val listener =
             Consumer<PictureInPictureModeChangedInfo> { info ->
                 VideoWindow.inPip = info.isInPictureInPictureMode
+                // The small window shows only the video: full screen (its own window) closes.
+                if (info.isInPictureInPictureMode) VideoWindow.fullscreen = false
                 // Opened back into the app, the screen is at least started; closed, it is stopped
                 // (checking for "resumed" paused it on the way back in, before it resumed).
                 if (!info.isInPictureInPictureMode && activity?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) != true) {
@@ -367,12 +322,16 @@ private fun FullscreenVideo(onClose: () -> Unit) {
     ) {
         val window = (androidx.compose.ui.platform.LocalView.current.parent as? DialogWindowProvider)?.window
         val activity = context.findActivity()
-        DisposableEffect(window, activity) {
-            val before = activity?.requestedOrientation
-            // Wide videos turn sideways; tall ones stay upright.
-            val tall = (BriefPlayer.state.value.videoAspect ?: (16f / 9f)) < 1f
+        // Wide videos turn sideways; tall ones stay upright (also once the shape becomes known).
+        val tall = (s.videoAspect ?: (16f / 9f)) < 1f
+        // How the screen was turned before, put back on close.
+        val before = remember(activity) { activity?.requestedOrientation }
+        DisposableEffect(activity, tall) {
             activity?.requestedOrientation =
                 if (tall) ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            onDispose {}
+        }
+        DisposableEffect(window, activity) {
             window?.let {
                 WindowCompat.setDecorFitsSystemWindows(it, false)
                 WindowInsetsControllerCompat(it, it.decorView).apply {

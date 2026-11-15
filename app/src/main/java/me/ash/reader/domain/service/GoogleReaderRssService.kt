@@ -155,6 +155,7 @@ constructor(
                 url = feedLink,
                 groupId = groupId,
                 accountId = accountId,
+                icon = searchedFeed.icon?.link, // Brief You: the icon chosen in Add a feed
                 isNotification = isNotification,
                 isFullContent = isFullContent,
                 isBrowser = isBrowser,

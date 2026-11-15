@@ -249,8 +249,7 @@ constructor(
     fun setFeedPicture(picture: String) { // Brief You: the feed's own picture (see FeedPictures)
         _feedOptionUiState.value.feed?.let { feed -> // Brief You
             viewModelScope.launch(ioDispatcher) { // Brief You
-                iconOverrides.clear(feed.id) // Brief You
-                feedDao.update(feed.copy(icon = picture)) // Brief You
+                iconOverrides.setPicture(feed.id, picture) // Brief You: kept through syncs
                 fetchFeed(feed.id) // Brief You
             } // Brief You
         } // Brief You
