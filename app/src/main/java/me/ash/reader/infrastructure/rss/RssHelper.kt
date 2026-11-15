@@ -82,6 +82,7 @@ constructor(
             }
 
             feed.also {
+                me.ash.reader.brief.feeds.FeedPictures.found(context, resolvedFeedLink, it) // Brief You: its own picture, before the website's icon replaces it
                 it.icon = SyndImageImpl()
                 it.icon.link = queryRssIconLink(resolvedFeedLink)
                 it.icon.url = it.icon.link
@@ -186,6 +187,7 @@ constructor(
                 SyndFeedInput()
                     .apply { isPreserveWireFeed = true }
                     .build(XmlReader(inputStream, httpContentType))
+                    .also { me.ash.reader.brief.feeds.FeedPictures.found(context, feed.url, it) } // Brief You: its own picture
                     .entries
                     .asSequence()
                     .takeWhile { latestLink == null || latestLink != it.link }

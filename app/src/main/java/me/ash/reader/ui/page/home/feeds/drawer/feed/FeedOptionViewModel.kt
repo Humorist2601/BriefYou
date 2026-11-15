@@ -246,6 +246,16 @@ constructor(
     }
 
     /** Drops any custom icon and fetches the website's icon again. */
+    fun setFeedPicture(picture: String) { // Brief You: the feed's own picture (see FeedPictures)
+        _feedOptionUiState.value.feed?.let { feed -> // Brief You
+            viewModelScope.launch(ioDispatcher) { // Brief You
+                iconOverrides.clear(feed.id) // Brief You
+                feedDao.update(feed.copy(icon = picture)) // Brief You
+                fetchFeed(feed.id) // Brief You
+            } // Brief You
+        } // Brief You
+    } // Brief You
+
     fun reloadIcon() {
         _feedOptionUiState.value.feed?.let { feed ->
             viewModelScope.launch(ioDispatcher) {

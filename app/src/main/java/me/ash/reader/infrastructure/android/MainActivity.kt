@@ -162,11 +162,15 @@ class MainActivity : AppCompatActivity() {
         DisposableEffect(backStack) {
             val listener =
                 Consumer<Intent> { intent ->
+                    val fromPlayer = me.ash.reader.brief.player.PlayerIntents.fromPlayer(intent) // Brief You
                     intent.getLaunchAction()?.let { action ->
                         when (action) {
                             is LaunchAction.OpenArticle -> {
                                 val (articleId, feedId, groupId) = action
-                                filterUseCase.init(feedId, groupId)
+                                // Brief You: from the player's or read aloud's notification, an article that is
+                                // already open stays as it is, and the list keeps its filter.
+                                if (fromPlayer && (backStack.lastOrNull() as? Route.Reading)?.articleId == articleId) return@Consumer
+                                if (!fromPlayer) filterUseCase.init(feedId, groupId) // Brief You: only when not from the player
                                 val readingIndex = backStack.indexOfFirst { it is Route.Reading }
                                 if (readingIndex != -1) {
                                     repeat(backStack.size - readingIndex) {

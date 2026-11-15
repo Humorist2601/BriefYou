@@ -298,7 +298,8 @@ class ReadAloudService : Service() {
             .setSilent(true)
             .setShowWhen(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setContentIntent(session.controller.sessionActivity)
+            // Opens the article being read (see PlayerIntents).
+            .setContentIntent(me.ash.reader.brief.player.PlayerIntents.open(this, me.ash.reader.brief.player.PlayerIntents.articleOf(tts.sourceKey)))
             .setDeleteIntent(action(ACTION_STOP, 1))
             .addAction(
                 if (paused) R.drawable.ic_read_aloud_play else R.drawable.ic_read_aloud_pause,

@@ -25,6 +25,11 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -133,9 +138,11 @@ fun formatTime(ms: Long): String {
 }
 
 /**
- * The article's podcast episode or video, under its title: an Expressive player card. Plays,
- * pauses, skips 30 seconds, and opens the speed sheet and the sleep timer sheet. A video plays in
- * the card (see [VideoCard]).
+ * The article's podcast episode or video, under its title: one Expressive player card for both.
+ * Audio: the episode's picture, feed and status; a video: the video itself (its own shape, with
+ * picture-in-picture and full screen on its corner, see [VideoFrame]). Then the progress with the
+ * times beside it, and speed · back 30 · play · forward 30 · sleep timer. When the file can't be
+ * played, the progress makes way for Try again and Open in browser.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -167,80 +174,130 @@ fun ArticleMediaCard(title: String, feedName: String, artwork: String?, modifier
         if (current) BriefPlayer.toggle(context) else BriefPlayer.play(context, now, extras.durationMs)
     }
 
-    if (extras.isVideo) {
-        VideoCard(
-            modifier = modifier.padding(top = 16.dp),
-            now = now,
-            current = current,
-            playing = playing,
-            buffering = current && s.buffering,
-            position = position,
-            duration = duration,
-            onPlay = onPlay,
-        )
-        return
-    }
     Surface(
         modifier = modifier.padding(top = 16.dp).fillMaxWidth().padding(horizontal = 16.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = RoundedCornerShape(28.dp),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Artwork(now.artwork, Modifier.size(64.dp), RoundedCornerShape(18.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(
-                        text = feedName,
-                        style = MaterialTheme.typography.titleSmall.copy(fontSize = 16.sp),
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text =
-                            when {
-                                current && s.buffering -> stringResource(R.string.player_loading)
-                                !current && position > 0 -> stringResource(R.string.player_picks_up, formatTime(position))
-                                duration > 0 -> stringResource(R.string.player_episode_length, ((duration + 30_000) / 60_000).toInt())
-                                else -> stringResource(R.string.player_episode)
-                            },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+        Column(modifier = Modifier.padding(if (now.isVideo) 8.dp else 14.dp)) {
+            if (now.isVideo) {
+                VideoFrame(
+                    now = now,
+                    current = current,
+                    showVideo = current && !VideoWindow.fullscreen && !VideoWindow.inPip && !VideoWindow.inSheet,
+                    duration = duration,
+                    onPlay = onPlay,
+                )
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Artwork(now.artwork, Modifier.size(44.dp), RoundedCornerShape(14.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text(
+                            text = feedName,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text =
+                                when {
+                                    current && s.buffering -> stringResource(R.string.player_loading)
+                                    !current && position > 0 && (duration <= 0 || position < duration - 5_000) ->
+                                        stringResource(R.string.player_picks_up, formatTime(position))
+                                    duration > 0 -> stringResource(R.string.player_episode_length, ((duration + 30_000) / 60_000).toInt())
+                                    else -> stringResource(R.string.player_episode)
+                                },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
-            SeekBar(
-                progress = if (duration > 0) position.toFloat() / duration else 0f,
-                playing = playing,
-                enabled = current && duration > 0,
-                durationMs = duration,
-                onSeek = { BriefPlayer.seekTo((it * duration).toLong()) },
-            )
-            Times(position, duration)
-            MediaControls(
-                current = current,
-                playing = playing,
-                buffering = current && s.buffering,
-                speed = s.speed,
-                sleep = s.sleep,
-                onPlay = onPlay,
-            )
+            Column(modifier = Modifier.padding(horizontal = if (now.isVideo) 6.dp else 0.dp)) {
+                Spacer(Modifier.height(10.dp))
+                if (current && s.error) {
+                    PlayError(video = now.isVideo, url = url, onRetry = { BriefPlayer.retry(context) })
+                } else {
+                    SeekRow(
+                        position = position,
+                        duration = duration,
+                        playing = playing,
+                        enabled = current && duration > 0,
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                MediaControls(
+                    current = current,
+                    playing = playing,
+                    buffering = current && s.buffering,
+                    speed = if (current) s.speed else BriefPlayer.savedSpeed(context, now.isVideo),
+                    sleep = s.sleep,
+                    onPlay = onPlay,
+                )
+            }
         }
     }
 }
 
+/** The progress with the time played before it and the time left after it. */
 @Composable
-private fun Times(position: Long, duration: Long) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+internal fun SeekRow(position: Long, duration: Long, playing: Boolean, enabled: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(formatTime(position), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (duration > 0) {
-            Text("−" + formatTime(duration - position), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        SeekBar(
+            progress = if (duration > 0) position.toFloat() / duration else 0f,
+            playing = playing,
+            enabled = enabled,
+            durationMs = duration,
+            onSeek = { BriefPlayer.seekTo((it * duration).toLong()) },
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            if (duration > 0) "−" + formatTime(duration - position) else "",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Couldn't be played: says so, with Try again and Open in browser (the file's own address). */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+internal fun PlayError(video: Boolean, url: String, onRetry: () -> Unit) {
+    val context = LocalContext.current
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.ErrorOutline, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+            Text(
+                stringResource(if (video) R.string.player_error_video else R.string.player_error_episode),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilledTonalButton(onClick = onRetry, shapes = ButtonDefaults.shapes(), modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.player_try_again), maxLines = 1)
+            }
+            OutlinedButton(
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                },
+                shapes = ButtonDefaults.shapes(),
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(stringResource(R.string.player_open_browser), maxLines = 1)
+            }
         }
     }
 }
 
-private fun speedLabel(speed: Float): String =
-    (if (speed % 1f == 0f) "%.0f".format(speed) else "%.1f".format(speed)) + "×"
+private fun speedLabel(speed: Float): String = BriefPlayer.speedLabel(speed)
 
 /**
  * The player's buttons, after Twine's: the big play button in the middle, and once the episode is
@@ -261,7 +318,7 @@ private fun MediaControls(
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Extra(current) { SpeedPill(speed) { speedSheet = true } }
         Extra(current) { SkipButton(forward = false, enabled = current) }
-        PlayButton(playing = playing, buffering = buffering, onClick = onPlay, size = 72.dp)
+        PlayButton(playing = playing, buffering = buffering, onClick = onPlay, size = 64.dp)
         Extra(current) { SkipButton(forward = true, enabled = current) }
         Extra(current) {
             TonalIcon(
@@ -427,8 +484,8 @@ private fun SkipButton(forward: Boolean, enabled: Boolean) {
 }
 
 // The speed pill and the moon are the same size.
-private val SIDE_BUTTON_WIDTH = 56.dp
-private val SIDE_BUTTON_HEIGHT = 40.dp
+private val SIDE_BUTTON_WIDTH = 52.dp
+private val SIDE_BUTTON_HEIGHT = 36.dp
 
 /** The speed, as a tonal pill; a new speed rolls in over the old one. */
 @Composable
@@ -712,7 +769,8 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                     episode = true,
                     title = now!!.title,
                     line =
-                        if (s.durationMs > 0) stringResource(R.string.player_feed_left, now.feedName, formatTime(s.durationMs - s.positionMs))
+                        if (s.error) stringResource(if (now.isVideo) R.string.player_error_video else R.string.player_error_episode)
+                        else if (s.durationMs > 0) stringResource(R.string.player_feed_left, now.feedName, formatTime(s.durationMs - s.positionMs))
                         else now.feedName,
                     artwork = now.artwork,
                     progress = s.progress,
@@ -802,38 +860,55 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
     if (sheet && now != null) NowPlayingSheet(onDismiss = { sheet = false })
 }
 
-/** The pill's full controls: picture, title, progress and the buttons. */
+/**
+ * The pill's full controls: the episode's picture (a video: the video itself, large, with
+ * picture-in-picture and full screen on its corner), title, progress and the same buttons as the
+ * article's card.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NowPlayingSheet(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val s by BriefPlayer.state.collectAsState()
     val now = s.now ?: return
+    // The video shows here while the sheet is open (it can only show in one place at a time).
+    androidx.compose.runtime.DisposableEffect(now.isVideo) {
+        VideoWindow.inSheet = now.isVideo
+        onDispose { VideoWindow.inSheet = false }
+    }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // The picture grows a little while playing (with a bounce) and settles when paused.
-            val art by animateFloatAsState(
-                if (s.isPlaying) 1f else 0.9f,
-                spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                label = "artwork",
-            )
-            Artwork(now.artwork, Modifier.size(180.dp).graphicsLayer { scaleX = art; scaleY = art }, RoundedCornerShape(32.dp))
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(now.title, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-                Text(now.feedName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (now.isVideo) {
+                VideoFrame(
+                    now = now,
+                    current = true,
+                    showVideo = !VideoWindow.fullscreen && !VideoWindow.inPip,
+                    duration = s.durationMs,
+                    onPlay = { BriefPlayer.toggle(context) },
+                    corner = 24.dp,
+                )
+            } else {
+                // The picture grows a little while playing (with a bounce) and settles when paused.
+                val art by animateFloatAsState(
+                    if (s.isPlaying) 1f else 0.9f,
+                    spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                    label = "artwork",
+                )
+                Artwork(now.artwork, Modifier.size(180.dp).graphicsLayer { scaleX = art; scaleY = art }, RoundedCornerShape(32.dp))
             }
-            SeekBar(
-                progress = s.progress,
-                playing = s.isPlaying,
-                enabled = s.durationMs > 0,
-                durationMs = s.durationMs,
-                onSeek = { BriefPlayer.seekTo((it * s.durationMs).toLong()) },
-            )
-            Times(s.positionMs, s.durationMs)
+            Spacer(Modifier.height(14.dp))
+            Text(now.title, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+            Text(now.feedName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(14.dp))
+            if (s.error) {
+                PlayError(video = now.isVideo, url = now.url, onRetry = { BriefPlayer.retry(context) })
+            } else {
+                SeekRow(position = s.positionMs, duration = s.durationMs, playing = s.isPlaying, enabled = s.durationMs > 0)
+            }
+            Spacer(Modifier.height(6.dp))
             MediaControls(
                 current = true,
                 playing = s.isPlaying,

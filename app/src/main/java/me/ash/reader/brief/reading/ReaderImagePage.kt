@@ -215,6 +215,8 @@ fun ReaderImageViewer(
                 )
 
             var expanded by remember { mutableStateOf(false) }
+            // Tapping the picture hides and shows the buttons (swipe it away to close it).
+            var controls by remember { mutableStateOf(true) }
 
             LaunchedEffect(painter.intrinsicSize) {
                 zoomableState.setContentLocation(
@@ -238,8 +240,11 @@ fun ReaderImageViewer(
                         .zoomable(
                             state = zoomableState,
                             clipToBounds = true,
-                            onClick = { onDismissRequest() },
-                            onLongClick = { expanded = true },
+                            onClick = { controls = !controls },
+                            onLongClick = {
+                                controls = true
+                                expanded = true
+                            },
                         )
                         .fillMaxSize(),
                 alignment = Alignment.Center,
@@ -258,11 +263,20 @@ fun ReaderImageViewer(
                     },
                 )
 
+            androidx.compose.animation.AnimatedVisibility(
+                visible = controls,
+                modifier = Modifier.align(Alignment.TopCenter),
+                enter =
+                    androidx.compose.animation.fadeIn() +
+                        androidx.compose.animation.slideInVertically { -it / 2 },
+                exit =
+                    androidx.compose.animation.fadeOut() +
+                        androidx.compose.animation.slideOutVertically { -it / 2 },
+            ) {
             Row(
                 modifier =
                     Modifier.fillMaxWidth()
                         .safeDrawingPadding()
-                        .align(Alignment.TopCenter)
                         .graphicsLayer { alpha = 1f - progress },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -355,6 +369,7 @@ fun ReaderImageViewer(
                         )
                     }
                 }
+            }
             }
         }
     }

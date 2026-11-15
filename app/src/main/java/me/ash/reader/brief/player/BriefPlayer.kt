@@ -74,6 +74,10 @@ object BriefPlayer {
         val durationMs: Long = 0,
         val speed: Float = 1f,
         val sleep: Sleep = Sleep.Off,
+        /** It couldn't be played (the card offers Try again and Open in browser). */
+        val error: Boolean = false,
+        /** A video's shape (width / height), once known. */
+        val videoAspect: Float? = null,
     ) {
         val progress: Float get() = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
         fun isFor(articleId: String?) = articleId != null && now?.articleId == articleId
@@ -89,8 +93,17 @@ object BriefPlayer {
     /** Speeds offered, 0.8× to 3×. */
     val SPEEDS = listOf(0.8f, 1f, 1.2f, 1.4f, 1.6f, 1.8f, 2f, 2.5f, 3f)
 
-    private const val PREFS = "brief_player"
-    private const val KEY_SPEED = "speed"
+    /** 1.2× or 2×. */
+    fun speedLabel(speed: Float): String =
+        (if (speed % 1f == 0f) "%.0f".format(speed) else "%.1f".format(speed)) + "×"
+
+    const val PREFS = "brief_player"
+
+    /** Podcasts and videos keep their own speed. */
+    fun speedKey(video: Boolean) = if (video) "speed_video" else "speed"
+
+    /** In a media item's metadata extras: it is a video (for the notification's speed button). */
+    const val EXTRA_VIDEO = "brief_video"
     private const val KEY_MARK_READ_AT = "mark_read_at"
     private const val SAVE_EVERY_MS = 5_000L
     private const val FADE_MS = 6_000L
@@ -108,6 +121,10 @@ object BriefPlayer {
     private var sleepJob: Job? = null
     private var lastSaved = 0L
     private var markedRead: String? = null
+    // Between asking for an item and it being set (so "nothing loaded" isn't mistaken for a stop).
+    private var loading = false
+
+    private fun secure(url: String) = if (url.startsWith("http://", ignoreCase = true)) "https://" + url.substring(7) else url
 
     /** The player, for a video's picture (null until something was played). */
     val player: Player? get() = controller
@@ -116,6 +133,9 @@ object BriefPlayer {
 
     /** The share of a podcast episode after which it is marked as read (1 = when finished). */
     fun markReadAt(context: Context): Float = prefs(context).getFloat(KEY_MARK_READ_AT, 0.9f)
+
+    /** The speed kept for podcasts or for videos. */
+    fun savedSpeed(context: Context, video: Boolean): Float = prefs(context).getFloat(speedKey(video), 1f)
 
     fun setMarkReadAt(context: Context, share: Float) = prefs(context).edit { putFloat(KEY_MARK_READ_AT, share) }
 
@@ -134,7 +154,6 @@ object BriefPlayer {
                 val c = runCatching { future.get() }.getOrNull() ?: run { waiting.clear(); return@addListener }
                 controller = c
                 c.addListener(listener)
-                _state.update { it.copy(speed = prefs(app).getFloat(KEY_SPEED, 1f)) }
                 waiting.toList().forEach { it(c) }
                 waiting.clear()
             },
@@ -145,6 +164,13 @@ object BriefPlayer {
     private val listener =
         object : Player.Listener {
             override fun onEvents(player: Player, events: Player.Events) {
+                // Stopped from the notification: nothing is loaded any more.
+                if (player.mediaItemCount == 0 && _state.value.now != null && !loading) {
+                    ticker?.cancel()
+                    setSleep(Sleep.Off)
+                    _state.update { State() }
+                    return
+                }
                 refresh(player)
                 if (player.isPlaying) startTicker() else {
                     ticker?.cancel()
@@ -154,13 +180,24 @@ object BriefPlayer {
                     finished()
                 }
             }
+
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                _state.update { it.copy(error = true, isPlaying = false, buffering = false) }
+            }
+
+            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                if (videoSize.width <= 0 || videoSize.height <= 0) return
+                val aspect = videoSize.width * videoSize.pixelWidthHeightRatio / videoSize.height
+                _state.update { it.copy(videoAspect = aspect) }
+            }
         }
 
     private fun refresh(player: Player) {
         _state.update {
             it.copy(
                 isPlaying = player.isPlaying,
-                buffering = player.playbackState == Player.STATE_BUFFERING,
+                // Only while it is meant to be playing (not after a seek while paused).
+                buffering = player.playbackState == Player.STATE_BUFFERING && player.playWhenReady,
                 positionMs = player.currentPosition.coerceAtLeast(0),
                 durationMs = player.duration.takeIf { d -> d > 0 } ?: it.durationMs,
                 speed = player.playbackParameters.speed,
@@ -184,13 +221,15 @@ object BriefPlayer {
     /** Plays [now], from where it was left. Pauses read aloud. */
     fun play(context: Context, now: Now, durationHintMs: Long? = null) {
         pauseReadAloud(context)
-        if (_state.value.now?.articleId == now.articleId && _state.value.now?.url == now.url) {
+        if (_state.value.now?.articleId == now.articleId && _state.value.now?.url == now.url && !_state.value.error) {
             withController(context) { it.play() }
             return
         }
         savePosition(force = true)
-        _state.update { State(now = now, durationMs = durationHintMs ?: 0, speed = it.speed, sleep = it.sleep) }
+        val speed = prefs(context).getFloat(speedKey(now.isVideo), 1f)
+        _state.update { State(now = now, durationMs = durationHintMs ?: 0, speed = speed, sleep = it.sleep) }
         markedRead = null
+        loading = true
         main.launch {
             val resumeAt =
                 runCatching { ArticleMedia.dao?.position(now.articleId) }.getOrNull()
@@ -200,25 +239,44 @@ object BriefPlayer {
                 val item =
                     MediaItem.Builder()
                         .setMediaId(now.articleId)
-                        .setUri(now.url)
+                        // The app only uses secure addresses: an http:// one is tried as https://
+                        // (most hosts have both); if that fails, the card says so.
+                        .setUri(secure(now.url))
                         .setMediaMetadata(
                             MediaMetadata.Builder()
                                 .setTitle(now.title)
                                 .setArtist(now.feedName)
-                                .apply { now.artwork?.let { setArtworkUri(Uri.parse(it)) } }
+                                .setExtras(android.os.Bundle().apply { putBoolean(EXTRA_VIDEO, now.isVideo) })
+                                .apply { now.artwork?.let { setArtworkUri(Uri.parse(secure(it))) } }
                                 .build()
                         )
                         .build()
                 c.setMediaItem(item, resumeAt)
-                c.playbackParameters = PlaybackParameters(prefs(context).getFloat(KEY_SPEED, 1f))
+                c.playbackParameters = PlaybackParameters(speed)
                 c.prepare()
                 c.play()
+                loading = false
             }
+        }
+    }
+
+    /** Tries again after it couldn't be played. */
+    fun retry(context: Context) {
+        if (_state.value.now == null) return
+        _state.update { it.copy(error = false) }
+        pauseReadAloud(context)
+        withController(context) {
+            it.prepare()
+            it.play()
         }
     }
 
     fun toggle(context: Context) {
         val c = controller ?: return
+        if (_state.value.error) {
+            retry(context)
+            return
+        }
         if (c.isPlaying) c.pause() else {
             pauseReadAloud(context)
             if (c.playbackState == Player.STATE_ENDED) c.seekTo(0)
@@ -243,7 +301,7 @@ object BriefPlayer {
     }
 
     fun setSpeed(context: Context, speed: Float) {
-        prefs(context).edit { putFloat(KEY_SPEED, speed) }
+        prefs(context).edit { putFloat(speedKey(_state.value.now?.isVideo == true), speed) }
         controller?.playbackParameters = PlaybackParameters(speed)
         _state.update { it.copy(speed = speed) }
     }
@@ -305,6 +363,8 @@ object BriefPlayer {
     private fun savePosition(force: Boolean) {
         val now = _state.value.now ?: return
         val c = controller ?: return
+        // Finished: its place is cleared (see finished), not kept at the end.
+        if (c.playbackState == Player.STATE_ENDED || c.mediaItemCount == 0) return
         val time = System.currentTimeMillis()
         if (!force && time - lastSaved < SAVE_EVERY_MS) return
         lastSaved = time

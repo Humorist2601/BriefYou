@@ -153,6 +153,8 @@
     <string name="add_feed_hint">Paste the address of a feed or a website</string>
     <string name="feed_icon_image">Choose an image</string>
     <string name="feed_icon_website">Use the website\'s icon</string>
+    <string name="feed_icon_feed_picture">Feed\'s picture</string>
+    <string name="feed_icon_website_short">Website icon</string>
 
     <!-- Custom icons in "Include additional info" export -->
     <string name="additional_info_desc_brief">Additional information includes configuration options for each feed, such as whether to allow notification, parse full content, etc., and any custom feed icons (emoji or images you chose). When you intend to use the exported OPML file with other readers, please select \"Exclude\".</string>
@@ -347,6 +349,10 @@
     <string name="player_mark_read_finished">When finished</string>
     <string name="player_read_aloud_voice">Read aloud voice</string>
     <string name="player_read_aloud_voice_desc">Android\'s speech settings</string>
+    <string name="player_error_episode">Couldn\'t play this episode</string>
+    <string name="player_error_video">Couldn\'t play this video</string>
+    <string name="player_try_again">Try again</string>
+    <string name="player_open_browser">Open in browser</string>
     <string name="tour_restore_title">Coming from another phone?</string>
     <string name="tour_restore_text">Bring back your settings from a backup: theme, reading style, filters and the rest. On the other phone, make one in Settings → Troubleshooting → Export as JSON. Your feeds come over separately, with Import from OPML when you add a feed.</string>
     <string name="tour_restore">Restore</string>

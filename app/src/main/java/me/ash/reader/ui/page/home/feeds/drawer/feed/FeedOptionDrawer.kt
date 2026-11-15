@@ -97,6 +97,8 @@ fun FeedOptionDrawer(
                 )
             },
             onWebsiteIcon = { feedOptionViewModel.reloadIcon() },
+            feedPicture = me.ash.reader.brief.feeds.FeedPictures.get(iconContext, feed?.url), // Brief You: its own picture, when it has one
+            onFeedPicture = { feedOptionViewModel.setFeedPicture(it) }, // Brief You
             onDismiss = { showIconDialog = false },
         )
     } // Brief You

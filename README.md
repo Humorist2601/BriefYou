@@ -70,7 +70,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - The filtered list (Settings → Filters) shows when each article was caught, and earlier days sit under a row per month, all closed to start; a month opens to its days and a day opens to its articles.
 - Tidier articles also drop "appeared first on" lines.
 - Large header picture; feed, date and reading time as chips; title, time left and a wavy progress bar in the top bar once you scroll.
-- Pictures: drag one away to close it; Save and Share in its menu; slightly dimmed in dark mode.
+- Pictures: drag one away to close it; tap it to hide or show its buttons; Save and Share in its menu; slightly dimmed in dark mode.
 - Newspaper: hold Share at the top of an article (or pick *Share as newspaper* in an article's long-press menu) to share it as a newspaper front page:
   - the feed's name as the masthead, the date and site on the dateline, and the headline;
   - the lead picture in black and white with a faint dot screen, like newsprint;
@@ -100,14 +100,16 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 <details>
 <summary>Podcasts and videos</summary>
 
-- A podcast episode or a video attached to a feed item gets a player under the article's title: a wavy progress bar, back and forward 30 seconds, speed (0.8× to 3×, kept for next time, in its own sheet) and a sleep timer (its own sheet: 15, 30, 45 minutes, an hour, or the end of the episode; it fades out over its last seconds).
+- A podcast episode or a video attached to a feed item gets a player under the article's title. Audio and video share one compact layout: the progress with the times beside it, then speed (0.8× to 3×, kept for next time, separately for podcasts and videos, in its own sheet), back and forward 30 seconds, play and a sleep timer (its own sheet: 15, 30, 45 minutes, an hour, or the end of the episode; it fades out over its last seconds).
 - Episodes carry on where you stopped, and are marked as read after the share you choose in *Settings → Usage → Audio and video* (90% by default).
-- Episodes and videos have their own media notification (lock screen, Quick Settings, headphone buttons); read aloud keeps its own. Only one plays at a time.
-- While something plays, a pill above the bottom bar shows it with its progress, play/pause and close; tap it for the full controls. Read aloud shows there too.
-- Videos play in the article, full screen (sideways, edge to edge) or in picture-in-picture; leaving the app while a video plays opens picture-in-picture by itself. YouTube videos stay in YouTube's own player.
+- Episodes and videos have their own media notification (lock screen, Quick Settings, headphone buttons) with speed and stop, like read aloud's; read aloud keeps its own. Only one plays at a time. Tapping either notification opens the article that is playing.
+- A file that can't be played says so, with *Try again* and *Open in browser*. The app only uses secure connections: an `http://` episode is tried as `https://` first.
+- While something plays, a pill above the bottom bar shows it with its progress, play/pause and close; tap it for the full controls (a video shows there, large). Read aloud shows there too.
+- Videos play in the article in their own shape, with picture-in-picture and full screen on the video's corner; full screen turns sideways for wide videos and stays upright for tall ones, and picture-in-picture takes the video's shape; leaving the app while a video plays opens picture-in-picture by itself. YouTube videos stay in YouTube's own player.
 - The play button is Expressive: a circle while paused, a slowly turning cookie while playing, with a bounce; the other buttons spring in once an episode is loaded, and dragging the progress ticks once a second. Videos have the same play button, buttons and ticks, and their full-screen controls slide in and out from the edges.
 - A feed item that links to its comments gets a *Comments* chip next to its date.
 - Podcast audio files are no longer taken as a list picture.
+- A feed can use its own picture (a podcast's cover) instead of its website's icon: *Feed's picture* | *Website icon* in Add a feed (the feed's picture by default) and in a feed's Change icon.
 
 </details>
 
