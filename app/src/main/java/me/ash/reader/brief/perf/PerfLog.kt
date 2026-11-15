@@ -49,6 +49,11 @@ object PerfLog {
         var frameCount = 0
         val samples = HashMap<String, Int>()
         var sampleCount = 0
+        /** What happened in the app after the action (data arriving, rows built, the slide ending). */
+        val events = ArrayList<String>()
+        var lastEvent: String? = null
+        var lastEventAt = 0L
+        var lastEventRepeats = 0
     }
 
     private val actions = ArrayDeque<Action>()
@@ -79,6 +84,29 @@ object PerfLog {
 
     private fun live(now: Long): Action? = current?.takeIf { now - it.at <= WINDOW_MS }
 
+    /**
+     * Something happened that may explain a slow frame (any thread). The same event again within
+     * 30 ms is counted on the same line ("row built ×12").
+     */
+    fun note(event: String) {
+        if (!enabled) return
+        val now = SystemClock.uptimeMillis()
+        val a = live(now) ?: return
+        synchronized(this) {
+            if (event == a.lastEvent && now - a.lastEventAt <= 30 && a.events.isNotEmpty()) {
+                a.lastEventRepeats++
+                a.lastEventAt = now
+                val first = a.events.last().substringBefore(" ×")
+                a.events[a.events.size - 1] = "$first ×${a.lastEventRepeats}"
+            } else {
+                a.lastEvent = event
+                a.lastEventAt = now
+                a.lastEventRepeats = 1
+                a.events += "+${now - a.at} ms: $event"
+            }
+        }
+    }
+
     fun attach(activity: Activity) {
         if (!enabled || attached || Build.VERSION.SDK_INT < 26) return
         attached = true
@@ -100,7 +128,8 @@ object PerfLog {
                             "+${now - a.at} ms: $total ms (input ${ms(FrameMetrics.INPUT_HANDLING_DURATION)}, " +
                                 "compose/anim ${ms(FrameMetrics.ANIMATION_DURATION)}, layout ${ms(FrameMetrics.LAYOUT_MEASURE_DURATION)}, " +
                                 "draw ${ms(FrameMetrics.DRAW_DURATION)}, sync ${ms(FrameMetrics.SYNC_DURATION)}, " +
-                                "issue ${ms(FrameMetrics.COMMAND_ISSUE_DURATION)}, swap ${ms(FrameMetrics.SWAP_BUFFERS_DURATION)}$gpu)"
+                                "issue ${ms(FrameMetrics.COMMAND_ISSUE_DURATION)}, swap ${ms(FrameMetrics.SWAP_BUFFERS_DURATION)}$gpu, " +
+                                "wait before ${ms(FrameMetrics.UNKNOWN_DELAY_DURATION)})"
                     }
                 }
             },
@@ -161,10 +190,16 @@ object PerfLog {
         appendLine("Brief You stutter log (${Build.MODEL}, Android ${Build.VERSION.RELEASE}, ${BuildConfig.VERSION_NAME})")
         appendLine("Each action: its slow frames (17 ms or more) in the ${WINDOW_MS / 1000.0} s after it, and what the")
         appendLine("main thread was running while stuck (each sample is about $SAMPLE_EVERY_MS ms).")
+        appendLine("\"draw\" includes Compose measuring and building list rows; \"wait before\" is the")
+        appendLine("main thread busy before the frame could start.")
         for (a in actions) {
             appendLine()
             appendLine("== ${a.name} (${a.frameCount} frames, ${a.frames.size} slow, stuck ~${a.sampleCount * SAMPLE_EVERY_MS} ms)")
             a.frames.forEach { appendLine("  $it") }
+            if (a.events.isNotEmpty()) {
+                appendLine("  what happened:")
+                a.events.forEach { appendLine("    $it") }
+            }
             a.samples.entries.sortedByDescending { it.value }.take(12).forEach { (where, n) ->
                 appendLine("  ~${n * SAMPLE_EVERY_MS} ms: $where")
             }

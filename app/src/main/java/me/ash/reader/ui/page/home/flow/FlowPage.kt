@@ -555,6 +555,12 @@ fun FlowPage(
                     val pager = flowUiState.pagerData.pager
                     val filterState = flowUiState.pagerData.filterState
                     val pagingItems = pager.collectAsLazyPagingItems().also { pagingItems = it }
+                    if (me.ash.reader.brief.perf.PerfLog.enabled) { // Brief You: Nightly stutter log
+                        LaunchedEffect(pagingItems) { // Brief You
+                            snapshotFlow { pagingItems.itemCount to pagingItems.loadState.refresh.javaClass.simpleName } // Brief You
+                                .collect { (rows, refresh) -> me.ash.reader.brief.perf.PerfLog.note("list: $rows rows, $refresh") } // Brief You
+                        } // Brief You
+                    } // Brief You
 
                     if (markAsReadOnScroll && filterState.filter.isUnread()) {
                         val briefSeen = me.ash.reader.brief.list.rememberSeenArticles(listState, pager) // Brief You

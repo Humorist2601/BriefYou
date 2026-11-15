@@ -410,6 +410,12 @@ fun BackPreviewPage(key: Any, content: @Composable () -> Unit) {
     val transition = LocalNavAnimatedContentScope.current.transition
     val moving = transition.currentState != transition.targetState
     SideEffect { s.composed[key] = moving }
+    if (me.ash.reader.brief.perf.PerfLog.enabled) {
+        // Nightly stutter log: when each screen's slide starts and ends.
+        LaunchedEffect(moving) {
+            me.ash.reader.brief.perf.PerfLog.note("${key::class.simpleName}: " + if (moving) "slide" else "slide done")
+        }
+    }
     DisposableEffect(key) {
         onDispose {
             s.composed.remove(key)

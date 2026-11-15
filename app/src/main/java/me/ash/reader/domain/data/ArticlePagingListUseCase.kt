@@ -74,6 +74,7 @@ constructor(
                 }
                 .collect { filterState ->
                     val searchContent = filterState.searchContent
+                    me.ash.reader.brief.perf.PerfLog.note("new list pager") // Brief You
 
                     mutablePagerFlow.value =
                         PagerData(

@@ -189,7 +189,6 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 /** How long a finger must stay still on a card before the long-press glow starts. */
 private const val CHARGE_DELAY_MS = 180L
@@ -2534,7 +2533,8 @@ private fun TriagePlacesSheet(
     fun close(then: () -> Unit) {
         sheetScope.launch { sheetState.hide() }.invokeOnCompletion { then() }
     }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    // In the app's own window (Material's opens its own, and making and tearing it down stuttered).
+    me.ash.reader.brief.ui.InWindowModalSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         // The app's sheet design: title, muted subtitle, divider, 24 dp sides, a connected list.
         val feedsByGroup = remember(places, isFeeds, visited) { if (isFeeds) emptyMap() else places.associate { it.id to feedsOf(it.id, if (inFeedRun) visited else emptySet()) } } // Brief You
         // Brief You: with many rows the sheet nearly fills the screen anyway, so it gets that height from the

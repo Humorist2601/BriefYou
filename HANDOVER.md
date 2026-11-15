@@ -239,10 +239,17 @@ You's warnings are left alone on purpose).
   list each time: 10–33 ms draw frames when opening a list. The scrolled content now sits in its
   own `graphicsLayer()` under the thumb (`VerticalScrollIndicator.kt`). Anything drawn over a big
   list or page that animates needs the same.
+- **`ModalBottomSheet` opens its own window**; making and tearing it down costs 30–60 ms frames on
+  the main thread. Triage's places sheet uses `brief/ui/InWindowSheet.kt` (`InWindowModalSheet`:
+  Material's in-window `BottomSheet` + `Scrim`, same look and gestures) — it must sit in a
+  full-window parent.
 - **Don't build `Regex(...)` or Coil `ImageRequest`s per row per recomposition** — build once
   (`extractDomain`) / `remember` them (`RYAsyncImage`).
 - **Nightly stutter log:** Tips & support → *Copy stutter log* (`brief/perf/PerfLog.kt`): slow
-  frames split by part, plus main-thread samples while stuck. Read the draw/compose/layout split first.
+  frames split by part, plus main-thread samples while stuck, plus "what happened" markers
+  (`PerfLog.note`: new pager, list rows, row built, slide done, feed colour ready). On Android
+  "draw" includes Compose measure/layout and building lazy rows; "wait before" = main thread busy
+  before the frame.
 
 ---
 

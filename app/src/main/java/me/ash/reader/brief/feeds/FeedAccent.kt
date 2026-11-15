@@ -334,6 +334,7 @@ fun rememberFeedAccent(iconUrl: String?): Color? {
                 iconUrl?.takeIf { it.isNotBlank() }?.let {
                     FeedAccent.sourceColor(context, it)
                 }
+            if (value != null) me.ash.reader.brief.perf.PerfLog.note("feed colour ready") // Nightly stutter log
         }
     return remember(source, primary, dark) {
         source?.let { FeedAccent.themed(it, primary, dark) }

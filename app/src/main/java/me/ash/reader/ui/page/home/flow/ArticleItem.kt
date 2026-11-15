@@ -137,6 +137,7 @@ fun ArticleItem(
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
+    if (me.ash.reader.brief.perf.PerfLog.enabled) androidx.compose.runtime.SideEffect { me.ash.reader.brief.perf.PerfLog.note("row built") } // Brief You: Nightly stutter log
     val articleListFeedIcon = LocalFlowArticleListFeedIcon.current
     val articleListFeedName = LocalFlowArticleListFeedName.current
     val articleListImage = LocalFlowArticleListImage.current
