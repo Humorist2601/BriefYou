@@ -241,6 +241,7 @@ class WebViewClient(
             javascript:(function() {
                 var imgs = document.getElementsByTagName("img");
                 for(var i = 0; i < imgs.length; i++){
+                    if (imgs[i].closest(".brief-yt")) continue; // a YouTube card opens the video
                     imgs[i].pos = i;
                     imgs[i].onclick = function(event) {
                         event.preventDefault();

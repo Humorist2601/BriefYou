@@ -146,7 +146,7 @@ fun RYWebView(
         }
     val script =
         remember(boldCharacters.value) {
-            WebViewScript.get(boldCharacters.value) + ImagePlaceholders.SCRIPT + PAGE_READY_SCRIPT +
+            WebViewScript.get(boldCharacters.value) + YouTubeCards.SCRIPT + ImagePlaceholders.SCRIPT + PAGE_READY_SCRIPT +
                 (if (me.ash.reader.brief.perf.PerfLog.enabled) PERF_SCRIPT else "")
         }
 
@@ -188,7 +188,8 @@ fun RYWebView(
                         refererDomain = refererDomain,
                         pageUrl = baseUrl,
                         onOpenLink = { url ->
-                            uriHandler.openUri(url)
+                            // A YouTube video (its card, or a link) opens in the YouTube app.
+                            if (!(YouTubeCards.isVideoLink(url) && YouTubeCards.open(context, url))) uriHandler.openUri(url)
                         },
                     ),
                 onImageClick = onImageClick,
