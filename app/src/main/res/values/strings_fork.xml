@@ -347,8 +347,6 @@
     <string name="player_mark_read_finished">When finished</string>
     <string name="player_read_aloud_voice">Read aloud voice</string>
     <string name="player_read_aloud_voice_desc">Android\'s speech settings</string>
-    <string name="player_play_video">Play video</string>
-    <string name="player_play_audio">Play audio</string>
     <string name="tour_restore_title">Coming from another phone?</string>
     <string name="tour_restore_text">Bring back your settings from a backup: theme, reading style, filters and the rest. On the other phone, make one in Settings → Troubleshooting → Export as JSON. Your feeds come over separately, with Import from OPML when you add a feed.</string>
     <string name="tour_restore">Restore</string>

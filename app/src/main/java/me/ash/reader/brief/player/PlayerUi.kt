@@ -113,43 +113,6 @@ import me.ash.reader.ui.component.base.RYAsyncImage
 /** The open article's episode, video and comments link (provided by the reading page). */
 val LocalArticleExtras = compositionLocalOf<ArticleExtras?> { null }
 
-/** Plays a video or audio from the article's text (see PageMedia): its address, "video" or "audio", and its poster. */
-fun interface PageMediaPlayer {
-    fun play(url: String, kind: String, poster: String?)
-}
-
-/** The open article's player for the videos and audio in its text (provided by the reading page). */
-val LocalPageMedia = compositionLocalOf<PageMediaPlayer?> { null }
-
-/**
- * The reading page's [PageMediaPlayer]: a video opens full screen, audio opens the player's sheet.
- * It plays as part of the article (and marks it as read the same way as an episode).
- */
-@Composable
-fun rememberPageMedia(articleId: String?, title: String, feedName: String, picture: String?): PageMediaPlayer? {
-    val context = LocalContext.current
-    val latest = rememberUpdatedState(Triple(title, feedName, picture))
-    return remember(articleId) {
-        articleId?.let { id ->
-            PageMediaPlayer { url, kind, poster ->
-                val (t, f, p) = latest.value
-                val now =
-                    BriefPlayer.Now(
-                        articleId = "$id#page:$url",
-                        url = url,
-                        kind = if (kind == ArticleExtras.VIDEO) ArticleExtras.VIDEO else ArticleExtras.AUDIO,
-                        title = t,
-                        feedName = f,
-                        artwork = poster ?: p,
-                        readId = id,
-                    )
-                BriefPlayer.play(context, now)
-                if (now.isVideo) VideoWindow.fullscreen = true else VideoWindow.sheet = true
-            }
-        }
-    }
-}
-
 /** An article's extras, loaded once per article (see [ArticleMedia.of]). */
 @Composable
 fun rememberArticleExtras(articleId: String?, picture: String?): ArticleExtras? {
@@ -463,6 +426,10 @@ private fun SkipButton(forward: Boolean, enabled: Boolean) {
     }
 }
 
+// The speed pill and the moon are the same size.
+private val SIDE_BUTTON_WIDTH = 56.dp
+private val SIDE_BUTTON_HEIGHT = 40.dp
+
 /** The speed, as a tonal pill; a new speed rolls in over the old one. */
 @Composable
 private fun SpeedPill(speed: Float, onClick: () -> Unit) {
@@ -478,9 +445,9 @@ private fun SpeedPill(speed: Float, onClick: () -> Unit) {
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         interactionSource = press.interaction,
-        modifier = with(press) { Modifier.height(40.dp).squeeze() }.semantics { contentDescription = "$description ${speedLabel(speed)}" },
+        modifier = with(press) { Modifier.size(SIDE_BUTTON_WIDTH, SIDE_BUTTON_HEIGHT).squeeze() }.semantics { contentDescription = "$description ${speedLabel(speed)}" },
     ) {
-        Box(modifier = Modifier.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+        Box(contentAlignment = Alignment.Center) {
             SpeedText(speed, MaterialTheme.typography.labelLarge)
         }
     }
@@ -518,7 +485,7 @@ private fun TonalIcon(icon: ImageVector, description: String, active: Boolean, o
         color = container,
         contentColor = content,
         interactionSource = press.interaction,
-        modifier = with(press) { Modifier.size(width = 44.dp, height = 40.dp).squeeze() },
+        modifier = with(press) { Modifier.size(SIDE_BUTTON_WIDTH, SIDE_BUTTON_HEIGHT).squeeze() },
     ) {
         Box(contentAlignment = Alignment.Center) { Icon(icon, description, modifier = Modifier.size(20.dp)) }
     }
@@ -596,7 +563,7 @@ fun SpeedSheet(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val s by BriefPlayer.state.collectAsState()
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -633,7 +600,7 @@ fun SpeedSheet(onDismiss: () -> Unit) {
 fun SleepTimerSheet(onDismiss: () -> Unit) {
     val haptic = LocalHapticFeedback.current
     val s by BriefPlayer.state.collectAsState()
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -835,14 +802,14 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
     if (sheet && now != null) NowPlayingSheet(onDismiss = { sheet = false })
 }
 
-/** The full controls (from the pill, or audio from an article's text): picture, title, progress and the buttons. */
+/** The pill's full controls: picture, title, progress and the buttons. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NowPlayingSheet(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val s by BriefPlayer.state.collectAsState()
     val now = s.now ?: return
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

@@ -86,9 +86,6 @@ object VideoWindow {
 
     /** The app is in picture-in-picture (only the video is drawn then). */
     var inPip by mutableStateOf(false)
-
-    /** The player's sheet is open (for audio from an article's text, which has no card of its own). */
-    var sheet by mutableStateOf(false)
 }
 
 /** The video in the article: the picture, then an Expressive toolbar under it. */
@@ -303,17 +300,8 @@ fun VideoHost(content: @Composable () -> Unit) {
         }
         return
     }
-    if (VideoWindow.sheet && s.now != null) {
-        NowPlayingSheet(onDismiss = { VideoWindow.sheet = false })
-    }
     if (VideoWindow.fullscreen && video) {
-        FullscreenVideo(
-            onClose = {
-                VideoWindow.fullscreen = false
-                // A video from the article's text has no card to carry on in: it stops.
-                if (BriefPlayer.state.value.now?.inPage == true) BriefPlayer.pause()
-            }
-        )
+        FullscreenVideo(onClose = { VideoWindow.fullscreen = false })
     } else if (VideoWindow.fullscreen && !video) {
         LaunchedEffect(Unit) { VideoWindow.fullscreen = false }
     }

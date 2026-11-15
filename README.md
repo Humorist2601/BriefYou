@@ -105,7 +105,6 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Episodes and videos have their own media notification (lock screen, Quick Settings, headphone buttons); read aloud keeps its own. Only one plays at a time.
 - While something plays, a pill above the bottom bar shows it with its progress, play/pause and close; tap it for the full controls. Read aloud shows there too.
 - Videos play in the article, full screen (sideways, edge to edge) or in picture-in-picture; leaving the app while a video plays opens picture-in-picture by itself. YouTube videos stay in YouTube's own player.
-- Videos and audio inside an article's text play in the same player instead of the web view's own: a video opens full screen, audio opens the player's sheet.
 - The play button is Expressive: a circle while paused, a slowly turning cookie while playing, with a bounce; the other buttons spring in once an episode is loaded, and dragging the progress ticks once a second. Videos have the same play button, buttons and ticks, and their full-screen controls slide in and out from the edges.
 - A feed item that links to its comments gets a *Comments* chip next to its date.
 - Podcast audio files are no longer taken as a list picture.

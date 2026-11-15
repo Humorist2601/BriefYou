@@ -56,13 +56,8 @@ object BriefPlayer {
         val title: String,
         val feedName: String,
         val artwork: String?,
-        /** The article that is marked as read (a video or audio in an article's text has its own [articleId]). */
-        val readId: String = articleId,
     ) {
         val isVideo get() = kind == ArticleExtras.VIDEO
-
-        /** A video or audio from the article's text (see PageMedia), not its episode. */
-        val inPage get() = readId != articleId
     }
 
     sealed interface Sleep {
@@ -295,9 +290,12 @@ object BriefPlayer {
             }
     }
 
-    /** Read aloud is starting: the episode pauses. */
+    /**
+     * Read aloud is starting: the episode pauses. Read aloud starts from a background thread, and
+     * the player may only be used from the main one (it crashed there).
+     */
     fun pauseForReadAloud() {
-        controller?.takeIf { it.isPlaying }?.pause()
+        main.launch { controller?.takeIf { it.isPlaying }?.pause() }
     }
 
     private fun pauseReadAloud(context: Context) {
@@ -338,7 +336,7 @@ object BriefPlayer {
         main.launch(Dispatchers.IO) {
             runCatching {
                 EntryPointAccessors.fromApplication(context.applicationContext, Deps::class.java)
-                    .rssService().get().batchMarkAsRead(setOf(now.readId), isUnread = false)
+                    .rssService().get().batchMarkAsRead(setOf(now.articleId), isUnread = false)
             }
         }
     }
