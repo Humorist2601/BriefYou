@@ -97,6 +97,19 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 
 </details>
 
+<details>
+<summary>Podcasts and videos</summary>
+
+- A podcast episode or a video attached to a feed item gets a player under the article's title: a wavy progress bar, back and forward 30 seconds, speed (0.8× to 3×, kept for next time) and a sleep timer (15, 30, 45 minutes, an hour, or the end of the episode; it fades out over its last seconds).
+- Episodes carry on where you stopped, and are marked as read after the share you choose in *Settings → Usage → Audio and video* (90% by default).
+- Episodes and videos have their own media notification (lock screen, Quick Settings, headphone buttons); read aloud keeps its own. Only one plays at a time.
+- While something plays, a pill above the bottom bar shows it with its progress, play/pause and close; tap it for the full controls. Read aloud shows there too.
+- Videos play in the article, full screen (sideways, edge to edge) or in picture-in-picture; leaving the app while a video plays opens picture-in-picture by itself. YouTube videos stay in YouTube's own player.
+- A feed item that links to its comments gets a *Comments* chip next to its date.
+- Podcast audio files are no longer taken as a list picture.
+
+</details>
+
 <p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-triage-dark.svg"><img alt="Triage" src=".github/assets/readme/h-triage-light.svg" width="100%"></picture></p>
 
 <p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-triage-dark.svg"><img alt="Card stack: Swipe right: read · left: save · up: open · down: skip. Summary on the card: Long-press a card for 3 key points from the on-device AI. Auto-advance: Skips each card after a few seconds, with a wavy countdown ring. Next group: When a group is done, the next one follows; a bar shows the whole run. Jump between groups: Tap the group name under “Triage” to pick another, or open a group to Triage just one of its feeds. Share: Tap Share for the link; hold it to share the card as a picture. Inbox zero: A little celebration when you’re all caught up." src=".github/assets/readme/t-triage-light.svg" width="100%"></picture></p>

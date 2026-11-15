@@ -157,6 +157,9 @@ dependencies {
     // AboutLibraries
     // Read aloud: the system media notification and controls. // Brief You
     implementation(libs.androidx.media)
+    implementation(libs.media3.exoplayer) // Brief You: the podcast and video player
+    implementation(libs.media3.session) // Brief You
+    implementation(libs.media3.ui.compose) // Brief You
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
 

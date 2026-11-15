@@ -154,7 +154,8 @@ object BriefActivity {
 fun BriefRoot(playSplash: Boolean, content: @Composable () -> Unit) {
     var showSplash by remember { mutableStateOf(playSplash) }
     Box(modifier = Modifier.fillMaxSize()) {
-        DialogHost { content() }
+        // Video full screen and picture-in-picture are drawn over the app (see VideoHost).
+        me.ash.reader.brief.player.VideoHost { DialogHost { content() } }
         if (showSplash) BriefSplash(onFinished = { showSplash = false })
     }
 }

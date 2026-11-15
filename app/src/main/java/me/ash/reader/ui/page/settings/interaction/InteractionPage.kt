@@ -207,6 +207,7 @@ fun InteractionPage(
                     }
                     } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
+                    me.ash.reader.brief.player.PlayerSettings() // Brief You: Audio and video (podcasts, read aloud)
 
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),

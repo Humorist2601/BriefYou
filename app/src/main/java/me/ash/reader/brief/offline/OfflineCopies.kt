@@ -121,7 +121,7 @@ object OfflineCopies {
         }
         val html = (fullText ?: "") + article.rawDescription
         val urls =
-            (listOfNotNull(article.img) +
+            (listOfNotNull(article.img?.takeIf { !me.ash.reader.brief.media.MediaFiles.isMedia(it) }) + // pictures only, not a podcast's audio
                     Jsoup.parse(html, article.link).select("img").flatMap { img ->
                         listOf(img.absUrl("src"), img.absUrl("data-src")) +
                             img.attr("srcset").split(',').mapNotNull { part ->

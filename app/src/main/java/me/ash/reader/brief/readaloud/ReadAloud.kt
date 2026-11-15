@@ -189,6 +189,7 @@ class TextToSpeechManager @Inject constructor(
 
     private fun read(parts: List<String>, title: String?, key: String?) {
         stop()
+        me.ash.reader.brief.player.BriefPlayer.pauseForReadAloud() // one thing plays at a time
         if (state != State.Idle) return
         if (!ttsReady) {
             // The engine connects the first time it is needed: the reading starts once it has.
@@ -242,6 +243,7 @@ class TextToSpeechManager @Inject constructor(
     /** Plays again from where it was paused. */
     fun resume() {
         val s = state as? State.Paused ?: return
+        me.ash.reader.brief.player.BriefPlayer.pauseForReadAloud() // one thing plays at a time
         speakFrom(s.spoken)
     }
 

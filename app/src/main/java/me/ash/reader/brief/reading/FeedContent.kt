@@ -103,7 +103,9 @@ object FeedContent {
     }
 
     /** The picture for the article list (complete, and from the main picture for Wikipedia). */
-    fun listImage(img: String?, link: String?): String? = absoluteUrl(img, link)
+    fun listImage(img: String?, link: String?): String? =
+        // An audio or video file is no picture (Read You stored podcasts' MP3s here).
+        img?.takeIf { !me.ash.reader.brief.media.MediaFiles.isMedia(it) }?.let { absoluteUrl(it, link) }
 
     /** The article's HTML, tidied for the reader. [link] is the article's address. */
     fun forReader(html: String, link: String?, title: String? = null): String {

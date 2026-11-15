@@ -239,12 +239,15 @@ constructor(
             link = syndEntry.link ?: "",
             updateAt = preDate,
         ).let { me.ash.reader.brief.reading.EmailContent.adjust(it) } // Brief You: newsletters read as feeds
+            .also { me.ash.reader.brief.media.ArticleMedia.found(listOf(me.ash.reader.brief.media.FeedMedia.fromSyndEntry(it.id, syndEntry))) } // Brief You: its episode, video and comments
     }
 
     fun findThumbnail(syndEntry: SyndEntry): String? {
-        if (syndEntry.enclosures?.firstOrNull()?.url != null) {
-            return syndEntry.enclosures.first().url
-        }
+        // Brief You: only a picture attachment; a podcast's MP3 (or a video) was taken as the
+        // list's picture, which then failed to load.
+        syndEntry.enclosures?.firstOrNull { it.url != null && me.ash.reader.brief.media.MediaFiles.kindOf(it.url, it.type) == null }?.let { // Brief You
+            return it.url // Brief You
+        } // Brief You
 
         val mediaModule = syndEntry.getModule(MediaModule.URI) as? MediaEntryModule
         if (mediaModule != null) {
@@ -279,7 +282,7 @@ constructor(
     fun findThumbnail(text: String?): String? {
         text ?: return null
         val enclosure = enclosureRegex.find(text)?.groupValues?.get(1)
-        if (enclosure?.isNotBlank() == true) {
+        if (enclosure?.isNotBlank() == true && !me.ash.reader.brief.media.MediaFiles.isMedia(enclosure)) { // Brief You: pictures only
             return enclosure
         }
         // From https://gitlab.com/spacecowboy/Feeder

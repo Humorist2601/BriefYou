@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateMapOf
@@ -81,7 +84,14 @@ fun ProvideFilterBar(spec: FilterBarSpec) {
 /** The height the bar takes at the bottom of a screen, for that screen's own layout. */
 @Composable
 fun FilterBarSpace(style: Int) {
+    // The "now playing" pill sits above the bar: the screen keeps room for it too, so the list
+    // and the AI gist / Triage button move up above it.
+    val pill by androidx.compose.animation.core.animateDpAsState(
+        if (rememberNowPlayingShown()) NOW_PLAYING_PILL_HEIGHT + FloatingBarGap else 0.dp,
+        label = "now playing space",
+    )
     Column(modifier = Modifier.fillMaxWidth()) {
+        Spacer(modifier = Modifier.height(pill))
         Spacer(modifier = Modifier.height(filterBarContainerHeight(style) + FILTER_BAR_TOP_PADDING))
         Spacer(modifier = Modifier.windowInsetsBottomHeight(NavigationBarDefaults.windowInsets))
     }
@@ -116,15 +126,46 @@ fun SharedFilterBar(
         exit = slideOutVertically(spatial) { it } + fadeOut(effects),
     ) {
         val s = shown ?: return@AnimatedVisibility
-        BriefFilterBar(
-            filter = s.filter,
-            filterBarStyle = s.style,
-            filterBarFilled = true,
-            filterBarPadding = s.padding,
-            filterBarTonalElevation = s.tonalElevation,
-            filterOnClick = { s.onClick(it) },
-        )
+        Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+            AnimatedVisibility(
+                visible = rememberNowPlayingShown(),
+                enter = slideInVertically(spatial) { it / 2 } + fadeIn(effects),
+                exit = slideOutVertically(spatial) { it / 2 } + fadeOut(effects),
+            ) {
+                me.ash.reader.brief.player.NowPlayingPill(
+                    modifier = Modifier.padding(bottom = FloatingBarGap).height(NOW_PLAYING_PILL_HEIGHT)
+                )
+            }
+            BriefFilterBar(
+                filter = s.filter,
+                filterBarStyle = s.style,
+                filterBarFilled = true,
+                filterBarPadding = s.padding,
+                filterBarTonalElevation = s.tonalElevation,
+                filterOnClick = { s.onClick(it) },
+            )
+        }
     }
+}
+
+/** The pill's height: its 52 dp picture with 8 dp around it. */
+internal val NOW_PLAYING_PILL_HEIGHT = 68.dp
+
+/** Whether the pill shows: an episode or video is loaded, or read aloud is reading or paused. */
+@Composable
+internal fun rememberNowPlayingShown(): Boolean {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val player by me.ash.reader.brief.player.BriefPlayer.state.collectAsState()
+    val tts = remember {
+        runCatching {
+            dagger.hilt.android.EntryPointAccessors.fromApplication(context.applicationContext, me.ash.reader.brief.player.BriefPlayer.Deps::class.java).tts()
+        }.getOrNull()
+    }
+    val reading = tts?.stateFlow?.collectAsState()?.value.let {
+        it is me.ash.reader.brief.readaloud.TextToSpeechManager.State.Reading ||
+            it is me.ash.reader.brief.readaloud.TextToSpeechManager.State.Paused
+    }
+    return player.now != null || reading
 }
 
 internal val FILTER_BAR_TOP_PADDING = 8.dp

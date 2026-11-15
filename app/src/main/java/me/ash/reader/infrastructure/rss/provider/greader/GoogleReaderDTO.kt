@@ -177,7 +177,14 @@ object GoogleReaderDTO {
         val author: String? = null,
         val canonical: List<CanonicalItem>? = null,
         val alternate: List<CanonicalItem>? = null,
+        val enclosure: List<EnclosureItem>? = null, // Brief You: attachments (a podcast episode, a video)
     )
+
+    // Brief You: an item's attachment, as FreshRSS, Miniflux and others send it.
+    data class EnclosureItem( // Brief You
+        val href: String? = null, // Brief You
+        val type: String? = null, // Brief You
+    ) // Brief You
 
     data class Summary(
         val content: String? = null,

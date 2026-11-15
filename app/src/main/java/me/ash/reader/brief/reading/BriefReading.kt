@@ -1,5 +1,6 @@
 package me.ash.reader.brief.reading
 
+import kotlinx.coroutines.flow.first
 import me.ash.reader.brief.stats.ReadingStats
 import android.app.Activity
 import android.content.Context
@@ -122,6 +123,10 @@ class BriefReadingState internal constructor() {
     var progress by mutableFloatStateOf(0f)
         internal set
 
+    /** The open article's episode, video and comments link, once loaded. */
+    var extras by mutableStateOf<me.ash.reader.brief.media.ArticleExtras?>(null)
+        internal set
+
     var showSummary by mutableStateOf(false)
     var showTextSheet by mutableStateOf(false)
     var showTranslateSheet by mutableStateOf(false)
@@ -159,6 +164,16 @@ fun rememberBriefReadingState(
     LaunchedEffect(articleId) {
         state.progress = 0f
         state.translation.reset() // a new article starts in its own language
+    }
+    // The article's podcast episode, video and comments link (see ArticleMedia).
+    LaunchedEffect(articleId) {
+        state.extras = null
+        if (articleId == null) return@LaunchedEffect
+        val picture =
+            kotlinx.coroutines.withTimeoutOrNull(2_000) {
+                viewModel.readingUiState.first { it.articleWithFeed?.article?.id == articleId }
+            }?.articleWithFeed?.article?.img
+        state.extras = me.ash.reader.brief.media.ArticleMedia.of(articleId, picture)
     }
     TrackReadingStats(articleId, readerState.feedName)
     return state
@@ -316,7 +331,18 @@ fun BriefReadingBar(
         onBoldCharacters = { (!boldCharacters).put(context, coroutineScope) },
         onSummarize = { state.showSummary = true },
         onReadAloud = startReadAloud,
-        ttsButton = {
+        ttsButton = ttsButton@{
+            // An article with a podcast episode: the button plays the episode instead.
+            if (state.extras?.isAudio == true) {
+                androidx.compose.runtime.CompositionLocalProvider(me.ash.reader.brief.player.LocalArticleExtras provides state.extras) {
+                    me.ash.reader.brief.player.EpisodeBarButton(
+                        title = readerState.title.orEmpty(),
+                        feedName = readerState.feedName,
+                        artwork = FeedContent.listImage(readingUiState.articleWithFeed?.article?.img, readerState.link),
+                    )
+                }
+                return@ttsButton
+            }
             // Only this article's reading: a summary being read aloud shows as not reading here,
             // and tapping starts the article instead.
             val ttsAny = tts.stateFlow.collectAsStateValue()

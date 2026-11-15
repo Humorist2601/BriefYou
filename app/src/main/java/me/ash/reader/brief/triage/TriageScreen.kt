@@ -1772,7 +1772,7 @@ private fun TriageCard(
                         androidx.compose.animation.core.tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing),
                         label = "picture",
                     )
-                if (item.img != null && imageHeight > 0.5.dp) {
+                if (FeedContent.listImage(item.img, item.link) != null && imageHeight > 0.5.dp) {
                     Spacer(Modifier.height(16.dp * (imageHeight / 150.dp)))
                     RYAsyncImage(
                         modifier =
@@ -2996,7 +2996,7 @@ private fun SharePicture(article: ArticleWithFeed, summary: CardSummary?, modifi
                         Text(text = it, style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant, maxLines = 1)
                     }
                 }
-                if (summary == null && item.img != null) {
+                if (summary == null && FeedContent.listImage(item.img, item.link) != null) {
                     Spacer(Modifier.height(14.dp))
                     RYAsyncImage(
                         modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(20.dp)),

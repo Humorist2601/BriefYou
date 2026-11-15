@@ -318,6 +318,35 @@
     <string name="newspaper_continued">Continued at %1$s</string>
 
     <!-- First-run tour and one-time hints -->
+    <!-- The podcast and video player -->
+    <string name="article_comments">Comments</string>
+    <string name="player_back_30">Back 30 seconds</string>
+    <string name="player_forward_30">Forward 30 seconds</string>
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_stop">Stop playing</string>
+    <string name="player_loading">Loading…</string>
+    <string name="player_episode">Episode</string>
+    <string name="player_episode_length">%1$d min</string>
+    <string name="player_picks_up">Picks up at %1$s, where you stopped</string>
+    <string name="player_speed">Speed</string>
+    <string name="player_sleep_timer">Sleep timer</string>
+    <string name="player_sleep_off">Off</string>
+    <string name="player_minutes">%1$d min</string>
+    <string name="player_hour">1 hour</string>
+    <string name="player_end_of_episode">End of episode</string>
+    <string name="player_sleep_left">Stops in %1$s, fading out over the last few seconds.</string>
+    <string name="player_reading_aloud">Reading aloud: %1$s</string>
+    <string name="player_feed_left">%1$s · %2$s left</string>
+    <string name="player_pip">Picture-in-picture</string>
+    <string name="player_fullscreen">Full screen</string>
+    <string name="player_leave_fullscreen">Leave full screen</string>
+    <string name="player_settings_title">Audio and video</string>
+    <string name="player_mark_read">Mark podcasts as read after</string>
+    <string name="player_mark_read_heard">%1$d%% heard</string>
+    <string name="player_mark_read_finished">When finished</string>
+    <string name="player_read_aloud_voice">Read aloud voice</string>
+    <string name="player_read_aloud_voice_desc">Android\'s speech settings</string>
     <string name="tour_restore_title">Coming from another phone?</string>
     <string name="tour_restore_text">Bring back your settings from a backup: theme, reading style, filters and the rest. On the other phone, make one in Settings → Troubleshooting → Export as JSON. Your feeds come over separately, with Import from OPML when you add a feed.</string>
     <string name="tour_restore">Restore</string>
