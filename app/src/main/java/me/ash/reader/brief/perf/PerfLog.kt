@@ -42,11 +42,13 @@ object PerfLog {
     /** The main thread counts as stuck once a frame is this late. */
     private const val STUCK_MS = 20L
     private const val SAMPLE_EVERY_MS = 4L
-    private const val ACTIONS_KEPT = 30
+    /** Kept per kind of action, so many of one kind don't push out the others. */
+    private const val ACTIONS_KEPT_PER_KIND = 12
 
     private class Action(val name: String, val at: Long) {
         val frames = ArrayList<String>()
         var frameCount = 0
+        var lateCount = 0
         val samples = HashMap<String, Int>()
         var sampleCount = 0
         /** What happened in the app after the action (data arriving, rows built, the slide ending). */
@@ -70,7 +72,10 @@ object PerfLog {
         val a = Action(name, SystemClock.uptimeMillis())
         synchronized(this) {
             actions.addLast(a)
-            while (actions.size > ACTIONS_KEPT) actions.removeFirst()
+            // The oldest of this kind goes once there are too many of it.
+            if (actions.count { it.name == name } > ACTIONS_KEPT_PER_KIND) {
+                actions.remove(actions.first { it.name == name })
+            }
         }
         current = a
         lastFrameAt = a.at
@@ -120,9 +125,18 @@ object PerfLog {
                 val a = live(now) ?: return@addOnFrameMetricsAvailableListener
                 fun ms(id: Int) = m.getMetric(id) / 1_000_000
                 val total = ms(FrameMetrics.TOTAL_DURATION)
+                // Late: past the phone's own deadline for the frame (about 8 ms at 120 Hz), so it
+                // missed its turn on screen. Before Android 12, a 60 Hz frame's 17 ms.
+                val late =
+                    if (Build.VERSION.SDK_INT >= 31) {
+                        m.getMetric(FrameMetrics.TOTAL_DURATION) > m.getMetric(FrameMetrics.DEADLINE)
+                    } else {
+                        total >= 17
+                    }
                 synchronized(this) {
                     a.frameCount++
-                    if (total >= 17) {
+                    if (late) a.lateCount++
+                    if (late && a.frames.size < 40) {
                         val gpu = if (Build.VERSION.SDK_INT >= 31) " gpu ${ms(FrameMetrics.GPU_DURATION)}" else ""
                         a.frames +=
                             "+${now - a.at} ms: $total ms (input ${ms(FrameMetrics.INPUT_HANDLING_DURATION)}, " +
@@ -188,13 +202,13 @@ object PerfLog {
     @Synchronized
     fun text(): String = buildString {
         appendLine("Brief You stutter log (${Build.MODEL}, Android ${Build.VERSION.RELEASE}, ${BuildConfig.VERSION_NAME})")
-        appendLine("Each action: its slow frames (17 ms or more) in the ${WINDOW_MS / 1000.0} s after it, and what the")
+        appendLine("Each action: its late frames (past the phone's deadline, about 8 ms at 120 Hz) in the ${WINDOW_MS / 1000.0} s after it, and what the")
         appendLine("main thread was running while stuck (each sample is about $SAMPLE_EVERY_MS ms).")
         appendLine("\"draw\" includes Compose measuring and building list rows; \"wait before\" is the")
         appendLine("main thread busy before the frame could start.")
         for (a in actions) {
             appendLine()
-            appendLine("== ${a.name} (${a.frameCount} frames, ${a.frames.size} slow, stuck ~${a.sampleCount * SAMPLE_EVERY_MS} ms)")
+            appendLine("== ${a.name} (${a.lateCount} of ${a.frameCount} frames late, stuck ~${a.sampleCount * SAMPLE_EVERY_MS} ms)")
             a.frames.forEach { appendLine("  $it") }
             if (a.events.isNotEmpty()) {
                 appendLine("  what happened:")
