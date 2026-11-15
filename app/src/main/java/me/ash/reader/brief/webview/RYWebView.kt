@@ -13,7 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -142,7 +142,7 @@ fun RYWebView(
         }
     val script =
         remember(boldCharacters.value) {
-            WebViewScript.get(boldCharacters.value) + ImagePlaceholders.SCRIPT +
+            WebViewScript.get(boldCharacters.value) + ImagePlaceholders.SCRIPT + PAGE_READY_SCRIPT +
                 (if (me.ash.reader.brief.perf.PerfLog.enabled) PERF_SCRIPT else "")
         }
 
@@ -151,8 +151,9 @@ fun RYWebView(
     // styles are swapped in place: no reload, no blink, and the scroll position stays. Before,
     // every colour change made a new web view that was never shown or freed, and reloaded the page.
     key(baseUrl, readingFonts) {
-        // The article's text fades in once the web view has drawn it (it popped in, part way
-        // through the page's slide, since the web view draws its first frame on its own clock).
+        // The article's text fades in once the page says its fonts are loaded and its text drawn
+        // (it popped in part way through the page's slide; and on pages with many pictures the
+        // web view kept it invisible for a second or two, waiting for the reading font).
         var drawn by remember { androidx.compose.runtime.mutableStateOf(false) }
         val textAlpha by
             androidx.compose.animation.core.animateFloatAsState(
@@ -166,6 +167,13 @@ fun RYWebView(
             if (!drawn) me.ash.reader.brief.perf.PerfLog.note("text shown after 0.7 s without the page saying it was drawn") // Nightly stutter log
             drawn = true
         }
+        // What the web view currently shows: its content, styles and script (kept apart, so a
+        // redraw doesn't join the whole article into a new string just to compare it).
+        val shown = remember { arrayOfNulls<String>(3) }
+        // The styles wanted now, and whether the page loaded last is ready for them to be swapped in.
+        val wantedCss = remember { arrayOfNulls<String>(1) }
+        val pageIsReady = remember { booleanArrayOf(false) }
+        val pageReady = remember { arrayOfNulls<() -> Unit>(1) }
         val webView = remember {
             WebViewLayout.get(
                 context = context,
@@ -178,19 +186,25 @@ fun RYWebView(
                         onOpenLink = { url ->
                             uriHandler.openUri(url)
                         },
-                        onFirstVisible = {
-                            if (!drawn) me.ash.reader.brief.perf.PerfLog.note("text fades in") // Nightly stutter log
-                            drawn = true
-                        },
                     ),
                 onImageClick = onImageClick,
+                onPageReady = { pageReady[0]?.invoke() },
             )
+        }
+        pageReady[0] = {
+            if (!drawn) me.ash.reader.brief.perf.PerfLog.note("text fades in (fonts loaded, text drawn)") // Nightly stutter log
+            drawn = true
+            pageIsReady[0] = true
+            // Styles that changed while the page was loading (the picture's colour arriving late).
+            val wanted = wantedCss[0]
+            if (wanted != null && shown[1] != wanted) {
+                me.ash.reader.brief.perf.PerfLog.note("page styles swapped in once ready") // Nightly stutter log
+                webView.evaluateJavascript("document.querySelector('style').textContent = ${JSONObject.quote(wanted)};", null)
+                shown[1] = wanted
+            }
         }
         // Have the next article's web view ready (made at a quiet moment, see WebViewPool).
         LaunchedEffect(webView) { WebViewPool.prepare(context) }
-        // What the web view currently shows: its content, styles and script (kept apart, so a
-        // redraw doesn't join the whole article into a new string just to compare it).
-        val shown = remember { arrayOfNulls<String>(3) }
         // Translation: paragraphs are swapped into the page in place (no reload, so no flicker).
         val translation = me.ash.reader.brief.ai.LocalTranslation.current
         val appliedPatches = remember { intArrayOf(0) }
@@ -219,16 +233,24 @@ fun RYWebView(
             }
         }
 
+        // The text appears by a cover in the page's own colour fading out over it, not by fading the
+        // web view: a see-through web view is drawn into an extra layer every frame, which on long
+        // pages with pictures made 90-260 ms frames.
+        val cover = MaterialTheme.colorScheme.surface
+        androidx.compose.foundation.layout.Box(modifier = modifier, propagateMinConstraints = true) {
         AndroidView(
-            modifier = modifier.graphicsLayer { alpha = textAlpha },
+            modifier = Modifier,
             factory = { webView },
             // Freed after the closing animation, so closing the article doesn't stutter.
             onRelease = { WebViewPool.release(it) },
             update = {
                 it.settings.defaultFontSize = fontSize
                 val pageChanged = shown[0] != content || shown[2] != script
-                // A style change while the page is still loading would be lost, so reload then.
-                if (pageChanged || (shown[1] != css && it.progress < 100)) {
+                wantedCss[0] = css
+                // A style change while the page is still loading is swapped in once it is ready
+                // (it reloaded the whole page, which then started over).
+                if (pageChanged) {
+                    pageIsReady[0] = false
                     me.ash.reader.brief.perf.PerfLog.note("page load starts (${content.length / 1000} k characters${if (shown[0] != null) ", a reload" else ""})") // Nightly stutter log
                     val handing = android.os.SystemClock.uptimeMillis()
                     it.loadDataWithBaseURL(
@@ -251,7 +273,7 @@ fun RYWebView(
                     shown[2] = script
                     // The page starts from what the translation had made when this content was set.
                     appliedPatches[0] = translation?.shownPatchCount ?: 0
-                } else if (shown[1] != css) {
+                } else if (shown[1] != css && pageIsReady[0]) {
                     me.ash.reader.brief.perf.PerfLog.note("page styles swapped in place (colours or text settings changed)") // Nightly stutter log
                     it.evaluateJavascript(
                         "document.querySelector('style').textContent = ${JSONObject.quote(css)};",
@@ -261,6 +283,12 @@ fun RYWebView(
                 }
             },
         )
+        if (textAlpha < 1f) {
+            androidx.compose.foundation.layout.Spacer(
+                Modifier.matchParentSize().drawBehind { drawRect(cover, alpha = 1f - textAlpha) }
+            )
+        }
+        }
     }
 }
 
