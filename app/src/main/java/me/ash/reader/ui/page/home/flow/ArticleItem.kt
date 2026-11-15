@@ -364,10 +364,16 @@ fun SwipeableArticleItem(
 ) {
 
     var isMenuExpanded by remember { mutableStateOf(false) }
+    // Brief You: the menu is only built once it is first opened (every row built it, closed, as the
+    // list appeared), and kept after that so it can animate closed.
+    var menuUsed by remember { mutableStateOf(false) } // Brief You
 
     val onLongClick =
         if (isMenuEnabled) {
-            { isMenuExpanded = true }
+            {
+                menuUsed = true // Brief You
+                isMenuExpanded = true
+            }
         } else {
             null
         }
@@ -406,7 +412,7 @@ fun SwipeableArticleItem(
                 onLongClick = onLongClick,
             )
             with(articleWithFeed.article) {
-                if (isMenuEnabled) {
+                if (isMenuEnabled && menuUsed) { // Brief You
                     AnimatedDropdownMenu(
                         modifier = Modifier.padding(horizontal = 12.dp),
                         expanded = isMenuExpanded,

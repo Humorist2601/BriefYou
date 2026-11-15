@@ -243,6 +243,13 @@ You's warnings are left alone on purpose).
   the main thread. Triage's places sheet uses `brief/ui/InWindowSheet.kt` (`InWindowModalSheet`:
   Material's in-window `BottomSheet` + `Scrim`, same look and gestures) — it must sit in a
   full-window parent.
+- **Lists are prepared on the press.** `FeedsPage` → `FeedsViewModel.warmList` →
+  `ArticlePagingListUseCase.prepare(filterState)`: the pager is made (own scope) and its first page
+  read while the finger is down; the filter change on tap adopts it when equal, so `LazyPagingItems`
+  shows the cached rows on its first composition (Paging 3.3 `cachedPagingData`). A press that isn't
+  opened has its scope cancelled. Rows reuse their article when a reload brings an equal one
+  (`remember(item.articleWithFeed)` in `ArticleList`), each row is one accessibility node, and the
+  long-press menu is built only once opened.
 - **Don't build `Regex(...)` or Coil `ImageRequest`s per row per recomposition** — build once
   (`extractDomain`) / `remember` them (`RYAsyncImage`).
 - **Nightly stutter log:** Tips & support → *Copy stutter log* (`brief/perf/PerfLog.kt`): slow
