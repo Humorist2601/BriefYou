@@ -102,7 +102,15 @@ fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composabl
             pictureSeed?.let { pictureColorScheme(it, isDark, isAmoled) }
         }
     val target = scheme ?: MaterialTheme.colorScheme
-    CompositionLocalProvider(LocalWebViewColorScheme provides target) {
+    // A picture colour arriving after the article was handed to its web view: the screen around
+    // the article still fades into it, but the article itself keeps the colours it opened with.
+    // Restyling it made the web view repaint the whole article (100-240 ms frames on long ones).
+    val pageScheme = remember(article?.id, pictureUrl, isDark, isAmoled) { arrayOfNulls<androidx.compose.material3.ColorScheme>(1) }
+    if (pageScheme[0] == null && html != null && pictureUrl != null && !instant && pictureSeed == null) {
+        pageScheme[0] = target
+        me.ash.reader.brief.perf.PerfLog.note("reading colours: article keeps the colours it opened with") // Nightly stutter log
+    }
+    CompositionLocalProvider(LocalWebViewColorScheme provides (pageScheme[0] ?: target)) {
         MaterialTheme(colorScheme = if (instant) target else animateColorScheme(target), content = content)
     }
 }

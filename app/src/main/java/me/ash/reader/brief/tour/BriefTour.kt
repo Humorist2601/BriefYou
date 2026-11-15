@@ -105,8 +105,7 @@ import me.ash.reader.ui.ext.dataStore
 import me.ash.reader.ui.ext.fromJSONStringToDataStore
 import me.ash.reader.ui.ext.put
 
-// The tour's pages. Restore is on the first run only (when the tour is opened from Settings,
-// there is nothing to restore into).
+// The tour's pages.
 private const val RESTORE = 0
 private const val TRIAGE = 1
 private const val AI = 2
@@ -135,7 +134,7 @@ fun BriefFirstRun(onNavigateToFeeds: () -> Unit, onNavigateToAi: () -> Unit) {
     }
 }
 
-/** The tour again, from Settings: the same pages, without the agreement. */
+/** The tour again, from Settings: the same pages (Restore included), without the agreement. */
 @Composable
 fun BriefTourDialog(onDismiss: () -> Unit, onSetUpAi: () -> Unit) {
     Dialog(
@@ -158,7 +157,7 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
-    val pages = remember(firstRun) { if (firstRun) listOf(RESTORE, TRIAGE, AI, CALM, HOLD) else listOf(TRIAGE, AI, CALM, HOLD) }
+    val pages = remember { listOf(RESTORE, TRIAGE, AI, CALM, HOLD) }
     val pager = rememberPagerState { pages.size }
     val aiPage = pages.indexOf(AI)
     var setUpAi by rememberSaveable { mutableStateOf(false) }

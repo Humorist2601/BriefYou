@@ -7,6 +7,8 @@ import me.ash.reader.brief.ui.LocalWebViewColorScheme
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.runtime.key
 import org.json.JSONObject
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +54,8 @@ fun RYWebView(
     baseUrl: String? = null,
     refererDomain: String? = null,
     onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
+    /** Whether the reading page is scrolling (the pictures' loading shapes hold still meanwhile). */
+    scrolling: () -> Boolean = { false },
 ) {
     val context = LocalContext.current
     // Opens links the way chosen in the settings ("open links in").
@@ -203,6 +207,16 @@ fun RYWebView(
                 shown[1] = wanted
             }
         }
+        // The pictures' loading shapes hold still while the page scrolls, and move again a moment
+        // after it stops (see ImagePlaceholders).
+        LaunchedEffect(webView) {
+            androidx.compose.runtime.snapshotFlow { scrolling() }
+                .distinctUntilChanged()
+                .collectLatest { now ->
+                    if (!now) kotlinx.coroutines.delay(250)
+                    webView.evaluateJavascript("document.documentElement.classList.toggle('brief-scrolling', $now);", null)
+                }
+        }
         // Have the next article's web view ready (made at a quiet moment, see WebViewPool).
         LaunchedEffect(webView) { WebViewPool.prepare(context) }
         // Translation: paragraphs are swapped into the page in place (no reload, so no flicker).
@@ -284,8 +298,17 @@ fun RYWebView(
             },
         )
         if (textAlpha < 1f) {
+            // Only the first screen of the article is covered (the page opens at its top): on long
+            // articles the cover was as tall as the whole article, 10 screens and more.
+            val screen = androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.height.toFloat()
             androidx.compose.foundation.layout.Spacer(
-                Modifier.matchParentSize().drawBehind { drawRect(cover, alpha = 1f - textAlpha) }
+                Modifier.matchParentSize().drawBehind {
+                    drawRect(
+                        cover,
+                        size = androidx.compose.ui.geometry.Size(size.width, minOf(size.height, screen)),
+                        alpha = 1f - textAlpha,
+                    )
+                }
             )
         }
         }
@@ -305,5 +328,22 @@ private const val PERF_SCRIPT = """
     document.fonts.ready.then(function () { n('fonts ready (' + document.fonts.status + ')'); });
   } catch (e) { n('no font events: ' + e); }
   requestAnimationFrame(function () { n('first frame'); });
+  // Text indented more than the page's side margin: which elements wrap it, and their margins.
+  window.addEventListener('load', function () {
+    try {
+      var art = document.querySelector('article'), p = art && art.querySelector('p');
+      if (!p) return;
+      var extra = Math.round(p.getBoundingClientRect().left - art.getBoundingClientRect().left);
+      if (extra < 4) return;
+      var chain = [], e = p.parentElement;
+      while (e && e !== art) {
+        var cs = getComputedStyle(e);
+        chain.push(e.tagName.toLowerCase() + (e.className ? '.' + String(e.className).split(' ')[0] : '') + ' m' + cs.marginLeft + ' p' + cs.paddingLeft);
+        e = e.parentElement;
+      }
+      var ps = getComputedStyle(p);
+      n('text indented ' + extra + ' px more than the page margin; inside: ' + (chain.join(' < ') || 'nothing') + '; p m' + ps.marginLeft + ' p' + ps.paddingLeft);
+    } catch (x) {}
+  });
 })();
 """

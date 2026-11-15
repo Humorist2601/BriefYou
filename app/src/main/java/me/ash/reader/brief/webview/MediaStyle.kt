@@ -26,6 +26,13 @@ object MediaStyle {
         return buildString {
             append(
                 """
+/* Brief You: an article inside the article (some feeds wrap their text in one) gets no second
+   side margin: Read You's styles give every article element the text margin, so the text was
+   indented twice. */
+article article {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
 /* Brief You: videos (the Videos page) */
 iframe, video, embed, object {
     margin-left: calc(0px - var(--text-margin) + $pad) !important;

@@ -42,6 +42,7 @@ object ImagePlaceholders {
     private fun buildCss(boxColor: Int, indicatorColor: Int): String {
         val box = cssColor(boxColor)
         val indicator = svgDataUri(indicatorColor)
+        val stillIndicator = svgDataUri(indicatorColor, animated = false)
         return """
 /* Brief You: picture placeholders (see ImagePlaceholders) */
 .brief-box {
@@ -67,6 +68,11 @@ object ImagePlaceholders {
 }
 .brief-box.brief-loaded {
     background-color: transparent;
+}
+/* While the page scrolls, the indicator holds its shape: the web view repaints a moving shape on
+   every frame, and with several of them it fell behind while scrolling (slow, blank frames). */
+.brief-scrolling .brief-box::after {
+    background-image: url("$stillIndicator");
 }
 .brief-box.brief-loaded::after {
     opacity: 0;
@@ -204,7 +210,7 @@ img.brief-center {
      * soft burst, nine-sided cookie, pentagon, pill, sunny, four-sided cookie and oval. Every shape
      * is drawn with the same number of points around the centre so one can morph into the next.
      */
-    private fun svgDataUri(argb: Int): String {
+    private fun svgDataUri(argb: Int, animated: Boolean = true): String {
         val paths = PATHS
         val n = paths.size
         val keyTimes = (0..n).joinToString(";") { fmt(it.toDouble() / n, 4) }
@@ -214,6 +220,10 @@ img.brief-center {
             "dur='${fmt(n * 0.65, 2)}s' repeatCount='indefinite' calcMode='spline' " +
                 "keyTimes='$keyTimes' keySplines='$keySplines'"
         val hex = "%06X".format(argb and 0xFFFFFF)
+        if (!animated) {
+            return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'>" +
+                "<path fill='%23$hex' d='${paths[0]}'/></svg>"
+        }
         val svg =
             "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'>" +
                 "<path fill='%23$hex' d='${paths[0]}'>" +

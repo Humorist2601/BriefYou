@@ -82,7 +82,37 @@ object FeedContent {
      * twice) while its opening animation ran.
      */
     suspend fun forReaderInBackground(html: String, link: String?, title: String? = null): String =
-        withContext(Dispatchers.Default) { forReader(html, link, title).also { prepared(it) } }
+        withContext(Dispatchers.Default) {
+            val key = Triple(html, link, title)
+            synchronized(tidiedCache) { tidiedCache[key] }?.let { return@withContext it }
+            forReader(html, link, title).also {
+                prepared(it)
+                synchronized(tidiedCache) { tidiedCache[key] = it }
+            }
+        }
+
+    /** The last few articles tidied, so one tidied ahead (see [prepareAhead]) is ready when opened. */
+    private val tidiedCache =
+        object : LinkedHashMap<Triple<String, String?, String?>, String>(8, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Triple<String, String?, String?>, String>?) =
+                size > 6
+        }
+
+    /**
+     * The first few articles of a list that just opened, tidied in the background: the first ones
+     * opened after a start took 100-150 ms to tidy (the tidying code still cold), and the page
+     * waited for them; now they are ready, and the code is warm for the others.
+     */
+    suspend fun prepareAhead(items: List<me.ash.reader.domain.model.article.ArticleWithFeed>) {
+        val started = android.os.SystemClock.uptimeMillis()
+        var done = 0
+        for (item in items) {
+            if (item.feed.isFullContent) continue // its full text is read from the cache on opening
+            forReaderInBackground(item.article.rawDescription, item.article.link, item.article.title)
+            done++
+        }
+        if (done > 0) me.ash.reader.brief.perf.PerfLog.note("list: first $done articles tidied ahead in ${android.os.SystemClock.uptimeMillis() - started} ms") // Nightly stutter log
+    }
 
     /** A complete address for [url], read against the article's [base] address. */
     fun absoluteUrl(url: String?, base: String?): String? {

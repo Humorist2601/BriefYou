@@ -110,6 +110,7 @@ fun Content(
                                 baseUrl = link, // Brief You
                                 refererDomain = link.extractReferer(), // Brief You: a real address (#1347)
                                 onImageClick = onImageClick,
+                                scrolling = { scrollState.isScrollInProgress }, // Brief You: loading shapes hold still meanwhile
                             )
                             afterArticle?.invoke() // Brief You
                             Spacer(modifier = Modifier.height(128.dp))

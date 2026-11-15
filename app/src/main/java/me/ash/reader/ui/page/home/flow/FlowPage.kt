@@ -81,6 +81,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first // Brief You
 import kotlinx.coroutines.launch
 import me.ash.reader.R
 import me.ash.reader.domain.data.PagerData
@@ -576,6 +577,13 @@ fun FlowPage(
                     val pager = flowUiState.pagerData.pager
                     val filterState = flowUiState.pagerData.filterState
                     val pagingItems = pager.collectAsLazyPagingItems().also { pagingItems = it }
+                    // Brief You: the first articles of the list tidied ahead, so the first taps open at once.
+                    LaunchedEffect(pagingItems) { // Brief You
+                        val first = snapshotFlow { (0 until minOf(3, pagingItems.itemCount)).mapNotNull { (pagingItems.peek(it) as? ArticleFlowItem.Article)?.articleWithFeed } } // Brief You
+                            .first { it.isNotEmpty() } // Brief You
+                        kotlinx.coroutines.delay(600) // Brief You: after the list's opening slide
+                        me.ash.reader.brief.reading.FeedContent.prepareAhead(first) // Brief You
+                    } // Brief You
                     if (me.ash.reader.brief.perf.PerfLog.enabled) { // Brief You: Nightly stutter log
                         LaunchedEffect(pagingItems) { // Brief You
                             snapshotFlow { pagingItems.itemCount to pagingItems.loadState.refresh.javaClass.simpleName } // Brief You
