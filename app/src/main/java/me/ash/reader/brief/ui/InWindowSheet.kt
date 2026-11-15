@@ -64,7 +64,9 @@ fun InWindowModalSheet(
             modifier = Modifier.align(Alignment.TopCenter),
             state = sheetState,
             onDismissRequest = onDismissRequest,
-            contentWindowInsets = { BottomSheetDefaults.modalWindowInsets },
+            // The bottom only. Material's modal sheet adds the status bar's height at the top only
+            // once the sheet reaches it; given always, it left a gap above the handle.
+            contentWindowInsets = { BottomSheetDefaults.standardWindowInsets },
             // As Material's modal sheet (the standalone one defaults to a tinted surface).
             tonalElevation = 0.dp,
             content = content,
