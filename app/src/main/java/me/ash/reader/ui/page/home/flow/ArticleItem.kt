@@ -362,6 +362,21 @@ fun SwipeableArticleItem(
     onMarkBelowAsRead: ((ArticleWithFeed) -> Unit)? = null,
     onShare: ((ArticleWithFeed) -> Unit)? = null,
 ) {
+    // Brief You: Nightly stutter log — why a row was built again (a new row, or which input changed).
+    if (me.ash.reader.brief.perf.PerfLog.enabled) {
+        val now = arrayOf<Any?>(articleWithFeed, isUnread, articleListTonalElevation, onClick, isSwipeEnabled,
+            isMenuEnabled, onToggleStarred, onToggleRead, onMarkAboveAsRead, onMarkBelowAsRead, onShare)
+        val before = remember { arrayOfNulls<Any?>(now.size + 1) }
+        androidx.compose.runtime.SideEffect {
+            val names = listOf("article", "unread", "elevation", "onClick", "swipeEnabled", "menuEnabled",
+                "onToggleStarred", "onToggleRead", "onMarkAbove", "onMarkBelow", "onShare")
+            val why = if (before[now.size] == null) "new row" else names.indices.filter { if (it == 1 || it == 2 || it == 5) before[it] != now[it] else before[it] !== now[it] }
+                .joinToString { i -> if (i == 0 && before[0] == now[0]) "article (equal, new copy)" else names[i] }
+                .ifEmpty { "nothing changed (state read inside)" }
+            me.ash.reader.brief.perf.PerfLog.note("row input: $why")
+            now.copyInto(before); before[now.size] = true
+        }
+    }
 
     var isMenuExpanded by remember { mutableStateOf(false) }
     val pressContext = androidx.compose.ui.platform.LocalContext.current // Brief You
