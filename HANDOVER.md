@@ -243,9 +243,6 @@ You's warnings are left alone on purpose).
   the article's full height; while the article grows it can be briefly shorter than its text, and a
   quick fling then scrolled the text inside it, under the heading. `WebViewLayout` puts it back at
   the top and asks for its height again.
-- **Don't scale or fade whole pages of text while swiping.** The Feeds pages used to shrink to 94%
-  and dim as they left; a scaled layer of text looks blurred in motion. They slide flat now, like
-  Material's swipeable tabs.
 - **`ModalBottomSheet` opens its own window**; making and tearing it down costs 30–60 ms frames on
   the main thread. Triage's places sheet uses `brief/ui/InWindowSheet.kt` (`InWindowModalSheet`:
   Material's in-window `BottomSheet` + `Scrim`, same look and gestures) — it must sit in a
