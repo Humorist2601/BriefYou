@@ -161,6 +161,7 @@ abstract class AbstractRssRepository(
                 )
             articleDao.delete(*archivedArticles.toTypedArray())
             return archivedArticles.also {
+                if (currentAccount.type.id != me.ash.reader.domain.model.account.AccountType.Local.id) return@also // Brief You: only local feeds read these notes
                 feedDao.insertArchivedArticles(
                     it.map { ArchivedArticle(feedId = it.feedId, link = it.link) }
                 )

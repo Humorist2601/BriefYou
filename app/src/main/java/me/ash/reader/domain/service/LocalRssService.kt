@@ -86,6 +86,7 @@ constructor(
                                     .map { it.link }
                                     .toSet()
                             val fetchedFeed = syncFeed(currentFeed, preDate)
+                            me.ash.reader.brief.media.ArchivedLinks.tidy(currentFeed.id, archivedArticles, fetchedFeed.articles.map { it.link }) // Brief You: forgets links the feed no longer lists
                             val fetchedArticles =
                                 fetchedFeed.articles.filterNot {
                                     archivedArticles.contains(it.link)

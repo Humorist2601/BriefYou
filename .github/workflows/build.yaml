@@ -135,11 +135,11 @@ jobs:
                   path: app/build/outputs/apk/github/${{ env.VARIANT }}/*.apk
 
             - uses: actions/upload-artifact@v7
-              # Brief You: the player database's schema as built, to commit to app/schemas (so a
-              # later change can be a migration instead of wiping listening places).
+              # Brief You: the databases' schemas as built, to commit to app/schemas (so a later
+              # change can be a migration instead of wiping data).
               with:
                   name: brief-schemas-${{ github.sha }}
-                  path: app/schemas/me.ash.reader.brief.media.ArticleMediaDatabase/
+                  path: app/schemas/
                   if-no-files-found: ignore
 
             - name: Publish Nightly

@@ -59,6 +59,21 @@ data class PlaybackPosition(
     val updatedAt: Long,
 )
 
+/**
+ * A cleared article's link that a local feed no longer lists: after [ArchivedLinks.MISSES] syncs
+ * in a row (and some days) without it, the feed's note of the link is forgotten (see
+ * ArchivedLinks).
+ */
+@Entity(tableName = "archived_miss", primaryKeys = ["feedId", "link"])
+data class ArchivedMiss(
+    val feedId: String,
+    val link: String,
+    /** Syncs in a row the feed didn't list it. */
+    val misses: Int,
+    /** When it was first missing. */
+    val since: Long,
+)
+
 @Dao
 interface ArticleMediaDao {
     @Query("SELECT * FROM article_extras WHERE articleId = :articleId")
@@ -87,10 +102,31 @@ interface ArticleMediaDao {
 
     @Query("DELETE FROM playback_position WHERE articleId IN (:ids)")
     suspend fun deletePositions(ids: List<String>)
+
+    @Query("SELECT * FROM archived_miss WHERE feedId = :feedId")
+    suspend fun misses(feedId: String): List<ArchivedMiss>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun putMisses(items: List<ArchivedMiss>)
+
+    @Query("DELETE FROM archived_miss WHERE feedId = :feedId AND link IN (:links)")
+    suspend fun deleteMisses(feedId: String, links: List<String>)
+
+    @Query("SELECT DISTINCT feedId FROM archived_miss")
+    suspend fun missFeedIds(): List<String>
+
+    @Query("DELETE FROM archived_miss WHERE feedId IN (:feedIds)")
+    suspend fun deleteMissesOf(feedIds: List<String>)
 }
 
 // The schema is exported (app/schemas), so a later change can be a migration.
-@Database(entities = [ArticleExtras::class, PlaybackPosition::class], version = 1, exportSchema = true)
+// 2 adds archived_miss.
+@Database(
+    entities = [ArticleExtras::class, PlaybackPosition::class, ArchivedMiss::class],
+    version = 2,
+    exportSchema = true,
+    autoMigrations = [androidx.room.AutoMigration(from = 1, to = 2)],
+)
 abstract class ArticleMediaDatabase : RoomDatabase() {
     abstract fun dao(): ArticleMediaDao
 }
@@ -100,7 +136,8 @@ object ArticleMedia {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     @Volatile private var db: ArticleMediaDatabase? = null
 
-    @Volatile private var articles: me.ash.reader.brief.data.BriefArticleDao? = null
+    @Volatile internal var articles: me.ash.reader.brief.data.BriefArticleDao? = null
+        private set
 
     fun start(context: Context, articles: me.ash.reader.brief.data.BriefArticleDao) {
         this.articles = articles
@@ -174,6 +211,9 @@ object ArticleMedia {
         val ids = (dao.allExtrasIds() + dao.allPositionIds()).distinct()
         val existing = ids.chunked(500).flatMap { articles.existingIds(it) }.toSet()
         forget(ids.filterNot { it in existing })
+        // Missed links of feeds that are gone.
+        val feeds = articles.allFeedIds().toHashSet()
+        dao.missFeedIds().filterNot { it in feeds }.chunked(500).forEach { dao.deleteMissesOf(it) }
     }
 
     private const val FLUSH_DELAY_MS = 5_000L
@@ -185,6 +225,14 @@ object ArticleMedia {
      */
     suspend fun of(articleId: String, picture: String?): ArticleExtras? =
         runCatching { dao?.extras(articleId) }.getOrNull() ?: fromPicture(articleId, picture)
+
+    /**
+     * Opening an article with an episode or video doesn't mark it as read: the player does, once
+     * it is played far enough (Usage → Audio and video). Otherwise a partly heard episode could be
+     * cleared away with the old read articles.
+     */
+    suspend fun keepsUnread(articleId: String, picture: String?): Boolean =
+        of(articleId, picture)?.let { it.isAudio || it.isVideo } == true
 
     fun fromPicture(articleId: String, picture: String?): ArticleExtras? {
         if (WebUrl.of(picture) == null) return null

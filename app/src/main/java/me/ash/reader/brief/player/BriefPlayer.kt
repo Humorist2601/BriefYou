@@ -42,7 +42,8 @@ import me.ash.reader.domain.service.RssService
  * - Carries on where you stopped (positions are kept per article).
  * - Speed is kept for next time; back and forward 30 seconds; a sleep timer (minutes, or the end
  *   of the episode) that fades out over its last seconds.
- * - A podcast episode heard past the share chosen in Usage → Audio and video is marked as read.
+ * - An episode or video played past the share chosen in Usage → Audio and video is marked as read
+ *   (opening it doesn't: see ArticleMedia.keepsUnread).
  * - One thing plays at a time: an episode pauses read aloud, and read aloud pauses the episode.
  *
  * Brief You.
@@ -506,11 +507,11 @@ object BriefPlayer {
         appContext?.let { prefs(it).edit { putLong(KEY_LAST_POSITION, position.positionMs) } }
     }
 
-    /** A podcast episode heard past the chosen share is marked as read (once). */
+    /** An episode or video played past the chosen share is marked as read (once). */
     private fun checkMarkRead() {
         val s = _state.value
         val now = s.now ?: return
-        if (now.isVideo || markedRead == now.articleId || s.durationMs <= 0) return
+        if (markedRead == now.articleId || s.durationMs <= 0) return
         val context = appContext ?: return
         val share = markReadAt(context)
         if (share >= 1f || s.progress < share) return
@@ -522,7 +523,7 @@ object BriefPlayer {
         main.launch(Dispatchers.IO) { runCatching { ArticleMedia.dao?.clearPosition(now.articleId) } }
         if (_state.value.sleep == Sleep.EndOfEpisode) _state.update { it.copy(sleep = Sleep.Off) }
         val context = appContext ?: return
-        if (!now.isVideo && markedRead != now.articleId) markRead(context, now)
+        if (markedRead != now.articleId) markRead(context, now)
     }
 
     private fun markRead(context: Context, now: Now) {

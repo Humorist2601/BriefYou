@@ -344,8 +344,8 @@
     <string name="player_fullscreen">Full screen</string>
     <string name="player_leave_fullscreen">Leave full screen</string>
     <string name="player_settings_title">Audio and video</string>
-    <string name="player_mark_read">Mark podcasts as read after</string>
-    <string name="player_mark_read_heard">%1$d%% heard</string>
+    <string name="player_mark_read">Mark episodes and videos as read after</string>
+    <string name="player_mark_read_heard">%1$d%% played</string>
     <string name="player_mark_read_finished">When finished</string>
     <string name="player_read_aloud_voice">Read aloud voice</string>
     <string name="player_read_aloud_voice_desc">Android\'s speech settings</string>

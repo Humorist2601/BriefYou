@@ -145,6 +145,32 @@ interface BriefArticleDao {
     /** Every feed's address, in every account (for the tidy-up of noted feed pictures). */
     @Query("SELECT url FROM feed")
     suspend fun allFeedUrls(): List<String>
+
+    /** Every group's id, in every account (for the tidy-up of group icons). */
+    @Query("SELECT id FROM `group`")
+    suspend fun allGroupIds(): List<String>
+
+    /** Every account's id (for the tidy-up of what deleted accounts left). */
+    @Query("SELECT id FROM account")
+    suspend fun allAccountIds(): List<Int>
+
+    /** An account's article ids (for the tidy-up of saved full-text pages). */
+    @Query("SELECT id FROM article WHERE accountId = :accountId")
+    suspend fun articleIds(accountId: Int): List<String>
+
+    /** Forgets cleared articles' links of a local feed (see ArchivedLinks). */
+    @Query("DELETE FROM archived_article WHERE feedId = :feedId AND link IN (:links)")
+    suspend fun forgetArchivedLinks(feedId: String, links: List<String>)
+
+    /**
+     * Forgets the cleared articles' links of accounts that aren't local: only local feeds read
+     * them (FreshRSS, Google Reader and the others never add an article twice).
+     */
+    @Query(
+        "DELETE FROM archived_article WHERE feedId IN " +
+            "(SELECT f.id FROM feed AS f JOIN account AS a ON f.accountId = a.id WHERE a.type != 1)"
+    )
+    suspend fun forgetArchivedLinksNotLocal()
 }
 
 /** An unread article's title and where it is. */

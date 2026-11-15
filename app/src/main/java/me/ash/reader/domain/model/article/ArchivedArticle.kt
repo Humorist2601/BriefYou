@@ -13,7 +13,8 @@ import me.ash.reader.domain.model.feed.Feed
         childColumns = ["feedId"],
         onDelete = ForeignKey.CASCADE,
         onUpdate = ForeignKey.CASCADE
-    )]
+    )],
+    indices = [androidx.room.Index(value = ["feedId"])], // Brief You: a feed's notes are found without reading them all
 )
 data class ArchivedArticle(
     @PrimaryKey(autoGenerate = true)

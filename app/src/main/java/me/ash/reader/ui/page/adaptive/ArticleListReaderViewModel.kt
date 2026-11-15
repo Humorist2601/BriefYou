@@ -340,9 +340,7 @@ constructor(
 
     /** The prepared article on the page (what [load] does with it, without waiting). */
     private fun showPrepared(item: ArticleWithFeed, content: ReaderState.ContentState) {
-        if (diffMapHolder.checkIfUnread(item)) {
-            diffMapHolder.updateDiff(item, isUnread = false)
-        }
+        markOpened(item) // Brief You: not an episode or video (see markOpened)
         _readingUiState.update {
             it.copy(articleWithFeed = item, isStarred = item.article.isStarred, isUnread = false)
         }
@@ -410,9 +408,7 @@ constructor(
                 readyArticle?.first // Brief You
                     ?: rssService.get().findArticleById(targetId) ?: listItem!! // Brief You
 
-            if (diffMapHolder.checkIfUnread(item)) {
-                diffMapHolder.updateDiff(item, isUnread = false)
-            }
+            markOpened(item) // Brief You: not an episode or video (see markOpened)
             item.run {
                 _readingUiState.update {
                     it.copy(articleWithFeed = this, isStarred = article.isStarred, isUnread = false)
@@ -519,6 +515,23 @@ constructor(
             delay(100L)
             if (fetchJob.isActive) {
                 setLoading()
+            }
+        }
+    }
+
+    /**
+     * Brief You: opening an article marks it as read, except one with an episode or video: the
+     * player marks those once they are played far enough, so a partly heard episode isn't cleared
+     * away with the old read articles.
+     */
+    private fun markOpened(item: ArticleWithFeed) {
+        viewModelScope.launch {
+            if (me.ash.reader.brief.media.ArticleMedia.keepsUnread(item.article.id, item.article.img)) {
+                _readingUiState.update {
+                    if (it.articleWithFeed?.article?.id == item.article.id) it.copy(isUnread = diffMapHolder.checkIfUnread(item)) else it
+                }
+            } else if (diffMapHolder.checkIfUnread(item)) {
+                diffMapHolder.updateDiff(item, isUnread = false)
             }
         }
     }

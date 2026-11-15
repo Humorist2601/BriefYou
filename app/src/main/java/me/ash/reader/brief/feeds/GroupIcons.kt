@@ -70,9 +70,9 @@ object GroupIcons {
                 if (scale < 1f) {
                     Bitmap.createScaledBitmap(src, (src.width * scale).toInt().coerceAtLeast(1), (src.height * scale).toInt().coerceAtLeast(1), true)
                 } else src
-            val dir = File(context.filesDir, "group_icons").apply { mkdirs() }
-            val safe = groupId.replace(Regex("[^A-Za-z0-9_-]"), "_")
-            dir.listFiles { f -> f.name.startsWith(safe + "_") }?.forEach { it.delete() }
+            val dir = imageDir(context).apply { mkdirs() }
+            val safe = safeName(groupId)
+            deleteImages(context, groupId)
             // A new name each time, so the image cache shows the new one.
             val file = File(dir, "${safe}_${System.currentTimeMillis()}.png")
             file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
@@ -132,10 +132,42 @@ object GroupIcons {
             }
         }
 
-    /** Back to the folder. */
+    /** Back to the folder (its picture, if it had one, is deleted). */
     fun clear(context: Context, groupId: String) {
         prefs(context).edit { remove(groupId) }
         icons.remove(groupId)
+        deleteImages(context, groupId)
+    }
+
+    /** The group was deleted: its icon and picture go. */
+    fun forget(context: Context, groupId: String) = clear(context, groupId)
+
+    /**
+     * Forgets the icons of groups that no longer exist ([groupIds]: every group's id), and deletes
+     * pictures no icon uses (see BriefCleanup).
+     */
+    fun sweep(context: Context, groupIds: Collection<String>) {
+        val known = groupIds.toHashSet()
+        val gone = prefs(context).all.keys.filterNot { it in known }
+        if (gone.isNotEmpty()) {
+            prefs(context).edit { gone.forEach { remove(it) } }
+            android.os.Handler(android.os.Looper.getMainLooper()).post { gone.forEach { icons.remove(it) } }
+        }
+        val used = prefs(context).all.values.filterIsInstance<String>().toHashSet()
+        // Not one being saved right now (its icon is set just after).
+        val settled = System.currentTimeMillis() - 10 * 60 * 1000L
+        imageDir(context).listFiles()?.forEach {
+            if (it.lastModified() < settled && Uri.fromFile(it).toString() !in used) it.delete()
+        }
+    }
+
+    private fun imageDir(context: Context) = File(context.filesDir, "group_icons")
+
+    private fun safeName(groupId: String) = groupId.replace(Regex("[^A-Za-z0-9_-]"), "_")
+
+    private fun deleteImages(context: Context, groupId: String) {
+        val safe = safeName(groupId)
+        runCatching { imageDir(context).listFiles { f -> f.name.startsWith(safe + "_") }?.forEach { it.delete() } }
     }
 
     private fun set(context: Context, groupId: String, value: String) {

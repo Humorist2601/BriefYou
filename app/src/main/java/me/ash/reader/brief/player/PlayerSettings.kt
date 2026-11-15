@@ -22,7 +22,7 @@ import me.ash.reader.ui.component.base.Subtitle
 import me.ash.reader.ui.page.settings.SettingItem
 
 /**
- * Usage → Audio and video: when a podcast episode counts as read, and read aloud's voice
+ * Usage → Audio and video: when an episode or video counts as read, and read aloud's voice
  * (Android's speech settings). Put in Usage after the Reading page section. Brief You.
  */
 @Composable
