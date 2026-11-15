@@ -82,7 +82,7 @@ constructor(
             }
 
             feed.also {
-                me.ash.reader.brief.feeds.FeedPictures.found(context, resolvedFeedLink, it) // Brief You: its own picture, before the website's icon replaces it
+                me.ash.reader.brief.feeds.FeedPictures.foundForAdding(resolvedFeedLink, it) // Brief You: its own picture, before the website's icon replaces it (kept on subscribe)
                 it.icon = SyndImageImpl()
                 it.icon.link = queryRssIconLink(resolvedFeedLink)
                 it.icon.url = it.icon.link

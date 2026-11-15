@@ -1,5 +1,7 @@
 package me.ash.reader.brief.player
 
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import android.app.Activity
 import android.app.PictureInPictureParams
 import android.content.Context
@@ -256,8 +258,16 @@ private fun VideoToolbar(
 fun VideoHost(content: @Composable () -> Unit) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() as? ComponentActivity }
-    val s by BriefPlayer.state.collectAsState()
-    val video = s.now?.isVideo == true
+    // Only what the host needs (the player's state changes twice a second while it plays, and
+    // this sits at the top of the app).
+    val watched by
+        remember {
+                BriefPlayer.state
+                    .map { Triple(it.now?.isVideo == true, it.isPlaying, it.videoAspect) }
+                    .distinctUntilChanged()
+            }
+            .collectAsState(initial = BriefPlayer.state.value.let { Triple(it.now?.isVideo == true, it.isPlaying, it.videoAspect) })
+    val (video, isPlaying, videoAspect) = watched
 
     // Picture-in-picture: follow the activity, and close the video when its window is closed.
     DisposableEffect(activity) {
@@ -285,13 +295,13 @@ fun VideoHost(content: @Composable () -> Unit) {
         onDispose { activity?.removeOnPictureInPictureModeChangedListener(listener) }
     }
     // Leaving the app while a video plays opens the small window by itself (Android 12 and later).
-    LaunchedEffect(activity, video, s.isPlaying, s.videoAspect) {
+    LaunchedEffect(activity, video, isPlaying, videoAspect) {
         if (activity != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             runCatching {
                 activity.setPictureInPictureParams(
                     PictureInPictureParams.Builder()
                         .setAspectRatio(pipRatio())
-                        .setAutoEnterEnabled(video && s.isPlaying)
+                        .setAutoEnterEnabled(video && isPlaying)
                         .build()
                 )
             }

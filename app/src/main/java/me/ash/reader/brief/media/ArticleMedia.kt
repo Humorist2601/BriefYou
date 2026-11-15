@@ -79,6 +79,9 @@ interface ArticleMediaDao {
     @Query("SELECT articleId FROM article_extras")
     suspend fun allExtrasIds(): List<String>
 
+    @Query("SELECT articleId FROM playback_position")
+    suspend fun allPositionIds(): List<String>
+
     @Query("DELETE FROM article_extras WHERE articleId IN (:ids)")
     suspend fun deleteExtras(ids: List<String>)
 
@@ -86,7 +89,8 @@ interface ArticleMediaDao {
     suspend fun deletePositions(ids: List<String>)
 }
 
-@Database(entities = [ArticleExtras::class, PlaybackPosition::class], version = 1, exportSchema = false)
+// The schema is exported (app/schemas), so a later change can be a migration.
+@Database(entities = [ArticleExtras::class, PlaybackPosition::class], version = 1, exportSchema = true)
 abstract class ArticleMediaDatabase : RoomDatabase() {
     abstract fun dao(): ArticleMediaDao
 }
@@ -96,7 +100,10 @@ object ArticleMedia {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     @Volatile private var db: ArticleMediaDatabase? = null
 
-    fun start(context: Context) {
+    @Volatile private var articles: me.ash.reader.brief.data.BriefArticleDao? = null
+
+    fun start(context: Context, articles: me.ash.reader.brief.data.BriefArticleDao) {
+        this.articles = articles
         if (db != null) return
         db = Room.databaseBuilder(context.applicationContext, ArticleMediaDatabase::class.java, "brief_media")
             .fallbackToDestructiveMigration(dropAllTables = true)
@@ -118,8 +125,59 @@ object ArticleMedia {
     fun found(items: List<ArticleExtras>) {
         val useful = items.filter { it.mediaUrl != null || it.comments != null || it.image != null }
         if (useful.isEmpty()) return
-        scope.launch { runCatching { dao?.putExtras(useful) } }
+        // Kept in memory until the items are articles: feed reading sees every item, and the
+        // ones Read You (or mute keywords, duplicates) skips must leave nothing behind.
+        synchronized(pending) { useful.forEach { pending[it.articleId] = it to 0 } }
+        flushLater()
     }
+
+    private val pending = LinkedHashMap<String, Pair<ArticleExtras, Int>>()
+    private var flushJob: kotlinx.coroutines.Job? = null
+
+    /** Saves what became articles a few seconds after feed reading goes quiet (tries three times). */
+    private fun flushLater() {
+        synchronized(pending) {
+            flushJob?.cancel()
+            flushJob =
+                scope.launch {
+                    kotlinx.coroutines.delay(FLUSH_DELAY_MS)
+                    flush()
+                }
+        }
+    }
+
+    private suspend fun flush() {
+        val dao = dao ?: return
+        val articles = articles ?: return
+        val batch = synchronized(pending) { pending.values.toList() }
+        if (batch.isEmpty()) return
+        val existing = runCatching { batch.map { it.first.articleId }.chunked(500).flatMap { articles.existingIds(it) }.toSet() }.getOrNull() ?: return
+        val ready = batch.filter { it.first.articleId in existing }.map { it.first }
+        runCatching { if (ready.isNotEmpty()) dao.putExtras(ready) }
+        val again =
+            synchronized(pending) {
+                batch.forEach { (extras, tries) ->
+                    val id = extras.articleId
+                    // Replaced meanwhile by a newer find: left for its own round.
+                    if (pending[id]?.first !== extras) return@forEach
+                    if (id in existing || tries + 1 >= FLUSH_TRIES) pending.remove(id) else pending[id] = extras to tries + 1
+                }
+                pending.isNotEmpty()
+            }
+        if (again) flushLater()
+    }
+
+    /** Forgets attachments and places whose article is gone (see BriefCleanup). */
+    suspend fun sweep() {
+        val dao = dao ?: return
+        val articles = articles ?: return
+        val ids = (dao.allExtrasIds() + dao.allPositionIds()).distinct()
+        val existing = ids.chunked(500).flatMap { articles.existingIds(it) }.toSet()
+        forget(ids.filterNot { it in existing })
+    }
+
+    private const val FLUSH_DELAY_MS = 5_000L
+    private const val FLUSH_TRIES = 3
 
     /**
      * An article's extras: saved ones, or, for articles read before this existed, the audio or
@@ -129,9 +187,19 @@ object ArticleMedia {
         runCatching { dao?.extras(articleId) }.getOrNull() ?: fromPicture(articleId, picture)
 
     fun fromPicture(articleId: String, picture: String?): ArticleExtras? {
+        if (WebUrl.of(picture) == null) return null
         val kind = MediaFiles.kindOf(picture, null) ?: return null
         return ArticleExtras(articleId = articleId, mediaUrl = picture, mediaKind = kind)
     }
+}
+
+/**
+ * Web addresses only (http or https), for anything a feed gives the player, the notification or a
+ * button: a feed can't point them at files on the phone (file:, content:) or elsewhere.
+ */
+object WebUrl {
+    fun of(url: String?): String? =
+        url?.trim()?.takeIf { it.startsWith("https://", ignoreCase = true) || it.startsWith("http://", ignoreCase = true) }
 }
 
 /** Telling audio and video files apart from pictures, by their type or their address. */

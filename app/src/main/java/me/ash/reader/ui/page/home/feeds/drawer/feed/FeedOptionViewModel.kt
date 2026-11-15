@@ -134,6 +134,7 @@ constructor(
         _feedOptionUiState.value.feed?.let {
             applicationScope.launch(ioDispatcher) {
                 rssService.get().deleteFeed(it)
+                runCatching { iconOverrides.feedDeleted(it.id, it.url) } // Brief You: its custom icon and noted picture go too
                 withContext(mainDispatcher) { callback() }
             }
         }

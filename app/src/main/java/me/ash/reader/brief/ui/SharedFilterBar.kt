@@ -3,6 +3,8 @@
 package me.ash.reader.brief.ui
 
 
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -158,17 +160,31 @@ internal val NOW_PLAYING_PILL_HEIGHT = 68.dp
 @Composable
 internal fun rememberNowPlayingShown(): Boolean {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val player by me.ash.reader.brief.player.BriefPlayer.state.collectAsState()
+    // Only whether something is loaded: the player's state changes twice a second while it
+    // plays, and read aloud's with every word, and the bar shouldn't redraw for those.
+    val loaded by
+        remember {
+                me.ash.reader.brief.player.BriefPlayer.state
+                    .map { it.now != null }
+                    .distinctUntilChanged()
+            }
+            .collectAsState(initial = me.ash.reader.brief.player.BriefPlayer.state.value.now != null)
     val tts = remember {
         runCatching {
             dagger.hilt.android.EntryPointAccessors.fromApplication(context.applicationContext, me.ash.reader.brief.player.BriefPlayer.Deps::class.java).tts()
         }.getOrNull()
     }
-    val reading = tts?.stateFlow?.collectAsState()?.value.let {
-        it is me.ash.reader.brief.readaloud.TextToSpeechManager.State.Reading ||
-            it is me.ash.reader.brief.readaloud.TextToSpeechManager.State.Paused
-    }
-    return player.now != null || reading
+    val reading by
+        remember(tts) {
+                (tts?.stateFlow ?: kotlinx.coroutines.flow.flowOf(null))
+                    .map {
+                        it is me.ash.reader.brief.readaloud.TextToSpeechManager.State.Reading ||
+                            it is me.ash.reader.brief.readaloud.TextToSpeechManager.State.Paused
+                    }
+                    .distinctUntilChanged()
+            }
+            .collectAsState(initial = false)
+    return loaded || reading
 }
 
 internal val FILTER_BAR_TOP_PADDING = 8.dp

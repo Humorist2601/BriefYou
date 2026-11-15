@@ -276,9 +276,8 @@ class ReadAloudService : Service() {
         super.onDestroy()
     }
 
-    /** "Read · 1.25×". */
-    private fun subtitle(): String =
-        getString(R.string.read_aloud) + " \u00B7 " + TextToSpeechManager.speedLabel(tts.speed.value)
+    /** "Read aloud" (the speed shows on its own button now, as a number). */
+    private fun subtitle(): String = getString(R.string.read_aloud)
 
     private fun action(name: String, code: Int): PendingIntent =
         PendingIntent.getService(

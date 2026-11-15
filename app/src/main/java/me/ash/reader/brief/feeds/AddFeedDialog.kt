@@ -214,6 +214,8 @@ private fun AddFeedDialogContent(
                                     feedPicture = useFeedPicture,
                                     onFeedPicture = { useFeedPicture = true },
                                     onWebsiteIcon = { useFeedPicture = false },
+                                    // A picture that can't be loaded isn't used.
+                                    onFeedPictureFailed = { useFeedPicture = false },
                                 )
                             }
                             Spacer(Modifier.height(18.dp))
@@ -242,6 +244,8 @@ private fun AddFeedDialogContent(
                     TextButton(
                         onClick = {
                             focusManager.clearFocus()
+                            // The feed's own picture is kept once subscribed (whichever icon is chosen).
+                            configure?.feedLink?.let { FeedPictures.keep(context, it) }
                             // The chosen icon: the feed's own picture, or the website's (as found).
                             if (feedPicture != null && useFeedPicture) {
                                 FeedPictures.choose(context, configure!!.feedLink)

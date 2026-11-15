@@ -104,8 +104,18 @@ class PlayerService : MediaSessionService() {
     private val callback =
         object : MediaSession.Callback {
             @OptIn(UnstableApi::class)
-            override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult =
-                MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+            override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
+                // Only Brief You, the notification, and Android's own controls (lock screen,
+                // Quick Settings, Bluetooth, cars, watches) may connect: other apps can't see what
+                // you listen to or control it.
+                val allowed =
+                    controller.packageName == packageName ||
+                        controller.isTrusted ||
+                        session.isMediaNotificationController(controller) ||
+                        session.isAutomotiveController(controller) ||
+                        session.isAutoCompanionController(controller)
+                if (!allowed) return MediaSession.ConnectionResult.reject()
+                return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                     .setAvailableSessionCommands(
                         MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
                             .add(SessionCommand(COMMAND_SPEED, Bundle.EMPTY))
@@ -113,6 +123,7 @@ class PlayerService : MediaSessionService() {
                             .build()
                     )
                     .build()
+            }
 
             /** Android's "resume" (lock screen, Quick Settings, after a restart): the last thing played. */
             override fun onPlaybackResumption(

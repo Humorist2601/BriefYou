@@ -60,12 +60,13 @@ object FeedMedia {
         val link = entry.link
         return ArticleExtras(
             articleId = articleId,
-            mediaUrl = url?.trim()?.let { absoluteUrl(it, link) },
+            // Web addresses only: a feed can't point the player or the notification at files on the phone.
+            mediaUrl = url?.trim()?.let { WebUrl.of(absoluteUrl(it, link)) },
             mediaKind = kind,
             mediaType = type,
             durationMs = durationMs,
-            image = image?.trim()?.let { absoluteUrl(it, link) },
-            comments = comments?.trim()?.let { absoluteUrl(it, link) },
+            image = image?.trim()?.let { WebUrl.of(absoluteUrl(it, link)) },
+            comments = comments?.trim()?.let { WebUrl.of(absoluteUrl(it, link)) },
         )
     }
 
@@ -74,7 +75,7 @@ object FeedMedia {
         val (u, t) = enclosures.firstOrNull { (u, t) -> u != null && MediaFiles.kindOf(u, t) != null } ?: return null
         return ArticleExtras(
             articleId = articleId,
-            mediaUrl = absoluteUrl(u!!.trim(), link),
+            mediaUrl = WebUrl.of(absoluteUrl(u!!.trim(), link)) ?: return null,
             mediaKind = MediaFiles.kindOf(u, t),
             mediaType = t,
         )

@@ -64,6 +64,34 @@ object FeedPictures {
         }
     }
 
+    /** Found by Add a feed: kept in memory until the feed is subscribed to ([keep]). */
+    private val found = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    /** Add a feed found the feed at [feedUrl]: its picture is offered, but only kept on subscribe. */
+    fun foundForAdding(feedUrl: String, feed: SyndFeed) {
+        runCatching { of(feed) }.getOrNull()?.let { found[feedUrl] = it } ?: found.remove(feedUrl)
+    }
+
+    /** Subscribed: the picture found for it is kept. */
+    fun keep(context: Context, feedUrl: String) {
+        val picture = found.remove(feedUrl) ?: return
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putString(feedUrl, picture) }
+    }
+
+    /** The feed was deleted: its picture is forgotten. */
+    fun forget(context: Context, feedUrl: String?) {
+        feedUrl ?: return
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { remove(feedUrl) }
+    }
+
+    /** Forgets the pictures of feeds that no longer exist ([feedUrls]: every feed's address). */
+    fun sweep(context: Context, feedUrls: Collection<String>) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val known = feedUrls.toHashSet()
+        val gone = prefs.all.keys.filterNot { it in known }
+        if (gone.isNotEmpty()) prefs.edit { gone.forEach { remove(it) } }
+    }
+
     fun get(context: Context, feedUrl: String?): String? =
-        feedUrl?.let { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(it, null) }
+        feedUrl?.let { found[it] ?: context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(it, null) }
 }

@@ -144,4 +144,16 @@ object BriefDataModule {
     @Provides
     fun provideBriefArticleDao(androidDatabase: AndroidDatabase): BriefArticleDao =
         androidDatabase.briefArticleDao()
+
+    /** Which of [ids] are still articles (for the tidy-up of Brief You's own notes). */
+    @Query("SELECT id FROM article WHERE id IN (:ids)")
+    suspend fun existingIds(ids: List<String>): List<String>
+
+    /** Every feed's id, in every account (for the tidy-up of custom icons). */
+    @Query("SELECT id FROM feed")
+    suspend fun allFeedIds(): List<String>
+
+    /** Every feed's address, in every account (for the tidy-up of noted feed pictures). */
+    @Query("SELECT url FROM feed")
+    suspend fun allFeedUrls(): List<String>
 }

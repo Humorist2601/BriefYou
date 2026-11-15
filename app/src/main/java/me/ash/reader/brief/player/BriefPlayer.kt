@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import me.ash.reader.brief.media.ArticleExtras
 import me.ash.reader.brief.media.ArticleMedia
 import me.ash.reader.brief.media.PlaybackPosition
+import me.ash.reader.brief.media.WebUrl
 import me.ash.reader.brief.readaloud.TextToSpeechManager
 import me.ash.reader.domain.service.RssService
 
@@ -96,8 +97,7 @@ object BriefPlayer {
     val SPEEDS = listOf(0.8f, 1f, 1.2f, 1.4f, 1.6f, 1.8f, 2f, 2.5f, 3f)
 
     /** 1.2× or 2×. */
-    fun speedLabel(speed: Float): String =
-        (if (speed % 1f == 0f) "%.0f".format(speed) else "%.1f".format(speed)) + "×"
+    fun speedLabel(speed: Float): String = me.ash.reader.brief.ui.speedLabel(speed)
 
     const val PREFS = "brief_player"
 
@@ -157,6 +157,23 @@ object BriefPlayer {
     fun savedAspect(context: Context, articleId: String): Float? =
         shapes(context).getFloat(articleId, 0f).takeIf { it > 0f }
 
+    /**
+     * Forgets kept shapes of articles that are gone, and the last item for Android's resume when
+     * its article is gone ([exists]: which of the ids are still articles). See BriefCleanup.
+     */
+    suspend fun sweep(context: Context, exists: suspend (List<String>) -> Set<String>) {
+        val shapes = shapes(context)
+        val ids = shapes.all.keys.toList()
+        val alive = ids.chunked(500).flatMap { exists(it) }.toSet()
+        val gone = ids.filterNot { it in alive }
+        if (gone.isNotEmpty()) shapes.edit { gone.forEach { remove(it) } }
+        val p = prefs(context)
+        val last = p.getString(KEY_LAST_ID, null) ?: return
+        if (last !in exists(listOf(last)) && _state.value.now?.articleId != last) {
+            p.edit { listOf(KEY_LAST_ID, KEY_LAST_URL, KEY_LAST_KIND, KEY_LAST_TITLE, KEY_LAST_FEED, KEY_LAST_ART, KEY_LAST_POSITION).forEach { remove(it) } }
+        }
+    }
+
     /** Forgets the kept shapes of articles that are gone (after a sync's clean-up). */
     fun forget(context: Context, articleIds: Collection<String>) {
         if (articleIds.isEmpty()) return
@@ -213,8 +230,9 @@ object BriefPlayer {
                         }
                     )
                     .apply {
-                        // The episode's picture, or the feed's icon when that is a picture.
-                        (now.artwork ?: now.feedIcon?.takeIf { it.startsWith("http", ignoreCase = true) })
+                        // The episode's picture, or the feed's icon when that is a picture (web
+                        // addresses only: never a file on the phone on the lock screen).
+                        (WebUrl.of(now.artwork) ?: WebUrl.of(now.feedIcon))
                             ?.let { setArtworkUri(Uri.parse(secure(it))) }
                     }
                     .build()

@@ -20,6 +20,7 @@ constructor(
     private val briefFilters: BriefFilters,
     private val feedIconOverrides: FeedIconOverrides,
     private val notificationHelper: NotificationHelper,
+    private val cleanup: BriefCleanup,
 ) {
     /** Runs a sync; the new-articles notification is posted once, when it's all done. */
     suspend fun <T> duringSync(block: suspend () -> T): T {
@@ -46,5 +47,7 @@ constructor(
             me.ash.reader.brief.media.ArticleMedia.forget(ids)
             me.ash.reader.brief.player.BriefPlayer.forget(context, ids)
         }
+        // The rest of Brief You's notes about things that are gone, now and then (see BriefCleanup).
+        runCatching { cleanup.sweepIfDue() }
     }
 }

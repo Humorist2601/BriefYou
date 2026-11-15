@@ -113,7 +113,7 @@ fun BriefMetadataChips(
         HeaderChip(text = dateString)
         readingLabel?.let { HeaderChip(text = it) }
         // The article's comments, when its feed links to them: opened like other links.
-        me.ash.reader.brief.player.LocalArticleExtras.current?.comments?.let { comments ->
+        me.ash.reader.brief.player.LocalArticleExtras.current?.comments?.let { me.ash.reader.brief.media.WebUrl.of(it) }?.let { comments ->
             val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
             HeaderChip(
                 text = androidx.compose.ui.res.stringResource(me.ash.reader.R.string.article_comments),

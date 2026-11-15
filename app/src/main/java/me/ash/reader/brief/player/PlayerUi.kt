@@ -312,9 +312,10 @@ internal fun PlayError(video: Boolean, url: String, onRetry: () -> Unit) {
             }
             OutlinedButton(
                 onClick = {
+                    val web = me.ash.reader.brief.media.WebUrl.of(url) ?: return@OutlinedButton
                     runCatching {
                         context.startActivity(
-                            android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                            android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(web))
                                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                         )
                     }
@@ -678,47 +679,20 @@ internal fun SeekBar(
 }
 
 /** The speed sheet (from the speed pill): the speed, large, and a slider of the speeds offered. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpeedSheet(onDismiss: () -> Unit) {
     // Picture-in-picture shows only the video: the sheet (its own window) closes.
     LaunchedEffect(VideoWindow.inPip) { if (VideoWindow.inPip) onDismiss() }
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
     val s by BriefPlayer.state.collectAsState()
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        // The app's sheet design (as read aloud's speed): title, divider, the slider between
-        // its ends, then the speed, large.
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding()) {
-            Text(stringResource(R.string.player_speed_title), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(Modifier.height(12.dp))
-            androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(Modifier.height(20.dp))
-            val speeds = BriefPlayer.SPEEDS
-            val index = speeds.indexOfFirst { it >= s.speed - 0.01f }.coerceAtLeast(0)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(speedLabel(speeds.first()), style = MaterialTheme.typography.labelLarge)
-                Slider(
-                    value = index.toFloat(),
-                    onValueChange = {
-                        val speed = speeds[Math.round(it).coerceIn(0, speeds.lastIndex)]
-                        if (speed != s.speed) {
-                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                            BriefPlayer.setSpeed(context, speed)
-                        }
-                    },
-                    valueRange = 0f..speeds.lastIndex.toFloat(),
-                    steps = speeds.size - 2,
-                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                )
-                Text(speedLabel(speeds.last()), style = MaterialTheme.typography.labelLarge)
-            }
-            Box(modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                SpeedText(s.speed, MaterialTheme.typography.headlineSmall, MaterialTheme.colorScheme.primary)
-            }
-            Spacer(Modifier.height(24.dp))
-        }
-    }
+    // The shared speed sheet (read aloud's too); the player follows each step.
+    me.ash.reader.brief.ui.SpeedSheet(
+        title = stringResource(R.string.player_speed_title),
+        speeds = BriefPlayer.SPEEDS,
+        speed = s.speed,
+        onDismiss = onDismiss,
+        onStep = { BriefPlayer.setSpeed(context, it) },
+    )
 }
 
 /** The sleep timer sheet (from the moon): off, 15 to 60 minutes, or the end of the episode. */

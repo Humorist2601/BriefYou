@@ -134,6 +134,22 @@ constructor(
 
     fun has(feedId: String): Boolean = prefs.contains(feedId)
 
+    /** A feed was deleted: its custom icon (and image file) and its noted picture go with it. */
+    suspend fun feedDeleted(feedId: String, feedUrl: String?) {
+        clear(feedId)
+        FeedPictures.forget(context, feedUrl)
+    }
+
+    /** Forgets custom icons (and image files) of feeds that no longer exist ([feedIds]: every feed's id). */
+    suspend fun sweep(feedIds: Collection<String>) =
+        withContext(Dispatchers.IO) {
+            val known = feedIds.toHashSet()
+            prefs.all.keys.filterNot { it in known }.forEach { clear(it) }
+            // Image files left without a saved icon.
+            val used = prefs.all.values.mapNotNull { (it as? String)?.let { v -> Uri.parse(v).path } }.toHashSet()
+            dir.listFiles()?.filter { it.absolutePath !in used }?.forEach { it.delete() }
+        }
+
     /** Re-applies custom icons that a sync may have overwritten. */
     suspend fun reapply() =
         withContext(Dispatchers.IO) {
@@ -148,9 +164,12 @@ constructor(
                 feeds.forEach { prefs.edit { putString(it.id, picture) } }
                 FeedPictures.unchoose(context, url)
             }
-            for ((feedId, value) in prefs.all) {
-                var icon = value as? String ?: continue
-                val feed = feedDao.queryById(feedId) ?: continue
+            // One lookup for all the feeds with a custom icon.
+            val overrides = prefs.all.mapNotNull { (id, v) -> (v as? String)?.let { id to it } }
+            val feeds = overrides.map { it.first }.chunked(500).flatMap { feedDao.queryByIds(it) }.associateBy { it.id }
+            for ((feedId, value) in overrides) {
+                var icon = value
+                val feed = feeds[feedId] ?: continue
                 // The feed's picture (an address): follows the feed when it changes its cover.
                 if (icon.startsWith("http", ignoreCase = true)) {
                     FeedPictures.get(context, feed.url)?.takeIf { it != icon }?.let {
