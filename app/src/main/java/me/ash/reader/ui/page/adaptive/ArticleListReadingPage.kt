@@ -170,7 +170,7 @@ fun ArticleListReaderPage(
         detailPane = {
             AnimatedPane(
                 // Brief You: no dark flash between the list and an article (see PaneTransitions)
-                enterTransition = motionDataProvider.briefEnterTransition(paneRole, !isTwoPane),
+                enterTransition = motionDataProvider.briefEnterTransition(paneRole, !isTwoPane, quickFade = true), // Brief You: see quickFade
                 exitTransition = motionDataProvider.briefExitTransition(paneRole, !isTwoPane),
             ) {
                 if (me.ash.reader.brief.perf.PerfLog.enabled) { // Brief You: Nightly stutter log

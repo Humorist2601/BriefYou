@@ -8,6 +8,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -66,8 +67,10 @@ import me.ash.reader.ui.page.adaptive.ReadingUiState
 @Composable
 fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val readingUiState = viewModel.readingUiState.collectAsStateValue()
-    val readerState = viewModel.readerStateStateFlow.collectAsStateValue()
+    // Read on the main thread (collectAsStateValue reads on a background thread, so a new article
+    // reached the colours a frame or more after the page).
+    val readingUiState by viewModel.readingUiState.collectAsState()
+    val readerState by viewModel.readerStateStateFlow.collectAsState()
     val article = readingUiState.articleWithFeed?.article
     val html = readerState.content.text
     val pictureUrl =
@@ -83,7 +86,7 @@ fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composabl
     LaunchedEffect(pictureUrl) {
         me.ash.reader.brief.perf.PerfLog.note( // Nightly stutter log
             when {
-                pictureUrl == null -> "reading colours: no picture (app colours)"
+                pictureUrl == null -> "reading colours: no picture (app colours; article ${if (article == null) "not there yet" else "there"}, text ${html?.length ?: "not there yet"})"
                 instant -> "reading colours: picture colour known, used at once"
                 else -> "reading colours: picture colour not known yet, will fade in"
             }

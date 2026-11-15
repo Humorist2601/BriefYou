@@ -311,6 +311,7 @@ constructor(
 
     /** Brief You: the article already started by [openNow] (the pane asks again when it opens). */
     private var openedEarly: String? = null
+    private var openNowAt = 0L // Brief You: Nightly stutter log
 
     /**
      * Brief You: starts the article as it is tapped, before its page is made, so with a prepared
@@ -319,6 +320,7 @@ constructor(
      */
     fun openNow(articleId: String, listIndex: Int?) {
         openedEarly = articleId
+        openNowAt = android.os.SystemClock.uptimeMillis() // Nightly stutter log
         initData(articleId, listIndex)
     }
 
@@ -352,6 +354,8 @@ constructor(
             val ready = preparedArticle?.takeIf { it.first == targetId }?.second // Brief You
             preparedArticle = null // Brief You
             val waitFrom = android.os.SystemClock.uptimeMillis() // Brief You: Nightly stutter log
+            if (openNowAt > 0) me.ash.reader.brief.perf.PerfLog.note("open: started ${waitFrom - openNowAt} ms after the tap") // Brief You: Nightly stutter log
+            openNowAt = 0L // Brief You
             val wasReady = ready?.isCompleted == true // Brief You
             val readyArticle = ready?.let { runCatching { it.await() }.getOrNull() } // Brief You
             me.ash.reader.brief.perf.PerfLog.note( // Brief You: Nightly stutter log

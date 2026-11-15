@@ -34,6 +34,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState // Brief You
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -84,8 +85,10 @@ fun ReadingPage(
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
     val isPullToSwitchArticleEnabled = LocalPullToSwitchArticle.current.value
-    val readingUiState = viewModel.readingUiState.collectAsStateValue()
-    val readerState = viewModel.readerStateStateFlow.collectAsStateValue()
+    // Brief You: read on the main thread, so a new article is on the page in the frame it is set
+    // (collectAsStateValue reads on a background thread: a frame or more later).
+    val readingUiState = viewModel.readingUiState.collectAsState().value // Brief You
+    val readerState = viewModel.readerStateStateFlow.collectAsState().value // Brief You
     val boldCharacters = LocalReadingBoldCharacters.current
     val coroutineScope = rememberCoroutineScope()
 

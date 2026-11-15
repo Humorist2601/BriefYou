@@ -36,19 +36,27 @@ import androidx.compose.material3.adaptive.layout.calculateDefaultExitTransition
 private const val DURATION = 300
 private const val HALF = DURATION / 2
 private const val OFFSET_FACTOR = 0.10f
+private const val QUICK_FADE = 45
 private val Emphasized = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 fun <Role : PaneScaffoldRole> PaneScaffoldMotionDataProvider<Role>.briefEnterTransition(
     role: Role,
     singlePane: Boolean,
+    /**
+     * The article: it fades in within [QUICK_FADE] ms, before its web view draws its first frame
+     * (60-110 ms in). A web view drawn while its page is see-through is drawn into an extra layer
+     * (a 35-60 ms frame on every opening); it still slides in the same way.
+     */
+    quickFade: Boolean = false,
 ): EnterTransition {
     val motion = this[role].motion
+    val fade = if (quickFade) QUICK_FADE else HALF
     return when {
-        motion == PaneMotion.EnterFromRight -> enter { (it * OFFSET_FACTOR).toInt() }
-        motion == PaneMotion.EnterFromLeft -> enter { -(it * OFFSET_FACTOR).toInt() }
+        motion == PaneMotion.EnterFromRight -> enter(fade) { (it * OFFSET_FACTOR).toInt() }
+        motion == PaneMotion.EnterFromLeft -> enter(fade) { -(it * OFFSET_FACTOR).toInt() }
         singlePane && motion != PaneMotion.NoMotion && motion != PaneMotion.AnimateBounds ->
-            enter { 0 }
+            enter(fade) { 0 }
         else -> calculateDefaultEnterTransition(role)
     }
 }
@@ -80,9 +88,9 @@ fun screenSwitch(forward: Boolean): ContentTransform {
 }
 
 /** Slides in, and is fully there halfway through. */
-private fun enter(offset: (Int) -> Int): EnterTransition =
+private fun enter(fadeMillis: Int = HALF, offset: (Int) -> Int): EnterTransition =
     slideInHorizontally(tween(DURATION, easing = Emphasized), offset) +
-        fadeIn(tween(HALF, easing = LinearEasing))
+        fadeIn(tween(fadeMillis, easing = LinearEasing))
 
 /** Slides out, and fades only in the second half, once the new screen is fully there. */
 private fun exit(offset: (Int) -> Int): ExitTransition =

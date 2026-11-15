@@ -107,6 +107,7 @@ class AndroidApp : Application(), Configuration.Provider {
         me.ash.reader.brief.reading.EmailContent.load(this) // Brief You: the Tidy newsletters setting
         me.ash.reader.brief.reading.ListReadingTime.start(this) { briefArticleDao.textOf(it) } // Brief You: the lists' reading times
         me.ash.reader.brief.feeds.FeedAccent.start(this) // Brief You: the feeds' colours, ready for the first list
+        me.ash.reader.brief.reading.FeedContent.warmUp() // Brief You: the first article opened isn't the one that warms the tidying up
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }

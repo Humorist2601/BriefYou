@@ -34,6 +34,30 @@ import org.jsoup.nodes.Element
 object FeedContent {
 
     /**
+     * Tidies a small made-up article once, in the background, a moment after the app starts. The
+     * first articles opened after a start took 150-200 ms to tidy (the tidying code and its HTML
+     * reader being used for the first time) against 5-80 ms afterwards, and the page waited for it.
+     */
+    fun warmUp() {
+        Thread {
+                runCatching {
+                    Thread.sleep(1_500)
+                    val sample =
+                        "<h2>Warm-up</h2><p>A <a href=\"/a\">link</a>, <b>bold</b> and <i>italic</i> text.</p>" +
+                            "<figure><img src=\"/p.jpg\" alt=\"\"><figcaption>Picture</figcaption></figure>" +
+                            "<blockquote><p>A quote.</p></blockquote><ul><li>One</li><li>Two</li></ul>" +
+                            "<pre><code>code</code></pre><table><tr><td>1</td></tr></table>"
+                    prepared(forReader(sample, "https://example.com/post", "Warm-up"))
+                }
+            }
+            .apply {
+                isDaemon = true
+                priority = Thread.MIN_PRIORITY
+            }
+            .start()
+    }
+
+    /**
      * The last few articles prepared for the reading page (lead picture split off, reading time),
      * so the page finds them ready instead of reading the whole article again as it opens.
      */
