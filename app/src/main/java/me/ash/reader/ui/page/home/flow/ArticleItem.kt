@@ -115,7 +115,7 @@ fun ArticleItem(
         imgData = FeedContent.listImage(article.img, article.link), // Brief You: better pictures
         isStarred = article.isStarred,
         isUnread = isUnread,
-        readingMinutes = remember(article.id) { estimateReadingMinutes(article.rawDescription) }, // Brief You
+        readingMinutes = remember(article.id) { me.ash.reader.brief.reading.ListReadingTime.of(article.id) }, // Brief You: worked out in the background
         onClick = { onClick(articleWithFeed) },
         onLongClick = onLongClick,
     )

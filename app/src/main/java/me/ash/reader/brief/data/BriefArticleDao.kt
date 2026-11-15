@@ -34,6 +34,13 @@ interface BriefArticleDao {
     @Query("SELECT id FROM article WHERE isStarred = 1")
     fun starredIdsFlow(): kotlinx.coroutines.flow.Flow<List<String>>
 
+    /**
+     * One article's text, to work out its reading time once (the lists leave the text out; see
+     * ListReadingTime).
+     */
+    @Query("SELECT rawDescription FROM article WHERE id = :id")
+    suspend fun textOf(id: String): String?
+
     /** Every starred article's id (all accounts), so copies of unstarred ones can go. */
     @Query("SELECT id FROM article WHERE isStarred = 1")
     suspend fun queryStarredIds(): List<String>

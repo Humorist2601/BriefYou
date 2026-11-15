@@ -125,6 +125,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import me.ash.reader.brief.ui.onFingerDown
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.ContentScale
@@ -218,6 +219,20 @@ private fun HapticFeedback.commit(action: TriageAction) =
 
 private const val LOAD_SIZE = 200 // Brief You: the cards one load brings (see BriefListViewModel.loadTriage)
 
+/** How long cards loaded ahead (a place pressed in the sheet) are used before being loaded again. */
+private const val AHEAD_FRESH_MS = 5_000L
+
+/**
+ * One load of a group's (or feed's) cards: [cards] still unread, and [rows], how many articles the
+ * database gave from where the load started (read ones included), so the next load carries on
+ * from there.
+ */
+class TriageLoad(val cards: List<ArticleWithFeed>, val rows: Int) {
+    companion object {
+        val EMPTY = TriageLoad(emptyList(), 0)
+    }
+}
+
 internal data class TriageStep(val article: ArticleWithFeed, val action: TriageAction)
 
 /** What triage can continue with once the current group or feed is done. */
@@ -300,8 +315,20 @@ class TriageSession(
      */
     internal var fullyLoaded: Set<String> = emptySet()
 
-    internal fun noteLoaded(id: String, loaded: Int) {
-        if (loaded < LOAD_SIZE) fullyLoaded = fullyLoaded + id
+    /**
+     * How many of each place's unread articles (in the database's order) its loads have gone
+     * through, so its next load carries on after them. Without it every load started again at the
+     * top, so a group with more than [LOAD_SIZE] unread could end early.
+     */
+    internal var rowsUsed: Map<String, Int> = emptyMap()
+
+    /** The place whose first cards came from the list (only it loads more at its first card). */
+    internal var listPlace: String? = null
+
+    /** A load of [id] went through [rows] more articles ([fromStart]: a load from the top). */
+    internal fun noteRows(id: String, rows: Int, fromStart: Boolean) {
+        rowsUsed = rowsUsed + (id to (if (fromStart) 0 else rowsUsed[id] ?: 0) + rows)
+        fullyLoaded = if (rows < LOAD_SIZE) fullyLoaded + id else fullyLoaded - id
     }
 
     var index by mutableIntStateOf(0)
@@ -457,7 +484,6 @@ class TriageSession(
         setStart(unread, places)
         visited = setOf(feed.id)
         placeSizes = mapOf(feed.id to cards.size)
-        noteLoaded(feed.id, cards.size) // Brief You
         groupId = if (feed.isFeed) null else feed.id // Brief You
         feedId = if (feed.isFeed) feed.id else null // Brief You
         title = feed.name
@@ -508,7 +534,6 @@ class TriageSession(
         savedBefore += history.count { it.action == TriageAction.Save }
         visited = visited + next.id
         if (next.id !in placeSizes) placeSizes = placeSizes + (next.id to cards.size)
-        noteLoaded(next.id, cards.size) // Brief You
         groupId = if (next.isFeed) null else next.id
         feedId = if (next.isFeed) next.id else null
         title = next.name
@@ -532,7 +557,8 @@ fun TriageScreen(
     onClose: () -> Unit,
     findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
-    loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
+    /** Loads a place's cards from the given row (see [TriageLoad]). */
+    loadNext: suspend (next: TriageNext, from: Int) -> TriageLoad,
     listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext> = { _, _ -> emptyList() },
     /** The feeds of a group with unread articles, for the groups sheet to open a group to its feeds. */
     feedsOf: (groupId: String, visited: Set<String>) -> List<TriageNext> = { _, _ -> emptyList() }, // Brief You
@@ -723,7 +749,8 @@ private fun TriageContent(
     onClose: () -> Unit,
     findNext: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageNext?,
     findLeft: (groupId: String?, feedId: String?, visited: Set<String>) -> TriageLeft?,
-    loadNext: suspend (TriageNext) -> List<ArticleWithFeed>,
+    /** Loads a place's cards from the given row (see [TriageLoad]). */
+    loadNext: suspend (next: TriageNext, from: Int) -> TriageLoad,
     listPlaces: (feeds: Boolean, visited: Set<String>) -> List<TriageNext>,
     feedsOf: (groupId: String, visited: Set<String>) -> List<TriageNext>, // Brief You
 ) {
@@ -877,20 +904,27 @@ private fun TriageContent(
     // (the first group starts from what the list had loaded; a group loads at most 200 at a time)
     // and add them behind, so a big group is never taken as finished early. Cards already in the
     // stack (read, skipped or still to come) are left out.
-    val wantMore = current != null && (index == 0 || total - index <= 3)
+    // Brief You: only the place that started from the list's cards loads more at its first card;
+    // a place switched to has just loaded a full batch, so it looks for more near its end.
+    val wantMore = current != null && ((index == 0 && hereId == session.listPlace) || total - index <= 3)
     LaunchedEffect(hereId, wantMore, total) {
         val here = hereId
         if (!wantMore || !hasPlaces || here == null || here in session.fullyLoaded) return@LaunchedEffect // Brief You: nothing more to load
         val seen = session.articles.mapTo(HashSet()) { it.article.id }
-        val more =
-            runCatching { loadNext(TriageNext(here, session.title.orEmpty(), 0, isFeed = isFeeds)) }
-                .getOrDefault(emptyList())
-                .filter { it.article.id !in seen }
-        // Still in the same group (not moved on while loading).
-        if ((session.feedId ?: session.groupId) == here) {
-            session.appendCards(more)
-            // Brief You: nothing new and fewer cards than a full load: nothing more behind them.
-            if (more.isEmpty()) session.noteLoaded(here, session.articles.size)
+        // Carries on after the rows already gone through; a batch of only cards already in the stack
+        // (or already read) moves on to the one after it.
+        repeat(5) {
+            val load =
+                runCatching { loadNext(TriageNext(here, session.title.orEmpty(), 0, isFeed = isFeeds), session.rowsUsed[here] ?: 0) }
+                    .getOrNull() ?: return@LaunchedEffect
+            // Still in the same group (not moved on while loading).
+            if ((session.feedId ?: session.groupId) != here) return@LaunchedEffect
+            session.noteRows(here, load.rows, fromStart = false)
+            val more = load.cards.filter { it.article.id !in seen }
+            if (more.isNotEmpty() || here in session.fullyLoaded) {
+                session.appendCards(more)
+                return@LaunchedEffect
+            }
         }
     }
     // When no group of the run is still untouched: back to one you left cards in (jumped away
@@ -902,6 +936,16 @@ private fun TriageContent(
                 ?.let { it.copy(unread = session.leftIn.getValue(it.id)) }
         else null
     val next = nextNew ?: backTo
+    // Cards loaded ahead: a place pressed in the sheet starts loading as the finger goes down, so
+    // they are usually there by the time the sheet has closed. Used only while fresh.
+    val ahead = remember { mutableMapOf<String, Pair<Long, kotlinx.coroutines.Deferred<TriageLoad>>>() }
+    fun loadAhead(target: TriageNext) {
+        val now = android.os.SystemClock.uptimeMillis()
+        ahead[target.id]?.let { (at, _) -> if (now - at < AHEAD_FRESH_MS) return }
+        ahead[target.id] = now to scope.async { runCatching { loadNext(target, 0) }.getOrDefault(TriageLoad.EMPTY) }
+    }
+    fun takeAhead(target: TriageNext): kotlinx.coroutines.Deferred<TriageLoad>? =
+        ahead.remove(target.id)?.takeIf { android.os.SystemClock.uptimeMillis() - it.first < AHEAD_FRESH_MS }?.second
     // Carries on with [target]: the end screen floats away (or the cards drop out of the way when
     // jumping from the middle of a group), then the new stack swipes up from the bottom.
     fun goTo(target: TriageNext) {
@@ -909,11 +953,14 @@ private fun TriageContent(
         loadingNext = true
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
         scope.launch {
-            // Load the cards while the current screen moves out of the way.
-            val loading = async { runCatching { loadNext(target) }.getOrDefault(emptyList()) }
+            // Load the cards while the current screen moves out of the way (already started when the
+            // place was pressed in the sheet).
+            val loading = takeAhead(target) ?: async { runCatching { loadNext(target, 0) }.getOrDefault(TriageLoad.EMPTY) }
             if (done) doneExit.animateTo(1f, tween(180))
             else stackRise.animateTo(1f, tween(200, easing = FastOutLinearInEasing))
-            val cards = loading.await()
+            val load = loading.await()
+            val cards = load.cards
+            session.noteRows(target.id, load.rows, fromStart = true)
             stackRise.snapTo(1f)
             if (hasPlaces && target.isFeed != isFeeds) {
                 // Brief You: a feed picked in a group's run (or a group picked in a feed's run): the run turns into the other kind.
@@ -1202,6 +1249,7 @@ private fun TriageContent(
                 sheetOpen = false
                 goTo(it)
             },
+            onPressStart = { loadAhead(it) },
             onMarkRead = if (total - index > 0) ({ sheetOpen = false; markRestRead() }) else null, // Brief You
             feedsOf = feedsOf, // Brief You
             onPickFeed = { // Brief You: one feed of a group, from the sheet
@@ -1625,7 +1673,7 @@ private fun TriageCard(
 ) {
     val feed = article.feed
     val item = article.article
-    val minutes = remember(item.id) { estimateReadingMinutes(item.rawDescription) }
+    val minutes = remember(item.id) { me.ash.reader.brief.reading.ListReadingTime.of(item.id) } // worked out as the cards loaded
     // Hold Share to share the card as a picture: a card drawn just for sharing (see SharePicture),
     // off screen at this card's width, then taken as an image.
     val context = LocalContext.current
@@ -2466,6 +2514,8 @@ private fun TriagePlacesSheet(
     currentFeedId: String? = null, // Brief You: the feed being triaged, shown inside its group
     skipTarget: TriageNext?,
     onPick: (TriageNext) -> Unit,
+    /** A place (or one of its feeds) is pressed: its cards can start loading before the tap ends. */
+    onPressStart: (TriageNext) -> Unit = {},
     /** Marks the cards left here as read and carries on (null when none are left). */
     onMarkRead: (() -> Unit)? = null,
     /** A group's feeds with unread articles (groups only), to open a group to them. */
@@ -2597,7 +2647,8 @@ private fun TriagePlacesSheet(
                                     )
                                     .then(
                                         if (!here && !doneHere)
-                                            Modifier.clickable { close { onPick(place) } }
+                                            Modifier.onFingerDown(place.id) { onPressStart(place) }
+                                                .clickable { close { onPick(place) } }
                                         else Modifier
                                     )
                                     .padding(vertical = 12.dp),
@@ -2721,6 +2772,7 @@ private fun TriagePlacesSheet(
                                         modifier =
                                             Modifier.fillMaxWidth()
                                                 .background(if (hereFeed) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+                                                .then(if (!hereFeed && !feedDone) Modifier.onFingerDown(feed.id) { onPressStart(feed) } else Modifier)
                                                 .clickable(enabled = !hereFeed && !feedDone) { close { onPickFeed(feed) } } // Brief You
                                                 .padding(
                                                     top = 8.dp,
@@ -3021,3 +3073,4 @@ private fun SharePicture(article: ArticleWithFeed, summary: CardSummary?, modifi
         }
     }
 }
+

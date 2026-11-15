@@ -32,6 +32,8 @@ sealed class ArticleFlowItem {
  */
 fun PagingData<ArticleWithFeed>.mapPagingFlowItem(androidStringsHelper: AndroidStringsHelper): PagingData<ArticleFlowItem> =
     map {
+        // Brief You: the row's reading time, worked out here in the background (once per article)
+        me.ash.reader.brief.reading.ListReadingTime.ensure(it.article.id, it.article.rawDescription)
         ArticleFlowItem.Article(it.apply {
             article.dateString = androidStringsHelper.formatAsString(
                 date = article.date,

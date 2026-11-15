@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.filter // Brief You
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -70,8 +71,16 @@ constructor(
     workManager: WorkManager,
 ) : ViewModel() {
 
+    // Brief You: the list made for the filter shown now, never the one before it. The list for a
+    // new feed is made in the background, so for a moment the old one can still be there; the
+    // screen then slid in with the previous feed's list and animated over to the new one, building
+    // two lists at once.
+    private fun isCurrent(pagerData: PagerData) =
+        pagerData.filterState == filterStateUseCase.filterStateFlow.value
+
     val flowUiState: StateFlow<FlowUiState?> =
         articleListUseCase.pagerFlow
+            .filter { isCurrent(it) } // Brief You
             .combine(groupWithFeedsListUseCase.groupWithFeedListFlow) {
                 pagerData,
                 groupWithFeedsList ->
@@ -124,7 +133,33 @@ constructor(
                 }
                 FlowUiState(nextFilterState = nextFilterState, pagerData = pagerData)
             }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+            // Brief You: ready from the screen's first frame when its list is already made (the
+            // next feed or group is filled in a moment later when it needs the database). It used
+            // to start empty, so the first frame was blank and the whole page was built mid-slide.
+            .stateIn(viewModelScope, SharingStarted.Eagerly, firstFlowUiState())
+
+    /** Brief You: the list screen's state at once, from what is in memory (see [flowUiState]). */
+    private fun firstFlowUiState(): FlowUiState? {
+        val pagerData = articleListUseCase.pagerFlow.value
+        if (!isCurrent(pagerData)) return null
+        val filterState = pagerData.filterState
+        val groups = groupWithFeedsListUseCase.groupWithFeedListFlow.value
+        val next =
+            when {
+                filterState.group != null ->
+                    groups.map { it.group }.let { list ->
+                        list.indexOfFirst { it.id == filterState.group.id }.takeIf { it != -1 }
+                            ?.let { list.getOrNull(it + 1) }?.let { filterState.copy(group = it) }
+                    }
+                filterState.feed != null ->
+                    groups.flatMap { it.feeds }.let { list ->
+                        list.indexOfFirst { it.id == filterState.feed.id }.takeIf { it != -1 }
+                            ?.let { list.getOrNull(it + 1) }?.let { filterState.copy(feed = it) }
+                    }
+                else -> null
+            }
+        return FlowUiState(nextFilterState = next, pagerData = pagerData)
+    }
 
     private val syncWorkerStatusFlow =
         workManager
@@ -289,10 +324,11 @@ constructor(
                     } as? ArticleFlowItem.Article
                 }
 
+            // Brief You: list rows leave out the article's text (so lists load quickly), so the
+            // article is read here in full, by its id.
+            val listItem = itemByIndex?.articleWithFeed ?: itemFromList?.articleWithFeed
             val item =
-                itemByIndex?.articleWithFeed
-                    ?: (itemFromList?.articleWithFeed
-                        ?: rssService.get().findArticleById(articleId)!!)
+                rssService.get().findArticleById(listItem?.article?.id ?: articleId) ?: listItem!!
 
             if (diffMapHolder.checkIfUnread(item)) {
                 diffMapHolder.updateDiff(item, isUnread = false)

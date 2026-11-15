@@ -15,7 +15,13 @@ import java.util.*
         childColumns = ["feedId"],
         onDelete = ForeignKey.CASCADE,
         onUpdate = ForeignKey.CASCADE
-    )]
+    )],
+    // Brief You: the lists show "unread, newest first" (all, a group, one feed), which used to read
+    // and sort every article. These two indexes answer that straight from the index.
+    indices = [
+        Index(value = ["accountId", "isUnread", "date"]),
+        Index(value = ["feedId", "isUnread", "date"]),
+    ]
 )
 data class Article(
     @PrimaryKey

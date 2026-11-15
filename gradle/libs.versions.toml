@@ -63,8 +63,11 @@ material3Adaptive = "1.3.0-alpha06"
 navigationevent = "1.0.0-beta01"
 # Brief You: Google's Material Color Utilities for Compose (Material You schemes from a seed color).
 materialKolor = "4.0.5"
-composeBomStable = "2025.10.01"
-composeBomAlpha = "2025.10.01"
+# Brief You: Compose 1.11.1 (the newest that works with AGP 8.x and compileSdk 36; 1.12 needs AGP 9.1 and SDK 37)
+composeBomStable = "2026.05.00"
+composeBomAlpha = "2025.10.01" # Brief You: no longer used for the app (see composeBomStable)
+# Brief You: Material 3 from its 1.5 line (Expressive), newest built for Compose 1.11
+material3 = "1.5.0-alpha18"
 
 [libraries]
 litertlm-android = { group = "com.google.ai.edge.litertlm", name = "litertlm-android", version.ref = "litertlm" } # Brief You
@@ -83,7 +86,7 @@ compose-material-icons-extended = { group = "androidx.compose.material", name = 
 compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" } # Brief You: pinned
 
 # Coil
 coil-base = { group = "io.coil-kt", name = "coil-base", version.ref = "coil" }

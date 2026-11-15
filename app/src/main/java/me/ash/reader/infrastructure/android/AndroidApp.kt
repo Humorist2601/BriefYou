@@ -105,6 +105,7 @@ class AndroidApp : Application(), Configuration.Provider {
         super.onCreate()
         CrashHandler(this)
         me.ash.reader.brief.reading.EmailContent.load(this) // Brief You: the Tidy newsletters setting
+        me.ash.reader.brief.reading.ListReadingTime.start(this) { briefArticleDao.textOf(it) } // Brief You: the lists' reading times
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }

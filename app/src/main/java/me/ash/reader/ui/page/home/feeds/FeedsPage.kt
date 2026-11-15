@@ -60,6 +60,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import me.ash.reader.brief.ui.onFingerDown // Brief You
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -304,6 +305,11 @@ fun FeedsPage(
 
                     itemsIndexed(groupWithFeedList) { index, (group, feeds) -> // Brief You: index, for the joined list
                         GroupWithFeedsContainer(shape = me.ash.reader.brief.ui.groupShape(index, groupWithFeedList.size), top = me.ash.reader.brief.ui.Group.Gap) { // Brief You: the groups as one joined list
+                            androidx.compose.foundation.layout.Box(
+                                Modifier.onFingerDown(group.id) { // Brief You: its list starts loading on the press
+                                    feedsViewModel.warmList(filterState.copy(group = group, feed = null))
+                                }
+                            ) {
                             GroupItem(
                                 isExpanded = {
                                     groupsVisible.getOrPut(group.id, groupListExpand::value)
@@ -323,8 +329,14 @@ fun FeedsPage(
                                 )
                                 navigationToFlow()
                             }
+                            } // Brief You
 
                             feeds.forEachIndexed { index, feed ->
+                                androidx.compose.foundation.layout.Box(
+                                    Modifier.onFingerDown(feed.id) { // Brief You: its list starts loading on the press
+                                        feedsViewModel.warmList(filterState.copy(feed = feed, group = null))
+                                    }
+                                ) {
                                 FeedItem(
                                     feed = feed,
                                     isLastItem = { index == feeds.lastIndex },
@@ -339,6 +351,7 @@ fun FeedsPage(
                                     },
                                     onLongClick = { scope.launch { feedDrawerState.show() } },
                                 )
+                                } // Brief You
                             }
                         }
                     }

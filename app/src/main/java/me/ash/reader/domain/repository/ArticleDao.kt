@@ -87,7 +87,7 @@ interface ArticleDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM article
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article
         WHERE accountId = :accountId 
         AND feedId IN (
             SELECT id FROM feed WHERE groupId = :groupId
@@ -116,7 +116,7 @@ interface ArticleDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM article
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article
         WHERE accountId = :accountId 
         AND feedId IN (
             SELECT id FROM feed WHERE groupId = :groupId
@@ -145,7 +145,7 @@ interface ArticleDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM article
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article
         WHERE accountId = :accountId 
         AND feedId IN (
             SELECT id FROM feed WHERE groupId = :groupId
@@ -169,7 +169,7 @@ interface ArticleDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM article
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article
         WHERE accountId = :accountId 
         AND feedId = :feedId
         AND isUnread = :isUnread
@@ -196,7 +196,7 @@ interface ArticleDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM article
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article
         WHERE accountId = :accountId 
         AND feedId = :feedId
         AND isStarred = :isStarred
@@ -223,7 +223,7 @@ interface ArticleDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM article
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article
         WHERE accountId = :accountId 
         AND feedId = :feedId 
         AND (
@@ -245,7 +245,7 @@ interface ArticleDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM article
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article
         WHERE accountId = :accountId 
         AND isUnread = :isUnread
         AND (
@@ -267,7 +267,7 @@ interface ArticleDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM article
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article
         WHERE accountId = :accountId 
         AND isStarred = :isStarred
         AND (
@@ -289,7 +289,7 @@ interface ArticleDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM article
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article
         WHERE accountId = :accountId 
         AND (
             title LIKE '%' || :text || '%'
@@ -495,74 +495,79 @@ interface ArticleDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM article 
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article 
         WHERE accountId = :accountId
-        ORDER BY
-            CASE WHEN :sortAscending = 1 THEN date END ASC,
-            CASE WHEN :sortAscending = 0 THEN date END DESC
+        ORDER BY date DESC /* Brief You: a fixed order, so the (…, date) index can be used */
         """
     )
     fun queryArticleWithFeedWhenIsAll(
-        accountId: Int, sortAscending: Boolean = false
+        accountId: Int
     ): PagingSource<Int, ArticleWithFeed>
 
     @Transaction
     @Query(
         """
-        SELECT * FROM article
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article
         WHERE isStarred = :isStarred 
         AND accountId = :accountId
-        ORDER BY
-            CASE WHEN :sortAscending = 1 THEN date END ASC,
-            CASE WHEN :sortAscending = 0 THEN date END DESC
+        ORDER BY date DESC /* Brief You: a fixed order, so the (…, date) index can be used */
         """
     )
     fun queryArticleWithFeedWhenIsStarred(
-        accountId: Int, isStarred: Boolean, sortAscending: Boolean = false
+        accountId: Int, isStarred: Boolean
     ): PagingSource<Int, ArticleWithFeed>
 
     @Transaction
     @Query(
         """
-        SELECT * FROM article 
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article 
         WHERE isUnread = :isUnread 
         AND accountId = :accountId
-        ORDER BY
-            CASE WHEN :sortAscending = 1 THEN date END ASC,
-            CASE WHEN :sortAscending = 0 THEN date END DESC
+        ORDER BY date DESC /* Brief You: a fixed order, so the (…, date) index can be used */
         """
     )
     fun queryArticleWithFeedWhenIsUnread(
-        accountId: Int, isUnread: Boolean, sortAscending: Boolean = false
+        accountId: Int, isUnread: Boolean
+    ): PagingSource<Int, ArticleWithFeed>
+
+    @Transaction
+    @Query(
+        """
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article 
+        WHERE isUnread = :isUnread 
+        AND accountId = :accountId
+        ORDER BY date ASC /* Brief You */
+        """
+    )
+    fun queryArticleWithFeedWhenIsUnreadAscending(
+        accountId: Int, isUnread: Boolean
     ): PagingSource<Int, ArticleWithFeed>
 
     @Transaction
     @RewriteQueriesToDropUnusedColumns
     @Query(
         """
-        SELECT a.id, a.date, a.title, a.author, a.rawDescription, 
-        a.shortDescription, a.fullContent, a.img, a.link, a.feedId, 
+        SELECT a.id, a.date, a.title, a.author, '' AS rawDescription, 
+        a.shortDescription, NULL AS fullContent, /* Brief You: lists leave out the article text (fetched by id when opened) */ a.img, a.link, a.feedId, 
         a.accountId, a.isUnread, a.isStarred, a.isReadLater, a.updateAt 
         FROM article AS a
         LEFT JOIN feed AS b ON b.id = a.feedId
         LEFT JOIN `group` AS c ON c.id = b.groupId
         WHERE c.id = :groupId
         AND a.accountId = :accountId
-        ORDER BY
-            CASE WHEN :sortAscending = 1 THEN a.date END ASC,
-            CASE WHEN :sortAscending = 0 THEN a.date END DESC
+        ORDER BY a.date DESC /* Brief You: a fixed order, so the (…, date) index can be used */
         """
     )
     fun queryArticleWithFeedByGroupIdWhenIsAll(
-        accountId: Int, groupId: String, sortAscending: Boolean = false
+        accountId: Int, groupId: String
     ): PagingSource<Int, ArticleWithFeed>
 
     @Transaction
     @RewriteQueriesToDropUnusedColumns
     @Query(
         """
-        SELECT a.id, a.date, a.title, a.author, a.rawDescription, 
-        a.shortDescription, a.fullContent, a.img, a.link, a.feedId, 
+        SELECT a.id, a.date, a.title, a.author, '' AS rawDescription, 
+        a.shortDescription, NULL AS fullContent, /* Brief You: lists leave out the article text (fetched by id when opened) */ a.img, a.link, a.feedId, 
         a.accountId, a.isUnread, a.isStarred, a.isReadLater, a.updateAt 
         FROM article AS a
         LEFT JOIN feed AS b ON b.id = a.feedId
@@ -570,21 +575,19 @@ interface ArticleDao {
         WHERE c.id = :groupId
         AND a.isStarred = :isStarred
         AND a.accountId = :accountId
-        ORDER BY
-            CASE WHEN :sortAscending = 1 THEN a.date END ASC,
-            CASE WHEN :sortAscending = 0 THEN a.date END DESC
+        ORDER BY a.date DESC /* Brief You: a fixed order, so the (…, date) index can be used */
         """
     )
     fun queryArticleWithFeedByGroupIdWhenIsStarred(
-        accountId: Int, groupId: String, isStarred: Boolean, sortAscending: Boolean = false
+        accountId: Int, groupId: String, isStarred: Boolean
     ): PagingSource<Int, ArticleWithFeed>
 
     @Transaction
     @RewriteQueriesToDropUnusedColumns
     @Query(
         """
-        SELECT a.id, a.date, a.title, a.author, a.rawDescription, 
-        a.shortDescription, a.fullContent, a.img, a.link, a.feedId, 
+        SELECT a.id, a.date, a.title, a.author, '' AS rawDescription, 
+        a.shortDescription, NULL AS fullContent, /* Brief You: lists leave out the article text (fetched by id when opened) */ a.img, a.link, a.feedId, 
         a.accountId, a.isUnread, a.isStarred, a.isReadLater, a.updateAt 
         FROM article AS a
         LEFT JOIN feed AS b ON b.id = a.feedId
@@ -592,60 +595,86 @@ interface ArticleDao {
         WHERE c.id = :groupId
         AND a.isUnread = :isUnread
         AND a.accountId = :accountId
-        ORDER BY
-            CASE WHEN :sortAscending = 1 THEN a.date END ASC,
-            CASE WHEN :sortAscending = 0 THEN a.date END DESC
+        ORDER BY a.date DESC /* Brief You: a fixed order, so the (…, date) index can be used */
         """
     )
     fun queryArticleWithFeedByGroupIdWhenIsUnread(
-        accountId: Int, groupId: String, isUnread: Boolean, sortAscending: Boolean = false
+        accountId: Int, groupId: String, isUnread: Boolean
+    ): PagingSource<Int, ArticleWithFeed>
+
+    @Transaction
+    @RewriteQueriesToDropUnusedColumns
+    @Query(
+        """
+        SELECT a.id, a.date, a.title, a.author, '' AS rawDescription, 
+        a.shortDescription, NULL AS fullContent, /* Brief You: lists leave out the article text (fetched by id when opened) */ a.img, a.link, a.feedId, 
+        a.accountId, a.isUnread, a.isStarred, a.isReadLater, a.updateAt 
+        FROM article AS a
+        LEFT JOIN feed AS b ON b.id = a.feedId
+        LEFT JOIN `group` AS c ON c.id = b.groupId
+        WHERE c.id = :groupId
+        AND a.isUnread = :isUnread
+        AND a.accountId = :accountId
+        ORDER BY a.date ASC /* Brief You */
+        """
+    )
+    fun queryArticleWithFeedByGroupIdWhenIsUnreadAscending(
+        accountId: Int, groupId: String, isUnread: Boolean
     ): PagingSource<Int, ArticleWithFeed>
 
     @Transaction
     @Query(
         """
-        SELECT * FROM article
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article
         WHERE feedId = :feedId
         AND accountId = :accountId
-        ORDER BY
-            CASE WHEN :sortAscending = 1 THEN date END ASC,
-            CASE WHEN :sortAscending = 0 THEN date END DESC
+        ORDER BY date DESC /* Brief You: a fixed order, so the (…, date) index can be used */
         """
     )
     fun queryArticleWithFeedByFeedIdWhenIsAll(
-        accountId: Int, feedId: String, sortAscending: Boolean = false
+        accountId: Int, feedId: String
     ): PagingSource<Int, ArticleWithFeed>
 
     @Transaction
     @Query(
         """
-        SELECT * from article 
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article 
         WHERE feedId = :feedId 
         AND isStarred = :isStarred
         AND accountId = :accountId
-        ORDER BY
-            CASE WHEN :sortAscending = 1 THEN date END ASC,
-            CASE WHEN :sortAscending = 0 THEN date END DESC
+        ORDER BY date DESC /* Brief You: a fixed order, so the (…, date) index can be used */
         """
     )
     fun queryArticleWithFeedByFeedIdWhenIsStarred(
-        accountId: Int, feedId: String, isStarred: Boolean, sortAscending: Boolean = false
+        accountId: Int, feedId: String, isStarred: Boolean
     ): PagingSource<Int, ArticleWithFeed>
 
     @Transaction
     @Query(
         """
-        SELECT * FROM article 
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article 
         WHERE feedId = :feedId 
         AND isUnread = :isUnread
         AND accountId = :accountId
-        ORDER BY
-            CASE WHEN :sortAscending = 1 THEN date END ASC,
-            CASE WHEN :sortAscending = 0 THEN date END DESC
+        ORDER BY date DESC /* Brief You: a fixed order, so the (…, date) index can be used */
         """
     )
     fun queryArticleWithFeedByFeedIdWhenIsUnread(
-        accountId: Int, feedId: String, isUnread: Boolean, sortAscending: Boolean = false
+        accountId: Int, feedId: String, isUnread: Boolean
+    ): PagingSource<Int, ArticleWithFeed>
+
+    @Transaction
+    @Query(
+        """
+        SELECT id, date, title, author, '' AS rawDescription, shortDescription, NULL AS fullContent, img, link, feedId, accountId, isUnread, isStarred, isReadLater, updateAt /* Brief You: lists leave out the article text (fetched by id when opened) */ FROM article 
+        WHERE feedId = :feedId 
+        AND isUnread = :isUnread
+        AND accountId = :accountId
+        ORDER BY date ASC /* Brief You */
+        """
+    )
+    fun queryArticleWithFeedByFeedIdWhenIsUnreadAscending(
+        accountId: Int, feedId: String, isUnread: Boolean
     ): PagingSource<Int, ArticleWithFeed>
 
 

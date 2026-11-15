@@ -180,6 +180,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Custom feed icons survive syncs and are saved in OPML exports (with additional info) and the backup.
 - The splash takes about 1.3 s, only on fresh launches, and is skipped when animations are off.
 - A baseline profile makes the app smooth from the first run after each update.
+- Lists load without the articles' text (it's read when you open one), sort through an index, and start loading as soon as you press a feed, a group or a place in Triage.
 
 </details>
 

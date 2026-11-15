@@ -221,7 +221,7 @@ You's warnings are left alone on purpose).
   `context.applicationInfo.loadLabel(context.packageManager)`.
 - **Maven Central rate limits** (HTTP 429) can hit dependency downloads from some environments;
   Google's mirror `https://maven-central.storage-download.googleapis.com/maven2/` works.
-- **New libraries must match the Compose/Kotlin versions** (Compose BOM 2025.10, Kotlin 2.2).
+- **New libraries must match the Compose/Kotlin versions** (Compose 1.11.1 from the stable BOM 2026.05.00, Material 3 pinned to 1.5.0-alpha18, Kotlin 2.2). Compose 1.12+ needs AGP 9.1 and compileSdk 37.
   E.g. the Haze blur library 2.x/1.7.3 needed newer Compose; 1.6.10 was the compatible one.
   (Blur was tried and dropped at the owner's request.)
 - **Notifications on Android 16:** InboxStyle shows **6 lines max** and **drops bold spans**;
@@ -250,6 +250,21 @@ You's warnings are left alone on purpose).
   Past causes: building a web view or heavy strings in the first frame of a transition, work on
   the main thread during an animation, three lists built at once, database writes mid-animation,
   stale data swapping in after returning to a screen, a list scroll jump after closing an article.
+- **How the lists load (Brief You):** list and Triage queries leave the article text out
+  (`'' AS rawDescription, NULL AS fullContent` in `ArticleDao`'s paging queries); the text is
+  read by id where it is needed (opening an article in `ArticleListReaderViewModel.initData`,
+  `ArticleText.withText`/`withTextOf` for the AI and the newspaper). Never write a list item back
+  to the database whole. Reading times are worked out once per article in the background and
+  kept in `files/reading_minutes.txt` (`ListReadingTime`). Triage loads 200 cards at a time and
+  carries on after the rows used (`TriageSession.rowsUsed`); pressing a place in its sheet or a
+  feed/group on the Feeds page starts loading on the finger-down (`brief/ui/FingerDown.kt`).
+  The list screen's state is ready from its first frame and never the previous feed's list
+  (`ArticleListReaderViewModel.flowUiState`).
+- **Database versions:** version 8 adds the `(accountId, isUnread, date)` and
+  `(feedId, isUnread, date)` article indexes (`AutoMigration(7, 8)`, built on the first start
+  after the update). The list queries use a fixed `ORDER BY date DESC`, with `…Ascending` twins
+  for the Unread sort setting, so the indexes can be used. Commit `app/schemas/…/8.json` from a
+  local build when one is available.
 - **Speed of pure code** (no phone needed): copy the Kotlin file into a small JVM Gradle project
   and time old vs new (done for reading time, FeedContent, the picture-loader CSS).
 - **Notifications:** the removed `notification-preview.yml` (git history) ran a stock emulator and took screenshots.

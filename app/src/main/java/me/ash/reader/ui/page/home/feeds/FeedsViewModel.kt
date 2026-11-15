@@ -78,6 +78,35 @@ class FeedsViewModel @Inject constructor(
 
     fun commitDiffs() = diffMapHolder.commitDiffsToDb()
 
+    // Brief You: a feed or group pressed on this page: its list's first page is read now, while the
+    // finger is still down, so the database has it at hand when the list opens a moment later.
+    private var warming: Job? = null
+
+    fun warmList(filterState: FilterState) {
+        warming?.cancel()
+        warming =
+            applicationScope.launch(ioDispatcher) {
+                runCatching {
+                    rssService
+                        .get()
+                        .pullArticles(
+                            groupId = filterState.group?.id,
+                            feedId = filterState.feed?.id,
+                            isStarred = filterState.filter.isStarred(),
+                            isUnread = filterState.filter.isUnread(),
+                            sortAscending = settingsProvider.settings.flowSortUnreadArticles.value,
+                        )
+                        .load(
+                            androidx.paging.PagingSource.LoadParams.Refresh(
+                                key = null,
+                                loadSize = 150,
+                                placeholdersEnabled = false,
+                            )
+                        )
+                }
+            }
+    }
+
     fun changeFilter(filterState: FilterState) {
         filterStateUseCase.updateFilterState(filterState)
     }

@@ -161,7 +161,7 @@ dependencies {
 
     // Compose
     implementation(libs.compose.html)
-    implementation(platform(libs.compose.bom.alpha))
+    implementation(platform(libs.compose.bom.stable)) // Brief You: Compose 1.11.1 (Material 3 is pinned in libs.versions.toml)
     implementation(libs.androidx.ui.graphics)
     androidTestImplementation(platform(libs.compose.bom.stable))
     implementation(libs.compose.animation.graphics)
