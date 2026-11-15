@@ -723,6 +723,7 @@ fun FlowPage(
                                             openLinkSpecificBrowser,
                                         )
                                     } else {
+                                        me.ash.reader.brief.perf.PerfLog.action("Open an article") // Brief You: Nightly stutter log
                                         navigateToArticle(articleWithFeed.article.id, index)
                                     }
                                 },

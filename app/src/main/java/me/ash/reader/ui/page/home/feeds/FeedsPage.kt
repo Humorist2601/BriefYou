@@ -324,6 +324,7 @@ fun FeedsPage(
                                 },
                                 onLongClick = { scope.launch { groupDrawerState.show() } },
                             ) {
+                                me.ash.reader.brief.perf.PerfLog.action("Open a group's list") // Brief You: Nightly stutter log
                                 feedsViewModel.changeFilter(
                                     filterState.copy(group = group, feed = null)
                                 )
@@ -344,6 +345,7 @@ fun FeedsPage(
                                         groupsVisible.getOrPut(feed.groupId, groupListExpand::value)
                                     },
                                     onClick = {
+                                        me.ash.reader.brief.perf.PerfLog.action("Open a feed's list") // Brief You: Nightly stutter log
                                         feedsViewModel.changeFilter(
                                             filterState.copy(feed = feed, group = null)
                                         )

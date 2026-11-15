@@ -951,6 +951,7 @@ private fun TriageContent(
     fun goTo(target: TriageNext) {
         if (loadingNext) return
         loadingNext = true
+        me.ash.reader.brief.perf.PerfLog.action("Triage: go to another place") // Nightly stutter log
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
         scope.launch {
             // Load the cards while the current screen moves out of the way (already started when the

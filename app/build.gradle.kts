@@ -113,6 +113,7 @@ android {
             initWith(getByName("release"))
             applicationIdSuffix = ".nightly"
             versionNameSuffix = "-nightly"
+            proguardFile("proguard-nightly.pro") // Brief You: readable names for the stutter log
             matchingFallbacks += listOf("release")
         }
         all { signingConfig = signingConfigs.getByName("release") }
