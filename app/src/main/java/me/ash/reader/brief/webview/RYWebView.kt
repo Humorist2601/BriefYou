@@ -304,17 +304,8 @@ fun RYWebView(
             },
         )
         if (textAlpha < 1f) {
-            // Only the first screen of the article is covered (the page opens at its top): on long
-            // articles the cover was as tall as the whole article, 10 screens and more.
-            val screen = androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.height.toFloat()
             androidx.compose.foundation.layout.Spacer(
-                Modifier.matchParentSize().drawBehind {
-                    drawRect(
-                        cover,
-                        size = androidx.compose.ui.geometry.Size(size.width, minOf(size.height, screen)),
-                        alpha = 1f - textAlpha,
-                    )
-                }
+                Modifier.matchParentSize().drawBehind { drawRect(cover, alpha = 1f - textAlpha) }
             )
         }
         }
@@ -334,22 +325,5 @@ private const val PERF_SCRIPT = """
     document.fonts.ready.then(function () { n('fonts ready (' + document.fonts.status + ')'); });
   } catch (e) { n('no font events: ' + e); }
   requestAnimationFrame(function () { n('first frame'); });
-  // Text indented more than the page's side margin: which elements wrap it, and their margins.
-  window.addEventListener('load', function () {
-    try {
-      var art = document.querySelector('article'), p = art && art.querySelector('p');
-      if (!p) return;
-      var extra = Math.round(p.getBoundingClientRect().left - art.getBoundingClientRect().left);
-      if (extra < 4) return;
-      var chain = [], e = p.parentElement;
-      while (e && e !== art) {
-        var cs = getComputedStyle(e);
-        chain.push(e.tagName.toLowerCase() + (e.className ? '.' + String(e.className).split(' ')[0] : '') + ' m' + cs.marginLeft + ' p' + cs.paddingLeft);
-        e = e.parentElement;
-      }
-      var ps = getComputedStyle(p);
-      n('text indented ' + extra + ' px more than the page margin; inside: ' + (chain.join(' < ') || 'nothing') + '; p m' + ps.marginLeft + ' p' + ps.paddingLeft);
-    } catch (x) {}
-  });
 })();
 """

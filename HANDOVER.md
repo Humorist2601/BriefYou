@@ -208,6 +208,37 @@ You's warnings are left alone on purpose).
    *"Brief You 0.16.2.N: …"* followed by a full changelog since the last release → push → watch
    the Build → report the release. Delete the merged branch.
 
+**Planned next (agreed with the owner, November 2026), in this order:**
+1. **One player for podcasts, read aloud and video** (mockups first), built on top of
+   `background-loading`: Media3 in the background; podcasts and video get their own media
+   notification, read aloud keeps its own (separate notifications, one thing playing at a
+   time); the in-app controls and the "now playing" pill are shared; podcast
+   episodes (the feed item's audio attachment, and `<audio>` in articles) and video files
+   (video attachments, `<video>` in articles; YouTube stays in its own embedded player);
+   speed, ±30 s skip, sleep timer, resume where you stopped, mark as read after a set share;
+   a floating "now playing" pill above the bottom bar; video full screen and
+   picture-in-picture, with Material 3 Expressive controls (wavy progress, shaped play button,
+   joined button groups); its settings in *Settings → Usage → Audio and video*. Mockups:
+   the "Brief You player mockups" canvas (claude.ai artifact). Fixes on the way: Read You takes a feed item's first attachment as its
+   picture whatever its type (a podcast's MP3 became the list picture). Alongside it (from
+   Twine, the owner's pick): a Comments button in the reader when a feed item links to its
+   comments (RSS `<comments>`), sharing the player's database change. Then merge into `main`
+   and release everything together, after the owner approves the changelog.
+2. Update the dependencies on a new branch, one step at a time, each step a Nightly the owner
+   tries before the next:
+   - **A.** Build tools and Compose: Gradle 9.x, Android Gradle Plugin 9.5.x (its built-in
+     Kotlin changes the build setup), Kotlin 2.4.x with KSP to match, compileSdk 37, Compose
+     1.12 (BOM 2026.09.00 or newer), Material 3 1.5.0-rc01 (Expressive names and behaviour
+     changed since alpha18: check every screen).
+   - **B.** AndroidX libraries (Room, Paging, Lifecycle, Navigation, WorkManager, DataStore,
+     Core, Activity, Browser, Media, Glance, Navigation 3, adaptive), OkHttp 5.x stable (it was
+     on 5.0.0-alpha.12), Hilt, Telephoto, LiteRT-LM, Coil 2.7.
+   - **C.** The big jumps, one at a time: Coil 3, Retrofit 3, AboutLibraries 15, MaterialKolor 5.
+     Raising targetSdk (34) is a separate, tested step (edge-to-edge and back-gesture rules).
+3. Optional: automatic update pull requests (Dependabot or Renovate) if the owner agrees. (A
+   startup profile already exists: `app/src/main/baseline-prof.txt` covers all of the app's code;
+   on a freshly installed Nightly it only takes effect after Android's background compiling.)
+
 ---
 
 ## 6. Pitfalls already hit (save yourself the time)
@@ -247,8 +278,8 @@ You's warnings are left alone on purpose).
   handed down `Executors.newSingleThreadExecutor()` written in the provider: each recomposition of
   the pane (every tap, slide and back step) made a new executor, a new value for the whole list,
   so every visible row was rebuilt (and a thread was left behind). It's `remember`ed once in
-  `ArticleListReaderPage` now. A changed handed-down value disables skipping for everything below;
-  the Nightly stutter log's "row input" lines name it (`brief/perf/LocalsDiff.kt`).
+  `ArticleListReaderPage` now. A changed handed-down value disables skipping for everything below
+  (rows rebuilt with none of their own inputs changed are the sign of it).
 - **Moving pictures inside the article web view are repainted every frame.** The pictures'
   loading shapes (an animated SVG) slowed scrolling and left blank frames on picture-heavy pages;
   they hold still while the page scrolls (`brief-scrolling` class, toggled from `Content`'s scroll
@@ -257,7 +288,8 @@ You's warnings are left alone on purpose).
   arrives after the article was handed to its web view only fades the screen around it; the
   article keeps the colours it opened with (`BriefReadingTheme`).
 - **The first article after a start is cold.** A list's first three articles are tidied ahead
-  (`FeedContent.prepareAhead`, cached by `forReaderInBackground`). Don't warm the spare web view
+  (`FeedContent.prepareAhead`, cached by `forReaderInBackground`); tidying a tiny made-up article at
+  start didn't warm it enough (removed). Don't warm the spare web view
   by loading a page into it: tried in 0.16.2.119, it flashed white on the first article and made
   its frames slower (99–162 ms), without making the page load sooner.
 - **`ModalBottomSheet` opens its own window**; making and tearing it down costs 30–60 ms frames on
