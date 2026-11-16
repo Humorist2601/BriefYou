@@ -155,6 +155,7 @@ constructor(
                 url = feedLink,
                 groupId = groupId,
                 accountId = accountId,
+                icon = searchedFeed.icon?.link, // Brief You: the icon chosen in Add a feed
                 isNotification = isNotification,
                 isFullContent = isFullContent,
                 isBrowser = isBrowser,
@@ -731,7 +732,10 @@ constructor(
                                     updated?.let { Date(updated * 1000L) }
                                         ?: it.crawlTimeMsec?.let { Date(it.toLong()) }
                                         ?: currentDate,
-                            )
+                            ).also { article -> // Brief You: its episode or video
+                                me.ash.reader.brief.media.FeedMedia.fromEnclosures(article.id, it.enclosure.orEmpty().map { e -> e.href to e.type }, article.link) // Brief You
+                                    ?.let { extras -> me.ash.reader.brief.media.ArticleMedia.found(listOf(extras)) } // Brief You
+                            } // Brief You
                         },
                     )
                 }

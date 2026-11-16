@@ -60,6 +60,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import me.ash.reader.brief.ui.onFingerDown // Brief You
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -304,6 +305,11 @@ fun FeedsPage(
 
                     itemsIndexed(groupWithFeedList) { index, (group, feeds) -> // Brief You: index, for the joined list
                         GroupWithFeedsContainer(shape = me.ash.reader.brief.ui.groupShape(index, groupWithFeedList.size), top = me.ash.reader.brief.ui.Group.Gap) { // Brief You: the groups as one joined list
+                            androidx.compose.foundation.layout.Box(
+                                Modifier.onFingerDown(group.id) { // Brief You: its list starts loading on the press
+                                    feedsViewModel.warmList(filterState.copy(group = group, feed = null))
+                                }
+                            ) {
                             GroupItem(
                                 isExpanded = {
                                     groupsVisible.getOrPut(group.id, groupListExpand::value)
@@ -318,13 +324,20 @@ fun FeedsPage(
                                 },
                                 onLongClick = { scope.launch { groupDrawerState.show() } },
                             ) {
+                                me.ash.reader.brief.perf.PerfLog.action("Open a group's list") // Brief You: Nightly stutter log
                                 feedsViewModel.changeFilter(
                                     filterState.copy(group = group, feed = null)
                                 )
                                 navigationToFlow()
                             }
+                            } // Brief You
 
                             feeds.forEachIndexed { index, feed ->
+                                androidx.compose.foundation.layout.Box(
+                                    Modifier.onFingerDown(feed.id) { // Brief You: its list starts loading on the press
+                                        feedsViewModel.warmList(filterState.copy(feed = feed, group = null))
+                                    }
+                                ) {
                                 FeedItem(
                                     feed = feed,
                                     isLastItem = { index == feeds.lastIndex },
@@ -332,6 +345,7 @@ fun FeedsPage(
                                         groupsVisible.getOrPut(feed.groupId, groupListExpand::value)
                                     },
                                     onClick = {
+                                        me.ash.reader.brief.perf.PerfLog.action("Open a feed's list") // Brief You: Nightly stutter log
                                         feedsViewModel.changeFilter(
                                             filterState.copy(feed = feed, group = null)
                                         )
@@ -339,6 +353,7 @@ fun FeedsPage(
                                     },
                                     onLongClick = { scope.launch { feedDrawerState.show() } },
                                 )
+                                } // Brief You
                             }
                         }
                     }
@@ -370,6 +385,7 @@ fun FeedsPage(
                 filterBarPadding = filterBarPadding.dp,
                 filterBarTonalElevation = filterBarTonalElevation.value.dp,
             ) {
+                me.ash.reader.brief.perf.PerfLog.action("Feeds: switch filter (tap)") // Brief You: Nightly stutter log
                 feedsViewModel.changeFilter(filterState.copy(filter = it))
             }
         },

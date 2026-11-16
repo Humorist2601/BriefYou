@@ -187,8 +187,12 @@ constructor(
         }
     }
 
-    /** The unread articles of a group or feed, newest first like the list, for triage to continue. */
-    suspend fun loadTriage(next: TriageNext): List<ArticleWithFeed> =
+    /**
+     * The unread articles of a group or feed, newest first like the list, for triage to continue:
+     * up to 200, starting [from] that many in (where the last load ended). The cards leave the
+     * article's text out, like the list's rows, so a load is small.
+     */
+    suspend fun loadTriage(next: TriageNext, from: Int = 0): me.ash.reader.brief.triage.TriageLoad =
         withContext(ioDispatcher) {
             val source =
                 rssService
@@ -202,15 +206,12 @@ constructor(
                     )
             val result =
                 source.load(
-                    PagingSource.LoadParams.Refresh(
-                        key = null,
-                        loadSize = 200,
-                        placeholdersEnabled = false,
-                    )
+                    if (from <= 0)
+                        PagingSource.LoadParams.Refresh(key = null, loadSize = 200, placeholdersEnabled = false)
+                    else PagingSource.LoadParams.Append(key = from, loadSize = 200, placeholdersEnabled = false)
                 )
-            (result as? PagingSource.LoadResult.Page)
-                ?.data
-                .orEmpty()
+            val rows = (result as? PagingSource.LoadResult.Page)?.data.orEmpty()
+            val cards = rows
                 .filter { diffMapHolder.checkIfUnread(it) }
                 .distinctBy { it.article.id }
                 .let { list -> me.ash.reader.brief.filters.WatchedWords.watchedFirst(list) { it.article.title } } // watched first
@@ -220,7 +221,10 @@ constructor(
                             date = it.article.date,
                             onlyHourMinute = true,
                         )
+                    // The card's reading time (cards leave the text out; see ListReadingTime).
+                    me.ash.reader.brief.reading.ListReadingTime.ensure(it.article.id, it.article.rawDescription)
                 }
+            me.ash.reader.brief.triage.TriageLoad(cards, rows.size)
         }
 
     /** An article's title, feed and picture, for the next article card at the end of an article. */

@@ -34,6 +34,13 @@ interface BriefArticleDao {
     @Query("SELECT id FROM article WHERE isStarred = 1")
     fun starredIdsFlow(): kotlinx.coroutines.flow.Flow<List<String>>
 
+    /**
+     * One article's text, to work out its reading time once (the lists leave the text out; see
+     * ListReadingTime).
+     */
+    @Query("SELECT rawDescription FROM article WHERE id = :id")
+    suspend fun textOf(id: String): String?
+
     /** Every starred article's id (all accounts), so copies of unstarred ones can go. */
     @Query("SELECT id FROM article WHERE isStarred = 1")
     suspend fun queryStarredIds(): List<String>
@@ -126,6 +133,44 @@ interface BriefArticleDao {
         """
     )
     fun unreadTitles(accountId: Int): kotlinx.coroutines.flow.Flow<List<UnreadTitle>>
+
+    /** Which of [ids] are still articles (for the tidy-up of Brief You's own notes). */
+    @Query("SELECT id FROM article WHERE id IN (:ids)")
+    suspend fun existingIds(ids: List<String>): List<String>
+
+    /** Every feed's id, in every account (for the tidy-up of custom icons). */
+    @Query("SELECT id FROM feed")
+    suspend fun allFeedIds(): List<String>
+
+    /** Every feed's address, in every account (for the tidy-up of noted feed pictures). */
+    @Query("SELECT url FROM feed")
+    suspend fun allFeedUrls(): List<String>
+
+    /** Every group's id, in every account (for the tidy-up of group icons). */
+    @Query("SELECT id FROM `group`")
+    suspend fun allGroupIds(): List<String>
+
+    /** Every account's id (for the tidy-up of what deleted accounts left). */
+    @Query("SELECT id FROM account")
+    suspend fun allAccountIds(): List<Int>
+
+    /** An account's article ids (for the tidy-up of saved full-text pages). */
+    @Query("SELECT id FROM article WHERE accountId = :accountId")
+    suspend fun articleIds(accountId: Int): List<String>
+
+    /** Forgets cleared articles' links of a local feed (see ArchivedLinks). */
+    @Query("DELETE FROM archived_article WHERE feedId = :feedId AND link IN (:links)")
+    suspend fun forgetArchivedLinks(feedId: String, links: List<String>)
+
+    /**
+     * Forgets the cleared articles' links of accounts that aren't local: only local feeds read
+     * them (FreshRSS, Google Reader and the others never add an article twice).
+     */
+    @Query(
+        "DELETE FROM archived_article WHERE feedId IN " +
+            "(SELECT f.id FROM feed AS f JOIN account AS a ON f.accountId = a.id WHERE a.type != 1)"
+    )
+    suspend fun forgetArchivedLinksNotLocal()
 }
 
 /** An unread article's title and where it is. */
@@ -137,4 +182,5 @@ object BriefDataModule {
     @Provides
     fun provideBriefArticleDao(androidDatabase: AndroidDatabase): BriefArticleDao =
         androidDatabase.briefArticleDao()
+
 }

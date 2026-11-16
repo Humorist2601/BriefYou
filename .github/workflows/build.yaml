@@ -134,6 +134,14 @@ jobs:
                   name: ReadYou-GitHub-Build-${{ github.sha }}
                   path: app/build/outputs/apk/github/${{ env.VARIANT }}/*.apk
 
+            - uses: actions/upload-artifact@v7
+              # Brief You: the databases' schemas as built, to commit to app/schemas (so a later
+              # change can be a migration instead of wiping data).
+              with:
+                  name: brief-schemas-${{ github.sha }}
+                  path: app/schemas/
+                  if-no-files-found: ignore
+
             - name: Publish Nightly
               # Test builds: the one Nightly prerelease, replaced by each one (never "latest").
               if: inputs.nightly

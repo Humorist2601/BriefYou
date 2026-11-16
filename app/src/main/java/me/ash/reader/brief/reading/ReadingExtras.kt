@@ -143,7 +143,7 @@ private fun NextArticle(next: ArticleWithFeed, onNext: () -> Unit) {
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            next.article.img?.let { img ->
+            next.article.img?.takeIf { !me.ash.reader.brief.media.MediaFiles.isMedia(it) }?.let { img ->
                 RYAsyncImage(
                     modifier = Modifier.size(64.dp).clip(RoundedCornerShape(16.dp)),
                     data = FeedContent.listImage(img, next.article.link),

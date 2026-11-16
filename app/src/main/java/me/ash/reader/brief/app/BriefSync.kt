@@ -16,9 +16,11 @@ import me.ash.reader.domain.model.article.Article
 class BriefSync
 @Inject
 constructor(
+    @param:dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val briefFilters: BriefFilters,
     private val feedIconOverrides: FeedIconOverrides,
     private val notificationHelper: NotificationHelper,
+    private val cleanup: BriefCleanup,
 ) {
     /** Runs a sync; the new-articles notification is posted once, when it's all done. */
     suspend fun <T> duringSync(block: suspend () -> T): T {
@@ -39,5 +41,13 @@ constructor(
         runCatching { briefFilters.forget(removed.map { it.id }) }
         runCatching { briefFilters.apply(accountId) }
         runCatching { feedIconOverrides.reapply() }
+        // The player's notes for articles that are gone: attachments, places and video shapes.
+        runCatching {
+            val ids = removed.map { it.id }
+            me.ash.reader.brief.media.ArticleMedia.forget(ids)
+            me.ash.reader.brief.player.BriefPlayer.forget(context, ids)
+        }
+        // The rest of Brief You's notes about things that are gone, now and then (see BriefCleanup).
+        runCatching { cleanup.sweepIfDue() }
     }
 }

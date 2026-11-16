@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -110,13 +112,22 @@ fun BriefMetadataChips(
         )
         HeaderChip(text = dateString)
         readingLabel?.let { HeaderChip(text = it) }
+        // The article's comments, when its feed links to them: opened like other links.
+        me.ash.reader.brief.player.LocalArticleExtras.current?.comments?.let { me.ash.reader.brief.media.WebUrl.of(it) }?.let { comments ->
+            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+            HeaderChip(
+                text = androidx.compose.ui.res.stringResource(me.ash.reader.R.string.article_comments),
+                icon = androidx.compose.material.icons.Icons.Outlined.Forum,
+                onClick = { runCatching { uriHandler.openUri(comments) } },
+            )
+        }
     }
     androidx.compose.foundation.layout.Spacer(
         modifier = Modifier.padding(top = 10.dp)
     )
 }
 
-/** A small rounded label in the header (feed, date, reading time). */
+/** A small rounded label in the header (feed, date, reading time, comments). */
 @Composable
 private fun HeaderChip(
     text: String,
@@ -124,18 +135,40 @@ private fun HeaderChip(
         androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
     content: androidx.compose.ui.graphics.Color =
         androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    onClick: (() -> Unit)? = null,
 ) {
-    androidx.compose.material3.Surface(
-        color = container,
-        contentColor = content,
-        shape = RoundedCornerShape(50),
-    ) {
-        androidx.compose.material3.Text(
-            text = text,
-            style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
-            maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+    val label: @Composable () -> Unit = {
+        androidx.compose.foundation.layout.Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(5.dp),
+        ) {
+            icon?.let {
+                androidx.compose.material3.Icon(it, null, modifier = Modifier.size(14.dp))
+            }
+            androidx.compose.material3.Text(
+                text = text,
+                style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+    }
+    if (onClick != null) {
+        androidx.compose.material3.Surface(
+            onClick = onClick,
+            color = container,
+            contentColor = content,
+            shape = RoundedCornerShape(50),
+            content = label,
+        )
+    } else {
+        androidx.compose.material3.Surface(
+            color = container,
+            contentColor = content,
+            shape = RoundedCornerShape(50),
+            content = label,
         )
     }
 }

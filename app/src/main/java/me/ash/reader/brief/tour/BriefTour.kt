@@ -56,9 +56,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.rounded.Balance
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -100,28 +102,39 @@ import me.ash.reader.brief.ui.GoogleSansWideFontFamily
 import me.ash.reader.ui.component.base.RYDialog
 import me.ash.reader.ui.ext.DataStoreKey
 import me.ash.reader.ui.ext.dataStore
+import me.ash.reader.ui.ext.fromJSONStringToDataStore
 import me.ash.reader.ui.ext.put
 
-private const val PAGES = 4
+// The tour's pages.
+private const val RESTORE = 0
+private const val TRIAGE = 1
+private const val AI = 2
+private const val CALM = 3
+private const val HOLD = 4
 
 /**
- * The first run: four pages on what's different about Brief You (Triage, the on-device AI,
- * calmer feeds, and the buttons that do more when held), in place of Read You's welcome page.
+ * The first run: restoring a settings backup (for someone coming from another phone), then four
+ * pages on what's different about Brief You (Triage, the on-device AI, calmer feeds, and the
+ * buttons that do more when held), in place of Read You's welcome page.
  * Its agreement (terms and privacy) is kept on the last page: Skip goes there, and "Agree and
  * start" is the only way on. "Set up AI" opens the AI page once you've agreed.
  */
 @Composable
 fun BriefFirstRun(onNavigateToFeeds: () -> Unit, onNavigateToAi: () -> Unit) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     BriefTour(firstRun = true) { setUpAi ->
+        // Saved outside this screen: the tour leaves the screen stack next, which would cancel
+        // its own coroutines.
+        val appContext = context.applicationContext
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            appContext.dataStore.put(DataStoreKey.isFirstLaunch, false)
+        }
         onNavigateToFeeds()
         if (setUpAi) onNavigateToAi()
-        scope.launch { context.dataStore.put(DataStoreKey.isFirstLaunch, false) }
     }
 }
 
-/** The tour again, from Settings: the same pages, without the agreement. */
+/** The tour again, from Settings: the same pages (Restore included), without the agreement. */
 @Composable
 fun BriefTourDialog(onDismiss: () -> Unit, onSetUpAi: () -> Unit) {
     Dialog(
@@ -144,19 +157,53 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
-    val pager = rememberPagerState { PAGES }
+    val pages = remember { listOf(RESTORE, TRIAGE, AI, CALM, HOLD) }
+    val pager = rememberPagerState { pages.size }
+    val aiPage = pages.indexOf(AI)
     var setUpAi by rememberSaveable { mutableStateOf(false) }
+    var restored by rememberSaveable { mutableStateOf<Boolean?>(null) } // null: not tried; false: the file couldn't be read
+    // Restore: your backup file (Settings, Troubleshooting, Export as JSON on the other phone),
+    // read into the app's settings as Troubleshooting's Import does.
+    val restoreLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            val appContext = context.applicationContext
+            scope.launch {
+                val ok =
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        runCatching {
+                                val text =
+                                    appContext.contentResolver.openInputStream(uri)!!.use { String(it.readBytes()) }
+                                importSettings(appContext, text)
+                            }
+                            .isSuccess
+                    }
+                restored = ok
+                if (ok) {
+                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                    pager.animateScrollToPage(pages.indexOf(RESTORE) + 1)
+                } else {
+                    haptic.performHapticFeedback(HapticFeedbackType.Reject)
+                }
+            }
+        }
     var termsVisible by remember { mutableStateOf(false) }
     val phone = remember { PhoneCheck.of(context) }
     val scheme = MaterialTheme.colorScheme
-    val last = pager.currentPage == PAGES - 1
+    val last = pager.currentPage == pages.lastIndex
+    val kind = pages[pager.currentPage.coerceIn(0, pages.lastIndex)]
     val arts =
-        listOf(
-            TourArt(MaterialShapes.Cookie4Sided, scheme.primary, scheme.onPrimary, Icons.Rounded.Style),
-            TourArt(MaterialShapes.Cookie9Sided, scheme.tertiaryContainer, scheme.onTertiaryContainer, Icons.Outlined.AutoAwesome),
-            TourArt(MaterialShapes.Clover4Leaf, scheme.secondaryContainer, scheme.onSecondaryContainer, Icons.Outlined.NotificationsActive),
-            TourArt(MaterialShapes.SoftBurst, scheme.primaryContainer, scheme.onPrimaryContainer, Icons.Outlined.TouchApp),
-        )
+        pages.map { page ->
+            when (page) {
+                RESTORE -> TourArt(MaterialShapes.Sunny, scheme.secondaryContainer, scheme.onSecondaryContainer, Icons.Outlined.SettingsBackupRestore)
+                TRIAGE -> TourArt(MaterialShapes.Cookie4Sided, scheme.primary, scheme.onPrimary, Icons.Rounded.Style)
+                AI -> TourArt(MaterialShapes.Cookie9Sided, scheme.tertiaryContainer, scheme.onTertiaryContainer, Icons.Outlined.AutoAwesome)
+                CALM -> TourArt(MaterialShapes.Clover4Leaf, scheme.secondaryContainer, scheme.onSecondaryContainer, Icons.Outlined.NotificationsActive)
+                else -> TourArt(MaterialShapes.SoftBurst, scheme.primaryContainer, scheme.onPrimaryContainer, Icons.Outlined.TouchApp)
+            }
+        }
     fun go(page: Int) {
         haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
         scope.launch { pager.animateScrollToPage(page) }
@@ -184,18 +231,29 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                             .verticalScroll(scroll, enabled = scroll.maxValue > 0)
                             .padding(horizontal = 28.dp),
                 ) {
-                    when (page) {
-                        0 -> {
+                    when (pages[page]) {
+                        RESTORE -> {
+                            Title(stringResource(R.string.tour_restore_title))
+                            Body(stringResource(R.string.tour_restore_text))
+                            restored?.let { ok ->
+                                Spacer(Modifier.height(16.dp))
+                                ResultLine(
+                                    stringResource(if (ok) R.string.tour_restore_done else R.string.tour_restore_failed),
+                                    problem = !ok,
+                                )
+                            }
+                        }
+                        TRIAGE -> {
                             Title(stringResource(R.string.tour_triage_title))
                             Body(stringResource(R.string.tour_triage_text))
                         }
-                        1 -> {
+                        AI -> {
                             Title(stringResource(R.string.tour_ai_title))
                             Body(stringResource(R.string.tour_ai_text))
                             Spacer(Modifier.height(16.dp))
                             PhoneLine(phone, setUpAi)
                         }
-                        2 -> {
+                        CALM -> {
                             Title(stringResource(R.string.tour_calm_title))
                             Body(stringResource(R.string.tour_calm_text))
                         }
@@ -234,7 +292,7 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                     }
                 }
             }
-            Dots(pager.currentPage)
+            Dots(pager.currentPage, pages.size)
             // Two buttons, Skip (or Later) and Next; on the last page Skip shrinks away and Next
             // grows to fill the row, its words changing as it does.
             val split by
@@ -256,13 +314,15 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                                 },
                             contentAlignment = Alignment.CenterStart,
                         ) {
-                            val later = pager.currentPage == 1
+                            // On the AI and Restore pages, Later moves on to the next page;
+                            // elsewhere Skip goes to the last one.
+                            val later = kind == AI || (kind == RESTORE && restored != true)
                             TourButton(
                                 text = stringResource(if (later) R.string.tour_later else R.string.tour_skip),
                                 kind = TourButtonKind.Tonal,
                                 modifier = Modifier.wrapContentWidth(Alignment.Start, unbounded = true).width(half),
                             ) {
-                                if (!last) go(if (later) 2 else PAGES - 1)
+                                if (!last) go(if (later) pager.currentPage + 1 else pages.lastIndex)
                             }
                         }
                         Spacer(Modifier.width(12.dp * split))
@@ -271,7 +331,8 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                         text =
                             when {
                                 last -> stringResource(if (firstRun) R.string.tour_agree_start else R.string.tour_done)
-                                pager.currentPage == 1 -> stringResource(R.string.tour_set_up_ai)
+                                kind == AI -> stringResource(R.string.tour_set_up_ai)
+                                kind == RESTORE && restored != true -> stringResource(R.string.tour_restore)
                                 else -> stringResource(R.string.tour_next)
                             },
                         kind = TourButtonKind.Filled,
@@ -282,10 +343,14 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                                 haptic.performHapticFeedback(HapticFeedbackType.Confirm)
                                 onDone(setUpAi)
                             }
-                            pager.currentPage == 1 -> {
+                            kind == AI -> {
                                 haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
                                 setUpAi = true
-                                scope.launch { pager.animateScrollToPage(2) }
+                                scope.launch { pager.animateScrollToPage(aiPage + 1) }
+                            }
+                            kind == RESTORE && restored != true -> {
+                                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                restoreLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
                             }
                             else -> go(pager.currentPage + 1)
                         }
@@ -460,6 +525,35 @@ private fun PhoneLine(phone: PhoneCheck, setUpAi: Boolean) {
     }
 }
 
+/** The Restore page's outcome, drawn like the AI page's line. */
+@Composable
+private fun ResultLine(text: String, problem: Boolean) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier =
+            Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(if (problem) scheme.errorContainer else scheme.surfaceContainerHigh)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            if (problem) Icons.Rounded.ErrorOutline else Icons.Rounded.Check,
+            contentDescription = null,
+            tint = if (problem) scheme.onErrorContainer else scheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = if (problem) scheme.onErrorContainer else scheme.onSurface)
+    }
+}
+
+/** A settings backup read into the app's settings; throws if the file isn't one. */
+private suspend fun importSettings(context: android.content.Context, json: String) {
+    require(json.trimStart().startsWith("{")) { "not a settings backup" }
+    json.fromJSONStringToDataStore(context)
+}
+
 /** One long press, in a connected list. */
 @Composable
 private fun HoldRow(text: String, first: Boolean, last: Boolean) {
@@ -478,9 +572,9 @@ private fun HoldRow(text: String, first: Boolean, last: Boolean) {
 
 /** Page dots: the current one is a wider pill. */
 @Composable
-private fun Dots(current: Int) {
+private fun Dots(current: Int, count: Int) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-        repeat(PAGES) { i ->
+        repeat(count) { i ->
             val width by
                 animateDpAsState(
                     if (i == current) 24.dp else 8.dp,

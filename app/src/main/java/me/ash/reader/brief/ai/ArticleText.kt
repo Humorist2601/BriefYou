@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import me.ash.reader.domain.model.article.Article
+import me.ash.reader.domain.model.article.ArticleWithFeed
 import me.ash.reader.domain.service.RssService
 import me.ash.reader.infrastructure.rss.ReaderCacheHelper
 import org.jsoup.Jsoup
@@ -35,8 +36,23 @@ constructor(
             }
         }
 
-    private suspend fun bestRaw(article: Article, shown: String?): String =
+    /**
+     * [article] with its text: list rows and Triage cards leave the text out (so they load
+     * quickly), so it is read from the database by id when it is needed.
+     */
+    private suspend fun withText(article: Article): Article =
+        if (article.rawDescription.isNotEmpty()) article
+        else runCatching { rssService.get().findArticleById(article.id)?.article }.getOrNull() ?: article
+
+    /** [item] with its article's text (see [withText]). */
+    suspend fun withTextOf(item: ArticleWithFeed): ArticleWithFeed =
         withContext(Dispatchers.IO) {
+            if (item.article.rawDescription.isNotEmpty()) item else item.copy(article = withText(item.article))
+        }
+
+    private suspend fun bestRaw(listArticle: Article, shown: String?): String =
+        withContext(Dispatchers.IO) {
+            val article = withText(listArticle)
             val candidates = listOfNotNull(shown, article.rawDescription).filter { it.isNotBlank() }
             // Each text is read once (it used to be read again for every comparison).
             val measured = candidates.map { it to textLength(it) }
@@ -50,8 +66,9 @@ constructor(
         }
 
     /** Whether [best] would fetch the full article (all the text at hand is a teaser). */
-    suspend fun needsFullText(article: Article, shown: String? = null): Boolean =
+    suspend fun needsFullText(listArticle: Article, shown: String? = null): Boolean =
         withContext(Dispatchers.IO) {
+            val article = withText(listArticle)
             article.link.startsWith("http") &&
                 listOfNotNull(shown, article.rawDescription).maxOfOrNull { textLength(it) }.let { (it ?: 0) < TEASER_CHARS }
         }

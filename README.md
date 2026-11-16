@@ -15,7 +15,7 @@
 <p align="center">
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-ai-dark.svg"><img alt="On-device AI: summaries, group gists and Ask, all private" src=".github/assets/readme/card-ai-light.svg" width="32%"></picture>
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-triage-dark.svg"><img alt="Triage: swipe through a backlog, card by card" src=".github/assets/readme/card-triage-light.svg" width="32%"></picture>
-<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-listen-dark.svg"><img alt="Read aloud: like a music app, with speed and progress" src=".github/assets/readme/card-listen-light.svg" width="32%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-listen-dark.svg"><img alt="Listen and watch: read aloud, podcasts and videos, with speed and a sleep timer" src=".github/assets/readme/card-listen-light.svg" width="32%"></picture>
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-calm-dark.svg"><img alt="Calmer feeds: one digest, muted words, no duplicates" src=".github/assets/readme/card-calm-light.svg" width="32%"></picture>
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-stats-dark.svg"><img alt="Reading stats: your week, streaks and a monthly recap" src=".github/assets/readme/card-stats-light.svg" width="32%"></picture>
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-backup-dark.svg"><img alt="Full backup: everything in one file" src=".github/assets/readme/card-backup-light.svg" width="32%"></picture>
@@ -23,7 +23,7 @@
 
 Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It keeps everything that makes Read You great (Material You design, Reeder-style reading, FreshRSS, Miniflux, Fever, Google Reader API and more) and adds AI that runs **entirely on your phone**: articles and questions never leave it. It installs **next to** Read You (app ID `com.ay.briefyou`); move your feeds over with OPML. It also fixes a few Read You bugs: read state that could go back to unread ([#1254](https://github.com/ReadYouApp/ReadYou/issues/1254)), *Mark as read on scroll* marking articles you never saw ([#1274](https://github.com/ReadYouApp/ReadYou/issues/1274)), pictures blocked by hotlink protection ([#1347](https://github.com/ReadYouApp/ReadYou/issues/1347)), and automatic sync that stops after the phone's clock is set ahead and back.
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots-dark.png"><img alt="Brief You screenshots: feeds, reading, Triage, AI gist and Reading stats" src=".github/assets/screenshots.png" width="100%"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots-dark.png"><img alt="Brief You screenshots: feeds, reading, a podcast, a video, Triage, AI gist, Filters and Reading stats" src=".github/assets/screenshots.png" width="80%"></picture></p>
 
 ## What's different from Read You
 
@@ -70,7 +70,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - The filtered list (Settings → Filters) shows when each article was caught, and earlier days sit under a row per month, all closed to start; a month opens to its days and a day opens to its articles.
 - Tidier articles also drop "appeared first on" lines.
 - Large header picture; feed, date and reading time as chips; title, time left and a wavy progress bar in the top bar once you scroll.
-- Pictures: drag one away to close it; Save and Share in its menu; slightly dimmed in dark mode.
+- Pictures: drag one away to close it; tap it to hide or show its buttons; Save and Share in its menu; slightly dimmed in dark mode.
 - Newspaper: hold Share at the top of an article (or pick *Share as newspaper* in an article's long-press menu) to share it as a newspaper front page:
   - the feed's name as the masthead, the date and site on the dateline, and the headline;
   - the lead picture in black and white with a faint dot screen, like newsprint;
@@ -94,6 +94,31 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Long press: speech settings before reading, the speed slider while reading, stop while paused.
 - Closing the article (or the AI sheet, for a summary) stops it; leaving the app keeps it going.
 - Each read aloud button controls only its own reading: the article's or the summary's.
+
+</details>
+
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-media-dark.svg"><img alt="Podcasts and videos" src=".github/assets/readme/h-media-light.svg" width="100%"></picture></p>
+
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-media-dark.svg"><img alt="Player in the article: Episodes and videos play under the title, in one compact player. Speed and sleep timer: 0.8× to 3×, kept for next time; a timer that fades out. Carries on: Picks up where you stopped; marked read once mostly played. Notification: Speed, back 30, progress, forward 30 and stop; resume after a restart. Videos: In their own shape, with picture-in-picture and full screen. Now playing: A pill above the bottom bar; tap it for the full controls. YouTube: Videos inside articles open in the YouTube app. Feed pictures: A podcast's cover as its feed's icon, or the website's icon." src=".github/assets/readme/t-media-light.svg" width="100%"></picture></p>
+
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/media-shots-dark.png"><img alt="An episode and a video playing in their articles" src=".github/assets/media-shots.png" width="60%"></picture></p>
+
+<details>
+<summary>More details</summary>
+
+- A podcast episode or a video attached to a feed item gets a player under the article's title. Audio and video share one compact layout: the progress with the times beside it, then speed (0.8× to 3×, kept for next time, separately for podcasts and videos, in its own sheet), back and forward 30 seconds, play and a sleep timer (its own sheet: 15, 30, 45 minutes, an hour, or the end of the episode; it waits while paused and fades out over its last seconds).
+- YouTube videos inside an article show as a card (the video's picture with a play button in your accent colour and a YouTube label) that opens the video in the YouTube app; YouTube no longer plays videos embedded in app pages.
+- Episodes and videos carry on where you stopped. Opening one doesn't mark it as read, so a partly heard episode isn't cleared away with old read articles; it's marked as read once it's played past the share you choose in *Settings → Usage → Audio and video* (90% by default).
+- Episodes and videos have their own media notification (lock screen, Quick Settings, headphone buttons) with speed · back 30 · the progress bar · forward 30 · stop; the speed button shows the speed as a number (read aloud's too); read aloud keeps its own. Only one plays at a time. Tapping either notification opens the article that is playing. After a restart, Android's resume button on the lock screen or in Quick Settings picks up the last episode where you left it.
+- A file that can't be played says so, with *Try again* and *Open in browser*. The app only uses secure connections: an `http://` episode is tried as `https://` first.
+- While something plays, a pill above the bottom bar shows it with its progress, play/pause and close; tap it for the full controls (a video shows there, large). Read aloud shows there too.
+- Full screen has speed and the sleep timer too, and its controls hide after 3 seconds while playing.
+- Tap a video to play or pause it. Videos play in the article in their own shape (kept for next time), with picture-in-picture and full screen on the video's corner; full screen turns sideways for wide videos and stays upright for tall ones, and picture-in-picture takes the video's shape; leaving the app while a video plays opens picture-in-picture by itself.
+- The play button is Expressive: a circle while paused, a slowly turning cookie while playing, with a bounce; the other buttons spring in once an episode is loaded, and dragging the progress ticks once a second. Videos have the same play button, buttons and ticks, and their full-screen controls slide in and out from the edges.
+- A feed item that links to its comments gets a *Comments* chip next to its date.
+- Podcast audio files are no longer taken as a list picture.
+- A feed can use its own picture (a podcast's cover) instead of its website's icon: *Feed's picture* | *Website icon* in Add a feed (the feed's picture by default) and in a feed's Change icon (for feeds added earlier, once they have synced). The choice stays through syncs.
+- An episode or video without a picture of its own shows its feed's icon.
 
 </details>
 
@@ -169,7 +194,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
   - twelve month bars and four highlights (best month, longest streak, reading time, Triage);
   - tap it and each bar breaks into its days, which fly into twelve little calendars; tap a day for its numbers.
 - It shares, hides and shows on home the same way, and stays at the top of *Past months* after that week.
-- First run: a four-page tour (Triage, the on-device AI with a check of your phone, calmer feeds, and the buttons that do more when held) in place of Read You's welcome page; its agreement is on the last page. One Expressive shape morphs from page to page as you swipe. See it again from the tour button in *Settings → Tips & support*.
+- First run: a page to restore a settings backup (for someone coming from another phone; also in the tour from Settings), then a four-page tour (Triage, the on-device AI with a check of your phone, calmer feeds, and the buttons that do more when held) in place of Read You's welcome page; its agreement is on the last page. One Expressive shape morphs from page to page as you swipe. See it again from the tour button in *Settings → Tips & support*.
 - One-time hints: a small bubble the first time you reach Triage, the AI button and the Unread list's Triage button; *Got it* and it's gone (*Show hints again* in *Settings → Tips & support*).
 - Tiles and cards (Filters, Reading stats, the sort tiles and the recaps) squeeze and spring back when pressed, like Triage's buttons.
 - One card style everywhere: the feeds page shows groups as one joined list with icon tiles (a folder, or a Material icon, emoji or image you pick in the group's options) and compact feed rows, article lists count each day's articles in a header that gets a hairline while it's pinned, and every settings page groups its rows into joined cards. Empty lists say so (*Nothing starred yet*, *All caught up*).
@@ -180,6 +205,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Custom feed icons survive syncs and are saved in OPML exports (with additional info) and the backup.
 - The splash takes about 1.3 s, only on fresh launches, and is skipped when animations are off.
 - A baseline profile makes the app smooth from the first run after each update.
+- Lists load without the articles' text (it's read when you open one), sort through an index, and start loading as soon as you press a feed, a group or a place in Triage.
 
 </details>
 

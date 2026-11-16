@@ -35,10 +35,11 @@ fun RYAsyncImage(
     @DrawableRes placeholder: Int? = null,
     @DrawableRes error: Int? = null,
 ) {
-    val painter =
-        rememberAsyncImagePainter(
-            model =
-                ImageRequest.Builder(LocalContext.current)
+    val context = LocalContext.current // Brief You
+    // Brief You: the request is made once per picture, not again on every recomposition of a row.
+    val request =
+        androidx.compose.runtime.remember(context, data, placeholder, error, scale, precision, size) { // Brief You
+                ImageRequest.Builder(context) // Brief You
                     .apply {
                         // Brief You: a real address, not the bare host (Read You #1347)
                         data.toString().extractReferer()?.let { addHeader("Referer", it) }
@@ -53,7 +54,8 @@ fun RYAsyncImage(
                         size(size)
                     }
                     .build()
-        )
+        } // Brief You
+    val painter = rememberAsyncImagePainter(model = request) // Brief You
     Image(
         painter = painter,
         contentDescription = contentDescription,

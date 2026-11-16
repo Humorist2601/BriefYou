@@ -189,7 +189,12 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                         NavEntry(key) {
                             // Brief You: the tour, with Read You's agreement on its last page
                             me.ash.reader.brief.tour.BriefFirstRun(
-                                onNavigateToFeeds = { backStack.add(Route.Feeds) },
+                                // Brief You: the tour is left behind, so the back gesture on Feeds
+                                // closes the app instead of opening the tour again.
+                                onNavigateToFeeds = {
+                                    backStack.add(Route.Feeds)
+                                    backStack.remove(Route.Startup)
+                                },
                                 onNavigateToAi = { backStack.add(Route.AiModel) },
                             )
                         }

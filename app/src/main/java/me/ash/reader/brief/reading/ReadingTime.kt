@@ -1,6 +1,7 @@
 package me.ash.reader.brief.reading
 
 import kotlin.math.ceil
+import kotlinx.coroutines.launch
 
 private const val LATIN_WORDS_PER_MINUTE = 230.0
 private const val CJK_CHARS_PER_MINUTE = 400.0
@@ -14,6 +15,87 @@ private const val MAX_CHARS_SCANNED = 200_000
  * teaser, because the real length can't be known and "1 min" would be misleading.
  */
 fun estimateReadingMinutes(html: String): Int? = readingMinutes(html, MIN_WORDS_TO_ESTIMATE)
+
+/**
+ * The article list's and Triage's reading times ([estimateReadingMinutes]), worked out once per
+ * article and kept on the phone. The lists leave each article's text out (so their pages load
+ * quickly), so a row can't count its words itself: [ensure] reads the text of an article not seen
+ * before, in the background, while its list page is prepared, and drawing a row or a card only
+ * looks the number up ([of]).
+ */
+object ListReadingTime {
+    private const val NONE = -1
+    private const val FILE = "reading_minutes.txt"
+    /** Articles kept (a few thousand per year of reading, so this lasts years). */
+    private const val MAX = 40_000
+
+    private val known = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    private val loaded = kotlinx.coroutines.CompletableDeferred<Unit>()
+    private val scope =
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
+    @Volatile private var file: java.io.File? = null
+    @Volatile private var textOf: (suspend (String) -> String?)? = null
+    private var saveJob: kotlinx.coroutines.Job? = null
+
+    /** At app start: reads the saved times in the background. [textOf] reads one article's text. */
+    fun start(context: android.content.Context, textOf: suspend (String) -> String?) {
+        this.textOf = textOf
+        val saved = java.io.File(context.filesDir, FILE)
+        file = saved
+        scope.launch {
+            runCatching {
+                if (saved.exists()) {
+                    saved.forEachLine { line ->
+                        val tab = line.lastIndexOf('\t')
+                        if (tab > 0) line.substring(tab + 1).toIntOrNull()?.let { known.putIfAbsent(line.substring(0, tab), it) }
+                    }
+                }
+            }
+            loaded.complete(Unit)
+        }
+    }
+
+    /** For drawing a row or a card: only a look-up. */
+    fun of(id: String): Int? = known[id]?.takeIf { it != NONE }
+
+    /** Makes sure [id]'s reading time is known; [html] if it is at hand, else it is read. */
+    suspend fun ensure(id: String, html: String? = null) {
+        if (known.containsKey(id)) return
+        kotlinx.coroutines.withTimeoutOrNull(2_000) { loaded.await() }
+        if (known.containsKey(id)) return
+        val text = html?.takeIf { it.isNotEmpty() } ?: runCatching { textOf?.invoke(id) }.getOrNull() ?: return
+        known[id] = estimateReadingMinutes(text) ?: NONE
+        saveSoon()
+    }
+
+    @Synchronized
+    private fun saveSoon() {
+        saveJob?.cancel()
+        saveJob =
+            scope.launch {
+                kotlinx.coroutines.delay(3_000)
+                save()
+            }
+    }
+
+    private fun save() {
+        val saved = file ?: return
+        if (known.size > MAX) known.keys.take(known.size - MAX * 4 / 5).forEach { known.remove(it) }
+        runCatching {
+            val temp = java.io.File(saved.path + ".tmp")
+            temp.bufferedWriter().use { out ->
+                for ((id, minutes) in known) {
+                    if ('\n' in id || '\r' in id) continue
+                    out.write(id)
+                    out.write("\t")
+                    out.write(minutes.toString())
+                    out.write("\n")
+                }
+            }
+            temp.renameTo(saved)
+        }
+    }
+}
 
 /**
  * Reading time in minutes for the HTML that is actually shown, or null if it has no words.

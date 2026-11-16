@@ -217,6 +217,14 @@ fun BriefFlowOverlays(
                         title = filterUiState.feed?.name ?: filterUiState.group?.name,
                     )
                     .also {
+                        // The place it starts in begins with the list's cards; on an Unread list
+                        // they are its first articles, so its next load carries on after them.
+                        val place = it.feedId ?: it.groupId
+                        it.listPlace = place
+                        if (place != null && filterUiState.filter.isUnread()) {
+                            val listRows = pagingItems?.itemSnapshotList?.count { item -> item is ArticleFlowItem.Article } ?: 0
+                            it.rowsUsed = mapOf(place to listRows)
+                        }
                         // How much is unread everywhere as it starts, for the progress ring.
                         if (it.groupId != null || it.feedId != null) {
                             val (unread, places) = briefViewModel.triageTotals(feeds = it.feedId != null)
@@ -259,7 +267,7 @@ fun BriefFlowOverlays(
             },
             findNext = { groupId, feedId, visited -> briefViewModel.nextTriage(groupId, feedId, visited) },
             findLeft = { groupId, feedId, visited -> briefViewModel.triageLeft(groupId, feedId, visited) },
-            loadNext = { next -> briefViewModel.loadTriage(next) },
+            loadNext = { next, from -> briefViewModel.loadTriage(next, from) },
             listPlaces = { feeds, visited -> briefViewModel.triagePlaces(feeds, visited) },
             feedsOf = { group, visited -> briefViewModel.triageFeedsOf(group, visited) }, // Brief You
         )

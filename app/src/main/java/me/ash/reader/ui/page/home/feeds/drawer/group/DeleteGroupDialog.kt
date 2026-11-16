@@ -46,7 +46,9 @@ fun DeleteGroupDialog(
         confirmButton = {
             TextButton(
                 onClick = {
+                    val deletedId = groupOptionUiState.group?.id // Brief You
                     groupOptionViewModel.delete {
+                        deletedId?.let { me.ash.reader.brief.feeds.GroupIcons.forget(context, it) } // Brief You: its icon (and picture) go too
                         groupOptionViewModel.hideDeleteDialog()
                         onConfirm()
                         context.showToast(toastString)

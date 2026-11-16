@@ -57,6 +57,7 @@ class FeedsViewModel @Inject constructor(
     private val diffMapHolder: DiffMapHolder,
     private val filterStateUseCase: FilterStateUseCase,
     private val groupWithFeedsListUseCase: GroupWithFeedsListUseCase,
+    private val articlePagingListUseCase: me.ash.reader.domain.data.ArticlePagingListUseCase, // Brief You
 ) : ViewModel() {
 
     private val _feedsUiState =
@@ -77,6 +78,12 @@ class FeedsViewModel @Inject constructor(
     }
 
     fun commitDiffs() = diffMapHolder.commitDiffsToDb()
+
+    // Brief You: a feed or group pressed on this page: its list is made and its first rows read now,
+    // while the finger is still down, so they are there from the list's first frame.
+    fun warmList(filterState: FilterState) {
+        articlePagingListUseCase.prepare(filterState) // Brief You: its list made and first rows read on the press
+    }
 
     fun changeFilter(filterState: FilterState) {
         filterStateUseCase.updateFilterState(filterState)

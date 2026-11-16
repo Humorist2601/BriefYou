@@ -32,6 +32,17 @@ object IconLookups {
         }
     }
 
+    /**
+     * Forgets failures older than a week: those sites are searched again anyway, so this changes
+     * nothing but keeps the list from growing with sites of feeds that are gone (see BriefCleanup).
+     */
+    fun sweep(context: Context) {
+        val old = System.currentTimeMillis() - RETRY_AFTER_MS
+        val prefs = prefs(context)
+        val gone = prefs.all.filter { (it.value as? Long ?: 0L) < old }.keys
+        if (gone.isNotEmpty()) prefs.edit { gone.forEach { remove(it) } }
+    }
+
     private fun online(context: Context): Boolean =
         runCatching {
                 val cm = context.getSystemService(ConnectivityManager::class.java)

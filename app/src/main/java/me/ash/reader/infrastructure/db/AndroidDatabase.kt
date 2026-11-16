@@ -20,11 +20,12 @@ import java.util.*
 
 @Database(
     entities = [Account::class, Feed::class, Article::class, Group::class, ArchivedArticle::class],
-    version = 7,
+    version = 9, // Brief You: 8 adds the article list indexes, 9 the archived_article index (MIGRATION_8_9)
     autoMigrations = [
         AutoMigration(from = 5, to = 6),
         AutoMigration(from = 5, to = 7),
         AutoMigration(from = 6, to = 7),
+        AutoMigration(from = 7, to = 8), // Brief You: the article list indexes
     ]
 )
 @TypeConverters(
@@ -81,7 +82,23 @@ val allMigrations = arrayOf(
     MIGRATION_2_3,
     MIGRATION_3_4,
     MIGRATION_4_5,
+    MIGRATION_8_9, // Brief You
 )
+
+/**
+ * Brief You: an index on archived_article's feed, so a local feed's sync finds its notes, and
+ * deleting a feed finds the notes to remove, without reading the whole table. The version 8 schema
+ * file was never kept; app/schemas/…/8.json is rebuilt from 7.json plus 8's two article indexes
+ * (the 7 → 8 AutoMigration needs it once there is a 9).
+ */
+@Suppress("ClassName")
+object MIGRATION_8_9 : Migration(8, 9) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_archived_article_feedId` ON `archived_article` (`feedId`)"
+        )
+    }
+}
 
 @Suppress("ClassName")
 object MIGRATION_1_2 : Migration(1, 2) {

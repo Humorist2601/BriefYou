@@ -81,6 +81,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first // Brief You
 import kotlinx.coroutines.launch
 import me.ash.reader.R
 import me.ash.reader.domain.data.PagerData
@@ -162,6 +163,17 @@ fun FlowPage(
     val filterUiState = pagerData.filterState
 
     val listState = rememberSaveable(pagerData, saver = LazyListState.Saver) { LazyListState(0, 0) }
+    // Brief You: Nightly stutter log: the list's first row moving by itself (not scrolled by a finger).
+    if (me.ash.reader.brief.perf.PerfLog.enabled) { // Brief You
+        LaunchedEffect(listState) { // Brief You
+            var last = -1 // Brief You
+            androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex to listState.isScrollInProgress }.collect { (row, scrolling) -> // Brief You
+                if (last == -1) me.ash.reader.brief.perf.PerfLog.note("list: shown at row $row") // Brief You
+                else if (!scrolling && kotlin.math.abs(row - last) >= 3) me.ash.reader.brief.perf.PerfLog.note("list: moved by itself from row $last to $row") // Brief You
+                last = row // Brief You
+            } // Brief You
+        } // Brief You
+    } // Brief You
 
     val isTopBarElevated = topBarTonalElevation.value > 0
     val scrolledTopBarContainerColor =
@@ -233,6 +245,28 @@ fun FlowPage(
         }
     }
 
+    // Brief You: the row tap, made once. Made inside the list's item builder, it was a new one every
+    // time the page recomposed, so every row on screen was rebuilt (behind an open article too).
+    val latestArticleClick =
+        androidx.compose.runtime.rememberUpdatedState { articleWithFeed: ArticleWithFeed, index: Int -> // Brief You
+            if (articleWithFeed.feed.isBrowser) { // Brief You
+                viewModel.diffMapHolder.updateDiff(articleWithFeed, isUnread = false) // Brief You
+                context.openURL(articleWithFeed.article.link, openLink, openLinkSpecificBrowser) // Brief You
+            } else { // Brief You
+                me.ash.reader.brief.perf.PerfLog.note("list: article opened from row ${listState.firstVisibleItemIndex}") // Brief You: Nightly stutter log
+                me.ash.reader.brief.perf.PerfLog.action("Open an article", windowMs = 3_000) // Brief You: Nightly stutter log
+                navigateToArticle(articleWithFeed.article.id, index) // Brief You
+            } // Brief You
+        } // Brief You
+    val onArticleClick: (ArticleWithFeed, Int) -> Unit = // Brief You
+        remember { { articleWithFeed, index -> latestArticleClick.value(articleWithFeed, index) } } // Brief You
+    // Brief You: a pressed row's article is prepared for opening (see ArticlePress).
+    androidx.compose.runtime.DisposableEffect(viewModel) { // Brief You
+        val prepare: (ArticleWithFeed) -> Unit = { viewModel.prepareArticle(it) } // Brief You
+        me.ash.reader.brief.reading.ArticlePress.onPress = prepare // Brief You
+        onDispose { if (me.ash.reader.brief.reading.ArticlePress.onPress === prepare) me.ash.reader.brief.reading.ArticlePress.onPress = null } // Brief You
+    } // Brief You
+
     LaunchedEffect(onSearch) {
         if (!onSearch) {
             keyboardController?.hide()
@@ -294,7 +328,7 @@ fun FlowPage(
 
                 if (index != -1) {
                     scrollAppBarToCollapsed()
-                    listState.animateScrollToItem(index, scrollOffset = -200)
+                    listState.animateScrollToItem(me.ash.reader.brief.list.lazyIndexOf(itemList.orEmpty(), index, articleListDateStickyHeader.value), scrollOffset = -200) // Brief You: the list's own row
                 }
             }
         }
@@ -317,13 +351,13 @@ fun FlowPage(
                 val layout = listState.layoutInfo
                 val onScreen =
                     layout.visibleItemsInfo.any {
-                        it.index == index &&
+                        it.key == articleId && // Brief You: by its key (the row numbers differ, see lazyIndexOf)
                             it.offset >= layout.viewportStartOffset &&
                             it.offset + it.size <= layout.viewportEndOffset
                     }
                 if (index != -1 && !onScreen) {
                     snapAppBarToCollapsed()
-                    listState.requestScrollToItem(index, scrollOffset = -400)
+                    listState.requestScrollToItem(me.ash.reader.brief.list.lazyIndexOf(itemList.orEmpty(), index, articleListDateStickyHeader.value), scrollOffset = -400) // Brief You: the list's own row
                 }
             }
         }
@@ -555,6 +589,20 @@ fun FlowPage(
                     val pager = flowUiState.pagerData.pager
                     val filterState = flowUiState.pagerData.filterState
                     val pagingItems = pager.collectAsLazyPagingItems().also { pagingItems = it }
+                    // Brief You: the first articles of the list tidied ahead, so the first taps open at once.
+                    LaunchedEffect(pagingItems) { // Brief You
+                        // The first three articles, skipping the date headings between them. // Brief You
+                        val first = snapshotFlow { (0 until minOf(10, pagingItems.itemCount)).mapNotNull { (pagingItems.peek(it) as? ArticleFlowItem.Article)?.articleWithFeed }.take(3) } // Brief You
+                            .first { it.size == 3 || (it.isNotEmpty() && pagingItems.itemCount <= 10) } // Brief You
+                        kotlinx.coroutines.delay(600) // Brief You: after the list's opening slide
+                        me.ash.reader.brief.reading.FeedContent.prepareAhead(first) // Brief You
+                    } // Brief You
+                    if (me.ash.reader.brief.perf.PerfLog.enabled) { // Brief You: Nightly stutter log
+                        LaunchedEffect(pagingItems) { // Brief You
+                            snapshotFlow { pagingItems.itemCount to pagingItems.loadState.refresh.javaClass.simpleName } // Brief You
+                                .collect { (rows, refresh) -> me.ash.reader.brief.perf.PerfLog.note("list: $rows rows, $refresh") } // Brief You
+                        } // Brief You
+                    } // Brief You
 
                     if (markAsReadOnScroll && filterState.filter.isUnread()) {
                         val briefSeen = me.ash.reader.brief.list.rememberSeenArticles(listState, pager) // Brief You
@@ -600,6 +648,7 @@ fun FlowPage(
                     }
 
                     val listState = remember(pager) { listState }
+                    val swipeEnabled: () -> Boolean = remember(listState) { { listState.isScrollInProgress } } // Brief You: made once
 
                     val isSyncing by rememberUpdatedState(isSyncing)
 
@@ -709,23 +758,9 @@ fun FlowPage(
                                 isShowFeedIcon = articleListFeedIcon.value,
                                 isShowStickyHeader = articleListDateStickyHeader.value,
                                 articleListTonalElevation = articleListTonalElevation.value,
-                                isSwipeEnabled = { listState.isScrollInProgress },
+                                isSwipeEnabled = swipeEnabled, // Brief You: made once (see onArticleClick)
                                 listState = listState, // Brief You: the pinned day's line
-                                onClick = { articleWithFeed, index ->
-                                    if (articleWithFeed.feed.isBrowser) {
-                                        viewModel.diffMapHolder.updateDiff(
-                                            articleWithFeed,
-                                            isUnread = false,
-                                        )
-                                        context.openURL(
-                                            articleWithFeed.article.link,
-                                            openLink,
-                                            openLinkSpecificBrowser,
-                                        )
-                                    } else {
-                                        navigateToArticle(articleWithFeed.article.id, index)
-                                    }
-                                },
+                                onClick = onArticleClick, // Brief You: made once
                                 onToggleStarred = onToggleStarred,
                                 onToggleRead = onToggleRead,
                                 onMarkAboveAsRead = onMarkAboveAsRead,
@@ -766,6 +801,7 @@ fun FlowPage(
                     filterBarTonalElevation = filterBarTonalElevation.value.dp,
                 ) {
                     if (filterUiState.filter != it) {
+                        me.ash.reader.brief.perf.PerfLog.action("List: switch filter") // Brief You: Nightly stutter log
                         viewModel.changeFilter(filterUiState.copy(filter = it))
                     } else {
                         scope.launch {

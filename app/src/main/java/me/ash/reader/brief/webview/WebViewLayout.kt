@@ -18,6 +18,8 @@ object WebViewLayout {
         readingFontsPreference: ReadingFontsPreference,
         webViewClient: WebViewClient,
         onImageClick: ((imgUrl: String, altText: String) -> Unit)? = null,
+        /** The page's fonts are loaded and its text drawn (see [PAGE_READY_SCRIPT]); on the main thread. */
+        onPageReady: () -> Unit = {},
     ) =
         // The spare one made ahead of time when there is one (see WebViewPool).
         WebViewPool.take(context).apply {
@@ -26,6 +28,18 @@ object WebViewLayout {
             isHorizontalScrollBarEnabled = false
             isVerticalScrollBarEnabled = true
             setBackgroundColor(Color.TRANSPARENT)
+            // The page scrolls as a whole (the web view is as tall as the article, inside the
+            // reading page's scroll). While the article grows (pictures, the font), the web view
+            // can be shorter than its text for a moment, and a quick fling then scrolled the text
+            // inside the web view, sliding it under the heading. It stays at the top; the height
+            // is asked for again so the rest of the text is reached through the page's scroll.
+            setOnScrollChangeListener { view, _, y, _, _ ->
+                if (y != 0) {
+                    me.ash.reader.brief.perf.PerfLog.note("web view: scrolled inside by $y px, put back") // Nightly stutter log
+                    view.scrollTo(view.scrollX, 0)
+                    view.requestLayout()
+                }
+            }
             with(this.settings) {
                 standardFontFamily =
                     when (readingFontsPreference) {
@@ -42,6 +56,9 @@ object WebViewLayout {
                     }
                 domStorageEnabled = true
                 javaScriptEnabled = true
+                // Pictures load the web view's own way now (see WebViewClient): it asks as Chrome
+                // does, without the "web view" mark some picture hosts refuse.
+                browserUserAgent(context)?.let { userAgentString = it }
                 addJavascriptInterface(
                     object : JavaScriptInterface {
                         @JavascriptInterface
@@ -53,6 +70,26 @@ object WebViewLayout {
                     },
                     JavaScriptInterface.NAME,
                 )
+                // The page says when its text can be shown: fonts loaded and drawn.
+                addJavascriptInterface(
+                    object {
+                        @JavascriptInterface
+                        fun ready() {
+                            android.os.Handler(android.os.Looper.getMainLooper()).post(onPageReady)
+                        }
+                    },
+                    "BriefPage",
+                )
+                // Nightly stutter log: the page reports when its fonts load and when it first draws.
+                if (me.ash.reader.brief.perf.PerfLog.enabled) {
+                    addJavascriptInterface(
+                        object {
+                            @JavascriptInterface
+                            fun note(message: String) = me.ash.reader.brief.perf.PerfLog.note(message)
+                        },
+                        "BriefPerf",
+                    )
+                }
                 setSupportZoom(false)
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                     isAlgorithmicDarkeningAllowed = true
@@ -60,3 +97,23 @@ object WebViewLayout {
             }
         }
 }
+
+/**
+ * In every article page: tells the app once the page's fonts are loaded and the text drawn with
+ * them. Until then the web view keeps text invisible (it waits for the reading font), so the app
+ * fades the text in at that moment rather than at the page's first frame. Brief You.
+ */
+const val PAGE_READY_SCRIPT = """
+;(function () {
+  function done() { requestAnimationFrame(function () { requestAnimationFrame(function () { try { BriefPage.ready(); } catch (e) {} }); }); }
+  try { document.fonts.ready.then(done, done); } catch (e) { done(); }
+})();
+"""
+
+@Volatile private var browserAgent: String? = null
+
+/** The web view's own user agent without its "; wv" mark (read once). */
+private fun browserUserAgent(context: Context): String? =
+    browserAgent ?: runCatching {
+        android.webkit.WebSettings.getDefaultUserAgent(context).replace("; wv)", ")")
+    }.getOrNull()?.also { browserAgent = it }

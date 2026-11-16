@@ -65,9 +65,12 @@
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
+        <!-- Brief You: video picture-in-picture and full screen turn and resize the screen without restarting it. -->
         <activity
             android:name=".infrastructure.android.MainActivity"
             android:exported="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true"
             android:launchMode="singleInstance"
             android:theme="@style/Theme.Reader"
             android:windowSoftInputMode="adjustResize">
@@ -162,6 +165,24 @@
             android:name=".brief.readaloud.ReadAloudService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+
+        <!-- Brief You: podcast episodes and videos, with their own media notification; Android's "resume" (lock screen, Quick Settings, after a restart) reaches it through the media button receiver. -->
+        <service
+            android:name=".brief.player.PlayerService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </service>
+        <receiver
+            android:name="androidx.media3.session.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
 
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

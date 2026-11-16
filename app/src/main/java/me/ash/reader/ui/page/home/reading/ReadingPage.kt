@@ -34,6 +34,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState // Brief You
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -84,8 +85,10 @@ fun ReadingPage(
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
     val isPullToSwitchArticleEnabled = LocalPullToSwitchArticle.current.value
-    val readingUiState = viewModel.readingUiState.collectAsStateValue()
-    val readerState = viewModel.readerStateStateFlow.collectAsStateValue()
+    // Brief You: read on the main thread, so a new article is on the page in the frame it is set
+    // (collectAsStateValue reads on a background thread: a frame or more later).
+    val readingUiState = viewModel.readingUiState.collectAsState().value // Brief You
+    val readerState = viewModel.readerStateStateFlow.collectAsState().value // Brief You
     val boldCharacters = LocalReadingBoldCharacters.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -251,6 +254,7 @@ fun ReadingPage(
 
                                 CompositionLocalProvider(
                                     me.ash.reader.brief.ai.LocalTranslation provides brief.translation, // Brief You
+                                    me.ash.reader.brief.player.LocalArticleExtras provides brief.extras, // Brief You: its episode, video and comments link
                                     LocalTextStyle provides
                                         LocalTextStyle.current.run {
                                             merge(
@@ -292,7 +296,10 @@ fun ReadingPage(
                                                 showFullScreenImageViewer = true
                                             },
                                             afterArticle = { BriefNextArticle(nextArticle, viewModel, onLoadArticle) }, // Brief You
-                                            afterHeadline = { me.ash.reader.brief.ai.TranslationBanner(translate) }, // Brief You
+                                            afterHeadline = { // Brief You
+                                                me.ash.reader.brief.ai.TranslationBanner(translate) // Brief You
+                                                me.ash.reader.brief.player.ArticleMediaCard(title.orEmpty(), feedName, me.ash.reader.brief.reading.FeedContent.listImage(readingUiState.articleWithFeed?.article?.img, link), feedIcon = readingUiState.articleWithFeed?.feed?.icon) // Brief You: its episode or video
+                                            }, // Brief You
                                         )
                                         PullToLoadIndicator(
                                             state = state,

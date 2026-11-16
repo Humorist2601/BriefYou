@@ -36,6 +36,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -104,6 +106,11 @@ private fun AddFeedDialogContent(
 ) {
     val focusManager = LocalFocusManager.current
     val configure = state as? SubscribeState.Configure
+    // The feed's own picture (a podcast's cover), offered instead of the website's icon; used by default.
+    val context = LocalContext.current
+    val feedPicture = configure?.let { androidx.compose.runtime.remember(it.feedLink) { FeedPictures.get(context, it.feedLink) } }
+    var useFeedPicture by androidx.compose.runtime.saveable.rememberSaveable(configure?.feedLink) { androidx.compose.runtime.mutableStateOf(true) }
+    val websiteIcon = androidx.compose.runtime.remember(configure?.searchedFeed) { configure?.searchedFeed?.icon?.url }
     InWindowAlertDialog(
         // Not closed by a tap outside, so a pasted address isn't lost to a stray tap.
         properties = DialogProperties(dismissOnClickOutside = false),
@@ -112,7 +119,7 @@ private fun AddFeedDialogContent(
             if (configure != null) {
                 FeedIcon(
                     feedName = configure.searchedFeed.title,
-                    iconUrl = configure.searchedFeed.icon?.url,
+                    iconUrl = if (feedPicture != null && useFeedPicture) feedPicture else websiteIcon,
                     size = 48.dp,
                 )
             } else {
@@ -198,6 +205,19 @@ private fun AddFeedDialogContent(
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth(),
                             )
+                            if (feedPicture != null) {
+                                Spacer(Modifier.height(14.dp))
+                                IconSourceButtons(
+                                    feedPictureUrl = feedPicture,
+                                    websiteIconUrl = websiteIcon,
+                                    feedName = configure.searchedFeed.title,
+                                    feedPicture = useFeedPicture,
+                                    onFeedPicture = { useFeedPicture = true },
+                                    onWebsiteIcon = { useFeedPicture = false },
+                                    // A picture that can't be loaded isn't used.
+                                    onFeedPictureFailed = { useFeedPicture = false },
+                                )
+                            }
                             Spacer(Modifier.height(18.dp))
                             FeedOptions(
                                 fullContent = s.fullContent,
@@ -224,6 +244,21 @@ private fun AddFeedDialogContent(
                     TextButton(
                         onClick = {
                             focusManager.clearFocus()
+                            // The feed's own picture is kept once subscribed (whichever icon is chosen).
+                            configure?.feedLink?.let { FeedPictures.keep(context, it) }
+                            // The chosen icon: the feed's own picture, or the website's (as found).
+                            if (feedPicture != null && useFeedPicture) {
+                                FeedPictures.choose(context, configure!!.feedLink)
+                                configure.searchedFeed.icon?.apply {
+                                    link = feedPicture
+                                    url = feedPicture
+                                }
+                            } else if (websiteIcon != null) {
+                                configure?.searchedFeed?.icon?.apply {
+                                    link = websiteIcon
+                                    url = websiteIcon
+                                }
+                            }
                             viewModel.subscribe()
                         }
                     ) {

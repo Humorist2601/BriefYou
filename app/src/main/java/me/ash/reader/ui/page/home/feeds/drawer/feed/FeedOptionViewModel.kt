@@ -134,6 +134,7 @@ constructor(
         _feedOptionUiState.value.feed?.let {
             applicationScope.launch(ioDispatcher) {
                 rssService.get().deleteFeed(it)
+                runCatching { iconOverrides.feedDeleted(it.id, it.url) } // Brief You: its custom icon and noted picture go too
                 withContext(mainDispatcher) { callback() }
             }
         }
@@ -246,6 +247,15 @@ constructor(
     }
 
     /** Drops any custom icon and fetches the website's icon again. */
+    fun setFeedPicture(picture: String) { // Brief You: the feed's own picture (see FeedPictures)
+        _feedOptionUiState.value.feed?.let { feed -> // Brief You
+            viewModelScope.launch(ioDispatcher) { // Brief You
+                iconOverrides.setPicture(feed.id, picture) // Brief You: kept through syncs
+                fetchFeed(feed.id) // Brief You
+            } // Brief You
+        } // Brief You
+    } // Brief You
+
     fun reloadIcon() {
         _feedOptionUiState.value.feed?.let { feed ->
             viewModelScope.launch(ioDispatcher) {

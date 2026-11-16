@@ -174,11 +174,13 @@ class NewspaperMaker internal constructor(
     private var last: Pair<ArticleWithFeed, String?>? = null
 
     /** [html] is the article as shown (the full text on the reading page); else its description. */
-    fun make(item: ArticleWithFeed, html: String? = null) {
+    fun make(listItem: ArticleWithFeed, html: String? = null) {
         if (job?.isActive == true) return
-        last = item to html
+        last = listItem to html
         job =
             scope.launch {
+                // A list row leaves the article's text out; it is read here.
+                val item = articleText.withTextOf(listItem)
                 val ai = summarizer.hasModel()
                 val steps = buildList {
                     if (ai && articleText.needsFullText(item.article, html)) add(PressStep.FullText)

@@ -1,5 +1,6 @@
 package me.ash.reader.brief.reading
 
+import kotlinx.coroutines.flow.first
 import me.ash.reader.brief.stats.ReadingStats
 import android.app.Activity
 import android.content.Context
@@ -8,6 +9,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -66,8 +68,10 @@ import me.ash.reader.ui.page.adaptive.ReadingUiState
 @Composable
 fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val readingUiState = viewModel.readingUiState.collectAsStateValue()
-    val readerState = viewModel.readerStateStateFlow.collectAsStateValue()
+    // Read on the main thread (collectAsStateValue reads on a background thread, so a new article
+    // reached the colours a frame or more after the page).
+    val readingUiState by viewModel.readingUiState.collectAsState()
+    val readerState by viewModel.readerStateStateFlow.collectAsState()
     val article = readingUiState.articleWithFeed?.article
     val html = readerState.content.text
     val pictureUrl =
@@ -75,9 +79,20 @@ fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composabl
             FeedContent.listImage(article?.img, article?.link)?.takeIf { it.isNotBlank() }
                 ?: html?.let { FeedContent.prepared(it).hero }
         }
-    var seed by remember(pictureUrl) { mutableStateOf<Color?>(null) }
+    // Known already (worked out when the row was pressed, or earlier): used from the first frame,
+    // without fading to it. Only a colour that is still being worked out fades in when it arrives.
+    val known = remember(pictureUrl) { pictureUrl?.let { FeedAccent.knownPictureColor(it) } }
+    val instant = known?.first == true
+    var seed by remember(pictureUrl) { mutableStateOf(known?.second?.let { Color(it) }) }
     LaunchedEffect(pictureUrl) {
-        if (pictureUrl == null) return@LaunchedEffect
+        me.ash.reader.brief.perf.PerfLog.note( // Nightly stutter log
+            when {
+                pictureUrl == null -> "reading colours: no picture (app colours; article ${if (article == null) "not there yet" else "there"}, text ${html?.length ?: "not there yet"})"
+                instant -> "reading colours: picture colour known, used at once"
+                else -> "reading colours: picture colour not known yet, will fade in"
+            }
+        )
+        if (pictureUrl == null || instant) return@LaunchedEffect
         seed = FeedAccent.pictureColor(context, pictureUrl)?.let { Color(it) }
     }
     val isDark = LocalDarkTheme.current.isDarkTheme()
@@ -88,8 +103,16 @@ fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composabl
             pictureSeed?.let { pictureColorScheme(it, isDark, isAmoled) }
         }
     val target = scheme ?: MaterialTheme.colorScheme
-    CompositionLocalProvider(LocalWebViewColorScheme provides target) {
-        MaterialTheme(colorScheme = animateColorScheme(target), content = content)
+    // A picture colour arriving after the article was handed to its web view: the screen around
+    // the article still fades into it, but the article itself keeps the colours it opened with.
+    // Restyling it made the web view repaint the whole article (100-240 ms frames on long ones).
+    val pageScheme = remember(article?.id, pictureUrl, isDark, isAmoled) { arrayOfNulls<androidx.compose.material3.ColorScheme>(1) }
+    if (pageScheme[0] == null && html != null && pictureUrl != null && !instant && pictureSeed == null) {
+        pageScheme[0] = target
+        me.ash.reader.brief.perf.PerfLog.note("reading colours: article keeps the colours it opened with") // Nightly stutter log
+    }
+    CompositionLocalProvider(LocalWebViewColorScheme provides (pageScheme[0] ?: target)) {
+        MaterialTheme(colorScheme = if (instant) target else animateColorScheme(target), content = content)
     }
 }
 
@@ -98,6 +121,10 @@ fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composabl
 class BriefReadingState internal constructor() {
     /** How far the article is scrolled, 0 to 1. */
     var progress by mutableFloatStateOf(0f)
+        internal set
+
+    /** The open article's episode, video and comments link, once loaded. */
+    var extras by mutableStateOf<me.ash.reader.brief.media.ArticleExtras?>(null)
         internal set
 
     var showSummary by mutableStateOf(false)
@@ -137,6 +164,16 @@ fun rememberBriefReadingState(
     LaunchedEffect(articleId) {
         state.progress = 0f
         state.translation.reset() // a new article starts in its own language
+    }
+    // The article's podcast episode, video and comments link (see ArticleMedia).
+    LaunchedEffect(articleId) {
+        state.extras = null
+        if (articleId == null) return@LaunchedEffect
+        val picture =
+            kotlinx.coroutines.withTimeoutOrNull(2_000) {
+                viewModel.readingUiState.first { it.articleWithFeed?.article?.id == articleId }
+            }?.articleWithFeed?.article?.img
+        state.extras = me.ash.reader.brief.media.ArticleMedia.of(articleId, picture)
     }
     TrackReadingStats(articleId, readerState.feedName)
     return state

@@ -14,10 +14,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.ash.reader.domain.repository.FeedDao
 import me.ash.reader.ui.component.EMOJI_PREFIX
+import me.ash.reader.ui.ext.currentAccountId
 
 /**
- * Custom feed icons chosen by the user: a Material icon, an emoji (older choices), or an image
- * from the phone.
+ * Custom feed icons chosen by the user: a Material icon, an emoji (older choices), an image
+ * from the phone, or the feed's own picture (see [FeedPictures]; its address).
  *
  * The choice is written to the feed's icon field so every screen shows it, and also remembered
  * here, because some accounts (Fever, Google Reader API) rewrite feed icons when they sync.
@@ -43,6 +44,11 @@ constructor(
         val e = emoji.trim()
         if (e.isEmpty()) return
         set(feedId, EMOJI_PREFIX + e)
+    }
+
+    /** The feed's own picture (its address), instead of the website's icon. */
+    suspend fun setPicture(feedId: String, url: String) {
+        if (url.startsWith("http", ignoreCase = true)) set(feedId, url)
     }
 
     /** Copies the picked image, scaled down to a small square-ish icon, into private storage. */
@@ -89,6 +95,7 @@ constructor(
         withContext(Dispatchers.IO) {
             val icon = prefs.getString(feedId, null) ?: return@withContext null
             if (icon.startsWith(EMOJI_PREFIX) || icon.startsWith(SymbolIcons.PREFIX)) return@withContext icon
+            if (icon.startsWith("http", ignoreCase = true)) return@withContext icon // the feed's picture
             val file = Uri.parse(icon).path?.let { File(it) }
             if (file == null || !file.exists()) return@withContext null
             "image/png;base64," + Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
@@ -100,6 +107,7 @@ constructor(
             when {
                 value.startsWith(EMOJI_PREFIX) -> setEmoji(feedId, value.removePrefix(EMOJI_PREFIX))
                 value.startsWith(SymbolIcons.PREFIX) -> setSymbol(feedId, value.removePrefix(SymbolIcons.PREFIX))
+                value.startsWith("http", ignoreCase = true) -> setPicture(feedId, value)
                 else -> {
                     val data = IMAGE_VALUE.matchEntire(value)?.groupValues?.get(1) ?: return@withContext
                     val bytes =
@@ -126,12 +134,49 @@ constructor(
 
     fun has(feedId: String): Boolean = prefs.contains(feedId)
 
+    /** A feed was deleted: its custom icon (and image file) and its noted picture go with it. */
+    suspend fun feedDeleted(feedId: String, feedUrl: String?) {
+        clear(feedId)
+        FeedPictures.forget(context, feedUrl)
+    }
+
+    /** Forgets custom icons (and image files) of feeds that no longer exist ([feedIds]: every feed's id). */
+    suspend fun sweep(feedIds: Collection<String>) =
+        withContext(Dispatchers.IO) {
+            val known = feedIds.toHashSet()
+            prefs.all.keys.filterNot { it in known }.forEach { clear(it) }
+            // Image files left without a saved icon.
+            val used = prefs.all.values.mapNotNull { (it as? String)?.let { v -> Uri.parse(v).path } }.toHashSet()
+            dir.listFiles()?.filter { it.absolutePath !in used }?.forEach { it.delete() }
+        }
+
     /** Re-applies custom icons that a sync may have overwritten. */
     suspend fun reapply() =
         withContext(Dispatchers.IO) {
-            for ((feedId, value) in prefs.all) {
-                val icon = value as? String ?: continue
-                val feed = feedDao.queryById(feedId) ?: continue
+            // A feed added with its own picture chosen: kept from its first sync on (accounts
+            // that sync icons from their server would otherwise replace it).
+            for (url in FeedPictures.chosen(context)) {
+                val picture = FeedPictures.get(context, url) ?: continue
+                // The server may keep the address a little differently (http/https, a slash).
+                val accountId = context.currentAccountId
+                val feeds = FeedPictures.variants(url).flatMap { feedDao.queryByLink(accountId, it) }.distinctBy { it.id }
+                if (feeds.isEmpty()) continue
+                feeds.forEach { prefs.edit { putString(it.id, picture) } }
+                FeedPictures.unchoose(context, url)
+            }
+            // One lookup for all the feeds with a custom icon.
+            val overrides = prefs.all.mapNotNull { (id, v) -> (v as? String)?.let { id to it } }
+            val feeds = overrides.map { it.first }.chunked(500).flatMap { feedDao.queryByIds(it) }.associateBy { it.id }
+            for ((feedId, value) in overrides) {
+                var icon = value
+                val feed = feeds[feedId] ?: continue
+                // The feed's picture (an address): follows the feed when it changes its cover.
+                if (icon.startsWith("http", ignoreCase = true)) {
+                    FeedPictures.get(context, feed.url)?.takeIf { it != icon }?.let {
+                        icon = it
+                        prefs.edit { putString(feedId, it) }
+                    }
+                }
                 if (feed.icon != icon) feedDao.update(feed.copy(icon = icon))
             }
         }

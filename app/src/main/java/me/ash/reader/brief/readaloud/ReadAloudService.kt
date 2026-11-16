@@ -149,6 +149,10 @@ class ReadAloudService : Service() {
             )
         }
         val playing = state !is TextToSpeechManager.State.Paused
+        // The media controls (Quick Settings, lock screen) open the article being read too.
+        session.setSessionActivity(
+            me.ash.reader.brief.player.PlayerIntents.open(this, me.ash.reader.brief.player.PlayerIntents.articleOf(tts.sourceKey), readAloud = true)
+        )
         session.setPlaybackState(
             PlaybackStateCompat.Builder()
                 .setActions(
@@ -165,7 +169,8 @@ class ReadAloudService : Service() {
                                 R.string.read_aloud_speed,
                                 TextToSpeechManager.speedLabel(tts.speed.value),
                             ),
-                            R.drawable.ic_read_aloud_speed,
+                            // The speed as a number (see SpeedIcons).
+                            me.ash.reader.brief.player.SpeedIcons.of(tts.speed.value),
                         )
                         .build()
                 )
@@ -271,9 +276,8 @@ class ReadAloudService : Service() {
         super.onDestroy()
     }
 
-    /** "Read · 1.25×". */
-    private fun subtitle(): String =
-        getString(R.string.read_aloud) + " \u00B7 " + TextToSpeechManager.speedLabel(tts.speed.value)
+    /** "Read aloud" (the speed shows on its own button now, as a number). */
+    private fun subtitle(): String = getString(R.string.read_aloud)
 
     private fun action(name: String, code: Int): PendingIntent =
         PendingIntent.getService(
@@ -298,7 +302,8 @@ class ReadAloudService : Service() {
             .setSilent(true)
             .setShowWhen(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setContentIntent(session.controller.sessionActivity)
+            // Opens the article being read (see PlayerIntents).
+            .setContentIntent(me.ash.reader.brief.player.PlayerIntents.open(this, me.ash.reader.brief.player.PlayerIntents.articleOf(tts.sourceKey), readAloud = true))
             .setDeleteIntent(action(ACTION_STOP, 1))
             .addAction(
                 if (paused) R.drawable.ic_read_aloud_play else R.drawable.ic_read_aloud_pause,
@@ -311,7 +316,7 @@ class ReadAloudService : Service() {
                 action(ACTION_STOP, 3),
             )
             .addAction(
-                R.drawable.ic_read_aloud_speed,
+                me.ash.reader.brief.player.SpeedIcons.of(tts.speed.value),
                 getString(R.string.read_aloud_speed, TextToSpeechManager.speedLabel(tts.speed.value)),
                 action(ACTION_SPEED, 4),
             )

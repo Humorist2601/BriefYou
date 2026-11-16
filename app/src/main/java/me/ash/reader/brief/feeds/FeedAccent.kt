@@ -46,6 +46,31 @@ object FeedAccent {
     private const val NONE = 0
     private const val MAX_SAVED = 1000
     private val memory = ConcurrentHashMap<String, Int>()
+    /** The saved colours (by the icon address's hash), read once in the background at start. */
+    @Volatile private var saved: Map<String, Int> = emptyMap()
+
+    /** Reads the saved colours, so the article list's rows have theirs from their first frame. */
+    fun start(context: Context) {
+        Thread {
+                runCatching {
+                    saved =
+                        context.getSharedPreferences("feed_accent_v3", Context.MODE_PRIVATE)
+                            .all.mapNotNull { (k, v) -> (v as? Int)?.let { k to it } }.toMap()
+                }
+            }
+            .start()
+    }
+
+    /**
+     * The colour when it is already known, without any waiting: (true, colour or null for "no
+     * colour"), or (false, null) when it still has to be worked out. Rows used to start with the
+     * theme's colour and be built again a moment later with the feed's, every time a list opened,
+     * right in the middle of the slide.
+     */
+    fun known(iconUrl: String): Pair<Boolean, Int?> {
+        val c = memory[iconUrl] ?: saved[hash(iconUrl)]?.also { memory[iconUrl] = it } ?: return false to null
+        return true to c.takeIf { it != NONE }
+    }
 
     /** Raw dominant icon color (ARGB), or null when the icon has no clear color. */
     suspend fun sourceColor(context: Context, iconUrl: String): Int? {
@@ -147,6 +172,15 @@ object FeedAccent {
      * the picture could not be read (the reading page then keeps Brief You's own colours).
      * Remembered while the app runs.
      */
+    /**
+     * The picture's colour when already worked out (see [pictureColor]), without waiting: (true,
+     * colour) or (false, null). The reading page takes it from its first frame instead of fading
+     * its colours over 0.4 s (which rebuilt the whole page every frame, and reloaded the article
+     * when its colours changed while it was still loading).
+     */
+    fun knownPictureColor(url: String): Pair<Boolean, Int?> =
+        pictureMemory.get(url)?.let { true to it.takeIf { c -> c != NONE } } ?: (false to null)
+
     suspend fun pictureColor(context: Context, url: String): Int? {
         pictureMemory.get(url)?.let { return it.takeIf { c -> c != NONE } }
         val color =
@@ -328,12 +362,15 @@ fun rememberFeedAccent(iconUrl: String?): Color? {
     val context = LocalContext.current
     val primary = MaterialTheme.colorScheme.primary
     val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val known = remember(iconUrl) { iconUrl?.takeIf { it.isNotBlank() }?.let { FeedAccent.known(it) } }
     val source by
-        produceState<Int?>(null, iconUrl) {
+        produceState(known?.second, iconUrl) {
+            if (known?.first == true) return@produceState // already known: no second build of the row
             value =
                 iconUrl?.takeIf { it.isNotBlank() }?.let {
                     FeedAccent.sourceColor(context, it)
                 }
+            if (value != null) me.ash.reader.brief.perf.PerfLog.note("feed colour ready") // Nightly stutter log
         }
     return remember(source, primary, dark) {
         source?.let { FeedAccent.themed(it, primary, dark) }

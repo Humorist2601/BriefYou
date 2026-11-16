@@ -74,6 +74,9 @@ fun FeedIconDialog(
     // A group's dialog: "Folder icon" in place of the website's icon.
     resetLabel: String? = null,
     resetIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Outlined.Public,
+    /** The feed's own picture, when it has one: then "Feed's picture" | "Website icon" (see [IconSourceButtons]). */
+    feedPicture: String? = null,
+    onFeedPicture: ((String) -> Unit)? = null,
 ) {
     InWindowAlertDialog(
         onDismissRequest = onDismiss,
@@ -191,6 +194,28 @@ fun FeedIconDialog(
                     Text(stringResource(R.string.feed_icon_image))
                 }
                 Spacer(Modifier.height(8.dp))
+                if (feedPicture != null && onFeedPicture != null) {
+                    // Lit: the one in use; neither when an icon, emoji or image is.
+                    IconSourceButtons(
+                        feedPictureUrl = feedPicture,
+                        // The website's icon is known when it's the one in use.
+                        websiteIconUrl = current?.takeIf { it.startsWith("http", ignoreCase = true) && it != feedPicture },
+                        feedPicture =
+                            when {
+                                current == feedPicture -> true
+                                current?.startsWith("http", ignoreCase = true) == true -> false
+                                else -> null
+                            },
+                        onFeedPicture = {
+                            onFeedPicture(feedPicture)
+                            onDismiss()
+                        },
+                        onWebsiteIcon = {
+                            onWebsiteIcon()
+                            onDismiss()
+                        },
+                    )
+                } else {
                 OutlinedButton(
                     shapes = ButtonDefaults.shapes(),
                     onClick = {
@@ -202,6 +227,7 @@ fun FeedIconDialog(
                     Icon(resetIcon, null, Modifier.size(ButtonDefaults.IconSize))
                     Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                     Text(resetLabel ?: stringResource(R.string.feed_icon_website))
+                }
                 }
             }
         },

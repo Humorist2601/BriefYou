@@ -56,6 +56,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics // Brief You
+import androidx.compose.ui.semantics.contentDescription // Brief You
+import androidx.compose.ui.semantics.onClick // Brief You
+import androidx.compose.ui.semantics.onLongClick // Brief You
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
@@ -115,7 +119,7 @@ fun ArticleItem(
         imgData = FeedContent.listImage(article.img, article.link), // Brief You: better pictures
         isStarred = article.isStarred,
         isUnread = isUnread,
-        readingMinutes = remember(article.id) { estimateReadingMinutes(article.rawDescription) }, // Brief You
+        readingMinutes = remember(article.id) { me.ash.reader.brief.reading.ListReadingTime.of(article.id) }, // Brief You: worked out in the background
         onClick = { onClick(articleWithFeed) },
         onLongClick = onLongClick,
     )
@@ -137,6 +141,7 @@ fun ArticleItem(
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
+    if (me.ash.reader.brief.perf.PerfLog.enabled) androidx.compose.runtime.SideEffect { me.ash.reader.brief.perf.PerfLog.note("row built") } // Brief You: Nightly stutter log
     val articleListFeedIcon = LocalFlowArticleListFeedIcon.current
     val articleListFeedName = LocalFlowArticleListFeedName.current
     val articleListImage = LocalFlowArticleListImage.current
@@ -147,6 +152,17 @@ fun ArticleItem(
     val readingLabel = readingMinutes?.let { stringResource(R.string.reading_time_min, it) }
     val timeLabel = listOfNotNull(readingLabel, timeString?.takeIf { it.isNotBlank() })
         .joinToString(" · ")
+    // Brief You: the row is one element for accessibility (read as one item, like Android's own
+    // lists), so accessibility services don't walk its every text and icon after each change.
+    val unreadLabel = stringResource(R.string.unread) // Brief You
+    val starredLabel = stringResource(R.string.starred) // Brief You
+    val rowDescription = // Brief You
+        listOfNotNull( // Brief You
+            feedName.takeIf { it.isNotBlank() }, title, shortDescription.takeIf { it.isNotBlank() }, // Brief You
+            timeLabel.takeIf { it.isNotBlank() }, unreadLabel.takeIf { isUnread }, starredLabel.takeIf { isStarred }, // Brief You
+        ).joinToString(", ") // Brief You
+    val rowClick = onClick // Brief You
+    val rowLongClick = onLongClick // Brief You
 
     Column(
         modifier =
@@ -168,6 +184,11 @@ fun ArticleItem(
                         }
                     }
                 )
+                .clearAndSetSemantics { // Brief You
+                    contentDescription = rowDescription // Brief You
+                    this.onClick(label = null) { rowClick(); true } // Brief You
+                    if (rowLongClick != null) this.onLongClick(label = null) { rowLongClick(); true } // Brief You
+                } // Brief You
     ) {
         // Top
         Row(
@@ -341,12 +362,19 @@ fun SwipeableArticleItem(
     onMarkBelowAsRead: ((ArticleWithFeed) -> Unit)? = null,
     onShare: ((ArticleWithFeed) -> Unit)? = null,
 ) {
-
     var isMenuExpanded by remember { mutableStateOf(false) }
+    val pressContext = androidx.compose.ui.platform.LocalContext.current // Brief You
+    val pressedArticle by androidx.compose.runtime.rememberUpdatedState(articleWithFeed) // Brief You
+    // Brief You: the menu is only built once it is first opened (every row built it, closed, as the
+    // list appeared), and kept after that so it can animate closed.
+    var menuUsed by remember { mutableStateOf(false) } // Brief You
 
     val onLongClick =
         if (isMenuEnabled) {
-            { isMenuExpanded = true }
+            {
+                menuUsed = true // Brief You
+                isMenuExpanded = true
+            }
         } else {
             null
         }
@@ -367,6 +395,7 @@ fun SwipeableArticleItem(
                             while (true) {
                                 awaitFirstDown(requireUnconsumed = false).let {
                                     menuOffset = it.position.round()
+                                    me.ash.reader.brief.reading.ArticlePress.pressed(pressContext, pressedArticle) // Brief You: the article is prepared on the press
                                 }
                             }
                         }
@@ -385,7 +414,7 @@ fun SwipeableArticleItem(
                 onLongClick = onLongClick,
             )
             with(articleWithFeed.article) {
-                if (isMenuEnabled) {
+                if (isMenuEnabled && menuUsed) { // Brief You
                     AnimatedDropdownMenu(
                         modifier = Modifier.padding(horizontal = 12.dp),
                         expanded = isMenuExpanded,

@@ -241,60 +241,13 @@ fun Context.openTtsSettings() {
  * Read aloud's speed, 0.8× to 2× in steps of 0.2, as a slider in a small sheet (long press on read
  * aloud while reading). The new speed applies from the current word, and is kept for next time.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReadAloudSpeedSheet(speed: Float, onSpeed: (Float) -> Unit, onDismiss: () -> Unit) {
-    var value by remember(speed) { mutableFloatStateOf(speed) }
-    val haptic = LocalHapticFeedback.current
-    // Opens fully, like the app's other sheets.
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        Column(
-            modifier =
-                Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding()
-        ) {
-            Text(
-                stringResource(R.string.read_aloud_speed_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(Modifier.height(20.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    TextToSpeechManager.speedLabel(TextToSpeechManager.SPEEDS.first()),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                // Steps of 0.2× (0.8× to 2×), with a tick on each one.
-                Slider(
-                    value = value,
-                    onValueChange = {
-                        val step = TextToSpeechManager.snap(it)
-                        if (step != value) {
-                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                            value = step
-                        }
-                    },
-                    onValueChangeFinished = { onSpeed(value) },
-                    steps = TextToSpeechManager.SPEEDS.size - 2,
-                    valueRange = TextToSpeechManager.SPEEDS.first()..TextToSpeechManager.SPEEDS.last(),
-                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                )
-                Text(
-                    TextToSpeechManager.speedLabel(TextToSpeechManager.SPEEDS.last()),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
-            Text(
-                TextToSpeechManager.speedLabel(value),
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-            Spacer(Modifier.height(24.dp))
-        }
-    }
-}
+fun ReadAloudSpeedSheet(speed: Float, onSpeed: (Float) -> Unit, onDismiss: () -> Unit) =
+    // The shared speed sheet (the podcast player's too); the speed applies when the finger lifts.
+    me.ash.reader.brief.ui.SpeedSheet(
+        title = stringResource(R.string.read_aloud_speed_title),
+        speeds = TextToSpeechManager.SPEEDS,
+        speed = speed,
+        onDismiss = onDismiss,
+        onDone = onSpeed,
+    )

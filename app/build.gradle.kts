@@ -113,6 +113,7 @@ android {
             initWith(getByName("release"))
             applicationIdSuffix = ".nightly"
             versionNameSuffix = "-nightly"
+            proguardFile("proguard-nightly.pro") // Brief You: readable names for the stutter log
             matchingFallbacks += listOf("release")
         }
         all { signingConfig = signingConfigs.getByName("release") }
@@ -156,12 +157,15 @@ dependencies {
     // AboutLibraries
     // Read aloud: the system media notification and controls. // Brief You
     implementation(libs.androidx.media)
+    implementation(libs.media3.exoplayer) // Brief You: the podcast and video player
+    implementation(libs.media3.session) // Brief You
+    implementation(libs.media3.ui.compose) // Brief You
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
 
     // Compose
     implementation(libs.compose.html)
-    implementation(platform(libs.compose.bom.alpha))
+    implementation(platform(libs.compose.bom.stable)) // Brief You: Compose 1.11.1 (Material 3 is pinned in libs.versions.toml)
     implementation(libs.androidx.ui.graphics)
     androidTestImplementation(platform(libs.compose.bom.stable))
     implementation(libs.compose.animation.graphics)
