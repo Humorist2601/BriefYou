@@ -11,6 +11,8 @@ import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
 import com.google.ai.edge.litertlm.MessageCallback
 import com.google.ai.edge.litertlm.SamplerConfig
+import com.google.ai.edge.litertlm.SpeculativeDecodingConfig
+import com.google.ai.edge.litertlm.SpeculativeDecodingMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
@@ -348,6 +350,21 @@ constructor(
     }
 
     /**
+     * For the stutter log (Nightly): how long an answer took — the wait for its first words (the
+     * model reading the text in, plus loading it when it wasn't loaded) and how fast it then wrote
+     * — so speeds can be compared, for example with and without speculative decoding.
+     */
+    private fun logTiming(startedAt: Long, firstAt: Long, chars: Int) {
+        if (firstAt == 0L) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        val writing = (now - firstAt).coerceAtLeast(1)
+        val line =
+            "AI answer: first words after ${firstAt - startedAt} ms, then ${chars * 1000 / writing} characters/s " +
+                "($chars characters in ${writing} ms)"
+        android.os.Handler(android.os.Looper.getMainLooper()).post { me.ash.reader.brief.perf.PerfLog.action(line) }
+    }
+
+    /**
      * Runs one request. Requests run one at a time (the engine has one conversation at a time).
      *
      * Stopping it (cancelling the collector) is done carefully: the model keeps working on its own
@@ -367,6 +384,8 @@ constructor(
                             )
                     }
                     val sb = StringBuilder()
+                    val startedAt = android.os.SystemClock.elapsedRealtime()
+                    var firstAt = 0L
                     val engine = acquireEngine()
                     var stillRunning = false
                     try {
@@ -414,10 +433,12 @@ constructor(
                                     next.exceptionOrNull()?.let { throw it }
                                     break
                                 }
+                                if (first) firstAt = android.os.SystemClock.elapsedRealtime()
                                 first = false
                                 sb.append(next.getOrThrow())
                                 emit(sb.toString().trim())
                             }
+                            logTiming(startedAt, firstAt, sb.length)
                         } finally {
                             if (!finished.isCompleted) {
                                 runCatching { conversation.cancelProcess() }
@@ -508,15 +529,32 @@ constructor(
             }
             check(hasModel()) { "No model imported. Add one in Settings → AI model." }
             val cacheDir = File(context.cacheDir, "litertlm").apply { mkdirs() }.absolutePath
-            fun load(backend: Backend) =
+            fun loadWith(backend: Backend, speculative: Boolean) =
                 Engine(
                         EngineConfig(
                             modelPath = modelFile.absolutePath,
                             backend = backend,
                             cacheDir = cacheDir,
+                            // Speculative decoding: the model file's small draft model guesses a
+                            // few words ahead and the model checks them together, so answers are
+                            // written faster (Google: ~1.2× on the CPU, ~1.8× on the GPU for
+                            // summaries), same quality. Adaptive: the library uses it only while
+                            // it helps. Model files from before May 2026 have no draft model.
+                            speculativeDecodingConfig =
+                                if (speculative) SpeculativeDecodingConfig(SpeculativeDecodingMode.ADAPTIVE) else null,
                         )
                     )
                     .also { it.initialize() }
+
+            // With speculative decoding when the model file has a draft model; without when it
+            // can't (an older file), rather than not loading at all.
+            fun load(backend: Backend): Engine =
+                try {
+                    loadWith(backend, speculative = true)
+                } catch (t: Throwable) {
+                    Timber.w(t, "speculative decoding unavailable, loading without it")
+                    loadWith(backend, speculative = false)
+                }
             // When the GPU failed before, go straight to the CPU instead of trying the GPU again
             // first, which takes a while to fail (Pixels' Tensor chips have no OpenCL, which
             // LiteRT's GPU backend needs). The GPU is tried again after a month, in case an

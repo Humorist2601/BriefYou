@@ -32,8 +32,7 @@ import me.ash.reader.ui.ext.isFuture
 import me.ash.reader.ui.ext.spacerDollar
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.executeAsync
-import okhttp3.internal.commonIsSuccessful
+import okhttp3.coroutines.executeAsync // Brief You: its package in OkHttp 5
 import okio.IOException
 import org.jsoup.Jsoup
 
@@ -58,7 +57,7 @@ constructor(
     suspend fun searchFeed(feedLink: String): SearchFeedResult {
         return withContext(ioDispatcher) {
             val directResponse = response(okHttpClient, feedLink)
-            if (!directResponse.commonIsSuccessful) throw IOException(directResponse.message)
+            if (!directResponse.isSuccessful) throw IOException(directResponse.message) // Brief You
             val directBody = directResponse.body.bytes()
             val directHttpContentType = toHttpContentType(directResponse.header("Content-Type"))
 
@@ -72,7 +71,7 @@ constructor(
 
             val feed = parsedDirectFeed ?: run {
                 val discoveredResponse = response(okHttpClient, resolvedFeedLink)
-                if (!discoveredResponse.commonIsSuccessful) {
+                if (!discoveredResponse.isSuccessful) { // Brief You
                     throw IOException(discoveredResponse.message)
                 }
                 parseFeed(
@@ -120,7 +119,7 @@ constructor(
     suspend fun parseFullContent(link: String, title: String): String {
         return withContext(ioDispatcher) {
             val response = response(okHttpClient, link)
-            if (response.commonIsSuccessful) {
+            if (response.isSuccessful) { // Brief You
                 val responseBody = response.body
                 val charset = responseBody.contentType()?.charset()
                 val content =

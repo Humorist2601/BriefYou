@@ -441,6 +441,11 @@ Work from this list; tick items off here as they are done.
    Telephoto, LiteRT-LM, Coil 2.7 and Media3 (fixes the last two warnings, in `PlayerService.kt`:
    `AcceptedResultBuilder` and an override of a deprecated member). Also split the player file
    into its podcast part (`PlayerUi.kt`) and video part (`VideoUi.kt`), with no visible change.
+   *Progress (`deps-b`):* AndroidX done (0.16.2.143). OkHttp 5.5.1 (`okhttp3.coroutines.executeAsync`,
+   `isSuccessful`), Coil 2.7.0, Telephoto 0.19.0 and LiteRT-LM 0.19.1 with speculative decoding
+   (`SpeculativeDecodingMode.ADAPTIVE` on the engine, loads without it for model files from before
+   May 2026; the stutter log notes each answer's speed as "AI answer: …"). Left: Media3 warnings,
+   read aloud's controls to Media3 (`media` 1.8 deprecates `MediaSessionCompat`), the player split.
 2. **Step C**, one at a time (code changes): Coil 3, Retrofit 3, AboutLibraries 15,
    MaterialKolor 5, then raise targetSdk.
 3. **Step 8 (optional):** Dependabot or Renovate for small automatic update pull requests.
