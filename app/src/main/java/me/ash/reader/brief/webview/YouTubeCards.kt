@@ -56,6 +56,12 @@ a.brief-yt > img {
     margin: 0 !important;
     border-radius: 0 !important;
     object-fit: cover;
+    /* Fades in when it arrives, like the article's other pictures (see ImagePlaceholders). */
+    opacity: 0;
+    transition: opacity 0.45s ease;
+}
+a.brief-yt > img.brief-yt-loaded {
+    opacity: 1;
 }
 @font-face {
     font-family: brief-ui;
@@ -130,6 +136,7 @@ a.brief-yt .brief-yt-chip {
         img.alt = "";
         // Offline: the card's plain colour instead of a broken picture.
         img.addEventListener("error", function () { img.style.visibility = "hidden"; });
+        img.addEventListener("load", function () { img.classList.add("brief-yt-loaded"); });
         card.appendChild(img);
         card.insertAdjacentHTML("beforeend",
             '<span class="brief-yt-mark"><span class="brief-yt-play">' + PLAY + '</span><span class="brief-yt-chip">YouTube</span></span>');
