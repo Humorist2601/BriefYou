@@ -86,7 +86,7 @@ object ImagePlaceholders {
     object-fit: cover;
     border-radius: 0 !important;
     opacity: 0;
-    transition: opacity 0.45s ease;
+    transition: opacity 0.3s ease;
 }
 .brief-box.brief-loaded > img {
     opacity: 1;

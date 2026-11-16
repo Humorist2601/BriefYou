@@ -205,6 +205,15 @@ gh api repos/Humorist2601/BriefYou/releases --jq '.[0:2][] | "\(.tag_name) \(.na
 The build also lists Kotlin warnings: **Brief You's own code should have 0 warnings** (Read
 You's warnings are left alone on purpose).
 
+**README pictures** are SVGs drawn with Google Sans Flex outlines and Material Symbols
+(`tools/readme/make_assets.py`: hero, feature tiles, section headers; `tools/readme/make_media.py`:
+the Podcasts and videos header and table, and the Listen and watch tile, in the same style). Run
+them with an output folder, the Material Symbols rounded SVG folder (npm
+`@material-symbols/svg-400`), `app/src/main/res/font/google_sans_flex.ttf` and
+`.github/assets/icon-round.png`, then copy only the files you meant to change. The tables
+(`t-*.svg`) of the other sections came from an earlier script that wasn't kept; `make_media.py`'s
+`table()` draws the same layout.
+
 **Usual flow for a change:**
 1. `git checkout -b <topic>` from `main`; make the change; run the fork check; update README.
 2. Ask the owner → commit → push → watch the Test build → the owner tries **Brief You Nightly**.
@@ -213,7 +222,7 @@ You's warnings are left alone on purpose).
    the Build → report the release. Delete the merged branch.
 
 **Planned next (agreed with the owner, November 2026), in this order:**
-0. **Player round two (agreed 15 Nov 2026, mockups approved), on `player`, before the merge to main — built, waiting for the owner's test:**
+0. **Done (tested by the owner 16 Nov 2026): player round two, on `player`; merged to main with the approved changelog.**
    - Audio and video share one layout: seek row with the times beside it, then speed · back 30 ·
      play · forward 30 · sleep timer (both get speed and sleep). Audio card shorter (~176 dp:
      44 dp picture, 64 dp play). Video card: picture-in-picture and full screen as a small joined
@@ -237,7 +246,7 @@ You's warnings are left alone on purpose).
      button ("Use the website's icon"). Today the website's icon always replaces the feed's
      own picture.
    - Then: changelog approval, README picture for podcasts, merge to main.
-1. **One player for podcasts, read aloud and video** (mockups first), built on top of
+1. **Done: one player for podcasts, read aloud and video** (mockups first), built on top of
    `background-loading`: Media3 in the background; podcasts and video get their own media
    notification, read aloud keeps its own (separate notifications, one thing playing at a
    time); the in-app controls and the "now playing" pill are shared; podcast

@@ -58,7 +58,7 @@ a.brief-yt > img {
     object-fit: cover;
     /* Fades in when it arrives, like the article's other pictures (see ImagePlaceholders). */
     opacity: 0;
-    transition: opacity 0.45s ease;
+    transition: opacity 0.3s ease;
 }
 a.brief-yt > img.brief-yt-loaded {
     opacity: 1;

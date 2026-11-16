@@ -15,7 +15,7 @@
 <p align="center">
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-ai-dark.svg"><img alt="On-device AI: summaries, group gists and Ask, all private" src=".github/assets/readme/card-ai-light.svg" width="32%"></picture>
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-triage-dark.svg"><img alt="Triage: swipe through a backlog, card by card" src=".github/assets/readme/card-triage-light.svg" width="32%"></picture>
-<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-listen-dark.svg"><img alt="Read aloud: like a music app, with speed and progress" src=".github/assets/readme/card-listen-light.svg" width="32%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-listen-dark.svg"><img alt="Listen and watch: read aloud, podcasts and videos, with speed and a sleep timer" src=".github/assets/readme/card-listen-light.svg" width="32%"></picture>
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-calm-dark.svg"><img alt="Calmer feeds: one digest, muted words, no duplicates" src=".github/assets/readme/card-calm-light.svg" width="32%"></picture>
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-stats-dark.svg"><img alt="Reading stats: your week, streaks and a monthly recap" src=".github/assets/readme/card-stats-light.svg" width="32%"></picture>
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-backup-dark.svg"><img alt="Full backup: everything in one file" src=".github/assets/readme/card-backup-light.svg" width="32%"></picture>
@@ -23,7 +23,7 @@
 
 Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It keeps everything that makes Read You great (Material You design, Reeder-style reading, FreshRSS, Miniflux, Fever, Google Reader API and more) and adds AI that runs **entirely on your phone**: articles and questions never leave it. It installs **next to** Read You (app ID `com.ay.briefyou`); move your feeds over with OPML. It also fixes a few Read You bugs: read state that could go back to unread ([#1254](https://github.com/ReadYouApp/ReadYou/issues/1254)), *Mark as read on scroll* marking articles you never saw ([#1274](https://github.com/ReadYouApp/ReadYou/issues/1274)), pictures blocked by hotlink protection ([#1347](https://github.com/ReadYouApp/ReadYou/issues/1347)), and automatic sync that stops after the phone's clock is set ahead and back.
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots-dark.png"><img alt="Brief You screenshots: feeds, reading, Triage, AI gist and Reading stats" src=".github/assets/screenshots.png" width="100%"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots-dark.png"><img alt="Brief You screenshots: feeds, reading, a podcast, a video, Triage, AI gist, Filters and Reading stats" src=".github/assets/screenshots.png" width="80%"></picture></p>
 
 ## What's different from Read You
 
@@ -97,8 +97,14 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 
 </details>
 
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-media-dark.svg"><img alt="Podcasts and videos" src=".github/assets/readme/h-media-light.svg" width="100%"></picture></p>
+
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-media-dark.svg"><img alt="Player in the article: Episodes and videos play under the title, in one compact player. Speed and sleep timer: 0.8× to 3×, kept for next time; a timer that fades out. Carries on: Picks up where you stopped; marked read once mostly played. Notification: Speed, back 30, progress, forward 30 and stop; resume after a restart. Videos: In their own shape, with picture-in-picture and full screen. Now playing: A pill above the bottom bar; tap it for the full controls. YouTube: Videos inside articles open in the YouTube app. Feed pictures: A podcast's cover as its feed's icon, or the website's icon." src=".github/assets/readme/t-media-light.svg" width="100%"></picture></p>
+
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/media-shots-dark.png"><img alt="An episode and a video playing in their articles" src=".github/assets/media-shots.png" width="60%"></picture></p>
+
 <details>
-<summary>Podcasts and videos</summary>
+<summary>More details</summary>
 
 - A podcast episode or a video attached to a feed item gets a player under the article's title. Audio and video share one compact layout: the progress with the times beside it, then speed (0.8× to 3×, kept for next time, separately for podcasts and videos, in its own sheet), back and forward 30 seconds, play and a sleep timer (its own sheet: 15, 30, 45 minutes, an hour, or the end of the episode; it waits while paused and fades out over its last seconds).
 - YouTube videos inside an article show as a card (the video's picture with a play button in your accent colour and a YouTube label) that opens the video in the YouTube app; YouTube no longer plays videos embedded in app pages.
@@ -107,7 +113,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - A file that can't be played says so, with *Try again* and *Open in browser*. The app only uses secure connections: an `http://` episode is tried as `https://` first.
 - While something plays, a pill above the bottom bar shows it with its progress, play/pause and close; tap it for the full controls (a video shows there, large). Read aloud shows there too.
 - Full screen has speed and the sleep timer too, and its controls hide after 3 seconds while playing.
-- Tap a video to play or pause it. Videos play in the article in their own shape (kept for next time), with picture-in-picture and full screen on the video's corner; full screen turns sideways for wide videos and stays upright for tall ones, and picture-in-picture takes the video's shape; leaving the app while a video plays opens picture-in-picture by itself. YouTube videos stay in YouTube's own player.
+- Tap a video to play or pause it. Videos play in the article in their own shape (kept for next time), with picture-in-picture and full screen on the video's corner; full screen turns sideways for wide videos and stays upright for tall ones, and picture-in-picture takes the video's shape; leaving the app while a video plays opens picture-in-picture by itself.
 - The play button is Expressive: a circle while paused, a slowly turning cookie while playing, with a bounce; the other buttons spring in once an episode is loaded, and dragging the progress ticks once a second. Videos have the same play button, buttons and ticks, and their full-screen controls slide in and out from the edges.
 - A feed item that links to its comments gets a *Comments* chip next to its date.
 - Podcast audio files are no longer taken as a list picture.
