@@ -101,8 +101,6 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 
 <p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-media-dark.svg"><img alt="Player in the article: Episodes and videos play under the title, in one compact player. Speed and sleep timer: 0.8× to 3×, kept for next time; a timer that fades out. Carries on: Picks up where you stopped; marked read once mostly played. Notification: Speed, back 30, progress, forward 30 and stop; resume after a restart. Videos: In their own shape, with picture-in-picture and full screen. Now playing: A pill above the bottom bar; tap it for the full controls. YouTube: Videos inside articles open in the YouTube app. Feed pictures: A podcast's cover as its feed's icon, or the website's icon." src=".github/assets/readme/t-media-light.svg" width="100%"></picture></p>
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/media-shots-dark.png"><img alt="An episode and a video playing in their articles" src=".github/assets/media-shots.png" width="60%"></picture></p>
-
 <details>
 <summary>More details</summary>
 
