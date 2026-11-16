@@ -449,9 +449,9 @@ Work from this list; tick items off here as they are done.
 4. Run `clean.yaml` (dry run first): the merged `deps-a` branch, old releases and runs.
 5. README screenshots still show the old sheets and dialogs: retake them.
 6. ~~HANDOVER header still at 0.16.2.9.~~ Done.
-7. Remove the Reading stats diagnosis notes from the stutter log (`ReadingStatsPage.kt`: "stats: …
+7. ~~Remove the Reading stats diagnosis notes from the stutter log (`ReadingStatsPage.kt`: "stats: …
    top feeds"; `FeedAccent.kt`: "feed colour: none", "feed colour not read"); keep the Triage
-   open/close notes.
+   open/close notes.~~ Done (on `deps-b`).
 8. Read You's Languages page is unused (the entry is hidden, the app is English only); leave it so
    the fork stays close to Read You.
 

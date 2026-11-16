@@ -13,20 +13,20 @@ aboutLibsRelease = "11.1.1"
 accompanist = "0.34.0"
 
 # AndroidX
-activityCompose = "1.12.0-beta01"
-appcompat = "1.7.1"
-browser = "1.8.0"
-coreKtx = "1.16.0"
-androidxMedia = "1.7.0" # Brief You
+activityCompose = "1.13.0"
+appcompat = "1.8.0"
+browser = "1.10.0"
+coreKtx = "1.19.1"
+androidxMedia = "1.8.0" # Brief You
 media3 = "1.11.1" # Brief You: the podcast and video player
-datastore = "1.1.4"
+datastore = "1.3.0"
 espresso = "3.5.1"
-lifecycle = "2.8.7"
-navigation = "2.8.9"
-paging = "3.3.6"
+lifecycle = "2.11.0"
+navigation = "2.10.2"
+paging = "3.5.3"
 profileinstaller = "1.4.1"
 room = "2.8.5" # Brief You: its Gradle plugin works with AGP 9
-work = "2.10.1"
+work = "2.12.0"
 
 composeHtml = "1.0.2"
 
@@ -61,7 +61,7 @@ kotlinxSerializationCore = "1.9.0"
 viewmodelNav3 = "2.10.0"
 material3Adaptive = "1.3.0-alpha06"
 
-navigationevent = "1.0.0-beta01"
+navigationevent = "1.2.0"
 # Brief You: Google's Material Color Utilities for Compose (Material You schemes from a seed color).
 materialKolor = "4.0.5"
 # Brief You: Compose 1.11.1 (the newest that works with AGP 8.x and compileSdk 36; 1.12 needs AGP 9.1 and SDK 37)

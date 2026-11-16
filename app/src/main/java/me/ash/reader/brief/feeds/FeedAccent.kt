@@ -95,9 +95,6 @@ object FeedAccent {
                         } catch (e: CancellationException) {
                             throw e
                         } catch (e: Exception) {
-                            me.ash.reader.brief.perf.PerfLog.note(
-                                "feed colour not read (${iconKind(iconUrl)}): ${e.javaClass.simpleName} ${e.message?.take(60)}"
-                            ) // Nightly stutter log
                             return@withContext null // not read this time: nothing is saved
                         }
                     // Old icons' colours are never needed again; start over now and then rather
@@ -116,17 +113,6 @@ object FeedAccent {
         memory[iconUrl] = color
         return color.takeIf { it != NONE }
     }
-
-    /** What kind of icon this is, for the stutter log (never the address itself). */
-    private fun iconKind(iconUrl: String): String =
-        when {
-            iconUrl.startsWith(SymbolIcons.PREFIX) -> "Material icon"
-            iconUrl.startsWith(EMOJI_PREFIX) -> "emoji"
-            iconUrl.startsWith("data:") || "^image/.*;base64,.*".toRegex().matches(iconUrl) -> "inline image"
-            iconUrl.startsWith("http", ignoreCase = true) -> "web icon"
-            iconUrl.startsWith("file:") || iconUrl.startsWith("/") -> "image file"
-            else -> "other"
-        }
 
     private val failedAt = ConcurrentHashMap<String, Long>()
     private const val RETRY_MS = 60_000L
@@ -391,7 +377,7 @@ fun rememberFeedAccent(iconUrl: String?): Color? {
                 iconUrl?.takeIf { it.isNotBlank() }?.let {
                     FeedAccent.sourceColor(context, it)
                 }
-            me.ash.reader.brief.perf.PerfLog.note(if (value != null) "feed colour ready" else "feed colour: none") // Nightly stutter log
+            if (value != null) me.ash.reader.brief.perf.PerfLog.note("feed colour ready") // Nightly stutter log
         }
     return remember(source, primary, dark) {
         source?.let { FeedAccent.themed(it, primary, dark) }
