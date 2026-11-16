@@ -43,7 +43,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -392,7 +391,7 @@ fun NewspaperHost(maker: NewspaperMaker) {
     if (!run.visible) return
     ModalBottomSheet(
         onDismissRequest = maker::cancel,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = me.ash.reader.brief.ui.rememberFullSheetState(),
     ) {
         PressSheet(run, onCancel = maker::cancel, onRetry = maker::retry)
     }

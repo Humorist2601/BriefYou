@@ -13,7 +13,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface // Brief You
-import androidx.compose.material3.rememberModalBottomSheetState // Brief You
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,7 +38,7 @@ fun SponsorDialog(modifier: Modifier = Modifier, onDismissRequest: () -> Unit) {
     ModalBottomSheet(
         modifier = modifier,
         onDismissRequest = onDismissRequest,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = me.ash.reader.brief.ui.rememberFullSheetState(), // Brief You
     ) {
         SponsorDialogContent()
     }

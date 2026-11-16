@@ -157,7 +157,7 @@ private fun AddFeedDialogContent(
         },
         text = {
             AnimatedContent(
-                targetState = state as SubscribeState,
+                targetState = state,
                 transitionSpec = { (fadeIn() togetherWith fadeOut()).using(SizeTransform(clip = false)) },
                 contentKey = { it is SubscribeState.Configure },
                 label = "addFeed",
@@ -248,7 +248,7 @@ private fun AddFeedDialogContent(
                             configure?.feedLink?.let { FeedPictures.keep(context, it) }
                             // The chosen icon: the feed's own picture, or the website's (as found).
                             if (feedPicture != null && useFeedPicture) {
-                                FeedPictures.choose(context, configure!!.feedLink)
+                                FeedPictures.choose(context, configure.feedLink)
                                 configure.searchedFeed.icon?.apply {
                                     link = feedPicture
                                     url = feedPicture

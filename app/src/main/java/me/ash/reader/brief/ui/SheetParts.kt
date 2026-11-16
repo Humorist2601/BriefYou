@@ -52,6 +52,42 @@ import androidx.compose.ui.unit.dp
  * − and + around it.
  */
 
+/**
+ * The state every Brief You sheet uses: opens fully, no half-way stop (Material 3 1.5 replaces
+ * the old rememberModalBottomSheetState(skipPartiallyExpanded = true) with this).
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun rememberFullSheetState(): androidx.compose.material3.SheetState =
+    androidx.compose.material3.rememberBottomSheetState(
+        initialValue = androidx.compose.material3.SheetValue.Hidden,
+        enabledValues =
+            setOf(androidx.compose.material3.SheetValue.Hidden, androidx.compose.material3.SheetValue.Expanded),
+    )
+
+/**
+ * A slider in the app's style (Material 3 1.5's state-based slider, used like the old one: the
+ * value comes in, changes go out).
+ */
+@Composable
+fun BriefSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    steps: Int = 0,
+    onValueChangeFinished: (() -> Unit)? = null,
+) {
+    val state = androidx.compose.runtime.remember(steps, valueRange) { androidx.compose.material3.SliderState(value, steps, valueRange) }
+    state.value = value
+    androidx.compose.material3.Slider(
+        state = state,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        onValueChangeFinished = onValueChangeFinished,
+    )
+}
+
 /** A sheet's head without an icon: the title, an optional muted line, then the divider. */
 @Composable
 fun SheetTitle(title: String, hint: String? = null) {

@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -56,7 +54,7 @@ fun SpeedSheet(
         onStep(new)
         onDone(new)
     }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = me.ash.reader.brief.ui.rememberFullSheetState()) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp)) {
             SheetTitle(title)
             ValueStepper(
@@ -70,7 +68,7 @@ fun SpeedSheet(
                 upDescription = stringResource(R.string.sheet_step_up),
             )
             Spacer(Modifier.height(16.dp))
-            Slider(
+            BriefSlider(
                 value = index.toFloat(),
                 onValueChange = {
                     val step = speeds[Math.round(it).coerceIn(0, speeds.lastIndex)]

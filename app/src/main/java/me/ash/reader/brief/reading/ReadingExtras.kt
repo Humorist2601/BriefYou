@@ -32,10 +32,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +53,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.FormatAlignJustify
-import androidx.compose.material.icons.rounded.FormatAlignLeft
+import androidx.compose.material.icons.automirrored.rounded.FormatAlignLeft
 import androidx.compose.material.icons.rounded.FormatLineSpacing
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.CropFree
@@ -224,7 +222,7 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = me.ash.reader.brief.ui.rememberFullSheetState(),
     ) {
         Column(
             modifier =
@@ -336,7 +334,7 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
                 onPick = { aligns[it].put(context, scope) },
             ) { i, on ->
                 Icon(
-                    if (i == 0) Icons.Rounded.FormatAlignLeft else Icons.Rounded.FormatAlignJustify,
+                    if (i == 0) Icons.AutoMirrored.Rounded.FormatAlignLeft else Icons.Rounded.FormatAlignJustify,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                 )
@@ -399,7 +397,7 @@ private fun SettingSlider(
                     )
                 }
             }
-            Slider(
+            me.ash.reader.brief.ui.BriefSlider(
                 value = current.coerceIn(range.start, range.endInclusive),
                 onValueChange = {
                     current = it

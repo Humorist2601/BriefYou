@@ -30,7 +30,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -544,7 +543,7 @@ fun TranslateLanguageSheet(controller: TranslateController, onDismiss: () -> Uni
     val context = LocalContext.current
     val phone = TranslationPrefs.phoneLanguage()
     var selected by remember { mutableStateOf(TranslationPrefs.language(context)) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = me.ash.reader.brief.ui.rememberFullSheetState()
     val scope = rememberCoroutineScope()
     val others = remember(phone) { TranslationPrefs.LANGUAGES.filter { it != phone } }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {

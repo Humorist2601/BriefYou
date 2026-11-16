@@ -188,7 +188,6 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.rememberModalBottomSheetState
 /** How long a finger must stay still on a card before the long-press glow starts. */
 private const val CHARGE_DELAY_MS = 180L
 
@@ -2531,7 +2530,7 @@ private fun TriagePlacesSheet(
     onPickFeed: (TriageNext) -> Unit = {},
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = me.ash.reader.brief.ui.rememberFullSheetState()
     val sheetScope = rememberCoroutineScope()
     val iconContext = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(Unit) { me.ash.reader.brief.feeds.GroupIcons.load(iconContext) } // groups' chosen icons

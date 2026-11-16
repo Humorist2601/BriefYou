@@ -13,9 +13,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -83,7 +81,7 @@ fun NumberSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = me.ash.reader.brief.ui.rememberFullSheetState(),
     ) {
         Column(
             modifier =
@@ -146,7 +144,7 @@ fun NumberSheet(
             )
             if (!typing) {
                 Spacer(Modifier.height(16.dp))
-                Slider(
+                BriefSlider(
                     value = current.coerceIn(range.start, range.endInclusive),
                     onValueChange = {
                         val snapped = snap(it, range.start, step)
