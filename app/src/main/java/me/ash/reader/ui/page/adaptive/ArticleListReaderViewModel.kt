@@ -314,13 +314,6 @@ constructor(
     private var openNowAt = 0L // Brief You: Nightly stutter log
 
     /**
-     * Brief You: where the list was when an article was opened from it (the list it was, its first
-     * row and that row's offset). The list is laid out again when you come back and could come up
-     * at the top before its rows arrived; FlowPage puts it back here.
-     */
-    var listPositionAtOpen: Triple<Any, Int, Int>? = null
-
-    /**
      * Brief You: starts the article as it is tapped, before its page is made, so with a prepared
      * article the page has it in its first frame (it was started a few frames later, once the
      * page was there, from the page itself).

@@ -253,7 +253,6 @@ fun FlowPage(
                 viewModel.diffMapHolder.updateDiff(articleWithFeed, isUnread = false) // Brief You
                 context.openURL(articleWithFeed.article.link, openLink, openLinkSpecificBrowser) // Brief You
             } else { // Brief You
-                viewModel.listPositionAtOpen = Triple(pagerData, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) // Brief You: put back on return
                 me.ash.reader.brief.perf.PerfLog.note("list: article opened from row ${listState.firstVisibleItemIndex}") // Brief You: Nightly stutter log
                 me.ash.reader.brief.perf.PerfLog.action("Open an article", windowMs = 3_000) // Brief You: Nightly stutter log
                 navigateToArticle(articleWithFeed.article.id, index) // Brief You
@@ -329,26 +328,12 @@ fun FlowPage(
 
                 if (index != -1) {
                     scrollAppBarToCollapsed()
-                    listState.animateScrollToItem(index, scrollOffset = -200)
+                    listState.animateScrollToItem(me.ash.reader.brief.list.lazyIndexOf(itemList.orEmpty(), index, articleListDateStickyHeader.value), scrollOffset = -200) // Brief You: the list's own row
                 }
             }
         }
     } else {
         LaunchedEffect(Unit) {
-            // Brief You: back from an article: once the rows are there, the list goes back where it
-            // was if it came up somewhere else (laid out before its rows arrived, it lands at the top).
-            viewModel.listPositionAtOpen?.let { (list, index, offset) ->
-                viewModel.listPositionAtOpen = null
-                me.ash.reader.brief.perf.PerfLog.note("list: screen back at row ${listState.firstVisibleItemIndex}, ${pagingItems?.itemCount ?: 0} rows (was row $index, same list: ${list === pagerData})") // Nightly stutter log
-                if (list !== pagerData) return@let
-                kotlinx.coroutines.withTimeoutOrNull(1_500) { androidx.compose.runtime.snapshotFlow { pagingItems?.itemCount ?: 0 }.first { it > index } }
-                val cameBackAt = listState.firstVisibleItemIndex
-                if (cameBackAt != index) {
-                    listState.requestScrollToItem(index, offset)
-                    androidx.compose.runtime.withFrameNanos {} // laid out there before the check below
-                    me.ash.reader.brief.perf.PerfLog.note("list: put back where it was (it came back at row $cameBackAt, not $index)") // Nightly stutter log
-                }
-            } // Brief You
             if (readerState.articleId != null) {
                 val articleId = readerState.articleId
 
@@ -366,13 +351,13 @@ fun FlowPage(
                 val layout = listState.layoutInfo
                 val onScreen =
                     layout.visibleItemsInfo.any {
-                        it.index == index &&
+                        it.key == articleId && // Brief You: by its key (the row numbers differ, see lazyIndexOf)
                             it.offset >= layout.viewportStartOffset &&
                             it.offset + it.size <= layout.viewportEndOffset
                     }
                 if (index != -1 && !onScreen) {
                     snapAppBarToCollapsed()
-                    listState.requestScrollToItem(index, scrollOffset = -400)
+                    listState.requestScrollToItem(me.ash.reader.brief.list.lazyIndexOf(itemList.orEmpty(), index, articleListDateStickyHeader.value), scrollOffset = -400) // Brief You: the list's own row
                 }
             }
         }
