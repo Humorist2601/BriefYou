@@ -119,7 +119,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -719,28 +718,28 @@ private fun androidx.compose.ui.unit.Density.closingCorner(
     if (gesture) 44.dp.toPx() * (p * 2.5f).coerceIn(0f, 1f) else backProgress * 40.dp.toPx()
 
 /**
- * A soft shadow around the whole shape, a little lower than the shape itself. It is built from many
- * thin rounded outlines, one every ~1 dp, each as dark as the shadow should be at that distance
- * from the edge (a smooth curve from [alpha] at the edge down to nothing). They overlap slightly and
- * are too close together to see, so it reads as one continuous fade, not stacked layers.
+ * A soft shadow around the whole shape, a little lower than the shape itself: a few filled rounded
+ * rectangles, each a little bigger and fainter, stacked so the darkness builds up towards the
+ * shape's edge (a smooth curve from [alpha] at the edge down to nothing). Filled shapes are drawn
+ * by the GPU at once; the 56 outlined rings used before had to be worked out by the phone on every
+ * frame while the size changed, which made the first frame of the throw-away take ~300 ms.
  */
 private fun DrawScope.drawSoftShadow(strength: Float, corner: Float, alpha: Float) {
     if (strength <= 0.01f) return
-    val rings = 56
+    val rings = 16
     val spread = 44.dp.toPx() * strength
     val drop = 10.dp.toPx() * strength
-    val step = spread / rings
-    // From the outermost ring inwards, so the darker rings near the edge are drawn last.
-    for (i in rings downTo 0) {
-        val distance = step * i
+    // From the outermost (and faintest) inwards; each adds its share of the curve (1 - t)².
+    for (i in rings downTo 1) {
         val t = i / rings.toFloat()
-        val falloff = (1f - t) * (1f - t)
+        val inner = (i - 1) / rings.toFloat()
+        val share = (1f - inner) * (1f - inner) - (1f - t) * (1f - t)
+        val distance = spread * t
         drawRoundRect(
-            color = Color.Black.copy(alpha = alpha * strength * falloff),
+            color = Color.Black.copy(alpha = (alpha * strength * share).coerceIn(0f, 1f)),
             topLeft = Offset(-distance, drop - distance),
             size = Size(size.width + 2 * distance, size.height + 2 * distance),
             cornerRadius = CornerRadius(corner + distance),
-            style = Stroke(width = step * 1.6f),
         )
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -15,7 +16,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -79,56 +79,80 @@ fun NumberSheet(
         ) {
             SheetTitle(title)
             val steps = ((range.endInclusive - range.start) / step).roundToInt()
-            if (!typing) {
-                ValueStepper(
-                    value = current,
-                    label = { format(it, decimals, suffix) },
-                    canDown = current > range.start + step / 2,
-                    canUp = current < range.endInclusive - step / 2,
-                    onDown = {
+            val typed = text.toFloatOrNull()
+            fun startTyping() {
+                text = format(current, decimals, "")
+                typing = true
+            }
+            // Typing goes into the big number itself; − and + then step the typed number.
+            ValueStepper(
+                value = if (typing) typed ?: current else current,
+                label = { format(it, decimals, suffix) },
+                canDown = if (typing) typed != null && typed - step >= 0f else current > range.start + step / 2,
+                canUp = if (typing) typed != null else current < range.endInclusive - step / 2,
+                onDown = {
+                    if (typing) typed?.let { text = format((it - step).coerceAtLeast(0f), decimals, "") }
+                    else {
                         current = snap((current - step).coerceIn(range.start, range.endInclusive), range.start, step)
                         onSave(current)
-                    },
-                    onUp = {
-                        current = snap((current + step).coerceIn(range.start, range.endInclusive), range.start, step)
-                        onSave(current)
-                    },
-                    downDescription = stringResource(R.string.sheet_step_down),
-                    upDescription = stringResource(R.string.sheet_step_up),
-                )
-                Spacer(Modifier.height(16.dp))
-            }
-            Slider(
-                value = current.coerceIn(range.start, range.endInclusive),
-                onValueChange = {
-                    val snapped = snap(it, range.start, step)
-                    if (snapped != current) {
-                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        current = snapped
                     }
                 },
-                onValueChangeFinished = { onSave(current) },
-                // A stop on every step only while they can still be told apart.
-                steps = if (steps <= 40) steps - 1 else 0,
-                valueRange = range,
+                onUp = {
+                    if (typing) typed?.let { text = format(it + step, decimals, "") }
+                    else {
+                        current = snap((current + step).coerceIn(range.start, range.endInclusive), range.start, step)
+                        onSave(current)
+                    }
+                },
+                downDescription = stringResource(R.string.sheet_step_down),
+                upDescription = stringResource(R.string.sheet_step_up),
+                onValueClick = { if (!typing) startTyping() },
+                editor =
+                    if (!typing) null
+                    else {
+                        {
+                            NumberEditor(
+                                text = text,
+                                suffix = suffix,
+                                decimals = decimals,
+                                focus = focus,
+                                onText = { new ->
+                                    text = new.filter { it.isDigit() || (decimals > 0 && (it == '.' || it == ',')) }.replace(',', '.')
+                                },
+                            )
+                        }
+                    },
             )
-            Row {
-                Text(format(range.start, decimals, ""), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.weight(1f))
-                Text(format(range.endInclusive, decimals, ""), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Spacer(Modifier.height(16.dp))
             if (!typing) {
+                Spacer(Modifier.height(16.dp))
+                Slider(
+                    value = current.coerceIn(range.start, range.endInclusive),
+                    onValueChange = {
+                        val snapped = snap(it, range.start, step)
+                        if (snapped != current) {
+                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            current = snapped
+                        }
+                    },
+                    onValueChangeFinished = { onSave(current) },
+                    // A stop on every step only while they can still be told apart.
+                    steps = if (steps <= 40) steps - 1 else 0,
+                    valueRange = range,
+                )
+                Row {
+                    Text(format(range.start, decimals, ""), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.weight(1f))
+                    Text(format(range.endInclusive, decimals, ""), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.height(16.dp))
                 val custom = stringResource(R.string.number_custom)
                 val reset = stringResource(R.string.number_reset, resetLabel)
                 JoinedChoices(
                     count = 2,
                     selected = -1,
                     onPick = {
-                        if (it == 0) {
-                            text = format(current, decimals, "")
-                            typing = true
-                        } else if (onReset != null) {
+                        if (it == 0) startTyping()
+                        else if (onReset != null) {
                             onReset()
                             onDismiss()
                         } else {
@@ -140,19 +164,6 @@ fun NumberSheet(
                     JoinedLabel(if (i == 0) custom else reset, on)
                 }
             } else {
-                val typed = text.toFloatOrNull()
-                TextField(
-                    value = text,
-                    onValueChange = { new ->
-                        text = new.filter { it.isDigit() || (decimals > 0 && (it == '.' || it == ',')) }.replace(',', '.')
-                    },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.headlineSmall.copy(textAlign = TextAlign.Center),
-                    suffix = { Text(suffix.trim()) },
-                    keyboardOptions =
-                        KeyboardOptions(keyboardType = if (decimals > 0) KeyboardType.Decimal else KeyboardType.Number),
-                    modifier = Modifier.align(Alignment.CenterHorizontally).focusRequester(focus),
-                )
                 Text(
                     if (typed != null && (typed < range.start || typed > range.endInclusive))
                         stringResource(
@@ -187,6 +198,30 @@ fun NumberSheet(
             }
             Spacer(Modifier.height(16.dp))
         }
+    }
+}
+
+/** The number typed straight into the stepper's pill, with the cursor, the keyboard and the unit after it. */
+@Composable
+private fun NumberEditor(text: String, suffix: String, decimals: Int, focus: FocusRequester, onText: (String) -> Unit) {
+    val style =
+        MaterialTheme.typography.displaySmall.copy(
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            textAlign = TextAlign.Center,
+        )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        androidx.compose.foundation.text.BasicTextField(
+            value = text,
+            onValueChange = onText,
+            singleLine = true,
+            textStyle = style,
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.onPrimaryContainer),
+            keyboardOptions =
+                KeyboardOptions(keyboardType = if (decimals > 0) KeyboardType.Decimal else KeyboardType.Number),
+            modifier = Modifier.width(androidx.compose.foundation.layout.IntrinsicSize.Min).focusRequester(focus),
+        )
+        if (suffix.isNotBlank()) Text(suffix, style = style)
     }
 }
 

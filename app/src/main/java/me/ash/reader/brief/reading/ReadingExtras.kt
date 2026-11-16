@@ -258,6 +258,15 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
                         textAlign =
                             if (align == ReadingTextAlignPreference.Justify) androidx.compose.ui.text.style.TextAlign.Justify
                             else androidx.compose.ui.text.style.TextAlign.Start,
+                        // Lines broken one after another like the article's (Compose's default evens
+                        // out the lines, which made Left look justified and Justify look left).
+                        style =
+                            MaterialTheme.typography.bodyLarge.copy(
+                                lineBreak = androidx.compose.ui.text.style.LineBreak.Simple,
+                                hyphens =
+                                    if (align == ReadingTextAlignPreference.Justify) androidx.compose.ui.text.style.Hyphens.Auto
+                                    else androidx.compose.ui.text.style.Hyphens.None,
+                            ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),
                     )

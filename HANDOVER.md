@@ -191,6 +191,15 @@ or `assembleGithubNightly`.)
 
 Removed (Nov 2026): Read You's `build_pull_request.yaml` and `testing.yml` (they never ran: Read You update pull requests are opened by a workflow, which doesn't trigger others, and other branches are built by `test.yaml`), and `notification-preview.yml` with its script and the Nightly-only `DigestPreviewReceiver` (a one-off for the digest screenshots; in the git history if notifications change again).
 
+**Size and build time (Nov 2026):** Nightly builds skip `lintVitalGithubNightly` (about a minute;
+releases keep it). The APK is English only (`localeFilters += "en"` in `app/build.gradle.kts`; the
+Languages entry in Settings is hidden), LiteRT-LM's 22 MB library is compressed in the APK
+(`jniLibs.useLegacyPackaging = true`; Android unpacks it on install), stray jars and licence notes
+are left out, and the fonts are slimmed by `tools/fonts/slim_fonts.py` (Google Sans Flex's unused
+GRAD axis fixed at 0, renders identically; Literata kept to Latin, basic Greek and symbols). If you
+update a font, run the script on the new originals. Where the time goes: R8 about 4.7 min, Kotlin
+and KSP about 2.4 min, Gradle's own setup about 1 min.
+
 **Version names:** Read You's version + build number: `0.16.2.9` = Read You 0.16.2, build 9.
 Each build installs as an update (Obtainium works with the releases).
 

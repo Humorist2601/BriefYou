@@ -125,13 +125,7 @@ fun SettingsPage(
                         icon = Icons.Outlined.TouchApp,
                         onClick = navigateToInteraction
                     )
-                    // Brief You: the same card
-                    SelectableSettingGroupItem(
-                        title = stringResource(R.string.languages),
-                        desc = Locale.getDefault().toDisplayName(),
-                        icon = Icons.Outlined.Language,
-                        onClick = navigateToLanguages
-                    )
+                    // Brief You: no Languages entry: the app ships in English only (smaller app).
                     } // Brief You
                     Spacer(modifier = Modifier.height(16.dp)) // Brief You
                     me.ash.reader.ui.component.base.Subtitle(modifier = Modifier.padding(horizontal = 24.dp), text = stringResource(R.string.settings_section_brief)) // Brief You

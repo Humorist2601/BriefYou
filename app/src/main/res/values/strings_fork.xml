@@ -51,7 +51,7 @@
     <string name="text_settings_align_left">Left</string>
     <string name="text_settings_align_justify">Justify</string>
     <string name="text_settings_preview_title">The quick brown fox</string>
-    <string name="text_settings_preview_text">jumps over the lazy dog, and the text in your articles looks just like this.</string>
+    <string name="text_settings_preview_text">jumps over the lazy dog, and the text in your articles looks just like this, line after line, with the spacing and margins you choose here.</string>
     <string name="sheet_step_down">Less</string>
     <string name="sheet_step_up">More</string>
     <string name="speed_quick_picks">Quick picks</string>

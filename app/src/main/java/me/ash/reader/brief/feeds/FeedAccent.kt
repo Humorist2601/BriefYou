@@ -379,7 +379,14 @@ fun rememberFeedAccent(iconUrl: String?): Color? {
     val known = remember(iconUrl) { iconUrl?.takeIf { it.isNotBlank() }?.let { FeedAccent.known(it) } }
     val source by
         produceState(known?.second, iconUrl) {
-            if (known?.first == true) return@produceState // already known: no second build of the row
+            if (known?.first == true) {
+                // Already known: set it (a no-op when it was the first value, so the row isn't
+                // built twice). It must be set: produceState keeps its old value when the icon
+                // changes, so an icon that arrives later (Reading stats looks icons up after its
+                // first frame) would otherwise keep "no colour".
+                value = known.second
+                return@produceState
+            }
             value =
                 iconUrl?.takeIf { it.isNotBlank() }?.let {
                     FeedAccent.sourceColor(context, it)

@@ -90,7 +90,9 @@ jobs:
             - name: Build APK
               run: |
                   set -o pipefail
-                  ./gradlew "assembleGithub${VARIANT^}" --stacktrace 2>&1 | tee build.log
+                  # Nightly builds skip the release lint check (about a minute); releases keep it.
+                  skip=""; [ "$VARIANT" = "nightly" ] && skip="-x lintVitalGithubNightly"
+                  ./gradlew "assembleGithub${VARIANT^}" $skip --stacktrace 2>&1 | tee build.log
             - name: Name the APK
               # BriefYou-<version>-<commit>.apk (0.16.2.36, or 0.16.2.137-nightly). AGP 9 removed the
               # old variant API the build file used to name it with.

@@ -208,17 +208,18 @@ fun ValueStepper(
     onUp: () -> Unit,
     downDescription: String,
     upDescription: String,
+    /** Tapping the number (a number sheet starts typing then). */
+    onValueClick: (() -> Unit)? = null,
+    /** Shown in the pill in place of the number while it is being typed. */
+    editor: (@Composable () -> Unit)? = null,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         StepButton(Icons.Rounded.Remove, downDescription, canDown, onDown)
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.weight(1f).height(72.dp),
-        ) {
+        val pill = Modifier.weight(1f).height(72.dp)
+        val pillContent: @Composable () -> Unit = {
             Box(contentAlignment = Alignment.Center) {
-                AnimatedContent(
+                if (editor != null) editor()
+                else AnimatedContent(
                     targetState = value,
                     transitionSpec = {
                         val up = targetState > initialState
@@ -230,6 +231,24 @@ fun ValueStepper(
                     Text(label(it), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Medium, maxLines = 1)
                 }
             }
+        }
+        if (onValueClick != null && editor == null) {
+            Surface(
+                onClick = onValueClick,
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = pill,
+                content = pillContent,
+            )
+        } else {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = pill,
+                content = pillContent,
+            )
         }
         StepButton(Icons.Rounded.Add, upDescription, canUp, onUp)
     }

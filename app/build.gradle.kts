@@ -130,8 +130,20 @@ android {
     packaging {
         resources.excludes.add("/META-INF/{AL2.0,LGPL2.1}")
         resources.excludes.add("rome-utils-*.jar")
+        // Brief You: a jar inside Rome's jar and the libraries' licence and change notes, none read
+        // by the app (the licences are shown from AboutLibraries' own data).
+        resources.excludes.add("/*.jar")
+        resources.excludes.add("/META-INF/**/LICENSE.txt")
+        resources.excludes.add("/META-INF/CHANGES")
+        // Brief You: the on-device AI library (22 MB) is compressed in the APK (about 12 MB smaller
+        // to download); Android unpacks it when the app is installed.
+        jniLibs.useLegacyPackaging = true
     }
-    androidResources { generateLocaleConfig = true }
+    androidResources {
+        generateLocaleConfig = true
+        // Brief You: English only (Brief You's own text is English; about 1 MB smaller).
+        localeFilters += listOf("en")
+    }
     composeCompiler { featureFlags = setOf(ComposeFeatureFlag.PausableComposition) }
     namespace = "me.ash.reader"
 }
