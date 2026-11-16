@@ -15,7 +15,6 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.HorizontalDivider
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.produceState
 import androidx.compose.animation.core.tween
@@ -23,7 +22,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,13 +32,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.ToggleButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +49,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.FormatAlignJustify
+import androidx.compose.material.icons.automirrored.rounded.FormatAlignLeft
+import androidx.compose.material.icons.rounded.FormatLineSpacing
+import androidx.compose.material.icons.rounded.FormatSize
+import androidx.compose.material.icons.rounded.CropFree
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.ui.unit.sp
 import coil.size.Precision
 import coil.size.Scale
 import kotlin.math.roundToInt
@@ -211,126 +215,197 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
     val font = LocalReadingFonts.current
     val align = LocalReadingTextAlign.current
 
+    val fonts =
+        ReadingFontsPreference.values.filter { it != ReadingFontsPreference.External || font == ReadingFontsPreference.External }
+    val families = remember(fonts) { fonts.map { runCatching { it.asFontFamily(context) }.getOrNull() } }
+    val family = families.getOrNull(fonts.indexOf(font))
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = me.ash.reader.brief.ui.rememberFullSheetState(),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp),
         ) {
-            Text(
-                text = stringResource(R.string.text_settings),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            // The same header as the other sheets (Sort, AI summary): title, 12 dp, a divider,
-            // 14 dp (the column already puts 6 dp between items).
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-            Spacer(Modifier.height(2.dp))
+            me.ash.reader.brief.ui.SheetTitle(stringResource(R.string.text_settings))
 
-            SettingSlider(
-                label = stringResource(R.string.text_settings_size),
-                value = fontSize.toFloat(),
-                valueLabel = "$fontSize",
-                range = 12f..28f,
-                steps = 15,
+            // A live preview in your font, size and spacing, so you see what you'd get.
+            Surface(
+                shape = RoundedCornerShape(me.ash.reader.brief.ui.Corner.Card),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                ReadingTextFontSizePreference.put(context, scope, it.roundToInt())
+                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+                    Text(
+                        stringResource(R.string.text_settings_preview_title),
+                        fontFamily = family,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = (fontSize + 2).sp,
+                        lineHeight = ((fontSize + 2) * lineHeight).sp,
+                    )
+                    Text(
+                        stringResource(R.string.text_settings_preview_text),
+                        fontFamily = family,
+                        fontSize = fontSize.sp,
+                        lineHeight = (fontSize * lineHeight).sp,
+                        textAlign =
+                            if (align == ReadingTextAlignPreference.Justify) androidx.compose.ui.text.style.TextAlign.Justify
+                            else androidx.compose.ui.text.style.TextAlign.Start,
+                        // Lines broken one after another like the article's (Compose's default evens
+                        // out the lines, which made Left look justified and Justify look left).
+                        style =
+                            MaterialTheme.typography.bodyLarge.copy(
+                                lineBreak = androidx.compose.ui.text.style.LineBreak.Simple,
+                                hyphens =
+                                    if (align == ReadingTextAlignPreference.Justify) androidx.compose.ui.text.style.Hyphens.Auto
+                                    else androidx.compose.ui.text.style.Hyphens.None,
+                            ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
             }
-            SettingSlider(
-                label = stringResource(R.string.text_settings_line_height),
-                value = lineHeight,
-                valueLabel = "%.1f×".format(lineHeight),
-                range = 0.8f..2f,
-                steps = 11,
-            ) {
-                ReadingTextLineHeightPreference.put(context, scope, (it * 10).roundToInt() / 10f)
-            }
-            SettingSlider(
-                label = stringResource(R.string.text_settings_padding),
-                value = padding.toFloat(),
-                valueLabel = "$padding dp",
-                range = 0f..48f,
-                steps = 11,
-            ) {
-                ReadingTextHorizontalPaddingPreference.put(context, scope, it.roundToInt())
+            Spacer(Modifier.height(12.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(me.ash.reader.brief.ui.Group.Gap)) {
+                SettingSlider(
+                    icon = Icons.Rounded.FormatSize,
+                    label = stringResource(R.string.text_settings_size),
+                    value = fontSize.toFloat(),
+                    valueLabel = "$fontSize",
+                    range = 12f..28f,
+                    steps = 15,
+                    shape = me.ash.reader.brief.ui.groupShape(0, 3),
+                ) {
+                    ReadingTextFontSizePreference.put(context, scope, it.roundToInt())
+                }
+                SettingSlider(
+                    icon = Icons.Rounded.FormatLineSpacing,
+                    label = stringResource(R.string.text_settings_line_height),
+                    value = lineHeight,
+                    valueLabel = "%.1f×".format(lineHeight),
+                    range = 0.8f..2f,
+                    steps = 11,
+                    shape = me.ash.reader.brief.ui.groupShape(1, 3),
+                ) {
+                    ReadingTextLineHeightPreference.put(context, scope, (it * 10).roundToInt() / 10f)
+                }
+                SettingSlider(
+                    icon = Icons.Rounded.CropFree,
+                    label = stringResource(R.string.text_settings_padding),
+                    value = padding.toFloat(),
+                    valueLabel = "$padding dp",
+                    range = 0f..48f,
+                    steps = 11,
+                    shape = me.ash.reader.brief.ui.groupShape(2, 3),
+                ) {
+                    ReadingTextHorizontalPaddingPreference.put(context, scope, it.roundToInt())
+                }
             }
 
-            Spacer(Modifier.height(4.dp))
-            Text(stringResource(R.string.text_settings_font), style = MaterialTheme.typography.labelLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ReadingFontsPreference.values
-                    .filter { it != ReadingFontsPreference.External || font == ReadingFontsPreference.External }
-                    .forEach { option ->
-                        ToggleButton(
-                            checked = font == option,
-                            onCheckedChange = { option.put(context, scope) },
-                        ) {
-                            Text(option.toDesc(context))
-                        }
-                    }
+            Spacer(Modifier.height(16.dp))
+            me.ash.reader.brief.ui.SheetSection(stringResource(R.string.text_settings_font))
+            me.ash.reader.brief.ui.JoinedChoices(
+                count = fonts.size,
+                selected = fonts.indexOf(font),
+                onPick = { fonts[it].put(context, scope) },
+            ) { i, on ->
+                // Each name in its own font, so you can see what you'd get.
+                me.ash.reader.brief.ui.JoinedLabel(
+                    fonts[i].toDesc(context),
+                    on,
+                    androidx.compose.ui.text.TextStyle(fontFamily = families[i]),
+                )
             }
 
-            SwitchRow(
-                label = stringResource(R.string.text_settings_justify),
-                checked = align == ReadingTextAlignPreference.Justify,
+            Spacer(Modifier.height(16.dp))
+            me.ash.reader.brief.ui.SheetSection(stringResource(R.string.text_settings_alignment))
+            val aligns = listOf(ReadingTextAlignPreference.Start, ReadingTextAlignPreference.Justify)
+            val alignLabels =
+                listOf(stringResource(R.string.text_settings_align_left), stringResource(R.string.text_settings_align_justify))
+            me.ash.reader.brief.ui.JoinedChoices(
+                count = aligns.size,
+                selected = aligns.indexOf(align),
+                onPick = { aligns[it].put(context, scope) },
+            ) { i, on ->
+                Icon(
+                    if (i == 0) Icons.AutoMirrored.Rounded.FormatAlignLeft else Icons.Rounded.FormatAlignJustify,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                me.ash.reader.brief.ui.JoinedLabel(alignLabels[i], on)
+            }
+
+            Spacer(Modifier.height(16.dp))
+            FilledTonalButton(
+                onClick = onAllSettings,
+                shapes = ButtonDefaults.shapes(),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
             ) {
-                (if (it) ReadingTextAlignPreference.Justify else ReadingTextAlignPreference.Start)
-                    .put(context, scope)
+                Text(stringResource(R.string.text_settings_all), style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.width(4.dp))
+                Icon(Icons.Rounded.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
             }
-
-            TextButton(onClick = onAllSettings, modifier = Modifier.align(Alignment.End)) {
-                Text(stringResource(R.string.text_settings_all))
-            }
-            Spacer(Modifier.height(8.dp))
         }
     }
 }
 
+/** One setting of the Text sheet's joined group: icon, name, the value in a pill, then its slider. */
 @Composable
 private fun SettingSlider(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     value: Float,
     valueLabel: String,
     range: ClosedFloatingPointRange<Float>,
     steps: Int,
+    shape: androidx.compose.ui.graphics.Shape,
     onChange: (Float) -> Unit,
 ) {
     // Follows the finger right away; the setting is written as it moves, so the article updates.
     var current by remember(value) { mutableStateOf(value) }
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(label, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-            Text(valueLabel, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-        }
-        Slider(
-            value = current.coerceIn(range.start, range.endInclusive),
-            onValueChange = {
-                current = it
-                onChange(it)
-            },
-            valueRange = range,
-            steps = steps,
-        )
-    }
-}
-
-@Composable
-private fun SwitchRow(label: String, checked: Boolean, desc: String? = null, onChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-            desc?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Surface(shape = shape, color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier =
+                        Modifier.size(34.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(20.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Surface(
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ) {
+                    Text(
+                        valueLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                    )
+                }
             }
+            me.ash.reader.brief.ui.BriefSlider(
+                value = current.coerceIn(range.start, range.endInclusive),
+                onValueChange = {
+                    current = it
+                    onChange(it)
+                },
+                valueRange = range,
+                steps = steps,
+            )
         }
-        Switch(checked = checked, onCheckedChange = onChange)
     }
 }

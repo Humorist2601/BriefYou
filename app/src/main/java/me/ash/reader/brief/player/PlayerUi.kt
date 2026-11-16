@@ -703,10 +703,10 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
     LaunchedEffect(VideoWindow.inPip) { if (VideoWindow.inPip) onDismiss() }
     val haptic = LocalHapticFeedback.current
     val s by BriefPlayer.state.collectAsState()
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = me.ash.reader.brief.ui.rememberFullSheetState()) {
         // The app's sheet design: title, divider, then the choices.
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 24.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(stringResource(R.string.player_sleep_timer), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
@@ -818,7 +818,7 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
             showEpisode ->
                 PillContent(
                     episode = true,
-                    title = now!!.title,
+                    title = now.title,
                     line =
                         if (s.error) stringResource(if (now.isVideo) R.string.player_error_video else R.string.player_error_episode)
                         else if (s.durationMs > 0) stringResource(R.string.player_feed_left, now.feedName, formatTime(s.durationMs - s.positionMs))
@@ -833,10 +833,10 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
             reading ->
                 PillContent(
                     episode = false,
-                    title = stringResource(R.string.player_reading_aloud, tts?.title.orEmpty()),
+                    title = stringResource(R.string.player_reading_aloud, tts.title.orEmpty()),
                     line = stringResource(R.string.read_aloud),
                     artwork = null,
-                    progress = ttsState?.readProgress() ?: 0f,
+                    progress = ttsState.readProgress(),
                     playing = ttsState is TextToSpeechManager.State.Reading,
                 )
             else -> null
@@ -899,7 +899,7 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                 onClick = {
                     if (live == null) return@PlayButton
                     if (c.episode) BriefPlayer.toggle(context)
-                    else if (ttsState is TextToSpeechManager.State.Reading) tts?.pause() else tts?.resume()
+                    else if (ttsState is TextToSpeechManager.State.Reading) tts.pause() else tts?.resume()
                 },
                 size = 48.dp,
                 // Always on screen: turns for a few seconds after play, then settles.
@@ -934,9 +934,9 @@ fun NowPlayingSheet(onDismiss: () -> Unit) {
         VideoWindow.inSheet = now.isVideo
         onDispose { VideoWindow.inSheet = false }
     }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = me.ash.reader.brief.ui.rememberFullSheetState()) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 24.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (now.isVideo) {

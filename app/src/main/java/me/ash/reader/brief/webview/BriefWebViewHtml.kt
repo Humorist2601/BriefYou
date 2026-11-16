@@ -21,17 +21,21 @@ object BriefWebViewHtml {
         return Base64.encodeToString(bytes, Base64.NO_WRAP or Base64.NO_PADDING or Base64.URL_SAFE)
     }
 
-    fun page(css: String, baseUrl: String, content: String, script: String): String {
+    fun page(css: String, baseUrl: String, content: String, script: String, english: Boolean = false): String {
         val key = newKey()
         return """
 <!DOCTYPE html>
-<html dir="auto">
+<html dir="auto"${if (english) " lang=\"en\"" else ""}>
 <head>
     <meta http-equiv="Content-Security-Policy" content="script-src 'nonce-$key'; object-src 'none'" />
     <meta name="viewport" content="initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, width=device-width, viewport-fit=cover" />
     <meta content="text/html; charset=utf-8" http-equiv="content-type"/>
     <style type="text/css">
         $css
+        /* Text straight in the article, not in a paragraph (APOD writes its text with <br>s
+           only), follows the text alignment setting too; Read You's style sets it only on
+           paragraphs, lists, quotes and tables. */
+        article { text-align: var(--text-align); }
     </style>
     <base href="$baseUrl" />
 </head>

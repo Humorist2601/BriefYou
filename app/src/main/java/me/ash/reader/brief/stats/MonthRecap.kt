@@ -48,7 +48,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -734,7 +733,7 @@ fun PastMonths(data: ReadingStatsData, modifier: Modifier = Modifier) {
     if (chosen != null || (open == "year" && lastYear != null)) {
         ModalBottomSheet(
             onDismissRequest = { open = null },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = me.ash.reader.brief.ui.rememberFullSheetState(),
         ) {
             // Scrolls: an open card (the year's above all) can be taller than the screen.
             Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {

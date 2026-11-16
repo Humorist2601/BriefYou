@@ -24,7 +24,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -74,7 +73,7 @@ class SheetSwitch {
 @Composable
 fun OptionSheet(switch: SheetSwitch, content: @Composable ColumnScope.() -> Unit) {
     if (!switch.isVisible) return
-    val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val state = me.ash.reader.brief.ui.rememberFullSheetState()
     LaunchedEffect(switch.closing) {
         if (switch.closing) {
             state.hide()

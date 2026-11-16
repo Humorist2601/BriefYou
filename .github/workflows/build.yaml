@@ -90,7 +90,20 @@ jobs:
             - name: Build APK
               run: |
                   set -o pipefail
-                  ./gradlew "assembleGithub${VARIANT^}" --stacktrace 2>&1 | tee build.log
+                  # Nightly builds skip the release lint check (about a minute); releases keep it.
+                  skip=""; [ "$VARIANT" = "nightly" ] && skip="-x lintVitalGithubNightly"
+                  ./gradlew "assembleGithub${VARIANT^}" $skip --stacktrace 2>&1 | tee build.log
+            - name: Name the APK
+              # BriefYou-<version>-<commit>.apk (0.16.2.36, or 0.16.2.137-nightly). AGP 9 removed the
+              # old variant API the build file used to name it with.
+              run: |
+                  readyou=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
+                  suffix=""; [ "$VARIANT" = "nightly" ] && suffix="-nightly"
+                  dir="app/build/outputs/apk/github/$VARIANT"
+                  for f in "$dir"/*.apk; do
+                      mv "$f" "$dir/BriefYou-${readyou}.${CI_BUILD_NUMBER}${suffix}-$(git rev-parse --short HEAD).apk"
+                  done
+                  ls "$dir"
             - name: Summarise warnings
               # Kotlin warnings, Brief You's (brief/ and its copies) and Read You's, as a few
               # annotations (readable from the GitHub API) and a table in the summary.

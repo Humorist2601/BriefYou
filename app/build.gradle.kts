@@ -3,7 +3,7 @@ import java.util.Properties
 import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
 
 plugins {
-    alias(libs.plugins.kotlin.android)
+    // Brief You: no Kotlin Android plugin: AGP 9 has Kotlin built in.
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
     alias(libs.plugins.aboutlibraries)
@@ -36,7 +36,7 @@ if (releaseKeyPropsFile.exists()) {
 }
 
 android {
-    compileSdk = 36
+    compileSdk = 37 // Brief You: Compose 1.12 needs it
 
     defaultConfig {
         applicationId = "me.ash.reader"
@@ -118,13 +118,8 @@ android {
         }
         all { signingConfig = signingConfigs.getByName("release") }
     }
-    applicationVariants.all {
-        val variantVersion = versionName // Brief You
-        outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                "BriefYou-${variantVersion}-${gitCommitHash}.apk"
-        }
-    }
+    // Brief You: the APK's name (BriefYou-<version>-<commit>.apk) is given by the build workflow:
+    // AGP 9 removed the old variant API that named it here.
     // Brief You: Kotlin's options are set in kotlin { compilerOptions } below (kotlinOptions is
     // deprecated).
     compileOptions {
@@ -135,8 +130,20 @@ android {
     packaging {
         resources.excludes.add("/META-INF/{AL2.0,LGPL2.1}")
         resources.excludes.add("rome-utils-*.jar")
+        // Brief You: a jar inside Rome's jar and the libraries' licence and change notes, none read
+        // by the app (the licences are shown from AboutLibraries' own data).
+        resources.excludes.add("/*.jar")
+        resources.excludes.add("/META-INF/**/LICENSE.txt")
+        resources.excludes.add("/META-INF/CHANGES")
+        // Brief You: the on-device AI library (22 MB) is compressed in the APK (about 12 MB smaller
+        // to download); Android unpacks it when the app is installed.
+        jniLibs.useLegacyPackaging = true
     }
-    androidResources { generateLocaleConfig = true }
+    androidResources {
+        generateLocaleConfig = true
+        // Brief You: English only (Brief You's own text is English; about 1 MB smaller).
+        localeFilters += listOf("en")
+    }
     composeCompiler { featureFlags = setOf(ComposeFeatureFlag.PausableComposition) }
     namespace = "me.ash.reader"
 }

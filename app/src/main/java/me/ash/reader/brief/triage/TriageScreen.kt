@@ -119,7 +119,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -189,7 +188,6 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.rememberModalBottomSheetState
 /** How long a finger must stay still on a card before the long-press glow starts. */
 private const val CHARGE_DELAY_MS = 180L
 
@@ -579,12 +577,18 @@ fun TriageScreen(
     // Material 3 Expressive springs: a lively one for the way back, a softer one for throwing away.
     val settleSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
     val tossSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
-    LaunchedEffect(Unit) { enter.animateTo(1f, tween(220)) }
+    LaunchedEffect(Unit) {
+        me.ash.reader.brief.perf.PerfLog.action("Triage: open") // Nightly stutter log
+        enter.animateTo(1f, tween(220))
+    }
 
     // Finishes the exit and only then removes Triage, so it never vanishes in a single frame.
     suspend fun playExit() {
         if (closing) return
         closing = true
+        me.ash.reader.brief.perf.PerfLog.action(
+            if (slideDirection != 0f) "Triage: close (back gesture)" else "Triage: close (button)"
+        ) // Nightly stutter log
         // Always tells the list Triage is gone, even if the animation is cut short: otherwise
         // Triage would stay open but invisible, hiding the bottom bar and swallowing back gestures.
         try {
@@ -603,6 +607,7 @@ fun TriageScreen(
             }
         }
         } finally {
+            me.ash.reader.brief.perf.PerfLog.note("Triage: exit animation done") // Nightly stutter log
             onClose()
         }
     }
@@ -712,28 +717,28 @@ private fun androidx.compose.ui.unit.Density.closingCorner(
     if (gesture) 44.dp.toPx() * (p * 2.5f).coerceIn(0f, 1f) else backProgress * 40.dp.toPx()
 
 /**
- * A soft shadow around the whole shape, a little lower than the shape itself. It is built from many
- * thin rounded outlines, one every ~1 dp, each as dark as the shadow should be at that distance
- * from the edge (a smooth curve from [alpha] at the edge down to nothing). They overlap slightly and
- * are too close together to see, so it reads as one continuous fade, not stacked layers.
+ * A soft shadow around the whole shape, a little lower than the shape itself: a few filled rounded
+ * rectangles, each a little bigger and fainter, stacked so the darkness builds up towards the
+ * shape's edge (a smooth curve from [alpha] at the edge down to nothing). Filled shapes are drawn
+ * by the GPU at once; the 56 outlined rings used before had to be worked out by the phone on every
+ * frame while the size changed, which made the first frame of the throw-away take ~300 ms.
  */
 private fun DrawScope.drawSoftShadow(strength: Float, corner: Float, alpha: Float) {
     if (strength <= 0.01f) return
-    val rings = 56
+    val rings = 16
     val spread = 44.dp.toPx() * strength
     val drop = 10.dp.toPx() * strength
-    val step = spread / rings
-    // From the outermost ring inwards, so the darker rings near the edge are drawn last.
-    for (i in rings downTo 0) {
-        val distance = step * i
+    // From the outermost (and faintest) inwards; each adds its share of the curve (1 - t)².
+    for (i in rings downTo 1) {
         val t = i / rings.toFloat()
-        val falloff = (1f - t) * (1f - t)
+        val inner = (i - 1) / rings.toFloat()
+        val share = (1f - inner) * (1f - inner) - (1f - t) * (1f - t)
+        val distance = spread * t
         drawRoundRect(
-            color = Color.Black.copy(alpha = alpha * strength * falloff),
+            color = Color.Black.copy(alpha = (alpha * strength * share).coerceIn(0f, 1f)),
             topLeft = Offset(-distance, drop - distance),
             size = Size(size.width + 2 * distance, size.height + 2 * distance),
             cornerRadius = CornerRadius(corner + distance),
-            style = Stroke(width = step * 1.6f),
         )
     }
 }
@@ -2525,7 +2530,7 @@ private fun TriagePlacesSheet(
     onPickFeed: (TriageNext) -> Unit = {},
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = me.ash.reader.brief.ui.rememberFullSheetState()
     val sheetScope = rememberCoroutineScope()
     val iconContext = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(Unit) { me.ash.reader.brief.feeds.GroupIcons.load(iconContext) } // groups' chosen icons

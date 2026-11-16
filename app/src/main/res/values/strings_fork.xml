@@ -47,7 +47,14 @@
     <string name="text_settings_line_height">Line spacing</string>
     <string name="text_settings_padding">Side margins</string>
     <string name="text_settings_font">Font</string>
-    <string name="text_settings_justify">Justify text</string>
+    <string name="text_settings_alignment">Alignment</string>
+    <string name="text_settings_align_left">Left</string>
+    <string name="text_settings_align_justify">Justify</string>
+    <string name="text_settings_preview_title">The quick brown fox</string>
+    <string name="text_settings_preview_text">jumps over the lazy dog, and the text in your articles looks just like this, line after line, with the spacing and margins you choose here.</string>
+    <string name="sheet_step_down">Less</string>
+    <string name="sheet_step_up">More</string>
+    <string name="speed_quick_picks">Quick picks</string>
     <string name="text_settings_all">All reading settings</string>
 
     <!-- Group gist -->
@@ -355,10 +362,11 @@
     <string name="player_try_again">Try again</string>
     <string name="player_open_browser">Open in browser</string>
     <string name="tour_restore_title">Coming from another phone?</string>
-    <string name="tour_restore_text">Bring back your settings from a backup: theme, reading style, filters and the rest. On the other phone, make one in Settings → Troubleshooting → Export as JSON. Your feeds come over separately, with Import from OPML when you add a feed.</string>
+    <string name="tour_restore_text">Bring back your feeds, starred articles, filters and settings from a backup. On the other phone, make one in Settings → Accounts → your account → Back up everything.</string>
     <string name="tour_restore">Restore</string>
-    <string name="tour_restore_done">Settings restored</string>
-    <string name="tour_restore_failed">That file isn\'t a settings backup. Try another one, or tap Later.</string>
+    <string name="tour_restore_done">Backup restored</string>
+    <string name="tour_restoring">Restoring…</string>
+    <string name="tour_restore_failed">That file isn\'t a Brief You backup. Try another one, or tap Later.</string>
     <string name="tour_triage_title">Triage your news</string>
     <string name="tour_triage_text">Swipe through your unread articles like cards: right to read, left to save, up to open, down to skip. Hold a card for a 3-point summary.</string>
     <string name="tour_ai_title">AI on your phone</string>
@@ -533,6 +541,8 @@
     <string name="translate_to">Translate to</string>
     <string name="translate_to_hint">Used for every article you translate.</string>
     <string name="translate_phone_language">Phone language</string>
+    <string name="translate_other_languages">Other languages</string>
+    <string name="translate_to_language">Translate to %1$s</string>
     <string name="translate_running">Translating to %1$s</string>
     <string name="translate_progress">%1$d of %2$d paragraphs · by your AI model</string>
     <string name="translate_done">Translated to %1$s</string>

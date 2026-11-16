@@ -142,7 +142,9 @@ fun RYWebView(
                 MediaStyle.css(imgMaximize, videoCorners, videoPadding, videoMaximize) +
                 // Boxes with a loading indicator for the pictures still loading (no jumping text).
                 // (the same tonal colour as code blocks, and the accent colour).
-                ImagePlaceholders.css(boxColor = codeBgColor, indicatorColor = linkTextColor)
+                ImagePlaceholders.css(boxColor = codeBgColor, indicatorColor = linkTextColor) +
+                // Softer links; hyphenated justified English text.
+                ReadingText.css(justified = textAlign == "justify")
         }
     val script =
         remember(boldCharacters.value) {
@@ -283,6 +285,8 @@ fun RYWebView(
                             baseUrl.orEmpty().replace("\"", "%22"),
                             content,
                             script,
+                            // Lets justified English text be hyphenated (see ReadingText).
+                            english = ReadingText.looksEnglish(content),
                         ),
                         "text/HTML",
                         "UTF-8",

@@ -121,6 +121,7 @@ fun ReadingStatsSettingsItem() {
  */
 @Composable
 fun ReadingStatsPage(onBack: () -> Unit) {
+    LaunchedEffect(Unit) { me.ash.reader.brief.perf.PerfLog.action("Open Reading stats", windowMs = 5_000) } // Nightly stutter log
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         ReadingStats.load(context)
@@ -163,7 +164,17 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                                 .queryAll(deps.accountService().getCurrentAccountId())
                                 .associate { it.name to it.icon }
                         }
+                        .onFailure {
+                            me.ash.reader.brief.perf.PerfLog.note("stats: feed icons not looked up: ${it.javaClass.simpleName}") // Nightly stutter log
+                        }
                         .getOrDefault(emptyMap())
+                        .also { icons ->
+                            val named = topFeeds.count { (name, _) -> name in icons }
+                            val withIcon = topFeeds.count { (name, _) -> !icons[name].isNullOrBlank() }
+                            me.ash.reader.brief.perf.PerfLog.note(
+                                "stats: ${topFeeds.size} top feeds, $named found by name, $withIcon with an icon"
+                            ) // Nightly stutter log
+                        }
                 }
         }
     val chartValues =

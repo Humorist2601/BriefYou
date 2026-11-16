@@ -88,7 +88,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -151,7 +150,7 @@ fun SummarySheet(
                 viewModel.textToSpeechManager.sourceKey == viewModel.readKey
         ) ttsAny
         else TextToSpeechManager.State.Idle
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = me.ash.reader.brief.ui.rememberFullSheetState()
     val isArticle = request is SummaryRequest.Article
     val asks = viewModel.asks.collectAsStateValue()
     var question by rememberSaveable(requestKey) { mutableStateOf("") }

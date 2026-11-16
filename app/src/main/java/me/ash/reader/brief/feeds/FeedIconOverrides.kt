@@ -14,7 +14,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.ash.reader.domain.repository.FeedDao
 import me.ash.reader.ui.component.EMOJI_PREFIX
-import me.ash.reader.ui.ext.currentAccountId
 
 /**
  * Custom feed icons chosen by the user: a Material icon, an emoji (older choices), an image
@@ -30,6 +29,7 @@ class FeedIconOverrides
 constructor(
     @param:ApplicationContext private val context: Context,
     private val feedDao: FeedDao,
+    private val accountService: me.ash.reader.domain.service.AccountService,
 ) {
     private val prefs = context.getSharedPreferences("feed_icon_overrides", Context.MODE_PRIVATE)
     private val dir = File(context.filesDir, "feed_icons").apply { mkdirs() }
@@ -158,7 +158,7 @@ constructor(
             for (url in FeedPictures.chosen(context)) {
                 val picture = FeedPictures.get(context, url) ?: continue
                 // The server may keep the address a little differently (http/https, a slash).
-                val accountId = context.currentAccountId
+                val accountId = accountService.getCurrentAccountId()
                 val feeds = FeedPictures.variants(url).flatMap { feedDao.queryByLink(accountId, it) }.distinctBy { it.id }
                 if (feeds.isEmpty()) continue
                 feeds.forEach { prefs.edit { putString(it.id, picture) } }

@@ -33,61 +33,15 @@ fun RadioDialog(
     options: List<RadioDialogOption> = emptyList(),
     onDismissRequest: () -> Unit = {},
 ) {
-    RYDialog(
-        modifier = modifier,
-        visible = visible,
-        onDismissRequest = onDismissRequest,
-        title = {
-            Text(
-                text = title,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.titleLarge,
-            )
-        },
-        text = {
-            LazyColumn {
-                if (description != null) {
-                    item {
-                        Text(text = description)
-                        if (options.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
-                    }
-                }
-                items(options) { option ->
-                    Row(
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                .clip(MaterialTheme.shapes.extraLarge)
-                                .selectable(selected = option.selected) {
-                                    option.onClick()
-                                    onDismissRequest()
-                                }
-                                .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = option.selected,
-                            onClick = null,
-                            modifier = Modifier.padding(horizontal = 12.dp),
-                        )
-                        Text(
-                            modifier = Modifier.padding(start = 6.dp),
-                            text = option.text,
-                            style =
-                                MaterialTheme.typography.bodyLarge
-                                    .copy(baselineShift = BaselineShift.None)
-                                    .merge(other = option.style),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {},
-    )
+    // Brief You: the choices as a sheet in the app's sheet design (a joined group, the chosen one
+    // filled and ticked) instead of a radio list in a dialog. Every caller keeps working as before.
+    if (!visible) return // Brief You
+    me.ash.reader.brief.ui.ChoiceSheet( // Brief You
+        title = title, // Brief You
+        hint = description, // Brief You
+        choices = options.map { me.ash.reader.brief.ui.Choice(it.text, it.selected, it.style, it.onClick) }, // Brief You
+        onDismiss = onDismissRequest, // Brief You
+    ) // Brief You
 }
 
 @Immutable
