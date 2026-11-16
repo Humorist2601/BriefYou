@@ -92,7 +92,13 @@ jobs:
                   set -o pipefail
                   # Nightly builds skip the release lint check (about a minute); releases keep it.
                   skip=""; [ "$VARIANT" = "nightly" ] && skip="-x lintVitalGithubNightly"
-                  ./gradlew "assembleGithub${VARIANT^}" $skip --stacktrace 2>&1 | tee build.log
+                  # A download hiccup can leave "not found" in the saved Gradle cache, and later builds
+                  # believe it: when a dependency couldn't be resolved, try once more checking online.
+                  if ! ./gradlew "assembleGithub${VARIANT^}" $skip --stacktrace 2>&1 | tee build.log; then
+                      grep -qiE "could not resolve|was not found in any of the following sources" build.log || exit 1
+                      echo "::warning::A dependency couldn't be resolved; trying again with --refresh-dependencies"
+                      ./gradlew "assembleGithub${VARIANT^}" $skip --stacktrace --refresh-dependencies 2>&1 | tee build.log
+                  fi
             - name: Name the APK
               # BriefYou-<version>-<commit>.apk (0.16.2.36, or 0.16.2.137-nightly). AGP 9 removed the
               # old variant API the build file used to name it with.
