@@ -7,6 +7,8 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -211,18 +213,19 @@ fun Modifier.aiGlow(
             else -> 0.3f
         }
     val strength by animateFloatAsState(target, tween(500), label = "glow")
-    // Turning only while there is something to show, so an idle card isn't redrawn every frame.
-    val angle =
-        if (charging || charge() > 0.001f || target > 0f || strength > 0.001f) {
-            rememberInfiniteTransition(label = "glow turn")
-                .animateFloat(
-                    0f,
-                    360f,
-                    infiniteRepeatable(tween(2_400, easing = LinearEasing), RepeatMode.Restart),
-                    label = "glow angle",
-                )
-        } else null
-    if (angle == null) return this
+    // The colours turn only while the long press charges and while the summary is being written.
+    // Once it's done the faint glow stays still where it stopped: a glow turning for as long as
+    // the summary is shown redrew the whole card every frame, which made going back lag.
+    val working = summary?.working == true
+    val spinning = charging || working
+    val angle = remember { Animatable(0f) }
+    LaunchedEffect(spinning) {
+        while (spinning) {
+            angle.animateTo(angle.value + 360f, tween(2_400, easing = LinearEasing))
+            angle.snapTo(angle.value % 360f)
+        }
+    }
+    if (!spinning && target <= 0f && strength <= 0.001f && charge() <= 0.001f) return this
     return drawWithContent {
         drawContent()
         // While a finger holds the card, the colours start to show (the long press "charging").

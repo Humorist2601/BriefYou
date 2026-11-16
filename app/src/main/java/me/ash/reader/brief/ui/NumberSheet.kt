@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -64,7 +63,20 @@ fun NumberSheet(
 ) {
     var current by remember(value) { mutableFloatStateOf(value) }
     var typing by remember { mutableStateOf(false) }
-    var text by remember { mutableStateOf("") }
+    // What is typed, with its cursor: it starts all selected, so the first digit replaces it, and
+    // the cursor stays where you put it (a plain String put it back at the start).
+    var field by remember { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue("")) }
+    val text = field.text
+    fun setText(new: String) {
+        field = androidx.compose.ui.text.input.TextFieldValue(new, androidx.compose.ui.text.TextRange(new.length))
+    }
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    fun stopTyping() {
+        keyboard?.hide()
+        focusManager.clearFocus()
+        typing = false
+    }
     val haptic = LocalHapticFeedback.current
     val focus = remember { FocusRequester() }
     LaunchedEffect(typing) { if (typing) focus.requestFocus() }
@@ -81,7 +93,8 @@ fun NumberSheet(
             val steps = ((range.endInclusive - range.start) / step).roundToInt()
             val typed = text.toFloatOrNull()
             fun startTyping() {
-                text = format(current, decimals, "")
+                val now = format(current, decimals, "")
+                field = androidx.compose.ui.text.input.TextFieldValue(now, androidx.compose.ui.text.TextRange(0, now.length))
                 typing = true
             }
             // Typing goes into the big number itself; − and + then step the typed number.
@@ -91,14 +104,14 @@ fun NumberSheet(
                 canDown = if (typing) typed != null && typed - step >= 0f else current > range.start + step / 2,
                 canUp = if (typing) typed != null else current < range.endInclusive - step / 2,
                 onDown = {
-                    if (typing) typed?.let { text = format((it - step).coerceAtLeast(0f), decimals, "") }
+                    if (typing) typed?.let { setText(format((it - step).coerceAtLeast(0f), decimals, "")) }
                     else {
                         current = snap((current - step).coerceIn(range.start, range.endInclusive), range.start, step)
                         onSave(current)
                     }
                 },
                 onUp = {
-                    if (typing) typed?.let { text = format(it + step, decimals, "") }
+                    if (typing) typed?.let { setText(format(it + step, decimals, "")) }
                     else {
                         current = snap((current + step).coerceIn(range.start, range.endInclusive), range.start, step)
                         onSave(current)
@@ -112,12 +125,20 @@ fun NumberSheet(
                     else {
                         {
                             NumberEditor(
-                                text = text,
+                                field = field,
                                 suffix = suffix,
                                 decimals = decimals,
                                 focus = focus,
-                                onText = { new ->
-                                    text = new.filter { it.isDigit() || (decimals > 0 && (it == '.' || it == ',')) }.replace(',', '.')
+                                onField = { new ->
+                                    val clean = new.text.filter { it.isDigit() || (decimals > 0 && (it == '.' || it == ',')) }.replace(',', '.')
+                                    field = if (clean == new.text) new else androidx.compose.ui.text.input.TextFieldValue(clean, androidx.compose.ui.text.TextRange(clean.length))
+                                },
+                                onDone = {
+                                    text.toFloatOrNull()?.let { t ->
+                                        current = t
+                                        onSave(t)
+                                        stopTyping()
+                                    }
                                 },
                             )
                         }
@@ -190,7 +211,7 @@ fun NumberSheet(
                                 onSave(t)
                             }
                         }
-                        if (it == 0 || typed != null) typing = false
+                        if (it == 0 || typed != null) stopTyping()
                     },
                 ) { i, on ->
                     JoinedLabel(if (i == 0) cancel else done, on)
@@ -203,26 +224,48 @@ fun NumberSheet(
 
 /** The number typed straight into the stepper's pill, with the cursor, the keyboard and the unit after it. */
 @Composable
-private fun NumberEditor(text: String, suffix: String, decimals: Int, focus: FocusRequester, onText: (String) -> Unit) {
+private fun NumberEditor(
+    field: androidx.compose.ui.text.input.TextFieldValue,
+    suffix: String,
+    decimals: Int,
+    focus: FocusRequester,
+    onField: (androidx.compose.ui.text.input.TextFieldValue) -> Unit,
+    onDone: () -> Unit,
+) {
     val style =
         MaterialTheme.typography.displaySmall.copy(
             fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
             textAlign = TextAlign.Center,
         )
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        androidx.compose.foundation.text.BasicTextField(
-            value = text,
-            onValueChange = onText,
-            singleLine = true,
-            textStyle = style,
-            cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.onPrimaryContainer),
-            keyboardOptions =
-                KeyboardOptions(keyboardType = if (decimals > 0) KeyboardType.Decimal else KeyboardType.Number),
-            modifier = Modifier.width(androidx.compose.foundation.layout.IntrinsicSize.Min).focusRequester(focus),
-        )
-        if (suffix.isNotBlank()) Text(suffix, style = style)
-    }
+    // The whole pill is the field (centred), with the unit drawn after the number but not typed:
+    // a field sized to its text scrolled its digits out of sight as they were typed.
+    val unit =
+        androidx.compose.ui.text.input.VisualTransformation { typed ->
+            androidx.compose.ui.text.input.TransformedText(
+                androidx.compose.ui.text.AnnotatedString(typed.text + suffix),
+                object : androidx.compose.ui.text.input.OffsetMapping {
+                    override fun originalToTransformed(offset: Int): Int = offset
+                    override fun transformedToOriginal(offset: Int): Int = minOf(offset, typed.text.length)
+                },
+            )
+        }
+    androidx.compose.foundation.text.BasicTextField(
+        value = field,
+        onValueChange = onField,
+        singleLine = true,
+        textStyle = style,
+        visualTransformation = unit,
+        cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.onPrimaryContainer),
+        keyboardOptions =
+            KeyboardOptions(
+                keyboardType = if (decimals > 0) KeyboardType.Decimal else KeyboardType.Number,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+            ),
+        // The keyboard's tick saves, like Done.
+        keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { onDone() }),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(focus),
+    )
 }
 
 private fun snap(v: Float, start: Float, step: Float): Float =
