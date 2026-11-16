@@ -5,7 +5,8 @@ written for two readers at once: **you** (the owner), and **an AI assistant** (C
 other) that you hand this repository to. If you start a new chat, give it this repository and
 say: *"Read HANDOVER.md first, then …"*.
 
-Last updated: November 2026, at **Brief You 0.16.2.9**.
+Last updated: 16 November 2026, at **Brief You 0.16.2.38**. The agreed list of pending work is
+in [§9](#9-pending-work-the-baseline).
 
 ---
 
@@ -296,6 +297,11 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
 
 ## 6. Pitfalls already hit (save yourself the time)
 
+- **"Plugin … was not found" on `main` (0.16.2.38):** a download hiccup during a release build got
+  "not found" saved in `main`'s Gradle cache, and re-running believed it. The build step now
+  retries once with `--refresh-dependencies` when a dependency couldn't be resolved. A new commit
+  on `main` becomes the release notes, so give a fix-up commit the full changelog.
+
 - **Kotlin trailing lambdas:** adding a parameter *after* a function's last lambda parameter
   breaks every call that uses trailing-lambda syntax (happened twice: `GroupItem`, and
   `backPreviewTransition { … }` → use named arguments).
@@ -424,6 +430,47 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
 
 The new assistant needs access to the repository (and, to push and watch builds, a GitHub
 token or the GitHub CLI logged in as the owner).
+
+## 9. Pending work (the baseline)
+
+Agreed with the owner on 16 November 2026, after Brief You 0.16.2.38 (dependency step A merged).
+Work from this list; tick items off here as they are done.
+
+**Dependency plan**
+1. **Step B**, on a new branch with a Nightly each: the remaining AndroidX libraries, OkHttp 5.5,
+   Telephoto, LiteRT-LM, Coil 2.7 and Media3 (fixes the last two warnings, in `PlayerService.kt`:
+   `AcceptedResultBuilder` and an override of a deprecated member). Also split the player file
+   into its podcast part (`PlayerUi.kt`) and video part (`VideoUi.kt`), with no visible change.
+2. **Step C**, one at a time (code changes): Coil 3, Retrofit 3, AboutLibraries 15,
+   MaterialKolor 5, then raise targetSdk.
+3. **Step 8 (optional):** Dependabot or Renovate for small automatic update pull requests.
+
+**Tidy-up**
+4. Run `clean.yaml` (dry run first): the merged `deps-a` branch, old releases and runs.
+5. README screenshots still show the old sheets and dialogs: retake them.
+6. ~~HANDOVER header still at 0.16.2.9.~~ Done.
+7. Remove the Reading stats diagnosis notes from the stutter log (`ReadingStatsPage.kt`: "stats: …
+   top feeds"; `FeedAccent.kt`: "feed colour: none", "feed colour not read"); keep the Triage
+   open/close notes.
+8. Read You's Languages page is unused (the entry is hidden, the app is English only); leave it so
+   the fork stays close to Read You.
+
+**Performance (optional)**
+9. "Open a group's list": late frames about a second after the list settled (drawing and GPU,
+   no app code in the samples): something keeps redrawing there.
+10. The first Triage open after an install is a little slower (the phone prepares its graphics).
+11. Gradle configuration cache (up to ~1 min per build; needs a cache encryption key secret for
+    `setup-gradle`).
+12. R8 full mode (`android.enableR8.fullMode`): maybe a smaller app; risky with reflection
+    (Rome, Gson), needs careful testing.
+
+**Set aside by the owner (only if asked again)**
+13. Brandfetch logos: ask Brandfetch about caching, or a live-only "Brand logo" choice in Change
+    icon (their terms forbid caching and reading the pixels; a client ID would be public).
+14. Website-icon preview in Change icon (the website half is often empty).
+15. Look up the website icon from the feed's own RSS `<link>` instead of the feed's address.
+
+---
 
 ## Security notes
 
