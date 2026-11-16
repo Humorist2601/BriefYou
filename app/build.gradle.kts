@@ -3,7 +3,7 @@ import java.util.Properties
 import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
 
 plugins {
-    alias(libs.plugins.kotlin.android)
+    // Brief You: no Kotlin Android plugin: AGP 9 has Kotlin built in.
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
     alias(libs.plugins.aboutlibraries)
@@ -36,7 +36,7 @@ if (releaseKeyPropsFile.exists()) {
 }
 
 android {
-    compileSdk = 36
+    compileSdk = 37 // Brief You: Compose 1.12 needs it
 
     defaultConfig {
         applicationId = "me.ash.reader"
@@ -118,13 +118,8 @@ android {
         }
         all { signingConfig = signingConfigs.getByName("release") }
     }
-    applicationVariants.all {
-        val variantVersion = versionName // Brief You
-        outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                "BriefYou-${variantVersion}-${gitCommitHash}.apk"
-        }
-    }
+    // Brief You: the APK's name (BriefYou-<version>-<commit>.apk) is given by the build workflow:
+    // AGP 9 removed the old variant API that named it here.
     // Brief You: Kotlin's options are set in kotlin { compilerOptions } below (kotlinOptions is
     // deprecated).
     compileOptions {
