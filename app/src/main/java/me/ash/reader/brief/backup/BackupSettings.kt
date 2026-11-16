@@ -180,7 +180,7 @@ fun BackupSettingItems(accountId: Int, viewModel: BackupViewModel = hiltViewMode
 }
 
 /** "Restored: subscriptions, filters…", plus what couldn't be restored, if anything. */
-private fun restoreMessage(
+internal fun restoreMessage(
     context: android.content.Context,
     r: BackupService.RestoreResult,
 ): String {

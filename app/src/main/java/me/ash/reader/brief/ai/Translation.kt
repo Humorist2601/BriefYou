@@ -11,11 +11,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,7 +29,6 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -58,7 +61,6 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.ash.reader.R
-import me.ash.reader.brief.ui.SheetActions
 import me.ash.reader.ui.ext.showToast
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -82,6 +84,10 @@ object TranslationPrefs {
     /** The name shown to the reader, in the reader's language. */
     fun displayName(tag: String): String =
         Locale.forLanguageTag(tag).getDisplayLanguage(Locale.getDefault()).replaceFirstChar { it.uppercase() }
+
+    /** The language's own name ("Français", "Deutsch"), as people who speak it write it. */
+    fun ownName(tag: String): String =
+        Locale.forLanguageTag(tag).let { it.getDisplayLanguage(it) }.replaceFirstChar { it.uppercase() }
 
     /** The name the model is told, in English. */
     fun englishName(tag: String): String = Locale.forLanguageTag(tag).getDisplayLanguage(Locale.ENGLISH)
@@ -532,7 +538,7 @@ fun TranslationBanner(controller: TranslateController) {
 }
 
 /** Long press on Translate: pick the language, then translate. */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TranslateLanguageSheet(controller: TranslateController, onDismiss: () -> Unit) {
     val context = LocalContext.current
@@ -540,55 +546,63 @@ fun TranslateLanguageSheet(controller: TranslateController, onDismiss: () -> Uni
     var selected by remember { mutableStateOf(TranslationPrefs.language(context)) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+    val others = remember(phone) { TranslationPrefs.LANGUAGES.filter { it != phone } }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
-            Text(
-                text = stringResource(R.string.translate_to),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+            me.ash.reader.brief.ui.SheetTitle(
+                stringResource(R.string.translate_to),
+                stringResource(R.string.translate_to_hint),
             )
-            Text(
-                text = stringResource(R.string.translate_to_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp),
+            // Your phone's language on its own, then the others as one joined group, each in its
+            // own name (with the name you know it by under it).
+            me.ash.reader.brief.ui.ChoiceRow(
+                title = TranslationPrefs.ownName(phone),
+                subtitle = stringResource(R.string.translate_phone_language),
+                selected = selected == phone,
+                shape = me.ash.reader.brief.ui.groupShape(0, 1),
+                onClick = { selected = phone },
+                leading = {
+                    Icon(Icons.Outlined.Language, contentDescription = null, modifier = Modifier.size(24.dp))
+                },
             )
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Column(modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(top = 6.dp)) {
-                (listOf(phone) + TranslationPrefs.LANGUAGES.filter { it != phone }).forEach { tag ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable { selected = tag }.padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = selected == tag, onClick = { selected = tag })
-                        Text(
-                            text = TranslationPrefs.displayName(tag),
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f).padding(start = 8.dp),
-                        )
-                        if (tag == phone) {
-                            Text(
-                                text = stringResource(R.string.translate_phone_language),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+            Spacer(Modifier.height(16.dp))
+            me.ash.reader.brief.ui.SheetSection(stringResource(R.string.translate_other_languages))
+            Column(
+                modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(me.ash.reader.brief.ui.Group.Gap),
+            ) {
+                others.forEachIndexed { i, tag ->
+                    val own = TranslationPrefs.ownName(tag)
+                    val known = TranslationPrefs.displayName(tag)
+                    me.ash.reader.brief.ui.ChoiceRow(
+                        title = own,
+                        subtitle = known.takeIf { it != own },
+                        selected = selected == tag,
+                        shape = me.ash.reader.brief.ui.groupShape(i, others.size),
+                        onClick = { selected = tag },
+                    )
                 }
             }
-            Spacer(Modifier.height(12.dp))
-            SheetActions(
-                stringResource(R.string.translate_action) to {
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = {
                     scope.launch { sheetState.hide() }.invokeOnCompletion {
                         onDismiss()
                         controller.start(selected)
                     }
-                    Unit
                 },
-                null,
-                dangerSecond = false,
-            )
+                shapes = ButtonDefaults.shapes(),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+            ) {
+                Icon(Icons.Outlined.Translate, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.translate_to_language, TranslationPrefs.ownName(selected)),
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
 package me.ash.reader.brief.ui
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,13 +9,10 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -42,8 +38,8 @@ import kotlin.math.roundToInt
 import me.ash.reader.R
 
 /**
- * A number setting as a sheet, like the read-aloud speed one: the range's ends, a slider with a
- * tick on every step, and the value below. "Custom value" types a number (it can go past the
+ * A number setting as a sheet, like the speed one: the value large with − and + to step it, a
+ * slider with a stop on every step and the range's ends under it. "Custom value" types a number (it can go past the
  * slider's end); "Reset to …" goes back to the default. The setting is saved as the slider is let
  * go, and by Reset and Done.
  *
@@ -81,62 +77,67 @@ fun NumberSheet(
             modifier =
                 Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().imePadding()
         ) {
-            Text(title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(Modifier.height(20.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(format(range.start, decimals, ""), style = MaterialTheme.typography.labelLarge)
-                Slider(
-                    value = current.coerceIn(range.start, range.endInclusive),
-                    onValueChange = {
-                        val snapped = snap(it, range.start, step)
-                        if (snapped != current) {
-                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                            current = snapped
-                        }
-                    },
-                    onValueChangeFinished = { onSave(current) },
-                    steps = ((range.endInclusive - range.start) / step).roundToInt() - 1,
-                    valueRange = range,
-                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                )
-                Text(format(range.endInclusive, decimals, ""), style = MaterialTheme.typography.labelLarge)
-            }
+            SheetTitle(title)
+            val steps = ((range.endInclusive - range.start) / step).roundToInt()
             if (!typing) {
-                Text(
-                    format(current, decimals, suffix),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ValueStepper(
+                    value = current,
+                    label = { format(it, decimals, suffix) },
+                    canDown = current > range.start + step / 2,
+                    canUp = current < range.endInclusive - step / 2,
+                    onDown = {
+                        current = snap((current - step).coerceIn(range.start, range.endInclusive), range.start, step)
+                        onSave(current)
+                    },
+                    onUp = {
+                        current = snap((current + step).coerceIn(range.start, range.endInclusive), range.start, step)
+                        onSave(current)
+                    },
+                    downDescription = stringResource(R.string.sheet_step_down),
+                    upDescription = stringResource(R.string.sheet_step_up),
                 )
-                Spacer(Modifier.height(18.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        shapes = ButtonDefaults.shapes(),
-                        onClick = {
+                Spacer(Modifier.height(16.dp))
+            }
+            Slider(
+                value = current.coerceIn(range.start, range.endInclusive),
+                onValueChange = {
+                    val snapped = snap(it, range.start, step)
+                    if (snapped != current) {
+                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        current = snapped
+                    }
+                },
+                onValueChangeFinished = { onSave(current) },
+                // A stop on every step only while they can still be told apart.
+                steps = if (steps <= 40) steps - 1 else 0,
+                valueRange = range,
+            )
+            Row {
+                Text(format(range.start, decimals, ""), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.weight(1f))
+                Text(format(range.endInclusive, decimals, ""), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(16.dp))
+            if (!typing) {
+                val custom = stringResource(R.string.number_custom)
+                val reset = stringResource(R.string.number_reset, resetLabel)
+                JoinedChoices(
+                    count = 2,
+                    selected = -1,
+                    onPick = {
+                        if (it == 0) {
                             text = format(current, decimals, "")
                             typing = true
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.number_custom), maxLines = 1)
-                    }
-                    OutlinedButton(
-                        shapes = ButtonDefaults.shapes(),
-                        onClick = {
-                            if (onReset != null) {
-                                onReset()
-                                onDismiss()
-                            } else {
-                                current = default
-                                onSave(default)
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.number_reset, resetLabel), maxLines = 1)
-                    }
+                        } else if (onReset != null) {
+                            onReset()
+                            onDismiss()
+                        } else {
+                            current = default
+                            onSave(default)
+                        }
+                    },
+                ) { i, on ->
+                    JoinedLabel(if (i == 0) custom else reset, on)
                 }
             } else {
                 val typed = text.toFloatOrNull()
@@ -165,31 +166,26 @@ fun NumberSheet(
                     modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
                 )
                 Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        shapes = ButtonDefaults.shapes(),
-                        onClick = { typing = false },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.cancel), maxLines = 1)
-                    }
-                    OutlinedButton(
-                        shapes = ButtonDefaults.shapes(),
-                        enabled = typed != null,
-                        onClick = {
-                            typed?.let {
-                                current = it
-                                onSave(it)
+                val cancel = stringResource(R.string.cancel)
+                val done = stringResource(R.string.number_done)
+                JoinedChoices(
+                    count = 2,
+                    // Done is lit while the number can be saved.
+                    selected = if (typed != null) 1 else -1,
+                    onPick = {
+                        if (it == 1) {
+                            typed?.let { t ->
+                                current = t
+                                onSave(t)
                             }
-                            typing = false
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.number_done), maxLines = 1)
-                    }
+                        }
+                        if (it == 0 || typed != null) typing = false
+                    },
+                ) { i, on ->
+                    JoinedLabel(if (i == 0) cancel else done, on)
                 }
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

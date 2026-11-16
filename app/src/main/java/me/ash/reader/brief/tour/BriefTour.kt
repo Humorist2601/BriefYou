@@ -157,29 +157,49 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
-    val pages = remember { listOf(RESTORE, TRIAGE, AI, CALM, HOLD) }
+    // The two pages with Later (bringing a backup over, setting up AI) come first, together.
+    val pages = remember { listOf(RESTORE, AI, TRIAGE, CALM, HOLD) }
     val pager = rememberPagerState { pages.size }
     val aiPage = pages.indexOf(AI)
     var setUpAi by rememberSaveable { mutableStateOf(false) }
     var restored by rememberSaveable { mutableStateOf<Boolean?>(null) } // null: not tried; false: the file couldn't be read
-    // Restore: your backup file (Settings, Troubleshooting, Export as JSON on the other phone),
-    // read into the app's settings as Troubleshooting's Import does.
+    var restoredWhat by rememberSaveable { mutableStateOf<String?>(null) } // "Restored: subscriptions, …"
+    var restoring by remember { mutableStateOf(false) } // a big backup takes a few seconds
+    // Restore: the backup file made with Back up everything on the other phone (an account's
+    // page): feeds, starred articles, filters and settings, as Restore from backup does there.
+    // A settings file from Troubleshooting's Export as JSON still works too.
     val restoreLauncher =
         androidx.activity.compose.rememberLauncherForActivityResult(
             androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
         ) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
             val appContext = context.applicationContext
+            restoring = true
             scope.launch {
-                val ok =
+                val outcome =
                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                         runCatching {
-                                val text =
-                                    appContext.contentResolver.openInputStream(uri)!!.use { String(it.readBytes()) }
-                                importSettings(appContext, text)
+                                val bytes =
+                                    appContext.contentResolver.openInputStream(uri)!!.use {
+                                        me.ash.reader.brief.backup.BackupService.readBackupFile(it)
+                                    }
+                                if (bytes.size > 1 && bytes[0] == 'P'.code.toByte() && bytes[1] == 'K'.code.toByte()) {
+                                    // A zip: the full backup.
+                                    val result =
+                                        dagger.hilt.android.EntryPointAccessors.fromApplication(appContext, TourEntryPoint::class.java)
+                                            .backupService()
+                                            .restore(bytes)
+                                    check(result.restored.isNotEmpty()) { "nothing restored" }
+                                    me.ash.reader.brief.backup.restoreMessage(appContext, result)
+                                } else {
+                                    importSettings(appContext, String(bytes))
+                                    null
+                                }
                             }
-                            .isSuccess
                     }
+                restoring = false
+                restoredWhat = outcome.getOrNull()
+                val ok = outcome.isSuccess
                 restored = ok
                 if (ok) {
                     haptic.performHapticFeedback(HapticFeedbackType.Confirm)
@@ -235,10 +255,13 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                         RESTORE -> {
                             Title(stringResource(R.string.tour_restore_title))
                             Body(stringResource(R.string.tour_restore_text))
-                            restored?.let { ok ->
+                            if (restoring) {
+                                Spacer(Modifier.height(16.dp))
+                                ResultLine(stringResource(R.string.tour_restoring), problem = false, busy = true)
+                            } else restored?.let { ok ->
                                 Spacer(Modifier.height(16.dp))
                                 ResultLine(
-                                    stringResource(if (ok) R.string.tour_restore_done else R.string.tour_restore_failed),
+                                    if (ok) restoredWhat ?: stringResource(R.string.tour_restore_done) else stringResource(R.string.tour_restore_failed),
                                     problem = !ok,
                                 )
                             }
@@ -332,6 +355,7 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                             when {
                                 last -> stringResource(if (firstRun) R.string.tour_agree_start else R.string.tour_done)
                                 kind == AI -> stringResource(R.string.tour_set_up_ai)
+                                kind == RESTORE && restoring -> stringResource(R.string.tour_restoring)
                                 kind == RESTORE && restored != true -> stringResource(R.string.tour_restore)
                                 else -> stringResource(R.string.tour_next)
                             },
@@ -348,9 +372,10 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
                                 setUpAi = true
                                 scope.launch { pager.animateScrollToPage(aiPage + 1) }
                             }
+                            kind == RESTORE && restoring -> Unit // already restoring
                             kind == RESTORE && restored != true -> {
                                 haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                restoreLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+                                restoreLauncher.launch(arrayOf("*/*")) // a zip backup, or a JSON settings file
                             }
                             else -> go(pager.currentPage + 1)
                         }
@@ -526,8 +551,9 @@ private fun PhoneLine(phone: PhoneCheck, setUpAi: Boolean) {
 }
 
 /** The Restore page's outcome, drawn like the AI page's line. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ResultLine(text: String, problem: Boolean) {
+private fun ResultLine(text: String, problem: Boolean, busy: Boolean = false) {
     val scheme = MaterialTheme.colorScheme
     Row(
         modifier =
@@ -537,12 +563,17 @@ private fun ResultLine(text: String, problem: Boolean) {
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            if (problem) Icons.Rounded.ErrorOutline else Icons.Rounded.Check,
-            contentDescription = null,
-            tint = if (problem) scheme.onErrorContainer else scheme.primary,
-            modifier = Modifier.size(20.dp),
-        )
+        if (busy) {
+            // Restoring: the Expressive loading shape in place of the tick.
+            androidx.compose.material3.LoadingIndicator(modifier = Modifier.size(24.dp))
+        } else {
+            Icon(
+                if (problem) Icons.Rounded.ErrorOutline else Icons.Rounded.Check,
+                contentDescription = null,
+                tint = if (problem) scheme.onErrorContainer else scheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
         Spacer(Modifier.width(10.dp))
         Text(text, style = MaterialTheme.typography.bodyMedium, color = if (problem) scheme.onErrorContainer else scheme.onSurface)
     }
@@ -592,4 +623,11 @@ private fun Dots(current: Int, count: Int) {
             )
         }
     }
+}
+
+/** The backup service, for the tour's Restore (it isn't a screen with a view model). */
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+interface TourEntryPoint {
+    fun backupService(): me.ash.reader.brief.backup.BackupService
 }

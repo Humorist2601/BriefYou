@@ -579,12 +579,18 @@ fun TriageScreen(
     // Material 3 Expressive springs: a lively one for the way back, a softer one for throwing away.
     val settleSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
     val tossSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
-    LaunchedEffect(Unit) { enter.animateTo(1f, tween(220)) }
+    LaunchedEffect(Unit) {
+        me.ash.reader.brief.perf.PerfLog.action("Triage: open") // Nightly stutter log
+        enter.animateTo(1f, tween(220))
+    }
 
     // Finishes the exit and only then removes Triage, so it never vanishes in a single frame.
     suspend fun playExit() {
         if (closing) return
         closing = true
+        me.ash.reader.brief.perf.PerfLog.action(
+            if (slideDirection != 0f) "Triage: close (back gesture)" else "Triage: close (button)"
+        ) // Nightly stutter log
         // Always tells the list Triage is gone, even if the animation is cut short: otherwise
         // Triage would stay open but invisible, hiding the bottom bar and swallowing back gestures.
         try {
@@ -603,6 +609,7 @@ fun TriageScreen(
             }
         }
         } finally {
+            me.ash.reader.brief.perf.PerfLog.note("Triage: exit animation done") // Nightly stutter log
             onClose()
         }
     }
