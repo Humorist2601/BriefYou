@@ -1,6 +1,10 @@
 package me.ash.reader.brief.player
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.material3.WavyProgressIndicatorDefaults
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.Animatable
@@ -398,8 +402,8 @@ internal fun TonalIcon(icon: ImageVector, description: String, active: Boolean, 
 }
 
 /**
- * The progress: Expressive's wavy line while playing, a flat one while paused. Tap or drag to
- * move; a light tick is felt for each second passed while dragging, and the player only jumps
+ * The progress: Expressive's wavy line while playing, flat while paused, with a dot riding the
+ * wave's running end. Tap or drag to move; a light tick is felt for each second passed while dragging, and the player only jumps
  * when the finger lifts (seeking on every move fought the player).
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -459,10 +463,76 @@ internal fun SeekBar(
                 },
         contentAlignment = Alignment.Center,
     ) {
-        if (playing && moving && drag == null) {
-            LinearWavyProgressIndicator(progress = { shown }, modifier = Modifier.fillMaxWidth())
-        } else {
-            LinearProgressIndicator(progress = { shown }, modifier = Modifier.fillMaxWidth())
+        SeekLine(progress = { shown }, wavy = playing && moving && drag == null, held = drag != null, showDot = enabled)
+    }
+}
+
+/**
+ * The seek bar's line, drawn like Material's wavy progress indicator (the same 4 dp line and track,
+ * 40 dp waves 3 dp high that drift one wavelength a second, the 4 dp gap before the track and its
+ * end stop, the wave settling flat in the first 10 % and last 5 %) but by us, so the dot can sit
+ * exactly on the wave's running end: Material's own wave moves on its own clock and can't be
+ * followed. The wave eases flat when paused (and while dragging).
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SeekLine(progress: () -> Float, wavy: Boolean, held: Boolean, showDot: Boolean) {
+    val color = WavyProgressIndicatorDefaults.indicatorColor
+    val trackColor = WavyProgressIndicatorDefaults.trackColor
+    val p = progress()
+    val amplitude by animateFloatAsState(
+        if (wavy && p > 0.1f && p < 0.95f) 1f else 0f,
+        androidx.compose.animation.core.tween(500),
+        label = "seekWave",
+    )
+    // The wave's drift: one wavelength a second, only while it shows.
+    val drift = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(amplitude > 0f) {
+        if (amplitude > 0f) {
+            while (true) {
+                drift.animateTo(
+                    drift.value + 1f,
+                    androidx.compose.animation.core.tween(1_000, easing = androidx.compose.animation.core.LinearEasing),
+                )
+                drift.snapTo(drift.value % 1f)
+            }
+        }
+    }
+    val dot by animateDpAsState(if (held) 16.dp else 12.dp, label = "seekDot")
+    val path = remember { androidx.compose.ui.graphics.Path() }
+    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxWidth().height(16.dp)) {
+        val stroke = 4.dp.toPx()
+        val cap = stroke / 2
+        val gap = 4.dp.toPx()
+        val wavelength = 40.dp.toPx()
+        val waveHigh = 3.dp.toPx() * amplitude
+        val mid = size.height / 2
+        val w = size.width
+        val head = (progress().coerceIn(0f, 1f) * w).coerceIn(cap, w - cap)
+        val shift = drift.value * wavelength
+        fun yAt(x: Float) = mid + waveHigh * kotlin.math.sin(2 * Math.PI * (x + shift) / wavelength).toFloat()
+
+        // The track after the gap, and its end stop.
+        val trackStart = head + gap + stroke
+        if (trackStart < w - cap) {
+            drawLine(trackColor, Offset(trackStart, mid), Offset(w - cap, mid), stroke, StrokeCap.Round)
+        }
+        if (head < w - gap - stroke * 2) drawCircle(color, radius = cap, center = Offset(w - cap, mid))
+
+        // The played part, as a wave (or flat).
+        path.rewind()
+        path.moveTo(cap, yAt(cap))
+        var x = cap
+        while (x < head) {
+            x = minOf(x + 2f, head)
+            path.lineTo(x, yAt(x))
+        }
+        drawPath(path, color, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, cap = StrokeCap.Round))
+
+        // The dot on the running end.
+        if (showDot) {
+            val r = dot.toPx() / 2
+            drawCircle(color, radius = r, center = Offset(head.coerceIn(r, w - r), yAt(head)))
         }
     }
 }
