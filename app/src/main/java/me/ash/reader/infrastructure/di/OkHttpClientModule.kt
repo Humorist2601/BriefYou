@@ -31,9 +31,9 @@ import dagger.hilt.components.SingletonComponent
 import me.ash.reader.BuildConfig
 import okhttp3.Cache
 import okhttp3.Interceptor
+// Brief You: no okhttp3.internal.platform.Platform import (internal in OkHttp 5)
 import okhttp3.OkHttpClient
 import okhttp3.Response
-import okhttp3.internal.platform.Platform
 import java.io.File
 import java.net.Socket
 import java.security.KeyManagementException
@@ -147,7 +147,10 @@ fun OkHttpClient.Builder.setupSsl(
                 override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
             }
         } else {
-            Platform.get().platformTrustManager()
+            // Brief You: the phone's own trust manager (OkHttp 5 made its Platform internal).
+            javax.net.ssl.TrustManagerFactory.getInstance(javax.net.ssl.TrustManagerFactory.getDefaultAlgorithm()) // Brief You
+                .apply { init(null as java.security.KeyStore?) } // Brief You
+                .trustManagers.filterIsInstance<X509TrustManager>().first() // Brief You
         }
 
         val sslContext = SSLContext.getInstance("TLS")
