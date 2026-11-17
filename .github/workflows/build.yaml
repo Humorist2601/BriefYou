@@ -35,27 +35,10 @@ jobs:
             contents: write
         steps:
             - uses: actions/checkout@v7
-              with:
-                  # Full history, to find the newest Read You change included.
-                  fetch-depth: 0
             - uses: actions/setup-java@v6
               with:
                   distribution: temurin
                   java-version: 17
-
-            - name: Fork check (warnings only)
-              # Every change to a Read You file should be small and marked "Brief You", so Read You
-              # updates merge easily (see .github/fork/). Warns, never fails the build.
-              continue-on-error: true
-              run: |
-                  git fetch -q --no-tags https://github.com/Ashinch/ReadYou.git main || exit 0
-                  base=$(git merge-base HEAD FETCH_HEAD)
-                  if ! python3 .github/fork/fork_check.py check "$base" > fork.txt; then
-                      grep '^- ' fork.txt | head -30 | while read -r line; do
-                          echo "::warning title=Unmarked change to a Read You file::${line#- }"
-                      done
-                  fi
-                  cat fork.txt >> "$GITHUB_STEP_SUMMARY"
 
             - name: Set build number
               # This workflow's run number: 1, 2, 3… (it started again at 1 when the workflow
@@ -150,7 +133,7 @@ jobs:
 
             - uses: actions/upload-artifact@v7
               with:
-                  name: ReadYou-GitHub-Build-${{ github.sha }}
+                  name: BriefYou-GitHub-Build-${{ github.sha }}
                   path: app/build/outputs/apk/github/${{ env.VARIANT }}/*.apk
 
             - uses: actions/upload-artifact@v7
@@ -194,18 +177,10 @@ jobs:
                   # 0.16.2.102, the same as the app's version.
                   readyou=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
                   tag="${readyou}.${CI_BUILD_NUMBER}"
-                  # The newest Read You change included, and the last check for new ones.
-                  included="unknown"
-                  if git fetch -q --no-tags https://github.com/Ashinch/ReadYou.git main; then
-                      included=$(git log -1 --format=%cd --date=format:'%b %-d, %Y' "$(git merge-base HEAD FETCH_HEAD)")
-                  fi
-                  checked=$(gh api "repos/${{ github.repository }}/actions/workflows/sync.yaml/runs?status=success&per_page=1" \
-                      -q '.workflow_runs[0].updated_at // empty' 2>/dev/null | cut -c1-10 || true)
-                  [ -n "$checked" ] && checked=$(date -d "$checked" '+%b %-d, %Y') || checked="never"
                   {
                       echo "Automatic build of \`${{ github.ref_name }}\` at ${GITHUB_SHA::7}."
                       echo
-                      echo "Based on **Read You ${readyou}**: includes Read You's changes up to ${included} (last checked for updates ${checked})."
+                      echo "Built on Read You ${readyou} (GPL-3.0)."
                       echo
                       echo "### Changes"
                       git log -1 --format='%s%n%n%b' | grep -vE '^(Co-Authored-By|Claude-Session):'

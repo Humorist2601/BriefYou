@@ -67,8 +67,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.sp
-import coil.size.Precision
-import coil.size.Scale
+import coil3.size.Precision // Brief You: Coil 3
+import coil3.size.Scale // Brief You: Coil 3
 import me.ash.reader.R
 import me.ash.reader.domain.model.article.ArticleWithFeed
 import me.ash.reader.infrastructure.preference.FlowArticleListDescPreference
@@ -322,7 +322,7 @@ fun ArticleItem(
                     precision = Precision.INEXACT,
                     // Brief You: decoded at the size shown (80 dp), not 1000 px, so scrolling keeps
                     // more thumbnails in memory and decodes less
-                    size = with(androidx.compose.ui.platform.LocalDensity.current) { 80.dp.roundToPx() }.let { coil.size.Size(it, it) },
+                    size = with(androidx.compose.ui.platform.LocalDensity.current) { 80.dp.roundToPx() }.let { coil3.size.Size(it, it) },
                     contentScale = ContentScale.Crop,
                 )
             }

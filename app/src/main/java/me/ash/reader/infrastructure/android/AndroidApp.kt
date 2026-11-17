@@ -9,8 +9,8 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import androidx.work.WorkManager
-import coil.Coil
-import coil.ImageLoader
+import coil3.SingletonImageLoader // Brief You: Coil 3
+import coil3.ImageLoader // Brief You: Coil 3
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
@@ -120,7 +120,7 @@ class AndroidApp : Application(), Configuration.Provider {
         applicationScope.launch(ioDispatcher) {
             runCatching { java.io.File(filesDir, "ai_cache").deleteRecursively() }
         }
-        Coil.setImageLoader(imageLoader)
+        SingletonImageLoader.setUnsafe(imageLoader) // Brief You: Coil 3
         // Brief You: offline copies of starred articles follow the stars (from anywhere: a tap,
         // Read later, Triage, a sync); the first look also downloads stars from before.
         applicationScope.launch(ioDispatcher) { // Brief You

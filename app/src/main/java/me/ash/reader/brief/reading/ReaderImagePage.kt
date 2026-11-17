@@ -66,8 +66,9 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.content.ContextCompat
 import androidx.core.view.HapticFeedbackConstantsCompat
-import coil.compose.rememberAsyncImagePainter
-import coil.request.ImageRequest
+import coil3.compose.rememberAsyncImagePainter
+import me.ash.reader.brief.ui.addHeader
+import coil3.request.ImageRequest
 import me.ash.reader.R
 import me.ash.reader.ui.ext.extractDomain
 import me.ash.reader.ui.ext.showToast

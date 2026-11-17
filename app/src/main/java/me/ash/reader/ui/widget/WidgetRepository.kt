@@ -7,9 +7,10 @@ import androidx.core.graphics.drawable.toBitmapOrNull
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import coil.imageLoader
-import coil.request.ImageRequest
-import coil.size.Dimension
+import coil3.imageLoader // Brief You: Coil 3
+import coil3.toBitmap // Brief You: Coil 3
+import coil3.request.ImageRequest // Brief You: Coil 3
+import coil3.size.Dimension // Brief You: Coil 3
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -149,8 +150,8 @@ constructor(
                         .size(width = Dimension.Pixels(600), height = Dimension.Undefined)
                         .build()
                 )
-                .drawable
-                ?.toBitmapOrNull()
+                .image // Brief You: Coil 3
+                ?.toBitmap() // Brief You
         }
     }
 

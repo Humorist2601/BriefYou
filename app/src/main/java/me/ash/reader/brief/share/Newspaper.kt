@@ -80,9 +80,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmapOrNull
 import androidx.core.graphics.scale
-import coil.imageLoader
-import coil.request.ImageRequest
-import coil.request.SuccessResult
+import coil3.imageLoader
+import coil3.toBitmap
+import coil3.request.allowHardware
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -277,7 +279,7 @@ class NewspaperMaker internal constructor(
                         context.imageLoader.execute(
                             ImageRequest.Builder(context).data(url).size(900).allowHardware(false).build()
                         )
-                    (result as? SuccessResult)?.drawable?.toBitmapOrNull()
+                    (result as? SuccessResult)?.image?.toBitmap()
                 }
                 .getOrNull()
         }

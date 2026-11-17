@@ -16,9 +16,11 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.graphics.drawable.toBitmapOrNull
-import coil.imageLoader
-import coil.request.ImageRequest
-import coil.request.SuccessResult
+import coil3.imageLoader
+import coil3.toBitmap
+import coil3.request.allowHardware
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.PI
@@ -144,7 +146,7 @@ object FeedAccent {
                             .build()
                     )
                 // Not fetched (offline, a failing host): raised, so it isn't saved as "no colour".
-                (result as? SuccessResult)?.drawable?.toBitmapOrNull() ?: error("icon not fetched")
+                (result as? SuccessResult)?.image?.toBitmap() ?: error("icon not fetched")
             }
         return colorOf(bitmap)
     }
@@ -194,7 +196,7 @@ object FeedAccent {
                                     .allowHardware(false)
                                     .build()
                             )
-                        (result as? SuccessResult)?.drawable?.toBitmapOrNull()?.let { colorOf(it) }
+                        (result as? SuccessResult)?.image?.toBitmap()?.let { colorOf(it) }
                     }
                     .getOrNull()
             }

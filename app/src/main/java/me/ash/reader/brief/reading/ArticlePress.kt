@@ -5,8 +5,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import coil.imageLoader
-import coil.request.ImageRequest
+import coil3.imageLoader
+import me.ash.reader.brief.ui.addHeader
+import coil3.request.ImageRequest
 import me.ash.reader.brief.feeds.FeedAccent
 import me.ash.reader.domain.model.article.ArticleWithFeed
 
@@ -44,8 +45,8 @@ object ArticlePress {
                 .data(url)
                 .apply { url.extractReferer()?.let { addHeader("Referer", it) } }
                 .size(me.ash.reader.ui.component.base.SIZE_1000)
-                .scale(coil.size.Scale.FILL)
-                .precision(coil.size.Precision.INEXACT)
+                .scale(coil3.size.Scale.FILL)
+                .precision(coil3.size.Precision.INEXACT)
                 .apply {
                     if (me.ash.reader.brief.perf.PerfLog.enabled) {
                         val asked = android.os.SystemClock.uptimeMillis()

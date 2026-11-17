@@ -7,6 +7,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -60,8 +61,8 @@ fun IconSourceButtons(
     onFeedPictureFailed: () -> Unit = {},
 ) {
     // A picture that can't be loaded isn't offered (it would be a broken icon).
-    val feedPainter = feedPictureUrl?.let { coil.compose.rememberAsyncImagePainter(it) }
-    val failed = feedPainter?.state is coil.compose.AsyncImagePainter.State.Error
+    val feedPainter = feedPictureUrl?.let { coil3.compose.rememberAsyncImagePainter(it) }
+    val failed = feedPainter?.state?.collectAsState()?.value is coil3.compose.AsyncImagePainter.State.Error
     androidx.compose.runtime.LaunchedEffect(failed) { if (failed) onFeedPictureFailed() }
     val alone = remember { MutableInteractionSource() }
     if (failed) {
@@ -164,8 +165,8 @@ private fun Half(
         ) {
             // The icon itself; the symbol while it loads or when it can't be loaded (an empty
             // dark circle looked broken).
-            val painter = loadedPreview ?: preview?.let { coil.compose.rememberAsyncImagePainter(it) }
-            val loaded = (painter as? coil.compose.AsyncImagePainter)?.state is coil.compose.AsyncImagePainter.State.Success
+            val painter = loadedPreview ?: preview?.let { coil3.compose.rememberAsyncImagePainter(it) }
+            val loaded = (painter as? coil3.compose.AsyncImagePainter)?.state?.collectAsState()?.value is coil3.compose.AsyncImagePainter.State.Success
             androidx.compose.foundation.layout.Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
                 if (!loaded) Icon(icon, null, Modifier.size(18.dp))
                 if (painter != null) {

@@ -142,8 +142,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.core.content.edit
-import coil.size.Precision
-import coil.size.Scale
+import coil3.size.Precision
+import coil3.size.Scale
 import dagger.hilt.android.EntryPointAccessors
 import kotlin.math.abs
 import kotlin.math.hypot

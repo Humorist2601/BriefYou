@@ -7,7 +7,7 @@ kotlin = "2.4.21" # Brief You
 ksp = "2.3.14" # Brief You: KSP2 has its own version numbers now
 
 # AboutLibraries
-aboutLibsRelease = "11.1.1"
+aboutLibsRelease = "15.3.0" # Brief You
 
 # Accompanist
 accompanist = "0.34.0"
@@ -30,7 +30,7 @@ work = "2.12.0"
 composeHtml = "1.0.2"
 
 # Coil
-coil = "2.7.0"
+coil = "3.6.3" # Brief You: Coil 3
 
 # Hilt
 dagger = "2.60.1" # Brief You: its Gradle plugin works with AGP 9
@@ -46,7 +46,7 @@ mockitoKotlin = "5.2.1"
 okhttp = "5.5.1" # Brief You
 opmlParser = "3.1.0"
 readability4j = "1.0.8"
-retrofit2 = "2.11.0"
+retrofit2 = "3.0.0" # Brief You
 rome = "2.1.0"
 telephoto = "0.19.0"
 swipe = "1.3.0"
@@ -62,7 +62,7 @@ material3Adaptive = "1.3.0-alpha06"
 
 navigationevent = "1.2.0"
 # Brief You: Google's Material Color Utilities for Compose (Material You schemes from a seed color).
-materialKolor = "4.0.5"
+materialKolor = "5.0.1" # Brief You
 # Brief You: Compose 1.11.1 (the newest that works with AGP 8.x and compileSdk 36; 1.12 needs AGP 9.1 and SDK 37)
 composeBomStable = "2026.09.00" # Brief You: Compose 1.12
 composeBomAlpha = "2025.10.01" # Brief You: no longer used for the app (see composeBomStable)
@@ -89,10 +89,11 @@ compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4
 compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" } # Brief You: pinned
 
 # Coil
-coil-base = { group = "io.coil-kt", name = "coil-base", version.ref = "coil" }
-coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
-coil-svg = { group = "io.coil-kt", name = "coil-svg", version.ref = "coil" }
-coil-gif = { group = "io.coil-kt", name = "coil-gif", version.ref = "coil" }
+coil-base = { group = "io.coil-kt.coil3", name = "coil", version.ref = "coil" } # Brief You: Coil 3 (the app-wide loader)
+coil-network = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" } # Brief You
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" } # Brief You: Coil 3
+coil-svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil" } # Brief You: Coil 3
+coil-gif = { group = "io.coil-kt.coil3", name = "coil-gif", version.ref = "coil" } # Brief You: Coil 3
 
 # Hilt
 hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hilt" }
@@ -170,7 +171,7 @@ android-application = { id = "com.android.application", version.ref = "androidGr
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-aboutlibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutLibsRelease" }
+aboutlibraries = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutLibsRelease" } # Brief You: v13+ (.android generates the list for the app itself)
 room = { id = "androidx.room", version.ref = "room" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "dagger" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

@@ -84,7 +84,7 @@ fun FeedIcon(
                 .clip(CircleShape),
             contentDescription = feedName ?: "",
             data = iconUrl,
-            size = coil.size.Size(px, px), // Brief You
+            size = coil3.size.Size(px, px), // Brief You
             placeholder = null,
         )
     }

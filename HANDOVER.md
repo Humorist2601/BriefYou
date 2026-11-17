@@ -12,7 +12,7 @@ in [§9](#9-pending-work-the-baseline).
 
 ## 1. What Brief You is
 
-- An Android RSS reader: a **fork of [Read You](https://github.com/ReadYouApp/ReadYou)** by Ashinch
+- An Android RSS reader: **built on [Read You](https://github.com/ReadYouApp/ReadYou)** by Ashinch (now its own app)
   (Kotlin, Jetpack Compose, Material 3), redesigned with **Material 3 Expressive** and extended
   with its own features: Triage, on-device AI (Gemma), read aloud, a calmer digest notification,
   muted keywords and duplicate hiding, Read Later, reading stats, backup and more.
@@ -99,40 +99,28 @@ These are the owner's standing preferences. A new assistant should follow them.
 
 ---
 
-## 3. How the fork is organised (important)
+## 3. How Brief You relates to Read You (important)
 
-Brief You stays mergeable with Read You's ongoing development. Three rules make that work:
+Brief You is **built on Read You** (GPL-3.0) but **no longer follows it** (since 17 November 2026,
+0.16.2.38: Read You had been quiet since 12 August, Brief You had changed 122 of its files, and
+merging had become unrealistic). Read You's code that Brief You uses is now simply Brief You's
+code: change it like any other file. Keep the GPL-3.0 licence, Read You's copyright notices and
+the credit in the README and the About screen.
 
 1. **Brief You's own code lives in `app/src/main/java/me/ash/reader/brief/`** (and its own
    resources: `res/values/strings_fork.xml`, `res/values/themes_fork.xml`, drawables named
-   `ic_shortcut_*` etc.). Read You never touches these, so they never conflict.
-2. **Read You's files are changed only with small hooks**, and **every changed block must contain
-   the words `Brief You`** (a `// Brief You` comment on the line, or `<!-- Brief You … -->`,
-   `# Brief You` in TOML). That way a merge conflict always shows whose line is whose.
-3. **Rewritten Read You files** have a Brief You copy instead; Read You's original stays unused
-   and untouched. The list is in **`.github/fork/copies.txt`** (e.g. Read You's
-   `NotificationHelper.kt` → `brief/notifications/NotificationHelper.kt`, `RYWebView.kt` →
-   `brief/webview/RYWebView.kt`, `BottomBar.kt` → `brief/reading/ReadingBar.kt`).
+   `ic_shortcut_*` etc.). New code still goes there.
+2. **Read You's files** can be edited freely. The old `// Brief You` comments on earlier hooks stay
+   as useful notes; they are no longer required or checked.
+3. **Unused Read You code** is being removed over time (§9, item 19), each piece checked first. The
+   11 Read You files Brief You had replaced with its own copies were deleted in November 2026.
 
-**Checking it:** `.github/fork/fork_check.py`
-
-```sh
-# Base = the Read You commit Brief You is built on (currently d2b979cc).
-# Find it again with: git fetch https://github.com/Ashinch/ReadYou.git main && git merge-base HEAD FETCH_HEAD
-FORK_WORKTREE=1 python3 .github/fork/fork_check.py check d2b979cc   # includes uncommitted edits
-```
-
-It must say "All changes to Read You's files are marked". Every CI build runs it too (as
-warnings). About 67 Read You files have marked hooks today (MainActivity, FlowPage, FeedsPage,
-ReadingPage, SyncWorker, RssHelper, the account services, AndroidManifest, build.gradle.kts, …).
-
-**Read You updates:** the **`sync.yaml`** workflow runs daily (03:17 UTC), merges Read You's new
-commits into a **`read-you-sync`** branch and opens/updates a pull request called *Read You
-update*, with a merge-risk report (which hooked/copied files Read You changed). Nothing is built
-or released until the owner merges it. If Read You changed a file listed in `copies.txt`, copy
-the fix over into the Brief You copy by hand. If the merge conflicts, the run fails and lists the
-files. For the PR to open by itself: *Settings → Actions → General → Allow GitHub Actions to
-create and approve pull requests*.
+**Read You watch:** the **`readyou-watch.yaml`** workflow runs on Mondays (04:43 UTC) and, when Read
+You has new commits, opens or updates one Issue, *Read You changes to look at* (`.github/readyou_watch.py`):
+new releases first, then commits touching account syncing, feed parsing, the database or security,
+then the rest; translation-only commits are counted. Nothing is merged. Copy over by hand what's
+worth having, then close the Issue (its `reviewed-up-to` note is where the next look starts; before
+any Issue, it starts from `d2b979cc`, Read You's last commit included in Brief You).
 
 ---
 
@@ -186,9 +174,9 @@ or `assembleGithubNightly`.)
 | Workflow | When | What |
 | --- | --- | --- |
 | `build.yaml` "Build" | push to `main` (not when a push only changes documents: `.md` files, the README's pictures in `.github/assets` and `.github/readme`, issue templates, FUNDING or LICENSE) | Builds `githubRelease` and publishes a **GitHub release "Brief You 0.16.2.N"**, marked latest. N = this workflow's run number (also the versionCode). Release notes = the **last commit message on main** (so a merge commit with a full changelog becomes the release notes). |
-| `test.yaml` "Test build" | push to **any other branch** (not `read-you-sync`; not documents-only pushes, same list as build.yaml) | Reuses build.yaml with `nightly: true`: builds **Brief You Nightly** and replaces the single **"nightly" prerelease** (its notes = that commit's message). |
-| `sync.yaml` | daily | Read You update pull request (see §3). |
-| `clean.yaml` | by hand only | Keeps only the latest of everything: the newest release (and the Nightly), the newest run of each workflow (none of removed workflows), the kept releases' tags, and branches with work not yet in main (merged branches are deleted; never `main` or `read-you-sync`). Starts as a dry run. |
+| `test.yaml` "Test build" | push to **any other branch** (not documents-only pushes, same list as build.yaml) | Reuses build.yaml with `nightly: true`: builds **Brief You Nightly** and replaces the single **"nightly" prerelease** (its notes = that commit's message). |
+| `readyou-watch.yaml` | Mondays | *Read You changes to look at* Issue (see §3). |
+| `clean.yaml` | by hand only | Keeps only the latest of everything: the newest release (and the Nightly), the newest run of each workflow (none of removed workflows), the kept releases' tags, and branches with work not yet in main (merged branches are deleted; never `main`). Starts as a dry run. |
 
 Removed (Nov 2026): Read You's `build_pull_request.yaml` and `testing.yml` (they never ran: Read You update pull requests are opened by a workflow, which doesn't trigger others, and other branches are built by `test.yaml`), and `notification-preview.yml` with its script and the Nightly-only `DigestPreviewReceiver` (a one-off for the digest screenshots; in the git history if notifications change again).
 
@@ -232,7 +220,7 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
 `table()` draws the same layout.
 
 **Usual flow for a change:**
-1. `git checkout -b <topic>` from `main`; make the change; run the fork check; update README.
+1. `git checkout -b <topic>` from `main`; make the change; update README.
 2. Ask the owner → commit → push → watch the Test build → the owner tries **Brief You Nightly**.
 3. When approved: `git checkout main && git merge --no-ff <topic>` with a message like
    *"Brief You 0.16.2.N: …"* followed by a full changelog since the last release → push → watch
@@ -323,7 +311,6 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
   "Keep archived articles" removes them).
 - **Saved articles (Read Later)** are starred, so "Keep archived articles" never removes them
   until they're unstarred and read.
-- The **"Read You update"** PR can change files Brief You copied (`copies.txt`): port the fix.
 - **A draw modifier that wraps a whole list redraws every row when it changes.** The scrollbar
   thumb (shows on open, moves as rows arrive, fades after 0.8 s) re-recorded the whole article
   list each time: 10–33 ms draw frames when opening a list. The scrolled content now sits in its
@@ -449,6 +436,15 @@ Work from this list; tick items off here as they are done.
    player UI split into four files. Step B is then done.
 2. **Step C**, one at a time (code changes): Coil 3, Retrofit 3, AboutLibraries 15,
    MaterialKolor 5, then raise targetSdk.
+   *Done on `deps-b` (not yet built):* **Coil 3.6.3** (`coil3.*`; the loader fetches through the shared
+   OkHttpClient with `OkHttpNetworkFetcherFactory`; Referer via `brief/ui/CoilExtras.kt` `addHeader`;
+   painters' `state` is a StateFlow, read with `collectAsState()`; `Precision.AUTOMATIC` is gone, so
+   INEXACT). **Retrofit 3.0.0**, **MaterialKolor 5.0.1** (same API),
+   **AboutLibraries 15.3.0** (the `.android` plugin generates the list; `export { excludeFields }`;
+   the licences page loads it with `produceLibraries()`). **targetSdk 36** (Android 16: edge-to-edge
+   and predictive back were already in place; on tablets, the video's forced landscape is ignored).
+   Not 37 yet: Android 17 makes a self-hosted server on the local network (FreshRSS at home) need
+   the new `ACCESS_LOCAL_NETWORK` runtime permission, and caps widget updates' memory.
 3. **Step 8 (optional):** Dependabot or Renovate for small automatic update pull requests.
 
 **Tidy-up**
@@ -458,8 +454,8 @@ Work from this list; tick items off here as they are done.
 7. ~~Remove the Reading stats diagnosis notes from the stutter log (`ReadingStatsPage.kt`: "stats: …
    top feeds"; `FeedAccent.kt`: "feed colour: none", "feed colour not read"); keep the Triage
    open/close notes.~~ Done (on `deps-b`).
-8. Read You's Languages page is unused (the entry is hidden, the app is English only); leave it so
-   the fork stays close to Read You.
+8. ~~Read You's Languages page is unused; leave it so the fork stays close to Read You.~~ Replaced
+   by item 19 (Brief You no longer follows Read You).
 
 **Performance (optional)**
 9. "Open a group's list": late frames about a second after the list settled (drawing and GPU,
@@ -469,6 +465,26 @@ Work from this list; tick items off here as they are done.
     `setup-gradle`).
 12. R8 full mode (`android.enableR8.fullMode`): maybe a smaller app; risky with reflection
     (Rome, Gson), needs careful testing.
+
+**Independence from Read You** (agreed 17 November 2026)
+16. ~~**Cut loose from Read You.** Brief You becomes its own app, built on Read You (credit and GPL-3.0
+    kept). Replace the daily merge (`sync.yaml`) with a weekly check that opens or updates one Issue,
+    "Read You changes to look at": new releases first, then commits touching account syncing
+    (FreshRSS, Fever, Google Reader, local feeds), feed parsing, the database or security, then the
+    rest briefly (translation-only commits counted, not listed); nothing is merged. Remove the marker
+    rule and its check (`fork_check.py`, its use in the build), `copies.txt`, and the 11 replaced
+    Read You originals (which drops the Coil 2 `compileOnly` workaround). Update HANDOVER and the
+    README to match.~~ Done on `deps-b` (see §3).
+17. **Rename the package** `me.ash.reader` → `com.ay.briefyou`, as its own Nightly after step C builds
+    and is tested. Safeguards: re-schedule background sync on the first start (WorkManager stores
+    the old worker class names); keep the old launcher activity and widget names as aliases (so the
+    home-screen icon and placed widgets stay); move Room's schema folders; update R8 rules. Check
+    after installing over the previous build: icon, widgets, sync, settings and articles kept.
+18. **Leave the GitHub fork network** (the owner, through GitHub Support), whenever convenient.
+19. **Remove unused Read You code** over time (the Languages page, old drawers, BestIconFinder…),
+    each piece checked to be unused.
+20. **targetSdk 37 (Android 17), optional, later:** a self-hosted server on the home network needs
+    the new `ACCESS_LOCAL_NETWORK` permission; widget updates get a memory cap.
 
 **Set aside by the owner (only if asked again)**
 13. Brandfetch logos: ask Brandfetch about caching, or a live-only "Brand logo" choice in Change

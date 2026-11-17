@@ -221,10 +221,10 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Every other branch is built as **Brief You Nightly**, with a night-sky icon, published as the one *Nightly* prerelease.
 - Back up in *Account → Advanced → Back up everything*. It also includes custom feed and group icons, feed and group order, the Triage delay and the read-aloud speed.
 - Restore adds everything back on any phone: feeds you already have are kept, feeds go into your existing groups, and starred articles come back even if their feed dropped them. Server logins and the AI model aren't included.
-- Release names are Read You's version plus a rising build number, so each APK installs as an update (works with Obtainium). The notes say which Read You version a build is based on.
+- Release names are Read You's version plus a rising build number, so each APK installs as an update (works with Obtainium).
 - APKs are for 64-bit ARM phones (arm64-v8a).
 - Builds are signed with Brief You's own key when the repository has the `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` and `KEY_ALIAS` secrets.
-- Read You updates: a daily workflow merges Read You's new commits into a `read-you-sync` branch and opens (or updates) a pull request called *Read You update*. Nothing is built or signed until you merge it. For the pull request to open by itself, allow it in *Settings → Actions → General → Allow GitHub Actions to create and approve pull requests*.
+- Read You watch: a weekly workflow opens an issue when Read You has new commits (see below). Nothing is merged.
 - Brief You Nightly (app ID `com.ay.briefyou.nightly`) has its own data and its own build numbers, so test builds never use up release numbers. Each test build replaces the *Nightly* prerelease, and it doesn't offer Brief You's releases as updates.
 - To tidy up, run **Actions → Clean up old releases, tags and runs** by hand. It keeps only the latest of everything: the newest release (and the Nightly), the newest run of each workflow, the kept releases' tags, and branches with work not yet in main (merged branches are deleted). It starts as a dry run that only lists what it would delete.
 
@@ -240,12 +240,10 @@ Already have the file? **Import** picks a `gemma-4-E2B-it.litertlm` you download
 
 ## How Brief You is organised
 
-Brief You is kept apart from Read You so Read You's updates merge easily:
+Brief You is built on [Read You](https://github.com/ReadYouApp/ReadYou) and keeps its GPL-3.0 licence, but it's now its own app and no longer follows Read You's development.
 
-- **Brief You's own code** lives in `app/src/main/java/me/ash/reader/brief/` (and its own resources, such as `strings_fork.xml`). Read You never touches these files, so they never conflict.
-- **Read You's files** are changed only with small hooks, each marked `Brief You`, so a conflict always shows whose line is whose.
-- **Rewritten Read You files** (the reading toolbar, top bar, filter bar, web view, read aloud…) have Brief You's own copy instead; Read You's original stays untouched. They're listed in `.github/fork/copies.txt`, and each *Read You update* pull request lists the ones Read You changed, to copy over by hand.
-- `.github/fork/fork_check.py` checks this: every build warns about unmarked changes to Read You's files, and each update pull request includes a merge-risk report.
+- **Brief You's own code** lives in `app/src/main/java/me/ash/reader/brief/` (and its own resources, such as `strings_fork.xml`). The rest started as Read You's code and is now changed like any other part of the app.
+- A weekly workflow (*Read You watch*) opens an issue, *Read You changes to look at*, when Read You has new commits, with changes to account syncing, feed parsing, the database and security listed first. Nothing is merged; useful fixes are copied over by hand.
 
 ## About this project
 

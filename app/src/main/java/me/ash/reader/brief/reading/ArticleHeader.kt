@@ -16,8 +16,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
-import coil.size.Precision
-import coil.size.Scale
+import coil3.size.Precision
+import coil3.size.Scale
 import me.ash.reader.infrastructure.preference.LocalReadingImageRoundedCorners
 import me.ash.reader.infrastructure.preference.LocalReadingTextHorizontalPadding
 import me.ash.reader.ui.component.base.RYAsyncImage

@@ -12,6 +12,8 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue // Brief You: AboutLibraries 15
+import com.mikepenz.aboutlibraries.ui.compose.android.produceLibraries // Brief You
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -55,7 +57,9 @@ fun LicenseListPage(
         },
         content = {
             Column {
+                val libraries by produceLibraries() // Brief You: AboutLibraries 15
                 LibrariesContainer(
+                    libraries = libraries, // Brief You
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = WindowInsets(0, 0, 0, 24)
                         .add(WindowInsets.navigationBars)

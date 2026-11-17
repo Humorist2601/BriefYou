@@ -14,11 +14,15 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import coil.compose.rememberAsyncImagePainter
-import coil.request.ImageRequest
-import coil.size.Precision
-import coil.size.Scale
-import coil.size.Size
+import coil3.compose.rememberAsyncImagePainter // Brief You: Coil 3
+import me.ash.reader.brief.ui.addHeader // Brief You: Coil 3
+import coil3.request.crossfade // Brief You: Coil 3
+import coil3.request.ImageRequest // Brief You: Coil 3
+import coil3.request.placeholder // Brief You: Coil 3
+import coil3.request.error // Brief You: Coil 3
+import coil3.size.Precision // Brief You: Coil 3
+import coil3.size.Scale // Brief You: Coil 3
+import coil3.size.Size // Brief You: Coil 3
 import me.ash.reader.ui.ext.extractDomain
 
 val SIZE_1000 = Size(1000, 1000)
@@ -29,7 +33,7 @@ fun RYAsyncImage(
     data: Any? = null,
     size: Size = Size.ORIGINAL,
     scale: Scale = Scale.FIT,
-    precision: Precision = Precision.AUTOMATIC,
+    precision: Precision = Precision.INEXACT, // Brief You: Coil 3 has no AUTOMATIC
     contentScale: ContentScale = ContentScale.Fit,
     contentDescription: String? = null,
     @DrawableRes placeholder: Int? = null,

@@ -60,8 +60,8 @@ import androidx.compose.material.icons.rounded.CropFree
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.ui.unit.sp
-import coil.size.Precision
-import coil.size.Scale
+import coil3.size.Precision
+import coil3.size.Scale
 import kotlin.math.roundToInt
 import me.ash.reader.R
 import me.ash.reader.domain.model.article.ArticleWithFeed

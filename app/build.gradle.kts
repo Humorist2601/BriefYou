@@ -41,7 +41,7 @@ android {
     defaultConfig {
         applicationId = "me.ash.reader"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36 // Brief You: Android 16 (see HANDOVER for why not 37 yet)
         versionCode = 47
         versionName = "0.16.2"
 
@@ -148,7 +148,7 @@ android {
     namespace = "me.ash.reader"
 }
 
-aboutLibraries { excludeFields = arrayOf("generated") }
+aboutLibraries { export { excludeFields.add("generated") } } // Brief You: AboutLibraries 15
 
 // Brief You: the compilerOptions DSL, in place of the deprecated kotlinOptions.
 kotlin {
@@ -186,6 +186,7 @@ dependencies {
 
     // Coil
     implementation(libs.coil.base)
+    implementation(libs.coil.network) // Brief You: Coil 3 fetches through OkHttp with this
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
     implementation(libs.coil.gif)
