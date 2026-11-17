@@ -486,6 +486,11 @@ Work from this list; tick items off here as they are done.
 20. **targetSdk 37 (Android 17), optional, later:** a self-hosted server on the home network needs
     the new `ACCESS_LOCAL_NETWORK` permission; widget updates get a memory cap.
 
+21. **Fix Read You's Kotlin warnings** (466 in 0.16.2.148): 270 from Read You's deprecated
+    `DataStoreKey` (one change in the settings code), 69 unchecked casts, ~100 old Compose/Android
+    calls (old text fields, the old Scaffold, `LocalUriHandler`…). Step by step, a Nightly each.
+    The build summary already counts them all ("should be 0") with the most common kinds.
+
 **Set aside by the owner (only if asked again)**
 13. Brandfetch logos: ask Brandfetch about caching, or a live-only "Brand logo" choice in Change
     icon (their terms forbid caching and reading the pixels; a client ID would be public).

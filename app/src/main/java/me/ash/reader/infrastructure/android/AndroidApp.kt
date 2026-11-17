@@ -120,7 +120,7 @@ class AndroidApp : Application(), Configuration.Provider {
         applicationScope.launch(ioDispatcher) {
             runCatching { java.io.File(filesDir, "ai_cache").deleteRecursively() }
         }
-        SingletonImageLoader.setUnsafe(imageLoader) // Brief You: Coil 3
+        SingletonImageLoader.setSafe { imageLoader } // Brief You: Coil 3 (the app's loader, made by Hilt)
         // Brief You: offline copies of starred articles follow the stars (from anywhere: a tap,
         // Read later, Triage, a sync); the first look also downloads stars from before.
         applicationScope.launch(ioDispatcher) { // Brief You

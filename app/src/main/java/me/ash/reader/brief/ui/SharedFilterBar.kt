@@ -62,6 +62,9 @@ class FilterBarHost {
 
 val LocalFilterBarHost = staticCompositionLocalOf<FilterBarHost?> { null }
 
+/** The screens behind the bottom bar, which the bar shows blurred (frosted glass). */
+val LocalBarBackdrop = staticCompositionLocalOf<dev.chrisbanes.haze.HazeState?> { null }
+
 /** The navigation key of the screen being composed (provided by the app's navigation). */
 val LocalPageKey = staticCompositionLocalOf<Any?> { null }
 

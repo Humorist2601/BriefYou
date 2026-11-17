@@ -22,6 +22,8 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import dev.chrisbanes.haze.blur.hazeBlur
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -72,35 +74,31 @@ fun BriefFilterBar(
 
     val containerHeight = filterBarContainerHeight(filterBarStyle)
 
-    // A fade to black behind the bar: clear at the top, fully black from the bottom of the bar down
-    // to the screen edge, so nothing shows below the bar. On a light theme it fades into the page
-    // color instead, since black would look harsh there.
-    val scrim =
-        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color.Black
-        else MaterialTheme.colorScheme.background
-
     // Brief You: a floating bar with rounded corners (not a full-width strip, and not a pill). It
     // sits right on top of the system gesture area, with side margins and a little room above.
+    // Frosted glass: the list scrolls on underneath it and shows through, strongly blurred, under
+    // a light tint of the bar's colour (Android 12 and newer; older phones get the tint, nearly
+    // solid).
+    val barColor = MaterialTheme.colorScheme.surfaceColorAtElevation(filterBarTonalElevation)
+    val backdrop = LocalBarBackdrop.current
+    val glass =
+        remember(barColor) {
+            dev.chrisbanes.haze.blur.HazeBlurStyle {
+                blurRadius(28.dp)
+                noiseFactor(0f)
+                backgroundColor(barColor)
+                colorEffects(listOf(dev.chrisbanes.haze.blur.HazeColorEffect.tint(barColor.copy(alpha = 0.55f))))
+                fallbackColorEffect(dev.chrisbanes.haze.blur.HazeColorEffect.tint(barColor.copy(alpha = 0.94f)))
+            }
+        }
     Box(
         modifier =
             modifier
-                .drawBehind {
-                    // Where the bar ends: everything from there down is solid.
-                    val barBottom = (FILTER_BAR_TOP_PADDING + containerHeight).toPx()
-                    val solidFrom = (barBottom / size.height).coerceIn(0.3f, 1f)
-                    drawRect(
-                        Brush.verticalGradient(
-                            0f to scrim.copy(alpha = 0f),
-                            solidFrom to scrim,
-                            1f to scrim,
-                        )
-                    )
-                }
                 .windowInsetsPadding(NavigationBarDefaults.windowInsets)
                 .padding(start = 20.dp, end = 20.dp, top = FILTER_BAR_TOP_PADDING)
     ) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceColorAtElevation(filterBarTonalElevation),
+        color = if (backdrop != null) Color.Transparent else barColor,
         shape = RoundedCornerShape(32.dp),
         shadowElevation = 6.dp,
         modifier = Modifier.fillMaxWidth()
@@ -109,6 +107,11 @@ fun BriefFilterBar(
             modifier =
             Modifier
                 .fillMaxWidth()
+                .then(
+                    if (backdrop != null)
+                        Modifier.hazeBlur(dev.chrisbanes.haze.HazeInput.Sources(backdrop), glass)
+                    else Modifier
+                )
                 .defaultMinSize(minHeight = containerHeight)
                 .selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),

@@ -57,7 +57,9 @@ fun LicenseListPage(
         },
         content = {
             Column {
-                val libraries by produceLibraries() // Brief You: AboutLibraries 15
+                // Brief You: AboutLibraries 15. Named by its resource, so shrinking keeps the list
+                // (looked up by name, it was removed from the app and the page stayed empty).
+                val libraries by produceLibraries(R.raw.aboutlibraries)
                 LibrariesContainer(
                     libraries = libraries, // Brief You
                     modifier = Modifier.fillMaxSize(),

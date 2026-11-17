@@ -94,25 +94,25 @@ jobs:
                   done
                   ls "$dir"
             - name: Summarise warnings
-              # Kotlin warnings, Brief You's (brief/ and its copies) and Read You's, as a few
-              # annotations (readable from the GitHub API) and a table in the summary.
+              # Kotlin warnings: how many (should be 0), the most common kinds, and the warnings
+              # themselves as annotations (readable from the GitHub API), Brief You's newest code
+              # (brief/) first.
               if: always()
               continue-on-error: true
               run: |
                   grep -E '^w: ' build.log | sed -E "s#file://$GITHUB_WORKSPACE/##; s#^w: ##" | sort -u > warnings.txt || true
                   total=$(wc -l < warnings.txt)
-                  brief=$(grep -cE '^app/src/main/java/me/ash/reader/brief/' warnings.txt || true)
                   {
-                      echo "### Kotlin warnings"
+                      echo "### Kotlin warnings: $total (should be 0)"
                       echo
-                      echo "- **Brief You's own code: $brief** (should be 0; listed in the annotations)"
-                      echo "- Read You's code: $((total - brief)) (left to Read You on purpose: see README, How Brief You is organised)"
+                      if [ "$total" -gt 0 ]; then
+                          echo "| Count | Kind |"
+                          echo "|---:|---|"
+                          sed -E "s/^[^ ]+ //; s/'[^']*'/…/g" warnings.txt | cut -c1-90 | sort | uniq -c | sort -rn | head -10 \
+                              | awk '{n=$1; $1=""; sub(/^ /, ""); gsub(/\|/, "\\|"); print "| " n " | " $0 " |"}'
+                      fi
                   } >> "$GITHUB_STEP_SUMMARY"
-                  # Brief You's own first (these are the ones to fix), then Read You's deprecated
-                  # library calls, as annotations readable from the GitHub API.
-                  grep -E '^app/src/main/java/me/ash/reader/brief/' warnings.txt > fix.txt || true
-                  grep -vE '^app/src/main/java/me/ash/reader/brief/' warnings.txt \
-                      | grep 'is deprecated' | grep -v 'type-safe PreferencesKey' >> fix.txt || true
+                  { grep -E '^app/src/main/java/me/ash/reader/brief/' warnings.txt; grep -vE '^app/src/main/java/me/ash/reader/brief/' warnings.txt; } > fix.txt || true
                   split -l 12 -d fix.txt part_ || true
                   n=0
                   for f in part_*; do

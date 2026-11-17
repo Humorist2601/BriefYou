@@ -190,6 +190,8 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
     implementation(libs.coil.gif)
+    implementation(libs.haze.core) // The bottom bar's frosted-glass blur
+    implementation(libs.haze.blur)
 
     // Hilt
     implementation(libs.hilt.work)

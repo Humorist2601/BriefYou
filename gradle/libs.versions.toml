@@ -31,6 +31,7 @@ composeHtml = "1.0.2"
 
 # Coil
 coil = "3.6.3" # Brief You: Coil 3
+haze = "2.1.0" # Brief You: the bottom bar's blur
 
 # Hilt
 dagger = "2.60.1" # Brief You: its Gradle plugin works with AGP 9
@@ -94,6 +95,8 @@ coil-network = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", versi
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" } # Brief You: Coil 3
 coil-svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil" } # Brief You: Coil 3
 coil-gif = { group = "io.coil-kt.coil3", name = "coil-gif", version.ref = "coil" } # Brief You: Coil 3
+haze-core = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
+haze-blur = { group = "dev.chrisbanes.haze", name = "haze-blur", version.ref = "haze" }
 
 # Hilt
 hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hilt" }
