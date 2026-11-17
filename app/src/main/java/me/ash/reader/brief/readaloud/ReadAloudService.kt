@@ -12,14 +12,26 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
-import android.support.v4.media.MediaMetadataCompat
-import android.support.v4.media.session.MediaSessionCompat
-import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
-import androidx.media.app.NotificationCompat.MediaStyle
+import android.os.Bundle
+import android.os.Looper
+import androidx.annotation.OptIn
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import androidx.media3.common.SimpleBasePlayer
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.CommandButton
+import androidx.media3.session.MediaSession
+import androidx.media3.session.MediaStyleNotificationHelper
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
+import com.google.common.collect.ImmutableList
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -35,6 +47,7 @@ import me.ash.reader.R
  * Stop, also on the lock screen and in Quick Settings. It keeps reading going when you leave the
  * article or the app, and goes away when reading stops or finishes.
  */
+@OptIn(UnstableApi::class)
 @AndroidEntryPoint
 class ReadAloudService : Service() {
 
@@ -42,47 +55,62 @@ class ReadAloudService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var started = false
-    private lateinit var session: MediaSessionCompat
+    private lateinit var player: ReadAloudPlayer
+    private lateinit var session: MediaSession
 
     /** The last time and kind of state given to the system, to avoid updating on every word. */
     private var lastUpdate = 0L
     private var lastKind: Class<*>? = null
     private var lastDuration = -1L
 
+    @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
+        player = ReadAloudPlayer()
         session =
-            MediaSessionCompat(this, "BriefYouReadAloud").apply {
-                setCallback(
-                    object : MediaSessionCompat.Callback() {
-                        override fun onPlay() = tts.resume()
+            MediaSession.Builder(this, player)
+                .setId("BriefYouReadAloud")
+                .setCallback(
+                    object : MediaSession.Callback {
+                        // Like the podcast player: only Brief You, its notification and Android's
+                        // own controls (lock screen, Quick Settings, Bluetooth, cars, watches).
+                        override fun onConnect(
+                            session: MediaSession,
+                            controller: MediaSession.ControllerInfo,
+                        ): MediaSession.ConnectionResult {
+                            val allowed =
+                                controller.packageName == packageName ||
+                                    controller.isTrusted ||
+                                    session.isMediaNotificationController(controller) ||
+                                    session.isAutomotiveController(controller) ||
+                                    session.isAutoCompanionController(controller)
+                            if (!allowed) return MediaSession.ConnectionResult.reject()
+                            return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
+                                .setAvailableSessionCommands(
+                                    MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
+                                        .add(SessionCommand(ACTION_SPEED, Bundle.EMPTY))
+                                        .add(SessionCommand(ACTION_STOP, Bundle.EMPTY))
+                                        .build()
+                                )
+                                .build()
+                        }
 
-                        override fun onPause() = tts.pause()
-
-                        override fun onStop() = tts.stop()
-
-                        override fun onSeekTo(pos: Long) = tts.seekTo(pos)
-
-                        override fun onCustomAction(action: String?, extras: android.os.Bundle?) {
-                            when (action) {
+                        override fun onCustomCommand(
+                            session: MediaSession,
+                            controller: MediaSession.ControllerInfo,
+                            customCommand: SessionCommand,
+                            args: Bundle,
+                        ): ListenableFuture<SessionResult> {
+                            when (customCommand.customAction) {
                                 ACTION_STOP -> tts.stop()
                                 ACTION_SPEED -> tts.cycleSpeed()
                             }
+                            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                         }
                     }
                 )
-                packageManager.getLaunchIntentForPackage(packageName)?.let {
-                    setSessionActivity(
-                        PendingIntent.getActivity(
-                            this@ReadAloudService,
-                            0,
-                            it.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-                        )
-                    )
-                }
-                isActive = true
-            }
+                .setMediaButtonPreferences(buttons())
+                .build()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -136,60 +164,13 @@ class ReadAloudService : Service() {
         val duration = tts.durationMs
         if (force || kindChanged || kotlin.math.abs(duration - lastDuration) > 3_000) {
             lastDuration = duration
-            session.setMetadata(
-                MediaMetadataCompat.Builder()
-                    .putString(
-                        MediaMetadataCompat.METADATA_KEY_TITLE,
-                        tts.title ?: getString(R.string.read_aloud),
-                    )
-                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, subtitle())
-                    .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
-                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artwork)
-                    .build()
-            )
         }
-        val playing = state !is TextToSpeechManager.State.Paused
         // The media controls (Quick Settings, lock screen) open the article being read too.
         session.setSessionActivity(
             me.ash.reader.brief.player.PlayerIntents.open(this, me.ash.reader.brief.player.PlayerIntents.articleOf(tts.sourceKey), readAloud = true)
         )
-        session.setPlaybackState(
-            PlaybackStateCompat.Builder()
-                .setActions(
-                    PlaybackStateCompat.ACTION_PLAY or
-                        PlaybackStateCompat.ACTION_PAUSE or
-                        PlaybackStateCompat.ACTION_PLAY_PAUSE or
-                        PlaybackStateCompat.ACTION_STOP or
-                        PlaybackStateCompat.ACTION_SEEK_TO
-                )
-                .addCustomAction(
-                    PlaybackStateCompat.CustomAction.Builder(
-                            ACTION_SPEED,
-                            getString(
-                                R.string.read_aloud_speed,
-                                TextToSpeechManager.speedLabel(tts.speed.value),
-                            ),
-                            // The speed as a number (see SpeedIcons).
-                            me.ash.reader.brief.player.SpeedIcons.of(tts.speed.value),
-                        )
-                        .build()
-                )
-                .addCustomAction(
-                    PlaybackStateCompat.CustomAction.Builder(
-                            ACTION_STOP,
-                            getString(R.string.ai_stop_reading),
-                            R.drawable.ic_read_aloud_stop,
-                        )
-                        .build()
-                )
-                .setState(
-                    if (playing) PlaybackStateCompat.STATE_PLAYING
-                    else PlaybackStateCompat.STATE_PAUSED,
-                    tts.positionMs,
-                    if (playing) 1f else 0f,
-                )
-                .build()
-        )
+        if (force) session.setMediaButtonPreferences(buttons())
+        player.update()
         return true
     }
 
@@ -244,6 +225,115 @@ class ReadAloudService : Service() {
             return made
         }
 
+    private var artworkBytesFor: android.graphics.Bitmap? = null
+    private var artworkBytes: ByteArray? = null
+
+    /** The artwork as PNG bytes for the media session (made again only with the artwork). */
+    private val artworkData: ByteArray?
+        get() {
+            val bitmap = artwork ?: return null
+            if (artworkBytesFor !== bitmap) {
+                artworkBytes =
+                    runCatching {
+                            java.io.ByteArrayOutputStream().also {
+                                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+                            }.toByteArray()
+                        }
+                        .getOrNull()
+                artworkBytesFor = bitmap
+            }
+            return artworkBytes
+        }
+
+    /** Speed (the speed as a number, see SpeedIcons) and Stop, beside play/pause. */
+    private fun buttons(): ImmutableList<CommandButton> =
+        ImmutableList.of(
+            CommandButton.Builder(CommandButton.ICON_UNDEFINED)
+                .setCustomIconResId(me.ash.reader.brief.player.SpeedIcons.of(tts.speed.value))
+                .setDisplayName(getString(R.string.read_aloud_speed, TextToSpeechManager.speedLabel(tts.speed.value)))
+                .setSessionCommand(SessionCommand(ACTION_SPEED, Bundle.EMPTY))
+                .setSlots(CommandButton.SLOT_OVERFLOW)
+                .build(),
+            CommandButton.Builder(CommandButton.ICON_UNDEFINED)
+                .setCustomIconResId(R.drawable.ic_read_aloud_stop)
+                .setDisplayName(getString(R.string.ai_stop_reading))
+                .setSessionCommand(SessionCommand(ACTION_STOP, Bundle.EMPTY))
+                .setSlots(CommandButton.SLOT_OVERFLOW)
+                .build(),
+        )
+
+    /**
+     * Read aloud as a Media3 player, so Android's media controls show and drive it: the title,
+     * the length and position (the bar follows the words; drag it to jump), play/pause and stop.
+     * It only reports what read aloud does; the speaking itself stays in TextToSpeechManager.
+     */
+    @OptIn(UnstableApi::class)
+    private inner class ReadAloudPlayer : SimpleBasePlayer(Looper.getMainLooper()) {
+        fun update() = invalidateState()
+
+        override fun getState(): State {
+            val state = tts.state
+            val reading =
+                state is TextToSpeechManager.State.Reading ||
+                    state is TextToSpeechManager.State.Paused ||
+                    state == TextToSpeechManager.State.Preparing
+            val builder =
+                State.Builder()
+                    .setAvailableCommands(
+                        Player.Commands.Builder()
+                            .addAll(
+                                Player.COMMAND_PLAY_PAUSE,
+                                Player.COMMAND_STOP,
+                                Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM,
+                                Player.COMMAND_GET_CURRENT_MEDIA_ITEM,
+                                Player.COMMAND_GET_METADATA,
+                            )
+                            .build()
+                    )
+                    .setPlayWhenReady(
+                        state !is TextToSpeechManager.State.Paused,
+                        Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST,
+                    )
+            if (!reading) return builder.setPlaybackState(Player.STATE_IDLE).build()
+            val metadata =
+                MediaMetadata.Builder()
+                    .setTitle(tts.title ?: getString(R.string.read_aloud))
+                    .setArtist(subtitle())
+                    .setArtworkData(artworkData, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                    .build()
+            return builder
+                .setPlaybackState(
+                    if (state == TextToSpeechManager.State.Preparing) Player.STATE_BUFFERING else Player.STATE_READY
+                )
+                .setPlaylist(
+                    listOf(
+                        MediaItemData.Builder("read-aloud")
+                            .setMediaItem(MediaItem.Builder().setMediaId("read-aloud").setMediaMetadata(metadata).build())
+                            .setDurationUs(lastDuration.coerceAtLeast(0) * 1_000)
+                            .setIsSeekable(true)
+                            .build()
+                    )
+                )
+                .setContentPositionMs { tts.positionMs }
+                .build()
+        }
+
+        override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {
+            if (playWhenReady) tts.resume() else tts.pause()
+            return Futures.immediateVoidFuture()
+        }
+
+        override fun handleStop(): ListenableFuture<*> {
+            tts.stop()
+            return Futures.immediateVoidFuture()
+        }
+
+        override fun handleSeek(mediaItemIndex: Int, positionMs: Long, seekCommand: Int): ListenableFuture<*> {
+            tts.seekTo(positionMs)
+            return Futures.immediateVoidFuture()
+        }
+    }
+
     private fun post(state: TextToSpeechManager.State) {
         val manager = NotificationManagerCompat.from(this)
         if (manager.areNotificationsEnabled()) {
@@ -265,7 +355,7 @@ class ReadAloudService : Service() {
     }
 
     private fun finish() {
-        session.isActive = false
+        player.update()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -273,6 +363,7 @@ class ReadAloudService : Service() {
     override fun onDestroy() {
         scope.cancel()
         session.release()
+        player.release()
         super.onDestroy()
     }
 
@@ -287,6 +378,7 @@ class ReadAloudService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+    @OptIn(UnstableApi::class)
     private fun build(state: TextToSpeechManager.State): Notification {
         val paused = state is TextToSpeechManager.State.Paused
         return NotificationCompat.Builder(this, CHANNEL_ID)
@@ -321,9 +413,7 @@ class ReadAloudService : Service() {
                 action(ACTION_SPEED, 4),
             )
             .setStyle(
-                MediaStyle()
-                    .setMediaSession(session.sessionToken)
-                    .setShowActionsInCompactView(0, 1, 2)
+                MediaStyleNotificationHelper.MediaStyle(session).setShowActionsInCompactView(0, 1, 2)
             )
             .build()
     }

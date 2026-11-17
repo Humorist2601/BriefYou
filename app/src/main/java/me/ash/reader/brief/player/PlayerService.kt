@@ -115,7 +115,7 @@ class PlayerService : MediaSessionService() {
                         session.isAutomotiveController(controller) ||
                         session.isAutoCompanionController(controller)
                 if (!allowed) return MediaSession.ConnectionResult.reject()
-                return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
                     .setAvailableSessionCommands(
                         MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
                             .add(SessionCommand(COMMAND_SPEED, Bundle.EMPTY))
@@ -126,16 +126,22 @@ class PlayerService : MediaSessionService() {
             }
 
             /** Android's "resume" (lock screen, Quick Settings, after a restart): the last thing played. */
+            // isForPlayback false: Android only asks what would be resumed (for example right after
+            // the phone starts, to show it); nothing plays yet.
+            @OptIn(UnstableApi::class)
             override fun onPlaybackResumption(
                 mediaSession: MediaSession,
                 controller: MediaSession.ControllerInfo,
+                isForPlayback: Boolean,
             ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
                 val last = BriefPlayer.lastItem(this@PlayerService)
                     ?: return Futures.immediateFailedFuture(UnsupportedOperationException("Nothing played yet"))
-                // At the speed kept for it, and with the app following it (place, marked as read).
-                val video = last.first.mediaMetadata.extras?.getBoolean(BriefPlayer.EXTRA_VIDEO) == true
-                mediaSession.player.playbackParameters = PlaybackParameters(BriefPlayer.savedSpeed(this@PlayerService, video))
-                main.post { BriefPlayer.attach(applicationContext) }
+                if (isForPlayback) {
+                    // At the speed kept for it, and with the app following it (place, marked as read).
+                    val video = last.first.mediaMetadata.extras?.getBoolean(BriefPlayer.EXTRA_VIDEO) == true
+                    mediaSession.player.playbackParameters = PlaybackParameters(BriefPlayer.savedSpeed(this@PlayerService, video))
+                    main.post { BriefPlayer.attach(applicationContext) }
+                }
                 return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(listOf(last.first), 0, last.second))
             }
 
