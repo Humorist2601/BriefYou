@@ -197,11 +197,11 @@
     <string name="prepare_ai_model">Prepare the model at start</string>
     <string name="prepare_ai_model_desc">Loads the model when the app opens, so the first summary is quick. Off, it loads when first used.</string>
     <string name="ai_settings_model_start">At start</string>
-    <string name="notifications_page_desc">Feeds that notify, Android's settings</string>
-    <string name="notifications_android">Android's notification settings</string>
+    <string name="notifications_page_desc">Feeds that notify, Android\'s settings</string>
+    <string name="notifications_android">Android\'s notification settings</string>
     <string name="notifications_android_desc">Sound, vibration, lock screen</string>
     <string name="notifications_feeds">Feeds that notify</string>
-    <string name="notifications_none">No feed notifies yet. Turn it on in a feed's options: hold a feed on the Feeds page.</string>
+    <string name="notifications_none">No feed notifies yet. Turn it on in a feed\'s options: hold a feed on the Feeds page.</string>
     <string name="notifications_tips">New articles of these feeds arrive in one notification, with Mark all read.</string>
     <string name="notifications_off_title">Notifications are off</string>
     <string name="notifications_off_desc">Android blocks Brief You\'s notifications. Tap to allow them.</string>
