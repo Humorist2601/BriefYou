@@ -50,17 +50,6 @@ val LocalImageContentWidth = compositionLocalOf { MediumContentWidth }
 @Stable
 @Composable
 @ReadOnlyComposable
-fun imageHorizontalPadding(): Int = LocalReadingImageHorizontalPadding.current
-
-@Stable
-@Composable
-@ReadOnlyComposable
-fun imageShape(): RoundedCornerShape =
-    RoundedCornerShape(LocalReadingImageRoundedCorners.current.dp)
-
-@Stable
-@Composable
-@ReadOnlyComposable
 fun onSurfaceColor(): Color = MaterialTheme.colorScheme.onSurface
 
 @Stable
@@ -92,32 +81,6 @@ fun bodyStyle(): TextStyle =
 @Stable
 @Composable
 @ReadOnlyComposable
-fun h1Style(): TextStyle =
-    MaterialTheme.typography.headlineMedium.merge(
-        fontFamily = LocalReadingFonts.current.asFontFamily(LocalContext.current),
-        fontWeight =
-            if (LocalReadingSubheadBold.current.value) FontWeight.SemiBold else FontWeight.Normal,
-        letterSpacing = 0.sp,
-        color = onSurfaceColor(),
-        textAlign = LocalReadingSubheadAlign.current.toTextAlign(),
-    )
-
-@Stable
-@Composable
-@ReadOnlyComposable
-fun h2Style(): TextStyle =
-    MaterialTheme.typography.headlineMedium.merge(
-        fontFamily = LocalReadingFonts.current.asFontFamily(LocalContext.current),
-        fontWeight =
-            if (LocalReadingSubheadBold.current.value) FontWeight.SemiBold else FontWeight.Normal,
-        letterSpacing = 0.sp,
-        color = onSurfaceColor(),
-        textAlign = LocalReadingSubheadAlign.current.toTextAlign(),
-    )
-
-@Stable
-@Composable
-@ReadOnlyComposable
 fun h3Style(): TextStyle =
     MaterialTheme.typography.headlineSmall.merge(
         fontFamily = LocalReadingFonts.current.asFontFamily(LocalContext.current),
@@ -128,116 +91,3 @@ fun h3Style(): TextStyle =
         textAlign = LocalReadingSubheadAlign.current.toTextAlign(),
     )
 
-@Stable
-@Composable
-@ReadOnlyComposable
-fun h4Style(): TextStyle =
-    MaterialTheme.typography.titleLarge.merge(
-        fontFamily = LocalReadingFonts.current.asFontFamily(LocalContext.current),
-        fontWeight =
-            if (LocalReadingSubheadBold.current.value) FontWeight.SemiBold else FontWeight.Normal,
-        letterSpacing = 0.sp,
-        color = onSurfaceColor(),
-        textAlign = LocalReadingSubheadAlign.current.toTextAlign(),
-    )
-
-@Stable
-@Composable
-@ReadOnlyComposable
-fun h5Style(): TextStyle =
-    MaterialTheme.typography.titleLarge.merge(
-        fontFamily = LocalReadingFonts.current.asFontFamily(LocalContext.current),
-        fontWeight =
-            if (LocalReadingSubheadBold.current.value) FontWeight.SemiBold else FontWeight.Normal,
-        letterSpacing = 0.sp,
-        color = onSurfaceColor(),
-        textAlign = LocalReadingSubheadAlign.current.toTextAlign(),
-    )
-
-@Stable
-@Composable
-@ReadOnlyComposable
-fun h6Style(): TextStyle =
-    MaterialTheme.typography.titleLarge.merge(
-        TextStyle(
-            fontFamily = LocalReadingFonts.current.asFontFamily(LocalContext.current),
-            fontWeight =
-                if (LocalReadingSubheadBold.current.value) FontWeight.SemiBold
-                else FontWeight.Normal,
-            letterSpacing = 0.sp,
-            color = onSurfaceColor(),
-            textAlign = LocalReadingSubheadAlign.current.toTextAlign(),
-        )
-    )
-
-@Stable
-@Composable
-@ReadOnlyComposable
-fun captionStyle(): TextStyle =
-    LocalTextStyle.current.merge(
-        MaterialTheme.typography.bodySmall.merge(
-            TextStyle(
-                fontFamily = LocalReadingFonts.current.asFontFamily(LocalContext.current),
-                color = bodyForeground().copy(alpha = 0.6f),
-                textAlign = TextAlign.Center,
-            )
-        )
-    )
-
-@Stable
-@Composable
-@ReadOnlyComposable
-fun linkTextStyle(): TextStyle =
-    LocalTextStyle.current.merge(
-        TextStyle(
-            fontFamily = LocalReadingFonts.current.asFontFamily(LocalContext.current),
-            fontSize = LocalReadingTextFontSize.current.sp,
-            color = MaterialTheme.colorScheme.primary,
-            textDecoration = TextDecoration.Underline,
-        )
-    )
-
-@Stable
-@Composable
-@ReadOnlyComposable
-fun textLinkStyles(): TextLinkStyles {
-    val color = MaterialTheme.colorScheme.primary
-    val baseStyle =
-        LocalTextStyle.current
-            .merge(
-                fontFamily = LocalReadingFonts.current.asFontFamily(LocalContext.current),
-                color = color,
-                fontSize = LocalReadingTextFontSize.current.sp,
-                textDecoration = TextDecoration.Underline,
-            )
-            .toSpanStyle()
-    return TextLinkStyles(
-        style = baseStyle,
-        pressedStyle = baseStyle.copy(color = color.copy(alpha = .5f)),
-    )
-}
-
-@Stable
-@Composable
-fun codeBlockStyle(): TextStyle =
-    MaterialTheme.typography.titleSmall.merge(
-        SpanStyle(color = bodyForeground(), fontFamily = FontFamily.Monospace)
-    )
-
-@Stable
-@Composable
-fun codeBlockBackground(): Color =
-    MaterialTheme.colorScheme.secondary.copy(alpha = (0.dp).alphaLN(weight = 3.2f))
-
-@Stable
-@Composable
-fun boldStyle(): TextStyle =
-    bodyStyle().merge(SpanStyle(fontWeight = FontWeight.SemiBold, color = onSurfaceColor()))
-
-@Stable
-@Composable
-fun codeInlineStyle(): TextStyle =
-    MaterialTheme.typography.titleSmall.merge(
-        color = bodyForeground(),
-        fontFamily = FontFamily.Monospace,
-    )

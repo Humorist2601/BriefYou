@@ -19,9 +19,9 @@ import kotlinx.coroutines.launch
  * What an article carries besides its text: a podcast episode or a video (the feed item's
  * attachment), the episode's own picture and length, and a link to its comments.
  *
- * Kept in a small database of Brief You's own, by article id, so Read You's tables stay as they
+ * Kept in a small database of Brief You's own, by article id, so the original tables stay as they
  * are. Filled when feeds are read (RSS and Atom, and sync services that send attachments).
- * Articles read before this existed still get their audio or video: Read You took a feed item's
+ * Articles read before this existed still get their audio or video: the original app took a feed item's
  * first attachment as its picture whatever it was, so a podcast's MP3 sits in the article's
  * picture field ([fromPicture]). Brief You.
  */
@@ -163,7 +163,7 @@ object ArticleMedia {
         val useful = items.filter { it.mediaUrl != null || it.comments != null || it.image != null }
         if (useful.isEmpty()) return
         // Kept in memory until the items are articles: feed reading sees every item, and the
-        // ones Read You (or mute keywords, duplicates) skips must leave nothing behind.
+        // ones the original app (or mute keywords, duplicates) skips must leave nothing behind.
         synchronized(pending) { useful.forEach { pending[it.articleId] = it to 0 } }
         flushLater()
     }

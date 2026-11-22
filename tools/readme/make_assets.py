@@ -154,8 +154,6 @@ for mode, c in THEMES.items():
     for i, line in enumerate(["A calm, private RSS reader for Android,", "with AI that runs on your phone."]):
         t, _ = text(line, 202, 172 + i * 28, 21, c["onVariant"], 450)
         b += t
-    t, _ = text("A fork of Read You", 58, 236, 15, c["primary"], 600)
-    b += t
     write(f"hero-{mode}.svg", svg(W, H, b, "Brief You: a calm, private RSS reader for Android, with AI that runs on your phone"))
 
 # Feature cards ---------------------------------------------------------------------------------

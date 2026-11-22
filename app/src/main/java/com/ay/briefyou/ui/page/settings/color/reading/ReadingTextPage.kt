@@ -47,8 +47,8 @@ import com.ay.briefyou.infrastructure.preference.ReadingThemePreference
 import com.ay.briefyou.infrastructure.preference.not
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
-import com.ay.briefyou.ui.component.base.RYSwitch
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.component.base.BYSwitch
 import com.ay.briefyou.ui.component.base.RadioDialog
 import com.ay.briefyou.ui.component.base.RadioDialogOption
 import com.ay.briefyou.ui.component.base.Subtitle
@@ -82,7 +82,7 @@ fun ReadingTextPage(
     var lineHeightMultipleValue: String by remember(lineHeight) { mutableStateOf(lineHeight.toString()) }
     var horizontalPaddingValue: Int? by remember { mutableStateOf(horizontalPadding) }
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(
@@ -137,7 +137,7 @@ fun ReadingTextPage(
                             ReadingThemePreference.Custom.put(context, scope)
                         },
                     ) {
-                        RYSwitch(activated = bold.value) {
+                        BYSwitch(activated = bold.value) {
                             (!bold).put(context, scope)
                             ReadingThemePreference.Custom.put(context, scope)
                         }

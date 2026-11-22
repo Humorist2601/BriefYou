@@ -64,8 +64,8 @@ import com.ay.briefyou.ui.component.base.BlockRadioGroupButtonItem
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.DynamicSVGImage
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
-import com.ay.briefyou.ui.component.base.RYSwitch
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.component.base.BYSwitch
 import com.ay.briefyou.ui.component.base.RadioDialog
 import com.ay.briefyou.ui.component.base.RadioDialogOption
 import com.ay.briefyou.ui.component.base.Subtitle
@@ -110,7 +110,7 @@ fun ColorAndStylePage(
         } ?: context.showToast("Cannot get activity result with launcher")
     }
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(
@@ -197,7 +197,7 @@ fun ColorAndStylePage(
                         separatedActions = true,
                         onClick = navigateToDarkTheme,
                     ) {
-                        RYSwitch(
+                        BYSwitch(
                             activated = darkTheme.isDarkTheme()
                         ) {
                             darkThemeNot.put(context, scope)

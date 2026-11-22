@@ -9,7 +9,7 @@ import com.rometools.rome.feed.synd.SyndFeed
 /**
  * A feed's own picture (a podcast's cover, the feed's logo), kept by feed address, so the feed
  * can use it instead of its website's icon: chosen in Add a feed and in Change icon ("Feed's
- * picture" | "Website icon"). Read You always used the website's icon. Noted when a feed is found
+ * picture" | "Website icon"). The original app always used the website's icon. Noted when a feed is found
  * and on each sync of a local feed. Brief You.
  */
 object FeedPictures {

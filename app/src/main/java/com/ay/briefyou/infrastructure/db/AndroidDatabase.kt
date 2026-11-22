@@ -20,7 +20,7 @@ import java.util.*
 
 @Database(
     entities = [Account::class, Feed::class, Article::class, Group::class, ArchivedArticle::class],
-    version = 9, // Brief You: 8 adds the article list indexes, 9 the archived_article index (MIGRATION_8_9)
+    version = 10, // Brief You: 8 adds the article list indexes, 9 the archived_article index (MIGRATION_8_9), 10 renames the default groups' ids (MIGRATION_9_10)
     autoMigrations = [
         AutoMigration(from = 5, to = 6),
         AutoMigration(from = 5, to = 7),
@@ -50,12 +50,26 @@ abstract class AndroidDatabase : RoomDatabase() {
 
         private var instance: AndroidDatabase? = null
 
+        const val DATABASE_NAME = "BriefYou"
+
+        /** The database was called "Reader" (Read You's name); its files are renamed once, before it is opened. */
+        private fun moveOldDatabase(context: Context) {
+            val new = context.getDatabasePath(DATABASE_NAME)
+            val old = context.getDatabasePath("Reader")
+            if (new.exists() || !old.exists()) return
+            for (suffix in listOf("", "-wal", "-shm", "-journal")) {
+                val from = java.io.File(old.path + suffix)
+                if (from.exists()) from.renameTo(java.io.File(new.path + suffix))
+            }
+        }
+
         fun getInstance(context: Context): AndroidDatabase {
             return instance ?: synchronized(this) {
+                moveOldDatabase(context.applicationContext)
                 instance ?: Room.databaseBuilder(
                     context.applicationContext,
                     AndroidDatabase::class.java,
-                    "Reader"
+                    DATABASE_NAME
                 ).addMigrations(*allMigrations).build().also {
                     instance = it
                 }
@@ -83,6 +97,7 @@ val allMigrations = arrayOf(
     MIGRATION_3_4,
     MIGRATION_4_5,
     MIGRATION_8_9, // Brief You
+    MIGRATION_9_10, // Brief You
 )
 
 /**
@@ -97,6 +112,22 @@ object MIGRATION_8_9 : Migration(8, 9) {
         db.execSQL(
             "CREATE INDEX IF NOT EXISTS `index_archived_article_feedId` ON `archived_article` (`feedId`)"
         )
+    }
+}
+
+/**
+ * Brief You: each account's default group had an id ending in the old app name
+ * (`<account>$read_you_app_default_group`); now it ends in `$default_group`. The groups are
+ * renamed first (the feeds' `groupId` follows, the foreign key cascades on update), then the feeds
+ * are made to match in case foreign keys weren't enforced here.
+ */
+@Suppress("ClassName")
+object MIGRATION_9_10 : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val old = "\$read_you_app_default_group"
+        val new = "\$default_group"
+        db.execSQL("UPDATE `group` SET id = replace(id, '$old', '$new') WHERE id LIKE '%$old'")
+        db.execSQL("UPDATE feed SET groupId = replace(groupId, '$old', '$new') WHERE groupId LIKE '%$old'")
     }
 }
 

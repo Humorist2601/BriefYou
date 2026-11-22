@@ -47,7 +47,7 @@ import com.ay.briefyou.ui.ext.ExternalFonts
 import com.ay.briefyou.ui.ext.surfaceColorAtElevation
 
 @Composable
-fun RYWebView(
+fun BYWebView(
     modifier: Modifier = Modifier,
     content: String,
     /** The article's address, which relative image and link addresses are read against. */

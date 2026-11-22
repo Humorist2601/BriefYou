@@ -16,7 +16,7 @@ import kotlin.math.sqrt
  * the picture fades in; a box that had to guess eases to the picture's real shape first. Small
  * pictures (icons, emoji) and pictures already loaded get no box.
  *
- * Added to the reading page's own styles and script by Brief You's web view, so Read You's
+ * Added to the reading page's own styles and script by Brief You's web view, so the original
  * WebViewStyle and WebViewScript stay as they are.
  */
 object ImagePlaceholders {

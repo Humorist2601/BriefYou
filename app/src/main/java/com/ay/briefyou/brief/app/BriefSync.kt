@@ -8,7 +8,7 @@ import com.ay.briefyou.brief.notifications.NotificationHelper
 import com.ay.briefyou.domain.model.article.Article
 
 /**
- * Brief You's additions to Read You's SyncWorker, kept here so Read You's file only needs two
+ * Brief You's additions to the SyncWorker, kept here so the original file only needs two
  * calls: one new-articles notification per sync, mute keywords and duplicate stories, and custom
  * feed icons kept through syncs.
  */
@@ -34,7 +34,7 @@ constructor(
     }
 
     /**
-     * After a sync and Read You's clean-up of old articles ([removed]): the filters forget those,
+     * After a sync and the original clean-up of old articles ([removed]): the filters forget those,
      * mute keywords and duplicate stories are applied, and custom feed icons put back.
      */
     suspend fun afterSync(accountId: Int, removed: List<Article>) {

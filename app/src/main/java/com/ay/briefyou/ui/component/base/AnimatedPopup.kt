@@ -37,7 +37,7 @@ fun AnimatedPopup(
             }
         },
     ) {
-        RYExtensibleVisibility(visible = visible) {
+        BYExtensibleVisibility(visible = visible) {
             content()
         }
     }

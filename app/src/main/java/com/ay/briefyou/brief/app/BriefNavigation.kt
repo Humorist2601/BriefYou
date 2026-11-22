@@ -25,14 +25,14 @@ import com.ay.briefyou.brief.ui.backPreviewPopTransform
 import com.ay.briefyou.ui.page.nav3.key.Route
 
 /*
- * Brief You's additions to Read You's navigation (AppEntry), kept here so Read You's file only
+ * Brief You's additions to the navigation (AppEntry), kept here so the original file only
  * needs a few calls: the back preview (Android's own predictive back animation between screens)
  * and the filter bar drawn once above every screen.
  */
 
 /**
  * Same as Navigation 3's NavEntry, with the screen wrapped for the back preview and told its own
- * key (for the shared filter bar). Read You's AppEntry imports this one instead, so its screen
+ * key (for the shared filter bar). The original AppEntry imports this one instead, so its screen
  * list stays exactly as it is.
  */
 fun NavEntry(
@@ -46,7 +46,7 @@ fun NavEntry(
     }
 
 /**
- * The transition between screens, put in front of Read You's with `?:` (so Read You's stays as the
+ * The transition between screens, put in front of the original with `?:` (so the original stays as the
  * fallback in its file). While the back preview runs: its transition, which draws nothing (the
  * back preview draws). Otherwise Brief You's overlapping switch ([screenSwitch]) instead of Read
  * You's shared axis, which faded the old screen out completely before the new one came in, through

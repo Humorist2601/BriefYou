@@ -49,7 +49,7 @@ import com.ay.briefyou.ui.page.adaptive.ReaderState
 import com.ay.briefyou.ui.page.adaptive.ReadingUiState
 
 /*
- * Brief You's additions to Read You's reading page (ReadingPage), kept here so Read You's file
+ * Brief You's additions to the reading page (ReadingPage), kept here so the original file
  * only needs a few calls: the picture's colours, reading progress and time left, the quick text
  * sheet, the AI summary, read aloud (with pause, speed and the media notification), the next
  * article card and Brief You's reading bar.
@@ -290,7 +290,7 @@ fun BriefNextArticle(
     )
 }
 
-/** Brief You's reading bar, in place of Read You's bottom bar. */
+/** Brief You's reading bar, in place of the original bottom bar. */
 @Composable
 fun BriefReadingBar(
     state: BriefReadingState,
@@ -431,8 +431,8 @@ fun BriefReadingSheets(
 }
 
 /**
- * Read You's reading page in the picture's colours ([BriefReadingTheme]); same arguments as
- * ReadingPage, so the call in Read You's code only changes its name.
+ * The original reading page in the picture's colours ([BriefReadingTheme]); same arguments as
+ * ReadingPage, so the call in the original code only changes its name.
  */
 @Composable
 fun BriefReadingPage(

@@ -25,7 +25,7 @@ import com.ay.briefyou.ui.component.reader.LocalTextContentWidth
 import com.ay.briefyou.brief.reading.BriefArticleHero
 import com.ay.briefyou.brief.reading.briefHeadlinePadding
 import com.ay.briefyou.brief.reading.rememberBriefArticle
-import com.ay.briefyou.brief.webview.RYWebView
+import com.ay.briefyou.brief.webview.BYWebView
 import com.ay.briefyou.ui.ext.extractDomain
 import com.ay.briefyou.ui.ext.roundClick
 
@@ -89,7 +89,7 @@ fun Content(
                     headline()
                     afterHeadline?.invoke() // Brief You
 
-                    RYWebView(
+                    BYWebView(
                         modifier = Modifier.fillMaxSize(),
                         content = brief.body, // Brief You
                         baseUrl = link, // Brief You

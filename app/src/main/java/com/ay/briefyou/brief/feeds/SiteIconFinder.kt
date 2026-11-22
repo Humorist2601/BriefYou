@@ -13,7 +13,7 @@ import org.json.JSONObject
 import org.jsoup.Jsoup
 
 /**
- * Finds a website's sharpest square icon, for feeds' "Website icon". Replaces Read You's
+ * Finds a website's sharpest square icon, for feeds' "Website icon". Replaces the original
  * BestIconFinder, which ranked by file type and file size: it could pick the page's social
  * picture (og:image, a wide photo), Safari's one-colour pinned-tab icon, or a 16 px favicon over
  * a 180 px home-screen icon.

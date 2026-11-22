@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ay.briefyou.R
 import com.ay.briefyou.domain.model.account.Account
-import com.ay.briefyou.ui.component.base.RYDialog
+import com.ay.briefyou.ui.component.base.BYDialog
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -45,7 +45,7 @@ fun AccountsTab(
     onClickManage: () -> Unit = {},
     onDismissRequest: () -> Unit = {},
 ) {
-    RYDialog(
+    BYDialog(
         modifier = modifier,
         visible = visible,
         onDismissRequest = onDismissRequest,

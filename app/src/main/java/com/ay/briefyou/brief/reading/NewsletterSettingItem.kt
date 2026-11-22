@@ -8,7 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.ay.briefyou.R
-import com.ay.briefyou.ui.component.base.RYSwitch
+import com.ay.briefyou.ui.component.base.BYSwitch
 import com.ay.briefyou.ui.page.settings.SettingItem
 
 /** Reading page: whether newsletters get the extra tidying (see [EmailContent.tidyMore]). */
@@ -25,6 +25,6 @@ fun NewsletterSettingItem() {
         desc = stringResource(R.string.tidy_newsletters_desc),
         onClick = toggle,
     ) {
-        RYSwitch(activated = on) { toggle() }
+        BYSwitch(activated = on) { toggle() }
     }
 }

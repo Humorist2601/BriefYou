@@ -69,7 +69,7 @@ import com.ay.briefyou.infrastructure.compose.ProvideCompositionLocals
 import com.ay.briefyou.infrastructure.preference.AccountSettingsProvider
 import com.ay.briefyou.infrastructure.preference.LocalDarkTheme
 import com.ay.briefyou.infrastructure.preference.SettingsProvider
-import com.ay.briefyou.ui.component.base.RYAsyncImage
+import com.ay.briefyou.ui.component.base.BYAsyncImage
 import com.ay.briefyou.ui.page.common.ExtraName
 import com.ay.briefyou.ui.theme.AppTheme
 
@@ -283,7 +283,7 @@ class ReadLaterActivity : ComponentActivity() {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (saved.image != null) {
-                    RYAsyncImage(
+                    BYAsyncImage(
                         modifier = Modifier.size(64.dp).clip(RoundedCornerShape(14.dp)),
                         data = saved.image,
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop,

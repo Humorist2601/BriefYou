@@ -1,7 +1,7 @@
 package com.ay.briefyou.brief.media
 
 /**
- * Read You remembers the link of every article its clean-up clears (archived_article), so a local
+ * The original app remembers the link of every article its clean-up clears (archived_article), so a local
  * feed that still lists it doesn't add it again. It never forgot them, so the list only grew.
  * Here a link is forgotten once the feed has stopped listing it: missing for [MISSES] syncs in a
  * row and for at least [MIN_MISSING_MS]. A feed that couldn't be read (nothing listed) doesn't

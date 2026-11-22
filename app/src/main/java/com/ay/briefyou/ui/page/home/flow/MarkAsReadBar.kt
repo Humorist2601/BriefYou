@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.ay.briefyou.R
 import com.ay.briefyou.domain.model.general.MarkAsReadConditions
 import com.ay.briefyou.ui.component.base.AnimatedPopup
-import com.ay.briefyou.ui.component.base.RYExtensibleVisibility
+import com.ay.briefyou.ui.component.base.BYExtensibleVisibility
 import com.ay.briefyou.ui.theme.palette.alwaysLight
 
 @Composable

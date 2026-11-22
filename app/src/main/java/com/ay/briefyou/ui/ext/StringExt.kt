@@ -37,8 +37,6 @@ fun String.mask(): String = run {
 
 fun String.encodeBase64(): String = Base64.encodeToString(toByteArray(), Base64.DEFAULT)
 
-fun String.decodeBase64(): String = String(Base64.decode(this, Base64.DEFAULT))
-
 fun String.md5(): String =
     BigInteger(1, MessageDigest.getInstance("MD5").digest(toByteArray()))
         .toString(16).padStart(32, '0')

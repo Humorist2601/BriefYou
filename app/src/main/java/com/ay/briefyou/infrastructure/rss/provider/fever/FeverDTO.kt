@@ -19,9 +19,9 @@ object FeverDTO {
      *          {
      *          "id": 2,
      *          "favicon_id": 2,
-     *          "title": "Ash's Knowledge Base",
-     *          "url": "https://www.ashinch.com/feed",
-     *          "site_url": "http://ashinch.com/",
+     *          "title": "Example Blog",
+     *          "url": "https://example.com/feed",
+     *          "site_url": "http://example.com/",
      *          "is_spark": 0,
      *          "last_updated_on_time": 1647530101
      *          }

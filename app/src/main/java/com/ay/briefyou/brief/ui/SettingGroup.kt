@@ -26,7 +26,7 @@ val LocalInSettingGroup = compositionLocalOf { false }
 /**
  * A section of settings as one joined card, like the app's other lists: each row on its own
  * surface, rounded big on the outside and small between rows, a small gap apart. Put the rows of
- * one section in it (Read You's SettingItem and the settings page's group items); they draw no
+ * one section in it (the original SettingItem and the settings page's group items); they draw no
  * background of their own, so the card is drawn behind them here, row by row.
  */
 @Composable

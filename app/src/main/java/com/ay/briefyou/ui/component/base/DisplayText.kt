@@ -48,7 +48,7 @@ fun DisplayText(
             autoSize =
                 TextAutoSize.StepBased(minFontSize = 22.sp, maxFontSize = style.fontSize),
         )
-        RYExtensibleVisibility(visible = desc.isNotEmpty()) {
+        BYExtensibleVisibility(visible = desc.isNotEmpty()) {
             Text(
                 text = desc,
                 style = MaterialTheme.typography.labelMedium,

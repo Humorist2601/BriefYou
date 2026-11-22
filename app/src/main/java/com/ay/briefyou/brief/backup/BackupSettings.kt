@@ -30,7 +30,7 @@ import com.ay.briefyou.infrastructure.di.ApplicationScope
 import com.ay.briefyou.infrastructure.di.DefaultDispatcher
 import com.ay.briefyou.infrastructure.di.IODispatcher
 import com.ay.briefyou.infrastructure.di.MainDispatcher
-import com.ay.briefyou.ui.component.base.RYDialog
+import com.ay.briefyou.ui.component.base.BYDialog
 import com.ay.briefyou.ui.ext.DateFormat
 import com.ay.briefyou.ui.ext.MimeType
 import com.ay.briefyou.ui.ext.showToast
@@ -79,7 +79,7 @@ constructor(
 
 /**
  * "Back up everything" and "Restore from backup" on an account's page, with the restore
- * confirmation. Read You's AccountDetailsPage shows these with a single line.
+ * confirmation. The original AccountDetailsPage shows these with a single line.
  */
 @Composable
 fun BackupSettingItems(accountId: Int, viewModel: BackupViewModel = hiltViewModel()) {
@@ -146,7 +146,7 @@ fun BackupSettingItems(accountId: Int, viewModel: BackupViewModel = hiltViewMode
         onClick = { restoreLauncher.launch(arrayOf(MimeType.ANY)) },
     ) {}
 
-    RYDialog(
+    BYDialog(
         visible = pendingRestore != null,
         // The standard dialog title, like every other dialog.
         title = { Text(text = stringResource(R.string.restore_from_backup)) },

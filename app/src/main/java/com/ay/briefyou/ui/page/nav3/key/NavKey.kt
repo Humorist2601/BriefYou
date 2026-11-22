@@ -52,7 +52,7 @@ sealed interface Route : NavKey {
     // Interaction
     @Serializable data object Interaction : Route
 
-    // AI model (Read You+) // Brief You
+    // AI model // Brief You
     @Serializable data object AiModel : Route
 
     @Serializable data object Filters : Route

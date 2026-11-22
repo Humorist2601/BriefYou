@@ -36,7 +36,6 @@
 
 # Provider API
 -keep class com.ay.briefyou.** { *; }
--keep class me.ash.reader.** { *; } # the old widget receiver names (see LegacyWidgetReceivers.kt)
 
 # https://github.com/flutter/flutter/issues/127388
 -dontwarn org.kxml2.io.KXml**

@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Whether an option sheet is open. [hide] slides it down first, like a swipe down does, instead of
- * it vanishing. Replaces Read You's Material 2 sheet state, with the same show / hide / isVisible.
+ * it vanishing. Replaces the original Material 2 sheet state, with the same show / hide / isVisible.
  */
 @Stable
 class SheetSwitch {
@@ -129,57 +129,6 @@ fun SheetSection(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier.padding(bottom = 10.dp),
     )
-}
-
-/** One row of a sheet's joined list. */
-class SheetRow(
-    val icon: ImageVector,
-    val title: String,
-    /** A switch at the end, on or off; null for a plain row (an action). */
-    val checked: Boolean? = null,
-    val danger: Boolean = false,
-    val onClick: () -> Unit,
-)
-
-/** Rows as one joined list: rounded big on the outside, small between rows, a small gap apart. */
-@Composable
-fun SheetRows(rows: List<SheetRow>) {
-    Column(verticalArrangement = Arrangement.spacedBy(Group.Gap)) {
-        rows.forEachIndexed { index, row ->
-            val tint = if (row.danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-            Surface(
-                onClick = row.onClick,
-                shape = groupShape(index, rows.size),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = tint,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        row.icon,
-                        contentDescription = null,
-                        tint = if (row.danger) tint else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Spacer(Modifier.width(16.dp))
-                    Text(
-                        text = row.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (row.checked != null) {
-                        Spacer(Modifier.width(12.dp))
-                        Box { com.ay.briefyou.ui.component.base.RYSwitch(activated = row.checked, onClick = row.onClick) }
-                    }
-                }
-            }
-        }
-    }
 }
 
 /**

@@ -117,20 +117,10 @@ import com.ay.briefyou.brief.media.PlaybackPosition
 import com.ay.briefyou.brief.readaloud.TextToSpeechManager
 import com.ay.briefyou.brief.readaloud.readProgress
 import com.ay.briefyou.brief.ui.rememberPressFeel
-import com.ay.briefyou.ui.component.base.RYAsyncImage
+import com.ay.briefyou.ui.component.base.BYAsyncImage
 
 /** The open article's episode, video and comments link (provided by the reading page). */
 val LocalArticleExtras = compositionLocalOf<ArticleExtras?> { null }
-
-/** An article's extras, loaded once per article (see [ArticleMedia.of]). */
-@Composable
-fun rememberArticleExtras(articleId: String?, picture: String?): ArticleExtras? {
-    val extras by
-        produceState<ArticleExtras?>(null, articleId, picture) {
-            value = articleId?.let { ArticleMedia.of(it, picture) }
-        }
-    return extras?.takeIf { it.articleId == articleId }
-}
 
 /** 1:05:09 or 12:04. */
 fun formatTime(ms: Long): String {

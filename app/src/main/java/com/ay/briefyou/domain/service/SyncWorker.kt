@@ -59,7 +59,9 @@ constructor(
     }
 
     companion object {
-        private const val SYNC_WORK_NAME_PERIODIC = "ReadYou"
+        private const val SYNC_WORK_NAME_PERIODIC = "BriefYou"
+        // The name this schedule had before 0.16.2.176 (cancelled once so it doesn't run twice).
+        private const val OLD_SYNC_WORK_NAME_PERIODIC = "ReadYou"
         private const val READER_WORK_NAME_PERIODIC = "FETCH_FULL_CONTENT_PERIODIC"
         private const val POST_SYNC_WORK_NAME = "POST_SYNC_WORK"
 
@@ -76,6 +78,7 @@ constructor(
 
         fun cancelPeriodicWork(workManager: WorkManager) {
             workManager.cancelUniqueWork(SYNC_WORK_NAME_PERIODIC)
+            workManager.cancelUniqueWork(OLD_SYNC_WORK_NAME_PERIODIC)
             workManager.cancelUniqueWork(READER_WORK_NAME_PERIODIC)
         }
 
@@ -94,6 +97,7 @@ constructor(
         }
 
         fun enqueuePeriodicWork(account: Account, workManager: WorkManager) {
+            workManager.cancelUniqueWork(OLD_SYNC_WORK_NAME_PERIODIC)
             val syncInterval = account.syncInterval
             val syncOnlyWhenCharging = account.syncOnlyWhenCharging
             val syncOnlyOnWiFi = account.syncOnlyOnWiFi

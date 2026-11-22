@@ -40,7 +40,7 @@ import com.ay.briefyou.brief.ui.SheetActions
 import com.ay.briefyou.brief.ui.SheetSection
 import com.ay.briefyou.brief.ui.SheetTile
 import com.ay.briefyou.domain.model.group.Group
-import com.ay.briefyou.ui.component.base.RYSelectionChip
+import com.ay.briefyou.ui.component.base.BYSelectionChip
 
 /**
  * A feed's settings, in the app's sheet design: how it opens and notifies as three tiles in one
@@ -129,7 +129,7 @@ fun GroupChips(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         items(groups, key = { it.id }) {
-            RYSelectionChip(content = it.name, selected = it.id == selectedGroupId) { onGroupClick(it.id) }
+            BYSelectionChip(content = it.name, selected = it.id == selectedGroupId) { onGroupClick(it.id) }
         }
         if (onAddNewGroup != null) {
             item(key = "new") {

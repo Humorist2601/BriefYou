@@ -97,8 +97,8 @@ import com.ay.briefyou.infrastructure.preference.LocalSortUnreadArticles
 import com.ay.briefyou.infrastructure.preference.PullToLoadNextFeedPreference
 import com.ay.briefyou.infrastructure.preference.SortUnreadArticlesPreference
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYExtensibleVisibility
-import com.ay.briefyou.ui.component.base.RYScaffold
+import com.ay.briefyou.ui.component.base.BYExtensibleVisibility
+import com.ay.briefyou.ui.component.base.BYScaffold
 import com.ay.briefyou.ui.component.scrollbar.VerticalScrollIndicatorFactory
 import com.ay.briefyou.ui.component.scrollbar.drawVerticalScrollIndicator
 import com.ay.briefyou.ui.component.scrollbar.scrollIndicator
@@ -352,7 +352,7 @@ fun FlowPage(
     val isSyncing = viewModel.isSyncingFlow.collectAsStateValue()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        RYScaffold(
+        BYScaffold(
             topBar = {
                 MaterialTheme(
                     colorScheme = MaterialTheme.colorScheme,
@@ -495,7 +495,7 @@ fun FlowPage(
                 }
             },
             content = {
-                RYExtensibleVisibility(modifier = Modifier.zIndex(1f), visible = onSearch) {
+                BYExtensibleVisibility(modifier = Modifier.zIndex(1f), visible = onSearch) {
                     BackHandler(onSearch) { onSearch = false }
                     SearchBar(
                         value = filterUiState.searchContent ?: "",
@@ -530,7 +530,7 @@ fun FlowPage(
                     )
                 }
 
-                RYExtensibleVisibility(markAsRead) {
+                BYExtensibleVisibility(markAsRead) {
                     BackHandler(markAsRead) { markAsRead = false }
 
                     MarkAsReadBar {

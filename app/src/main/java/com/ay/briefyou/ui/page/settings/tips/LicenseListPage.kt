@@ -22,7 +22,7 @@ import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import com.ay.briefyou.R
 import com.ay.briefyou.infrastructure.preference.OpenLinkPreference
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
+import com.ay.briefyou.ui.component.base.BYScaffold
 import com.ay.briefyou.ui.ext.openURL
 import com.ay.briefyou.ui.theme.palette.onLight
 
@@ -32,7 +32,7 @@ fun LicenseListPage(
 ) {
     val context = LocalContext.current
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(

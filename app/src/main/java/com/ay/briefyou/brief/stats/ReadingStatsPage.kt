@@ -91,14 +91,14 @@ import com.ay.briefyou.domain.service.AccountService
 import com.ay.briefyou.ui.component.FeedIcon
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYDialog
-import com.ay.briefyou.ui.component.base.RYScaffold
+import com.ay.briefyou.ui.component.base.BYDialog
+import com.ay.briefyou.ui.component.base.BYScaffold
 import com.ay.briefyou.ui.component.base.Subtitle
 import com.ay.briefyou.ui.page.nav3.key.Route
 import com.ay.briefyou.ui.page.settings.SelectableSettingGroupItem
 import com.ay.briefyou.ui.theme.palette.onLight
 
-/** Reading stats in the Settings list. Read You's SettingsPage shows it with a single line. */
+/** Reading stats in the Settings list. The original SettingsPage shows it with a single line. */
 @Composable
 fun ReadingStatsSettingsItem() {
     val backStack = LocalBackStack.current
@@ -178,9 +178,8 @@ fun ReadingStatsPage(onBack: () -> Unit) {
             }
         }
 
-    // Read You's settings-page scaffold (deprecated by Read You, but all of Read You's settings
-    // pages still use it), so this page looks like the others.
-    RYScaffold(
+    // The settings pages' common scaffold, so this page looks like the others.
+    BYScaffold(
         containerColor =
             MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
@@ -409,7 +408,7 @@ fun ReadingStatsPage(onBack: () -> Unit) {
         },
     )
 
-    RYDialog(
+    BYDialog(
         visible = confirmReset,
         title = { Text(stringResource(R.string.stats_reset)) },
         text = { Text(stringResource(R.string.stats_reset_confirm)) },

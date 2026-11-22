@@ -104,7 +104,7 @@ object FeedContent {
 
     /** The picture for the article list (complete, and from the main picture for Wikipedia). */
     fun listImage(img: String?, link: String?): String? =
-        // An audio or video file is no picture (Read You stored podcasts' MP3s here).
+        // An audio or video file is no picture (the original app stored podcasts' MP3s here).
         img?.takeIf { !com.ay.briefyou.brief.media.MediaFiles.isMedia(it) }?.let { absoluteUrl(it, link) }
 
     /** The article's HTML, tidied for the reader. [link] is the article's address. */

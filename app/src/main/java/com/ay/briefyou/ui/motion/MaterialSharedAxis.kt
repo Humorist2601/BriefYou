@@ -36,21 +36,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 
 
-/**
- * Returns the provided [Dp] as an [Int] value by the [LocalDensity].
- *
- * @param slideDistance Value to the slide distance dimension, 30dp by default.
- */
-@Composable
-public fun rememberSlideDistance(
-        slideDistance: Dp = MotionConstants.DefaultSlideDistance,
-): Int {
-    val density = LocalDensity.current
-    return remember(density, slideDistance) {
-        with(density) { slideDistance.roundToPx() }
-    }
-}
-
 private const val ProgressThreshold = 0.35f
 
 private val Int.ForOutgoing: Int

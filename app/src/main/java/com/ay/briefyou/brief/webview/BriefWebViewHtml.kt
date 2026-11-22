@@ -4,7 +4,7 @@ import android.util.Base64
 import java.security.SecureRandom
 
 /**
- * The page the reading web view loads (the same as Read You's, see ui/component/webview/WebViewHtml).
+ * The page the reading web view loads (the same as the original, see ui/component/webview/WebViewHtml).
  * What is added is a content policy: scripts inside an article (a feed's own `<script>` tags,
  * `onerror=` handlers, `javascript:` links) are blocked, while the app's own script in the page
  * carries a one-time key and runs. Scripts the app runs itself (picture taps, Translate swaps) go
@@ -33,7 +33,7 @@ object BriefWebViewHtml {
     <style type="text/css">
         $css
         /* Text straight in the article, not in a paragraph (APOD writes its text with <br>s
-           only), follows the text alignment setting too; Read You's style sets it only on
+           only), follows the text alignment setting too; the original style sets it only on
            paragraphs, lists, quotes and tables. */
         article { text-align: var(--text-align); }
     </style>

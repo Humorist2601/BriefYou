@@ -104,7 +104,7 @@ fun FeedOptionDrawer(
         )
     } // Brief You
 
-    // Brief You: the app's Material 3 sheet (was Read You's Material 2 one), in the app's sheet design.
+    // Brief You: the app's Material 3 sheet (was a Material 2 one), in the app's sheet design.
     com.ay.briefyou.brief.ui.OptionSheet(drawerState) { // Brief You
         com.ay.briefyou.brief.ui.SheetHeader( // Brief You
             icon = { // Brief You: tap the icon to change it

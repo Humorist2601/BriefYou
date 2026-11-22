@@ -47,7 +47,7 @@ import com.ay.briefyou.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RYOutlineTextField(
+fun BYOutlineTextField(
     modifier: Modifier = Modifier,
     requestFocus: Boolean = true,
     readOnly: Boolean = false,
@@ -70,7 +70,7 @@ fun RYOutlineTextField(
 
     LaunchedEffect(textFlow) { textFlow.collect { onValueChange(it.toString()) } }
 
-    RYOutlinedTextField2(
+    BYOutlinedTextField2(
         state = state,
         modifier = modifier,
         readOnly = readOnly,
@@ -85,7 +85,7 @@ fun RYOutlineTextField(
 }
 
 @Composable
-fun RYTextField2(
+fun BYTextField2(
     value: String,
     modifier: Modifier = Modifier,
     readOnly: Boolean = false,
@@ -110,7 +110,7 @@ fun RYTextField2(
 
     LaunchedEffect(textFlow) { textFlow.collect { onValueChange(it.toString()) } }
 
-    RYTextField2(
+    BYTextField2(
         state = state,
         modifier = modifier,
         readOnly = readOnly,
@@ -126,7 +126,7 @@ fun RYTextField2(
 }
 
 @Composable
-fun RYTextField2(
+fun BYTextField2(
     state: TextFieldState,
     modifier: Modifier = Modifier,
     readOnly: Boolean = false,
@@ -216,7 +216,7 @@ fun RYTextField2(
 }
 
 @Composable
-fun RYOutlinedTextField2(
+fun BYOutlinedTextField2(
     state: TextFieldState,
     modifier: Modifier = Modifier,
     readOnly: Boolean = false,

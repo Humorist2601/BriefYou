@@ -48,7 +48,7 @@ import com.ay.briefyou.infrastructure.preference.OpenLinkPreference
 import com.ay.briefyou.ui.component.base.Banner
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
+import com.ay.briefyou.ui.component.base.BYScaffold
 import com.ay.briefyou.ui.component.base.Subtitle
 import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.ext.openURL
@@ -74,7 +74,7 @@ fun TroubleshootingPage(onBack: () -> Unit, viewModel: TroubleshootingViewModel 
             .getWorkInfosByTagFlow(PERIODIC_WORK_TAG)
             .collectAsStateValue(emptyList())
 
-    RYScaffold(
+    BYScaffold(
         containerColor =
             MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {

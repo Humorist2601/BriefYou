@@ -127,7 +127,7 @@ import com.ay.briefyou.brief.ui.pictureColorScheme
 import com.ay.briefyou.brief.ui.rememberPressFeel
 import com.ay.briefyou.infrastructure.preference.LocalAmoledDarkTheme
 import com.ay.briefyou.infrastructure.preference.LocalDarkTheme
-import com.ay.briefyou.ui.component.base.RYAsyncImage
+import com.ay.briefyou.ui.component.base.BYAsyncImage
 
 /* The Now playing pill above the bottom bar and its sheet. */
 /** What the pill shows (kept while it slides away after its close button). */

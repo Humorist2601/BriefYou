@@ -50,7 +50,7 @@ fun TextFieldDialog(
         snapshotFlow { textFieldState.text }.collect { onValueChange(it.toString()) }
     }
 
-    RYDialog(
+    BYDialog(
         modifier = modifier,
         properties = properties,
         visible = visible,
@@ -114,7 +114,7 @@ fun TextFieldDialog(
 ) {
     val focusManager = LocalFocusManager.current
 
-    RYDialog(
+    BYDialog(
         modifier = modifier,
         properties = properties,
         visible = visible,

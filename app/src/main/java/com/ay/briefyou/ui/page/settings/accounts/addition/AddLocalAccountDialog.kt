@@ -34,11 +34,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ay.briefyou.R
 import com.ay.briefyou.domain.model.account.Account
 import com.ay.briefyou.domain.model.account.AccountType
-import com.ay.briefyou.ui.component.base.RYDialog
-import com.ay.briefyou.ui.component.base.RYOutlinedTextField2
+import com.ay.briefyou.ui.component.base.BYDialog
+import com.ay.briefyou.ui.component.base.BYOutlinedTextField2
 import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.ext.showToast
-import com.ay.briefyou.ui.page.common.RouteName
 import com.ay.briefyou.ui.page.settings.accounts.AccountViewModel
 
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
@@ -72,7 +71,7 @@ fun AddLocalAccountDialog(
         }
     }
 
-    RYDialog(
+    BYDialog(
         modifier = Modifier.padding(horizontal = 44.dp),
         visible = uiState.addLocalAccountDialogVisible,
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -105,7 +104,7 @@ fun AddLocalAccountDialog(
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Spacer(modifier = Modifier.height(10.dp))
-                RYOutlinedTextField2(
+                BYOutlinedTextField2(
                     modifier = Modifier.fillMaxWidth(),
                     readOnly = accountUiState.isLoading,
                     state = nameState,

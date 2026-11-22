@@ -201,7 +201,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     //                    }
                     Route.Startup -> {
                         NavEntry(key) {
-                            // Brief You: the tour, with Read You's agreement on its last page
+                            // Brief You: the tour, with the original agreement on its last page
                             com.ay.briefyou.brief.tour.BriefFirstRun(
                                 // Brief You: the tour is left behind, so the back gesture on Feeds
                                 // closes the app instead of opening the tour again.

@@ -3,9 +3,9 @@ package com.ay.briefyou.brief.webview
 import com.ay.briefyou.infrastructure.preference.SAME_AS_IMAGES
 
 /**
- * The reading page's picture and video settings that Read You's own web view style doesn't know:
+ * The reading page's picture and video settings that the original own web view style doesn't know:
  * Maximize for pictures, and the Videos page (corners, padding, maximize). Added after
- * WebViewStyle's styles by Brief You's web view, so Read You's file stays as it is.
+ * WebViewStyle's styles by Brief You's web view, so the original file stays as it is.
  *
  * - Maximize (pictures): a picture narrower than the text, which would be centred, runs the full
  *   width instead (icons and emoji stay in the line).
@@ -28,7 +28,7 @@ object MediaStyle {
             append(
                 """
 /* Brief You: an article inside the article (some feeds wrap their text in one) gets no second
-   side margin: Read You's styles give every article element the text margin, so the text was
+   side margin: the original styles give every article element the text margin, so the text was
    indented twice. */
 article article {
     margin-left: 0 !important;

@@ -23,7 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ay.briefyou.R
 import com.ay.briefyou.domain.model.group.Group
-import com.ay.briefyou.ui.component.base.RYSelectionChip
+import com.ay.briefyou.ui.component.base.BYSelectionChip
 import com.ay.briefyou.ui.component.base.Subtitle
 import com.ay.briefyou.ui.theme.palette.alwaysLight
 
@@ -119,7 +119,7 @@ private fun Preset(
     Spacer(modifier = Modifier.height(10.dp))
     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start)) {
         item {
-            RYSelectionChip(
+            BYSelectionChip(
                 modifier = Modifier,
                 content = stringResource(R.string.parse_full_content),
                 selected = selectedParseFullContentPreset,
@@ -136,7 +136,7 @@ private fun Preset(
             }
         }
         item {
-            RYSelectionChip(
+            BYSelectionChip(
                 modifier = Modifier,
                 content = stringResource(R.string.open_in_browser),
                 selected = selectedOpenInBrowserPreset,
@@ -161,7 +161,7 @@ private fun Preset(
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
     ) {
-        RYSelectionChip(
+        BYSelectionChip(
             modifier = Modifier,
             content = stringResource(R.string.allow_notification),
             selected = selectedAllowNotificationPreset,
@@ -177,7 +177,7 @@ private fun Preset(
             allowNotificationPresetOnClick()
         }
         if (notSubscribeMode) {
-            RYSelectionChip(
+            BYSelectionChip(
                 modifier = Modifier,
                 content = stringResource(R.string.clear_articles),
                 selected = false,
@@ -185,7 +185,7 @@ private fun Preset(
                 clearArticlesOnClick()
             }
             if (showUnsubscribe) {
-                RYSelectionChip(
+                BYSelectionChip(
                     modifier = Modifier,
                     content = stringResource(R.string.unsubscribe),
                     selected = false,
@@ -214,7 +214,7 @@ private fun AddToGroup(
     if (groups.size > 6) {
         LazyRow(verticalAlignment = Alignment.CenterVertically) {
             items(groups) {
-                RYSelectionChip(
+                BYSelectionChip(
                     modifier = Modifier,
                     content = it.name,
                     selected = it.id == selectedGroupId,
@@ -231,7 +231,7 @@ private fun AddToGroup(
             verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
         ) {
             groups.forEach {
-                RYSelectionChip(
+                BYSelectionChip(
                     modifier = Modifier,
                     content = it.name,
                     selected = it.id == selectedGroupId,

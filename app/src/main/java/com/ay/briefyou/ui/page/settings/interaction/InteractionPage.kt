@@ -44,8 +44,8 @@ import com.ay.briefyou.infrastructure.preference.SwipeEndActionPreference
 import com.ay.briefyou.infrastructure.preference.SwipeStartActionPreference
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
-import com.ay.briefyou.ui.component.base.RYSwitch
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.component.base.BYSwitch
 import com.ay.briefyou.ui.component.base.RadioDialog
 import com.ay.briefyou.ui.component.base.RadioDialogOption
 import com.ay.briefyou.ui.component.base.Subtitle
@@ -88,7 +88,7 @@ fun InteractionPage(
     var showSortUnreadArticlesDialog by remember { mutableStateOf(false) }
     var showPullToLoadDialog by remember { mutableStateOf(false) }
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(
@@ -162,7 +162,7 @@ fun InteractionPage(
                             markAsReadOnScroll.toggle(context, scope)
                         },
                     ) {
-                        RYSwitch(activated = markAsReadOnScroll.value) {
+                        BYSwitch(activated = markAsReadOnScroll.value) {
                             markAsReadOnScroll.toggle(context, scope)
                         }
                     }
@@ -186,7 +186,7 @@ fun InteractionPage(
                     SettingItem(
                         title = stringResource(id = R.string.pull_to_switch_article),
                         onClick = { pullToSwitchArticle.toggle(context, scope) }) {
-                        RYSwitch(activated = pullToSwitchArticle.value) {
+                        BYSwitch(activated = pullToSwitchArticle.value) {
                             pullToSwitchArticle.toggle(context, scope)
                         }
                     }
@@ -195,7 +195,7 @@ fun InteractionPage(
                         desc = stringResource(R.string.mark_as_read_when_opened_desc),
                         onClick = { BriefSwitch.MarkAsReadWhenOpened.put(context, scope, !markWhenOpened) },
                     ) {
-                        RYSwitch(activated = markWhenOpened) {
+                        BYSwitch(activated = markWhenOpened) {
                             BriefSwitch.MarkAsReadWhenOpened.put(context, scope, !markWhenOpened)
                         }
                     }
@@ -267,7 +267,7 @@ fun InteractionPage(
                         desc = stringResource(R.string.haptic_feedback_desc),
                         onClick = { BriefSwitch.Haptics.put(context, scope, !hapticsOn) },
                     ) {
-                        RYSwitch(activated = hapticsOn) {
+                        BYSwitch(activated = hapticsOn) {
                             BriefSwitch.Haptics.put(context, scope, !hapticsOn)
                         }
                     }

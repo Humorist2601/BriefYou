@@ -121,7 +121,7 @@ import com.ay.briefyou.brief.media.PlaybackPosition
 import com.ay.briefyou.brief.readaloud.TextToSpeechManager
 import com.ay.briefyou.brief.readaloud.readProgress
 import com.ay.briefyou.brief.ui.rememberPressFeel
-import com.ay.briefyou.ui.component.base.RYAsyncImage
+import com.ay.briefyou.ui.component.base.BYAsyncImage
 
 /* The player's controls: play, skip, speed, the sleep timer, the seek bar and the artwork (used by the episode card, the video player and the Now playing sheet). */
 /**
@@ -204,7 +204,7 @@ internal fun Artwork(
             )
         }
         if (url != null) {
-            RYAsyncImage(modifier = Modifier.matchParentSize(), data = url, contentScale = ContentScale.Crop, contentDescription = null)
+            BYAsyncImage(modifier = Modifier.matchParentSize(), data = url, contentScale = ContentScale.Crop, contentDescription = null)
         }
     }
 }

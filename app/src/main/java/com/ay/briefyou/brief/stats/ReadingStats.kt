@@ -39,7 +39,7 @@ data class ReadingStatsData(
 )
 
 /**
- * Reading stats, kept on the phone in Brief You's own storage (no database tables, so Read You's
+ * Reading stats, kept on the phone in Brief You's own storage (no database tables, so the original
  * database stays as it is). Updated from Brief You's reading page, list and Triage; shown on the
  * Reading stats page; included in the full backup.
  */

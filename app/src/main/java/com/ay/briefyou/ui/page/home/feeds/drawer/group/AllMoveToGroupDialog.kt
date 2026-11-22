@@ -11,7 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ay.briefyou.R
-import com.ay.briefyou.ui.component.base.RYDialog
+import com.ay.briefyou.ui.component.base.BYDialog
 import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.ext.showToast
 
@@ -29,7 +29,7 @@ fun AllMoveToGroupDialog(
         groupOptionUiState.targetGroup?.name ?: ""
     )
 
-    RYDialog(
+    BYDialog(
         visible = groupOptionUiState.allMoveToGroupDialogVisible,
         onDismissRequest = {
             groupOptionViewModel.hideAllMoveToGroupDialog()

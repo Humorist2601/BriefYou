@@ -72,7 +72,7 @@ class DiffMapHolder @Inject constructor(
             accountService.currentAccountFlow.mapNotNull { it }.collect { account ->
                 val previousAccount = currentAccount
                 // Brief You: only a different account starts over. The account's own row changes
-                // after every sync (its update time), and Read You then treated that as a new
+                // after every sync (its update time), and the original app then treated that as a new
                 // account: it emptied the unsaved read/unread changes (the cache was written from
                 // another coroutine after the clearing, so it was empty too) and read them back.
                 // Everything read since the last save, the Triage run included, became unread when
@@ -210,10 +210,10 @@ class DiffMapHolder @Inject constructor(
 
     fun commitDiffsToDb() {
         applicationScope.launch(ioDispatcher) {
-            // Brief You: write first, then forget only the changes that were written. Read You
+            // Brief You: write first, then forget only the changes that were written. The original app
             // cleared every change (in a separate coroutine) before writing, so anything marked
             // read or unread in between was dropped, and lists briefly showed the old state:
-            // articles "went back" to unread (Read You #1254, #1285).
+            // articles "went back" to unread .
             val committed = diffMap.toMap()
             if (committed.isEmpty()) return@launch
             val markAsReadArticles = committed.filter { !it.value.isUnread }.map { it.key }.toSet()

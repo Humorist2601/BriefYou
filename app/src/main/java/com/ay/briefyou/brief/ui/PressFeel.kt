@@ -107,7 +107,7 @@ fun Modifier.pressNudge(): Modifier = composed {
 }
 
 /**
- * The colour of banners (the Starred / Unread / All openers, Settings' banners): Read You's light
+ * The colour of banners (the Starred / Unread / All openers, Settings' banners): the original light
  * lavender in light mode; in dark mode the tinted container colour of the app's other cards, so
  * the banner isn't the brightest thing on a dark page.
  */

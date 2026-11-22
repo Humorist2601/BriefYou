@@ -47,5 +47,5 @@ import com.ay.briefyou.ui.page.home.feeds.FeedOptionView
 fun SubscribeDialog(
     subscribeViewModel: SubscribeViewModel = hiltViewModel(),
 ) {
-    com.ay.briefyou.brief.feeds.AddFeedDialog(subscribeViewModel) // Brief You: a floating dialog in the app's design (was Read You's own)
+    com.ay.briefyou.brief.feeds.AddFeedDialog(subscribeViewModel) // Brief You: a floating dialog in the app's design (was a separate one)
 }

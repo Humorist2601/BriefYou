@@ -117,7 +117,7 @@ import com.ay.briefyou.brief.media.PlaybackPosition
 import com.ay.briefyou.brief.readaloud.TextToSpeechManager
 import com.ay.briefyou.brief.readaloud.readProgress
 import com.ay.briefyou.brief.ui.rememberPressFeel
-import com.ay.briefyou.ui.component.base.RYAsyncImage
+import com.ay.briefyou.ui.component.base.BYAsyncImage
 
 /* The player's sheets: speed and the sleep timer. */
 /** The speed sheet (from the speed pill): the speed, large, and a slider of the speeds offered. */

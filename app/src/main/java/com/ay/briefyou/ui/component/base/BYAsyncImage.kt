@@ -28,7 +28,7 @@ import com.ay.briefyou.ui.ext.extractDomain
 val SIZE_1000 = Size(1000, 1000)
 
 @Composable
-fun RYAsyncImage(
+fun BYAsyncImage(
     modifier: Modifier = Modifier,
     data: Any? = null,
     size: Size = Size.ORIGINAL,
@@ -45,7 +45,7 @@ fun RYAsyncImage(
         androidx.compose.runtime.remember(context, data, placeholder, error, scale, precision, size) { // Brief You
                 ImageRequest.Builder(context) // Brief You
                     .apply {
-                        // Brief You: a real address, not the bare host (Read You #1347)
+                        // Brief You: a real address, not the bare host 
                         data.toString().extractReferer()?.let { addHeader("Referer", it) }
                     }
                     .data(data = data)

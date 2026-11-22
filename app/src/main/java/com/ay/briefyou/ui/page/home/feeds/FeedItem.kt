@@ -26,7 +26,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.ay.briefyou.domain.model.feed.Feed
 import com.ay.briefyou.ui.component.FeedIcon
-import com.ay.briefyou.ui.component.base.RYExtensibleVisibility
+import com.ay.briefyou.ui.component.base.BYExtensibleVisibility
 import com.ay.briefyou.ui.page.home.feeds.drawer.feed.FeedOptionViewModel
 
 @Composable
@@ -119,7 +119,7 @@ fun FeedItem(
     onLongClick: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
-    RYExtensibleVisibility(visible = isExpanded()) {
+    BYExtensibleVisibility(visible = isExpanded()) {
         FeedItemImpl(
             feed = feed,
             isLastItem = isLastItem,

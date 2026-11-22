@@ -13,7 +13,7 @@ import androidx.core.net.toUri
  * YouTube no longer plays videos embedded in an app's page that doesn't say which app it is
  * ("Error 153"); the reading page is loaded without an address of its own, and giving it one
  * would change how every article loads (pictures from http addresses, a font from the phone).
- * The text-only reader (Read You's) already showed these as a picture with a play button.
+ * The text-only reader (the original) already showed these as a picture with a play button.
  * Brief You.
  */
 object YouTubeCards {

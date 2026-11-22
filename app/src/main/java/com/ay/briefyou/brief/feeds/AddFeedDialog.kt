@@ -53,7 +53,7 @@ import com.ay.briefyou.R
 import com.ay.briefyou.brief.ui.InWindowAlertDialog
 import com.ay.briefyou.ui.component.FeedIcon
 import com.ay.briefyou.ui.component.RenameDialog
-import com.ay.briefyou.ui.component.base.RYTextField2
+import com.ay.briefyou.ui.component.base.BYTextField2
 import com.ay.briefyou.ui.component.base.TextFieldDialog
 import com.ay.briefyou.ui.ext.MimeType
 import com.ay.briefyou.ui.ext.collectAsStateValue
@@ -174,7 +174,7 @@ private fun AddFeedDialogContent(
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             Spacer(Modifier.height(8.dp))
-                            RYTextField2(
+                            BYTextField2(
                                 state = s.linkState,
                                 modifier = Modifier.fillMaxWidth(),
                                 readOnly = fetching,

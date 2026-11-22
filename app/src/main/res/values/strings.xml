@@ -16,23 +16,18 @@
         <item quantity="other">%1$d starred items</item>
     </plurals>
     <string name="feeds">Feeds</string>
-    <string name="syncing">Syncing…</string>
     <string name="loading">Loading…</string>
     <string name="expand_less">Shrink</string>
     <string name="expand_more">Expand</string>
-    <string name="unfold_more">Expand all</string>
     <string name="unfold_less">Collapse all</string>
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
-    <string name="allow">Allow</string>
-    <string name="deny">Deny</string>
     <string name="defaults">Default</string>
     <string name="unknown">Unknown</string>
     <string name="empty">Empty</string>
     <string name="back">Back</string>
     <string name="go_to">Go to</string>
     <string name="settings">Settings</string>
-    <string name="refresh">Refresh</string>
     <string name="search">Search</string>
     <string name="searching">Searching…</string>
     <string name="subscribe">Subscribe</string>
@@ -42,19 +37,9 @@
     <string name="feed_or_site_url">Feed or site URL</string>
     <string name="import_from_opml">Import from OPML</string>
     <string name="preset">Preset</string>
-    <string name="selected">Selected</string>
     <string name="allow_notification">Allow notifications</string>
-    <string name="all_allow_notification_tips">Allow all feeds in the \"%1$s\" group to send notifications</string>
-    <string name="all_allow_notification_toast">Notifications from the \"%1$s\" group are allowed</string>
-    <string name="all_deny_notification_toast">Notifications from the \"%1$s\" group are denied</string>
     <string name="parse_full_content">Parse full content</string>
-    <string name="all_parse_full_content_tips">Full content parsing of all articles in the \"%1$s\" group</string>
-    <string name="all_parse_full_content_toast">Full content parsing of all articles in the \"%1$s\" group is allowed</string>
-    <string name="all_deny_parse_full_content_toast">Full content parsing of all articles in the \"%1$s\" group is denied</string>
     <string name="open_in_browser">Open in browser</string>
-    <string name="all_open_in_browser_tips">Open all articles in the \"%1$s\" group using the default browser</string>
-    <string name="all_open_in_browser_toast">Opening all articles in the \"%1$s\" group in the default browser is allowed</string>
-    <string name="all_deny_open_in_browser_toast">Opening all articles in the \"%1$s\" group in the default browser is denied</string>
     <string name="clear_articles">Clear articles</string>
     <string name="clear_articles_in_feed_toast">Cleared all archived articles in the \"%1$s\" feed</string>
     <string name="clear_articles_in_group_toast">Cleared all archived articles in the \"%1$s\" group</string>
@@ -70,8 +55,6 @@
     <string name="rename_toast">Renamed to \"%1$s\"</string>
     <string name="create_new_group">Create new group</string>
     <string name="name">Name</string>
-    <string name="open_with">Open %1$s</string>
-    <string name="options">Options</string>
     <string name="delete">Delete</string>
     <string name="delete_toast">Deleted \"%1$s\"</string>
     <string name="unsubscribe">Unsubscribe</string>
@@ -89,9 +72,6 @@
     <string name="mark_as_unread">Mark as unread</string>
     <string name="mark_as_starred">Mark as starred</string>
     <string name="mark_as_unstar">Mark as unstarred</string>
-    <string name="mark_as_read_one_day">Mark as read older than 1 day</string>
-    <string name="mark_as_read_three_days">Mark as read older than 3 days</string>
-    <string name="mark_as_read_seven_days">Mark as read older than 7 days</string>
     <string name="one_day">1d</string>
     <string name="three_days">3d</string>
     <string name="seven_days">7d</string>
@@ -106,22 +86,8 @@
     <string name="color_and_style_desc">Theme, color style, font size</string>
     <string name="interaction">Usage</string>
     <string name="interaction_desc">Startup page, gestures</string>
-    <string name="languages">Languages</string>
-    <string name="help_translate">Help translate</string>
-    <string name="translatable_url" translatable="false">https://hosted.weblate.org/projects/readyou/</string>
     <string name="use_device_languages">Use device language</string>
-    <string name="english" translatable="false">English</string>
     <string name="chinese_simplified" translatable="false">简体中文</string>
-    <string name="german" translatable="false">Deutsch</string>
-    <string name="french" translatable="false">Français</string>
-    <string name="czech" translatable="false">Čeština</string>
-    <string name="italian" translatable="false">Italiano</string>
-    <string name="hindi" translatable="false">हिंदी</string>
-    <string name="spanish" translatable="false">Español</string>
-    <string name="polish" translatable="false">Polski</string>
-    <string name="russian" translatable="false">Русский</string>
-    <string name="basque" translatable="false">Euskara</string>
-    <string name="indonesian" translatable="false">Bahasa Indonesia</string>
     <string name="chinese_traditional" translatable="false">繁體中文</string>
     <string name="tips_and_support">Tips &amp; support</string>
     <string name="tips_and_support_desc">About, sponsor, open source licenses</string>
@@ -131,7 +97,6 @@
     <string name="agree">Agree</string>
     <string name="wallpaper_colors">Wallpaper colors</string>
     <string name="no_palettes">No palettes</string>
-    <string name="only_android_8.1_plus">Only Android 8.1+</string>
     <string name="basic_colors">Basic colors</string>
     <string name="primary_color">Primary color</string>
     <string name="primary_color_hint">Like #666666 or 666666</string>
@@ -153,7 +118,6 @@
     <string name="update_link" translatable="false">https://api.github.com/repos/Humorist2601/BriefYou/releases/latest</string>
     <string name="update_link_nightly" translatable="false">https://api.github.com/repos/Humorist2601/BriefYou/releases/tags/nightly</string>
     <string name="change_log">Changelog</string>
-    <string name="update">Update</string>
     <string name="skip_this_version">Skip this version</string>
     <string name="checking_updates">Checking for updates…</string>
     <string name="is_latest_version">This is the latest version of the app</string>
@@ -168,7 +132,6 @@
         written by Cuttlefish That Loves Diving.
     </string>
     <string name="preview_feed_name">Reddit</string>
-    <string name="value">value</string>
     <string name="horizontal_padding">Horizontal padding</string>
     <string name="article_date">Article publication time</string>
     <string name="article_desc">Article descriptions</string>
@@ -181,20 +144,13 @@
     <string name="feeds_page">Feeds page</string>
     <string name="flow_page">Flow page</string>
     <string name="always_expand">Always expand</string>
-    <string name="top">Top</string>
-    <string name="mark_as_read_button_position">\"Mark as read\" button position</string>
-    <string name="top_bar">Top bar</string>
-    <string name="fill_selected_icon">Fill current filter icon</string>
     <string name="share">Share</string>
-    <string name="touch_to_play_video">Tap to play a video</string>
     <string name="text">Text</string>
     <string name="font_size">Font size</string>
     <string name="letter_spacing">Letter spacing</string>
-    <string name="line_spacing">Line spacing</string>
     <string name="alignment">Alignment</string>
     <string name="general">General</string>
     <string name="auto_hide_toolbars">Automatically hide toolbars</string>
-    <string name="rearrange_buttons">Rearrange buttons</string>
     <string name="images">Images</string>
     <string name="rounded_corners">Rounded corners</string>
     <string name="videos">Videos</string>
@@ -207,9 +163,7 @@
     <string name="bold">Bold</string>
     <string name="upper_case">Upper case</string>
     <string name="subhead">Subhead</string>
-    <string name="use_app_theme">Use app theme</string>
     <string name="advanced">Advanced</string>
-    <string name="dark_reading_theme">Dark reading theme</string>
     <string name="title_desc">Bold, upper case, alignment</string>
     <string name="text_desc">Font size, letter spacing, alignment</string>
     <string name="maximize">Maximize</string>
@@ -259,7 +213,6 @@
     <string name="delete_account_toast">Account deleted</string>
     <string name="synchronous_tips">Restart required for changes to take effect</string>
     <string name="keep_archived_tips">Archived items are articles which are marked as read, not starred and not tagged. The \"Keep archived articles\" setting is only effective on this device. Older archived articles will be deleted from this device. The deletion of articles cannot be undone.</string>
-    <string name="switch_account">Switch</string>
     <string name="add">Add</string>
     <string name="accounts_tips">You can switch accounts by tapping on the account name on the feed page</string>
     <string name="server_url">Server URL</string>
@@ -279,10 +232,8 @@
     <string name="always_ask">Always ask</string>
     <string name="open_link_specific_browser">Browser</string>
     <string name="open_link_something_wrong">\"Open link\" setting ignored because something went wrong</string>
-    <string name="open_link_ask_dialog_title">Open with…</string>
     <string name="include_additional_info">Include additional info</string>
     <string name="exclude">Exclude</string>
-    <string name="additional_info_desc">Additional information includes configuration options for each feed, such as whether to allow notification, parse full content, etc. When you intend to use the exported OPML file with other readers, please select \"Exclude\".</string>
     <string name="grey_out_articles">Grey out articles</string>
     <string name="all_read">All read</string>
     <string name="read_excluding_starred">Read, excluding starred</string>
@@ -312,10 +263,7 @@
     <string name="troubleshooting_desc">Bug report, app preferences</string>
     <string name="bug_report">Bug report</string>
     <string name="issue_tracer_url" translatable="false">https://github.com/Humorist2601/BriefYou/issues</string>
-    <string name="import_from_protobuf_file">Import from protobuf file</string>
-    <string name="export_as_protobuf_file">Export as protobuf file</string>
     <string name="read_aloud">Read aloud</string>
-    <string name="about">About</string>
     <string name="mark_as_read_on_scroll">Mark as read on scroll</string>
     <string name="hide_empty_groups">Hide empty groups</string>
     <string name="sort_unread_articles">Sort unread articles</string>
@@ -324,7 +272,6 @@
     <string name="short_desc">Short</string>
     <string name="long_desc">Long</string>
     <string name="none_desc">None</string>
-    <string name="pull_to_switch_feed">Pull to load next feed</string>
     <string name="bold_characters">Bold characters</string>
     <string name="use_bold_characters">Use bold characters</string>
     <string name="bold_characters_preview">Bold the first few characters of words in an article</string>
@@ -346,8 +293,6 @@
     <string name="apply">Apply</string>
     <string name="notifications">Notifications</string>
     <string name="group_configuration_description">Configure \"%1$s\" for feeds in \"%2$s\"</string>
-    <string name="disabled">Disabled</string>
-    <string name="enabled">Enabled</string>
     <string name="notifications_desc">Get notifications when new unread articles are available</string>
     <string name="open_in_browser_desc">Open articles in the browser</string>
     <string name="parse_full_content_desc">Fetch full articles from webpages</string>

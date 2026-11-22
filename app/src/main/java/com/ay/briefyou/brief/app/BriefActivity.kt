@@ -32,7 +32,7 @@ import com.ay.briefyou.infrastructure.preference.DarkThemePreference
 import com.ay.briefyou.ui.ext.dataStore
 
 /*
- * Brief You's additions to Read You's MainActivity, kept here so Read You's file only needs a few
+ * Brief You's additions to the MainActivity, kept here, apart from the main file, so it only needs a few
  * calls: the animated splash, dialogs drawn in the app's window, the system splash following the
  * app's dark theme setting, and clearing the new-articles digest when the app is opened.
  */

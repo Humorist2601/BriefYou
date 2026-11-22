@@ -11,7 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ay.briefyou.R
-import com.ay.briefyou.ui.component.base.RYDialog
+import com.ay.briefyou.ui.component.base.BYDialog
 import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.ext.showToast
 
@@ -26,7 +26,7 @@ fun ClearFeedDialog(
     val scope = rememberCoroutineScope()
     val toastString = stringResource(R.string.clear_articles_in_feed_toast, feedName)
 
-    RYDialog(
+    BYDialog(
         visible = feedOptionUiState.clearDialogVisible,
         onDismissRequest = {
             feedOptionViewModel.hideClearDialog()

@@ -42,7 +42,7 @@ import com.ay.briefyou.R
 import com.ay.briefyou.domain.model.group.Group
 import com.ay.briefyou.ui.component.RenameDialog
 import com.ay.briefyou.ui.component.base.BottomDrawer
-import com.ay.briefyou.ui.component.base.RYSelectionChip
+import com.ay.briefyou.ui.component.base.BYSelectionChip
 import com.ay.briefyou.ui.component.base.Subtitle
 import com.ay.briefyou.ui.ext.*
 import com.ay.briefyou.ui.interaction.alphaIndicationClickable
@@ -81,7 +81,7 @@ fun GroupOptionDrawer(
         ) // Brief You
     } // Brief You
 
-    // Brief You: the app's Material 3 sheet (was Read You's Material 2 one), in the app's sheet design.
+    // Brief You: the app's Material 3 sheet (was a Material 2 one), in the app's sheet design.
     com.ay.briefyou.brief.ui.OptionSheet(drawerState) { // Brief You
         com.ay.briefyou.brief.ui.SheetHeader( // Brief You
             icon = { com.ay.briefyou.brief.feeds.GroupIconTile(group?.id.orEmpty(), Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).clickable { showIconDialog = true }, size = 48.dp) }, // Brief You: tap to change
@@ -176,7 +176,7 @@ private fun Preset(
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
     ) {
-        RYSelectionChip(
+        BYSelectionChip(
             modifier = Modifier,
             content = stringResource(R.string.allow_notification),
             selected = false,
@@ -192,7 +192,7 @@ private fun Preset(
         ) {
             viewModel.showAllAllowNotificationDialog()
         }
-        RYSelectionChip(
+        BYSelectionChip(
             modifier = Modifier,
             content = stringResource(R.string.parse_full_content),
             selected = false,
@@ -208,7 +208,7 @@ private fun Preset(
         ) {
             viewModel.showAllParseFullContentDialog()
         }
-        RYSelectionChip(
+        BYSelectionChip(
             modifier = Modifier,
             content = stringResource(R.string.open_in_browser),
             selected = false,
@@ -224,7 +224,7 @@ private fun Preset(
         ) {
             viewModel.showAllOpenInBrowserDialog()
         }
-        RYSelectionChip(
+        BYSelectionChip(
             modifier = Modifier,
             content = stringResource(R.string.clear_articles),
             selected = false,
@@ -232,7 +232,7 @@ private fun Preset(
             viewModel.showClearDialog()
         }
         if (viewModel.rssService.get().deleteSubscription && group?.id != context.currentAccountId.getDefaultGroupId()) {
-            RYSelectionChip(
+            BYSelectionChip(
                 modifier = Modifier,
                 content = stringResource(R.string.delete_group),
                 selected = false,
@@ -243,49 +243,3 @@ private fun Preset(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun FlowRowGroups(
-    groupOptionUiState: GroupOptionUiState,
-    group: Group?,
-    groupOptionViewModel: GroupOptionViewModel,
-) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
-        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
-    ) {
-        groupOptionUiState.groups.forEach {
-            if (it.id != group?.id) {
-                RYSelectionChip(
-                    modifier = Modifier,
-                    content = it.name,
-                    selected = false,
-                ) {
-                    groupOptionViewModel.showAllMoveToGroupDialog(it)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LazyRowGroups(
-    groupOptionUiState: GroupOptionUiState,
-    group: Group?,
-    groupOptionViewModel: GroupOptionViewModel,
-) {
-    LazyRow {
-        items(groupOptionUiState.groups) {
-            if (it.id != group?.id) {
-                RYSelectionChip(
-                    modifier = Modifier,
-                    content = it.name,
-                    selected = false,
-                ) {
-                    groupOptionViewModel.showAllMoveToGroupDialog(it)
-                }
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-        }
-    }
-}

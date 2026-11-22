@@ -93,8 +93,8 @@ import com.ay.briefyou.domain.service.AccountService
 import com.ay.briefyou.brief.filters.BriefFilters
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
-import com.ay.briefyou.ui.component.base.RYSwitch
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.component.base.BYSwitch
 import com.ay.briefyou.ui.component.base.Subtitle
 import com.ay.briefyou.ui.component.base.TextFieldDialog
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -179,9 +179,8 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
             log.sortedByDescending { it.at }.groupBy { dayOf(it.at) }.mapValues { logRows(it.value) }
         }
 
-    // Read You's settings-page scaffold (deprecated by Read You, but all of Read You's settings
-    // pages still use it), so this page looks like the others.
-    RYScaffold(
+    // The settings pages' common scaffold, so this page looks like the others.
+    BYScaffold(
         containerColor =
             MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
@@ -603,7 +602,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                                 )
                             }
                             Spacer(Modifier.width(12.dp))
-                            RYSwitch(activated = dupes) { viewModel.filters.setHideDuplicates(!dupes) }
+                            BYSwitch(activated = dupes) { viewModel.filters.setHideDuplicates(!dupes) }
                         }
                     }
                     Spacer(Modifier.height(28.dp))

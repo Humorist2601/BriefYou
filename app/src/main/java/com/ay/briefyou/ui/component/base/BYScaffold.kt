@@ -27,7 +27,7 @@ import com.ay.briefyou.ui.theme.palette.onDark
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RYScaffold(
+fun BYScaffold(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     topBarTonalElevation: Dp = 0.dp,

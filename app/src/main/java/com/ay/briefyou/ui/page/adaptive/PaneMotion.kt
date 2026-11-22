@@ -22,14 +22,3 @@ internal fun <Role : PaneScaffoldRole> PaneScaffoldMotionDataProvider<Role>
         else -> calculateDefaultEnterTransition(role)
     }
 
-@ExperimentalMaterial3AdaptiveApi
-internal fun <Role : PaneScaffoldRole> PaneScaffoldMotionDataProvider<Role>.calculateExitTransition(
-    role: Role
-) =
-    when (this[role].motion) {
-        PaneMotion.ExitToLeft ->
-            materialSharedAxisXOut(targetOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() })
-        PaneMotion.ExitToRight ->
-            materialSharedAxisXOut(targetOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() })
-        else -> calculateDefaultExitTransition(role)
-    }

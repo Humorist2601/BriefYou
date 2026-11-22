@@ -27,16 +27,3 @@ fun File.del() {
     delete()
 }
 
-fun File.mkDir() {
-    val dirArray = this.absolutePath.split("/".toRegex())
-    var pathTemp = ""
-    for (i in 1 until dirArray.size) {
-        pathTemp = "$pathTemp/${dirArray[i]}"
-        val newF = File("${dirArray[0]}$pathTemp")
-        if (!newF.exists()) newF.mkdir()
-    }
-}
-
-fun ByteArray.isProbableProtobuf(): Boolean =
-    if (size < 2) false
-    else get(0) == 0x0a.toByte() && get(1) == 0x16.toByte()

@@ -87,7 +87,7 @@ import com.ay.briefyou.infrastructure.preference.LocalFlowArticleListTime
 import com.ay.briefyou.infrastructure.preference.SwipeEndActionPreference
 import com.ay.briefyou.infrastructure.preference.SwipeStartActionPreference
 import com.ay.briefyou.ui.component.FeedIcon
-import com.ay.briefyou.ui.component.base.RYAsyncImage
+import com.ay.briefyou.ui.component.base.BYAsyncImage
 import com.ay.briefyou.ui.component.base.SIZE_1000
 import com.ay.briefyou.ui.component.menu.AnimatedDropdownMenu
 import com.ay.briefyou.ui.component.swipe.SwipeAction
@@ -315,7 +315,7 @@ fun ArticleItem(
 
             // Image
             if (imgData != null && articleListImage.value) {
-                RYAsyncImage(
+                BYAsyncImage(
                     modifier = Modifier.padding(start = 10.dp).size(80.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(com.ay.briefyou.brief.ui.Corner.Small)), // Brief You: 80 dp, 16 dp corners
                     data = imgData,
                     scale = Scale.FILL,
@@ -589,47 +589,6 @@ private fun swipeActionIcon(
                     SwipeStartActionPreference.ToggleStarred -> starImageVector
                     SwipeStartActionPreference.Share -> Icons.Outlined.Share
                     SwipeStartActionPreference.OpenInBrowser -> Icons.AutoMirrored.Outlined.OpenInNew
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun swipeActionText(
-    direction: SwipeDirection,
-    isStarred: Boolean,
-    isRead: Boolean,
-): String {
-    val swipeToStartAction = LocalArticleListSwipeStartAction.current
-    val swipeToEndAction = LocalArticleListSwipeEndAction.current
-
-    val starText =
-        stringResource(if (isStarred) R.string.mark_as_unstar else R.string.mark_as_starred)
-
-    val readText = stringResource(if (isRead) R.string.mark_as_unread else R.string.mark_as_read)
-    val shareText = stringResource(R.string.share)
-    val browserText = stringResource(R.string.open_in_browser)
-
-    return remember(direction) {
-        when (direction) {
-            SwipeDirection.StartToEnd -> {
-                when (swipeToEndAction) {
-                    SwipeEndActionPreference.None -> "null"
-                    SwipeEndActionPreference.ToggleRead -> readText
-                    SwipeEndActionPreference.ToggleStarred -> starText
-                    SwipeEndActionPreference.Share -> shareText
-                    SwipeEndActionPreference.OpenInBrowser -> browserText
-                }
-            }
-
-            SwipeDirection.EndToStart -> {
-                when (swipeToStartAction) {
-                    SwipeStartActionPreference.None -> "null"
-                    SwipeStartActionPreference.ToggleRead -> readText
-                    SwipeStartActionPreference.ToggleStarred -> starText
-                    SwipeStartActionPreference.Share -> shareText
-                    SwipeStartActionPreference.OpenInBrowser -> browserText
                 }
             }
         }

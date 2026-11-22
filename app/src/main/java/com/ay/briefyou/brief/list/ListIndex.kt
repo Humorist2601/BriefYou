@@ -5,7 +5,7 @@ import com.ay.briefyou.domain.model.article.ArticleFlowItem
 /**
  * The list's own row number for the article list's item at [pagingIndex]. With the date headings
  * pinned (sticky), a day that starts with a gap above its heading has that gap as a row of its own
- * (ArticleList), so the list's rows run ahead of the article list's items; Read You's jump back to
+ * (ArticleList), so the list's rows run ahead of the article list's items; the original jump back to
  * the article after reading used the item number and landed a screen or so above it (each time you
  * came back, further down the list). Without pinned headings the numbers are the same. Brief You.
  */

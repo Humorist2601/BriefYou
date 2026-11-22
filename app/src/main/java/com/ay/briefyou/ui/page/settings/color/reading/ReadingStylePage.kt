@@ -50,8 +50,8 @@ import com.ay.briefyou.infrastructure.preference.not
 import com.ay.briefyou.ui.component.ReadingThemePrev
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
-import com.ay.briefyou.ui.component.base.RYSwitch
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.component.base.BYSwitch
 import com.ay.briefyou.ui.component.base.RadioDialog
 import com.ay.briefyou.ui.component.base.RadioDialogOption
 import com.ay.briefyou.ui.component.base.Subtitle
@@ -92,7 +92,7 @@ fun ReadingStylePage(
             } ?: context.showToast("Cannot get activity result with launcher")
         }
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(
@@ -158,7 +158,7 @@ fun ReadingStylePage(
                         separatedActions = true,
                         onClick = navigateToReadingBoldCharacters,
                     ) {
-                        RYSwitch(activated = boldCharacters.value) {
+                        BYSwitch(activated = boldCharacters.value) {
                             (!boldCharacters).put(context, scope)
                         }
                     }
@@ -173,7 +173,7 @@ fun ReadingStylePage(
                             (!autoHideToolbar).put(context, scope)
                         },
                     ) {
-                        RYSwitch(activated = autoHideToolbar.value) {
+                        BYSwitch(activated = autoHideToolbar.value) {
                             (!autoHideToolbar).put(context, scope)
                         }
                     }
@@ -183,7 +183,7 @@ fun ReadingStylePage(
                             com.ay.briefyou.infrastructure.preference.BriefSwitch.KeepScreenOn.put(context, scope, !keepScreenOn)
                         },
                     ) {
-                        RYSwitch(activated = keepScreenOn) {
+                        BYSwitch(activated = keepScreenOn) {
                             com.ay.briefyou.infrastructure.preference.BriefSwitch.KeepScreenOn.put(context, scope, !keepScreenOn)
                         }
                     }

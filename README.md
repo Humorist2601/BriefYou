@@ -1,5 +1,5 @@
 <div align="center">
-<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/hero-dark.svg"><img alt="Brief You: a calm, private RSS reader for Android, with AI that runs on your phone. A fork of Read You." src=".github/assets/readme/hero-light.svg" width="100%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/hero-dark.svg"><img alt="Brief You: a calm, private RSS reader for Android, with AI that runs on your phone." src=".github/assets/readme/hero-light.svg" width="100%"></picture>
 <p>
 <a href="../../releases/latest"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/download-dark.svg"><img alt="Download APK" src=".github/assets/badges/download-light.svg" height="56"></picture></a>
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/Humorist2601/BriefYou"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/badges/obtainium-dark.svg"><img alt="Get it on Obtainium" src=".github/assets/badges/obtainium-light.svg" height="56"></picture></a>
@@ -21,11 +21,11 @@
 <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/card-backup-dark.svg"><img alt="Full backup: everything in one file" src=".github/assets/readme/card-backup-light.svg" width="32%"></picture>
 </p>
 
-Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It keeps everything that makes Read You great (Material You design, Reeder-style reading, FreshRSS, Miniflux, Fever, Google Reader API and more) and adds AI that runs **entirely on your phone**: articles and questions never leave it. It installs **next to** Read You (app ID `com.ay.briefyou`); move your feeds over with OPML. It also fixes a few Read You bugs: read state that could go back to unread ([#1254](https://github.com/ReadYouApp/ReadYou/issues/1254)), *Mark as read on scroll* marking articles you never saw ([#1274](https://github.com/ReadYouApp/ReadYou/issues/1274)), pictures blocked by hotlink protection ([#1347](https://github.com/ReadYouApp/ReadYou/issues/1347)), and automatic sync that stops after the phone's clock is set ahead and back.
+Brief You is a calm, private RSS reader with AI that runs **entirely on your phone**: articles and questions never leave it. It supports Material You design, Reeder-style reading, FreshRSS, Miniflux, Fever, the Google Reader API and more, and installs as its own app (app ID `com.ay.briefyou`); move your feeds over with OPML.
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots-dark.png"><img alt="Brief You screenshots: feeds, reading, a podcast, a video, Triage, AI gist, Filters and Reading stats" src=".github/assets/screenshots.png" width="80%"></picture></p>
 
-## What's different from Read You
+## What Brief You adds
 
 <p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-ai-dark.svg"><img alt="On-device AI" src=".github/assets/readme/h-ai-light.svg" width="100%"></picture></p>
 
@@ -63,7 +63,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Offline copies: every starred article (including Read later and Triage saves) keeps its pictures, and its full text for feeds set to Full content, on the phone, so it opens without the internet. Downloads in the background on Wi-Fi by default; a setting in Account → Syncing chooses off, mobile data only, Wi-Fi only or both. Unstarring removes the copy.
 - App updates download inside the app: the update dialog's Download button fetches the new version in the background (with a progress notification that survives closing the app and dropped connections), then Install opens Android's installer. The first install may ask you to allow Brief You to install apps. A switch in Tips & support turns off the check for updates at start (tapping the version still checks).
 - Newsletters read as feeds (through an email-to-feed service such as Kill the Newsletter) read like articles: the email's layout boxes, hidden preview text, tracking pixels, social links and preference footers are removed, its big text becomes headings, and sharing uses the issue's public web page instead of your private feed address. The **Tidy newsletters** switch (Settings → Reading page) adds more: wide banners and tracking images at the top are dropped, the headline isn't repeated under the title, email buttons (such as "Read more on CFR.org") stay as outlined buttons, and divider lines and bordered notes are kept. Off shows the plain article. Your text alignment and bold-heading settings are never overridden.
-- Reading page settings that were greyed out or empty in Read You now work in the web reader: **Subhead alignment** (Title page), **Image horizontal padding** and **Maximize**, and video rounded corners, horizontal padding and Maximize (corners and padding follow the image settings until you set them), all on one **Images and videos** page. "Mark as read button position" and "Rearrange buttons", which never worked, are hidden.
+- Reading page settings that work in the web reader: **Subhead alignment** (Title page), **Image horizontal padding** and **Maximize**, and video rounded corners, horizontal padding and Maximize (corners and padding follow the image settings until you set them), all on one **Images and videos** page. "Mark as read button position" and "Rearrange buttons", which never worked, are hidden.
 - **Settings tidied up:** the Feeds page and Flow page style pages are one **Lists** page (with *Always expand* and *Hide empty groups*, and a preview built from the app's own lists), Images and Videos are one **Images and videos** page, the four tonal elevation settings, the Content renderer (the web reader is the only one now) and Troubleshooting's JSON import/export (the backup already carries the settings) are gone, and *Hold the AI button* moved to the AI settings.
 - **New settings:** **Keep screen on while reading**, **Mark as read when opened**, a **Haptic feedback** switch that silences every vibration, swipe actions **Share** and **Open in browser**, **Collect reading stats**, **Prepare the model at start** (AI settings), and a **Notifications** page (under Usage): the feeds that notify, each with a switch, and a button to Android's own notification settings.
 - Tips & support is Brief You's own (your GitHub, bug reports go to Brief You's issues, with a credit to Read You and its GPL licence). Updates come from Brief You's releases: a Nightly follows the *nightly* release, a stable app the latest stable one. A new account starts without a default feed and says how to add one.
@@ -187,7 +187,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - The group arrows (the one on each group and the open-all button on the Feeds page, and in Triage's groups sheet) turn over or fade into each other when a group opens or closes.
 - Expressive loading and pull-to-refresh. Back buttons and Triage's close button are the same tonal circle. In Feeds and Settings, the big title moves into the top bar as you scroll.
 - Reading fonts: Google Sans Flex, Literata, system, or your own.
-- English only: Read You's translations are left out, which with slimmer fonts and a compressed AI library makes the download about 15 MB smaller.
+- English only: translations are left out, which with slimmer fonts and a compressed AI library makes the download about 15 MB smaller.
 - An emoji chosen as a feed's icon sits on a round background in the feed's name colour (taken from the emoji), like the other icons.
 - A pale or grey feed icon gets a steady colour of its own. Icons are cached and loaded at the size they're shown; a site without an icon is searched again once a week.
 - Reading stats are in *Settings → Reading stats*: this week Monday to Sunday (a bar per day), articles read, your streak, top feeds, and this month compared with last.
@@ -200,7 +200,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
   - twelve month bars and four highlights (best month, longest streak, reading time, Triage);
   - tap it and each bar breaks into its days, which fly into twelve little calendars; tap a day for its numbers.
 - It shares, hides and shows on home the same way, and stays at the top of *Past months* after that week.
-- First run: a page to restore a backup made with *Back up everything* (feeds, starred articles, filters and settings, for someone coming from another phone; also in the tour from Settings), the on-device AI with a check of your phone, then the tour (Triage, calmer feeds, and the buttons that do more when held) in place of Read You's welcome page; its agreement is on the last page. One Expressive shape morphs from page to page as you swipe. See it again from the tour button in *Settings → Tips & support*.
+- First run: a page to restore a backup made with *Back up everything* (feeds, starred articles, filters and settings, for someone coming from another phone; also in the tour from Settings), the on-device AI with a check of your phone, then the tour (Triage, calmer feeds, and the buttons that do more when held) as its own welcome page; its agreement is on the last page. One Expressive shape morphs from page to page as you swipe. See it again from the tour button in *Settings → Tips & support*.
 - One-time hints: a small bubble the first time you reach Triage, the AI button and the Unread list's Triage button; *Got it* and it's gone (*Show hints again* in *Settings → Tips & support*).
 - Tiles and cards (Filters, Reading stats, the sort tiles and the recaps) squeeze and spring back when pressed, like Triage's buttons.
 - One card style everywhere: the feeds page shows groups as one joined list with icon tiles (a folder, or a Material icon, emoji or image you pick in the group's options) and compact feed rows, article lists count each day's articles in a header that gets a hairline while it's pinned, and every settings page groups its rows into joined cards. Empty lists say so (*Nothing starred yet*, *All caught up*).
@@ -219,7 +219,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 
 <p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-backup-dark.svg"><img alt="Backup and updates" src=".github/assets/readme/h-backup-light.svg" width="100%"></picture></p>
 
-<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-backup-dark.svg"><img alt="Full backup and restore: Feeds, starred articles, filters and settings in one file. Own updates: The app checks Brief You’s releases, never Read You’s. Signed releases: Every push to main is built and published as Brief You 0.16.2.N. Brief You Nightly: Test builds as their own app, next to Brief You. Reviewed Read You updates: Read You’s changes arrive as a pull request to review." src=".github/assets/readme/t-backup-light.svg" width="100%"></picture></p>
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-backup-dark.svg"><img alt="Full backup and restore: Feeds, starred articles, filters and settings in one file. Own updates: The app checks Brief You’s releases, never anyone else’s. Signed releases: Every push to main is built and published as Brief You 0.16.2.N. Brief You Nightly: Test builds as their own app, next to Brief You." src=".github/assets/readme/t-backup-light.svg" width="100%"></picture></p>
 
 <details>
 <summary>More details</summary>
@@ -229,7 +229,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Every other branch is built as **Brief You Nightly**, with a night-sky icon, published as the one *Nightly* prerelease.
 - Back up in *Account → Advanced → Back up everything*. It also includes custom feed and group icons, feed and group order, the Triage delay and the read-aloud speed.
 - Restore adds everything back on any phone: feeds you already have are kept, feeds go into your existing groups, and starred articles come back even if their feed dropped them. Server logins and the AI model aren't included.
-- Release names are Read You's version plus a rising build number, so each APK installs as an update (works with Obtainium).
+- Release names are the version plus a rising build number, so each APK installs as an update (works with Obtainium).
 - APKs are for 64-bit ARM phones (arm64-v8a).
 - Builds are signed with Brief You's own key when the repository has the `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD` and `KEY_ALIAS` secrets.
 - Read You watch: a weekly workflow opens an issue when Read You has new commits (see below). Nothing is merged.

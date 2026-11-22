@@ -20,11 +20,11 @@ import coil3.size.Precision
 import coil3.size.Scale
 import com.ay.briefyou.infrastructure.preference.LocalReadingImageRoundedCorners
 import com.ay.briefyou.infrastructure.preference.LocalReadingTextHorizontalPadding
-import com.ay.briefyou.ui.component.base.RYAsyncImage
+import com.ay.briefyou.ui.component.base.BYAsyncImage
 import com.ay.briefyou.ui.component.base.SIZE_1000
 
 /*
- * Brief You's additions to the top of Read You's article (Content.kt): a large picture above the
+ * Brief You's additions to the top of the original article (Content.kt): a large picture above the
  * title, the actual reading time, and the title lined up with the article text.
  */
 
@@ -56,7 +56,7 @@ fun BriefArticleHero(
     onImageClick: ((imgUrl: String, altText: String) -> Unit)?,
 ) {
     val corners = LocalReadingImageRoundedCorners.current
-    RYAsyncImage(
+    BYAsyncImage(
         modifier =
             Modifier.fillMaxWidth()
                 .padding(horizontal = 12.dp)
@@ -76,7 +76,7 @@ fun BriefArticleHero(
 
 /**
  * The article's feed, date and reading time as small rounded chips above the title (in place of
- * Read You's plain date and feed lines), lined up like the title.
+ * the original plain date and feed lines), lined up like the title.
  */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable

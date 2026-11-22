@@ -86,11 +86,11 @@ jobs:
               # BriefYou-<version>-<commit>.apk (0.16.2.36, or 0.16.2.137-nightly). AGP 9 removed the
               # old variant API the build file used to name it with.
               run: |
-                  readyou=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
+                  version=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
                   suffix=""; [ "$VARIANT" = "nightly" ] && suffix="-nightly"
                   dir="app/build/outputs/apk/github/$VARIANT"
                   for f in "$dir"/*.apk; do
-                      mv "$f" "$dir/BriefYou-${readyou}.${CI_BUILD_NUMBER}${suffix}-$(git rev-parse --short HEAD).apk"
+                      mv "$f" "$dir/BriefYou-${version}.${CI_BUILD_NUMBER}${suffix}-$(git rev-parse --short HEAD).apk"
                   done
                   ls "$dir"
             - name: Summarise warnings
@@ -151,7 +151,7 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   apk=$(ls app/build/outputs/apk/github/nightly/*.apk | head -1)
-                  readyou=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
+                  version=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
                   {
                       echo "Brief You Nightly: a test build of \`${{ github.ref_name }}\` at ${GITHUB_SHA::7}. It installs next to Brief You, with its own data."
                       echo
@@ -160,7 +160,7 @@ jobs:
                   } > notes.md
                   gh release delete nightly --cleanup-tag --yes 2>/dev/null || true
                   gh release create nightly "$apk" \
-                      --title "Brief You Nightly ${readyou}.${CI_BUILD_NUMBER}" \
+                      --title "Brief You Nightly ${version}.${CI_BUILD_NUMBER}" \
                       --notes-file notes.md \
                       --target "$GITHUB_SHA" \
                       --prerelease \
@@ -173,14 +173,12 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   apk=$(ls app/build/outputs/apk/github/release/*.apk | head -1)
-                  # Read You's version (from its line in the build file) plus the build number:
+                  # The app's version (from its line in the build file) plus the build number:
                   # 0.16.2.102, the same as the app's version.
-                  readyou=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
-                  tag="${readyou}.${CI_BUILD_NUMBER}"
+                  version=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
+                  tag="${version}.${CI_BUILD_NUMBER}"
                   {
                       echo "Automatic build of \`${{ github.ref_name }}\` at ${GITHUB_SHA::7}."
-                      echo
-                      echo "Built on Read You ${readyou} (GPL-3.0)."
                       echo
                       echo "### Changes"
                       git log -1 --format='%s%n%n%b' | grep -vE '^(Co-Authored-By|Claude-Session):'

@@ -75,7 +75,7 @@ import com.ay.briefyou.brief.ai.GemmaSummarizer
 import com.ay.briefyou.brief.ai.ModelState
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
+import com.ay.briefyou.ui.component.base.BYScaffold
 import com.ay.briefyou.ui.component.base.Subtitle
 import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.theme.palette.onLight
@@ -132,9 +132,8 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
             uri?.let(viewModel::importModel)
         }
 
-    // Read You's settings-page scaffold (deprecated by Read You, but all of Read You's settings
-    // pages still use it), so this page looks like the others.
-    RYScaffold(
+    // The settings pages' common scaffold, so this page looks like the others.
+    BYScaffold(
         containerColor =
             MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
@@ -210,7 +209,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                             descMaxLines = 3,
                             onClick = { com.ay.briefyou.infrastructure.preference.BriefSwitch.PrepareAiModel.put(context, preparerScope, !prepareModel) },
                         ) {
-                            com.ay.briefyou.ui.component.base.RYSwitch(activated = prepareModel) {
+                            com.ay.briefyou.ui.component.base.BYSwitch(activated = prepareModel) {
                                 com.ay.briefyou.infrastructure.preference.BriefSwitch.PrepareAiModel.put(context, preparerScope, !prepareModel)
                             }
                         }

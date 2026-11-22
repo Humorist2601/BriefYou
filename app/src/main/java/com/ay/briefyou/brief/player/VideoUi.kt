@@ -76,7 +76,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.ContentFrame
 import com.ay.briefyou.R
-import com.ay.briefyou.ui.component.base.RYAsyncImage
+import com.ay.briefyou.ui.component.base.BYAsyncImage
 
 /**
  * Video: in the article (the card), full screen (sideways, edge to edge, a floating toolbar the

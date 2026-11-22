@@ -51,7 +51,9 @@ def font(wght, wdth=100):
     key = (wght, wdth)
     if key not in _fonts:
         f = TTFont(FONT)
-        _fonts[key] = instantiateVariableFont(f, {"wght": wght, "wdth": wdth, "opsz": 18, "ROND": 100, "GRAD": 0, "slnt": 0})
+        wanted = {"wght": wght, "wdth": wdth, "opsz": 18, "ROND": 100, "GRAD": 0, "slnt": 0}
+        have = {a.axisTag for a in f["fvar"].axes}  # the app's slimmed font may lack some axes
+        _fonts[key] = instantiateVariableFont(f, {k: v for k, v in wanted.items() if k in have})
     return _fonts[key]
 
 
@@ -177,8 +179,6 @@ for mode, c in THEMES.items():
     for i, line in enumerate(["A calm, private RSS reader for Android,", "with AI that runs on your phone."]):
         t, _ = text(line, 202, 172 + i * 28, 21, c["onVariant"], 450)
         b += t
-    t, _ = text("A fork of Read You", 58, 236, 15, c["primary"], 600)
-    b += t
     write(f"hero-{mode}.svg", svg(W, H, b, "Brief You: a calm, private RSS reader for Android, with AI that runs on your phone"))
 
 # Feature cards ---------------------------------------------------------------------------------
@@ -289,10 +289,9 @@ TABLES = {
     ],
     "backup": [
         ('Full backup and restore', 'Feeds, starred articles, filters and settings in one file.'),
-        ('Own updates', 'The app checks Brief You’s releases, never Read You’s.'),
+        ('Own updates', 'The app checks Brief You’s releases, never anyone else’s.'),
         ('Signed releases', 'Every push to main is built and published as Brief You 0.16.2.N.'),
         ('Brief You Nightly', 'Test builds as their own app, next to Brief You.'),
-        ('Reviewed Read You updates', 'Read You’s changes arrive as a pull request to review.'),
     ],
 }
 

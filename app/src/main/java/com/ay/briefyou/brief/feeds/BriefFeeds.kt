@@ -42,7 +42,7 @@ import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.page.home.feeds.FeedsViewModel
 
 /*
- * Brief You's additions to Read You's Feeds screen (FeedsPage), kept here so Read You's file only
+ * Brief You's additions to the Feeds screen (FeedsPage), kept here so the original file only
  * needs a few calls: Starred, Unread and All as pages you can swipe between, and the sort sheet.
  */
 
@@ -103,10 +103,10 @@ fun rememberBriefFeedsPager(filterState: FilterState, feedsViewModel: FeedsViewM
 }
 
 /**
- * Takes the place of Read You's PullToRefreshBox on the Feeds screen: the same pull to refresh
+ * Takes the place of the original PullToRefreshBox on the Feeds screen: the same pull to refresh
  * (with the Expressive indicator) around swipeable Starred / Unread / All pages. [content] is Read
  * You's list, given each page's filter state, groups, count line and list state under the names
- * Read You's code already uses, so that code stays as it is.
+ * The original code already uses, so that code stays as it is.
  */
 @Composable
 fun BriefFeedsPages(

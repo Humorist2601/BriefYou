@@ -4,9 +4,9 @@ import java.net.URI
 import com.ay.briefyou.ui.ext.extractDomain
 
 /**
- * The page a request comes from, as a real address ("https://example.com/"). Read You sent the
+ * The page a request comes from, as a real address ("https://example.com/"). The original app sent the
  * bare host ("example.com"), which isn't a valid Referer: image hosts with hotlink protection
- * refuse it with 403, so thumbnails and pictures went missing (Read You #1347).
+ * refuse it with 403, so thumbnails and pictures went missing .
  */
 fun String?.extractReferer(): String? {
     if (isNullOrBlank()) return null

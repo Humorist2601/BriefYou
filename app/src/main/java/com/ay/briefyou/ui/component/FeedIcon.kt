@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ay.briefyou.R
 import com.ay.briefyou.ui.component.base.Base64Image
-import com.ay.briefyou.ui.component.base.RYAsyncImage
+import com.ay.briefyou.ui.component.base.BYAsyncImage
 
 /** Feed icons stored as "emoji:😀" are custom emoji icons (Brief You). */
 const val EMOJI_PREFIX = "emoji:"
@@ -88,7 +88,7 @@ fun FeedIcon(
     } else {
         // Brief You: decoded at the size it's shown (icons are often 512 px or more)
         val px = with(androidx.compose.ui.platform.LocalDensity.current) { size.roundToPx() }.coerceAtLeast(1)
-        RYAsyncImage(
+        BYAsyncImage(
             modifier = modifier
                 .size(size)
                 .clip(CircleShape),

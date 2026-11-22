@@ -2,8 +2,8 @@ package com.ay.briefyou.brief.webview
 
 /**
  * Brief You's touches to how an article's text and links look in the reading web view (on top of
- * Read You's style, WebViewStyle):
- * - Links have the weight of the text around them (Read You made every link semi-bold, so links
+ * The original style, WebViewStyle):
+ * - Links have the weight of the text around them (the original app made every link semi-bold, so links
  *   outshone the writer's own bold) and a thin, softer underline a little below the letters (a
  *   thick one ran through the stretched gaps of justified text).
  * - With justified text, English articles are hyphenated, so narrow lines (list items) don't get

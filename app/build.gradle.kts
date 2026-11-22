@@ -24,14 +24,11 @@ fun fetchGitCommitHash(): String {
 val gitCommitHash = fetchGitCommitHash()
 val keyProps = Properties()
 val releaseKeyPropsFile: File = rootProject.file("signature/keystore_release.properties")
-val debugKeyPropsFile: File = rootProject.file("signature/keystore.properties")
 
 
 if (releaseKeyPropsFile.exists()) {
     println("Loading keystore properties from ${releaseKeyPropsFile.absolutePath}")
     keyProps.load(FileInputStream(releaseKeyPropsFile))
-} else if (debugKeyPropsFile.exists()) {
-    keyProps.load(FileInputStream(debugKeyPropsFile))
 }
 
 android {
@@ -47,7 +44,7 @@ android {
         buildConfigField(
             "String",
             "USER_AGENT_STRING",
-            "\"ReadYou/${versionName}(${versionCode})\"",
+            "\"BriefYou/${versionName}(${versionCode})\"",
         )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -66,7 +63,7 @@ android {
         create("github") {
             isDefault = true
             dimension = "channel"
-            // Brief You (fork of Read You) has its own app ID, so it installs next to Read You.
+            // Brief You has its own app ID.
             applicationId = "com.ay.briefyou"
             // Brief You's own name in the network user agent.
             buildConfigField(
@@ -75,16 +72,11 @@ android {
                 "\"BriefYou/${defaultConfig.versionName}(${defaultConfig.versionCode})\"",
             )
             // CI builds get a rising version so each release installs as an update. Kept here,
-            // away from the upstream version lines, so Read You's version bumps merge cleanly.
+            // in one place.
             System.getenv("CI_BUILD_NUMBER")?.toIntOrNull()?.let { build ->
                 versionCode = build
                 versionNameSuffix = ".$build"
             }
-        }
-        create("fdroid") { dimension = "channel" }
-        create("googlePlay") {
-            dimension = "channel"
-            applicationIdSuffix = ".google.play"
         }
     }
     signingConfigs {
@@ -179,7 +171,6 @@ dependencies {
     implementation(libs.material.kolor) // Brief You
     implementation(libs.compose.ui.tooling)
     implementation(libs.compose.ui.tooling.preview)
-    androidTestImplementation(libs.compose.ui.test.junit4)
     implementation(libs.compose.material3)
 
     // Coil
@@ -248,11 +239,4 @@ dependencies {
     // On-device AI summaries (LiteRT-LM + Gemma) // Brief You
     implementation(libs.litertlm.android)
 
-    // Testing
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.junit.ext)
-    androidTestImplementation(libs.espresso)
-    testImplementation(libs.mockito.core)
-    testImplementation(libs.mockito.junit.jupiter)
-    testImplementation(libs.mockito.kotlin)
 }

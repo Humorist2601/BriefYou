@@ -58,20 +58,6 @@ class UpdateViewModel @Inject constructor(
         }
     }
 
-    fun downloadUpdate(url: String) {
-        viewModelScope.launch {
-            _updateUiState.update {
-                it.copy(
-                    downloadFlow = flow { emit(Download.Progress(0)) }
-                )
-            }
-            _updateUiState.update {
-                it.copy(
-                    downloadFlow = appService.downloadFile(url)
-                )
-            }
-        }
-    }
 }
 
 data class UpdateUiState(

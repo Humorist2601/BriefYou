@@ -65,7 +65,7 @@ import kotlinx.coroutines.launch
 import com.ay.briefyou.R
 import com.ay.briefyou.infrastructure.preference.OpenLinkPreference
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
+import com.ay.briefyou.ui.component.base.BYScaffold
 import com.ay.briefyou.ui.ext.DataStoreKey
 import com.ay.briefyou.ui.ext.dataStore
 import com.ay.briefyou.ui.ext.getCurrentVersion
@@ -140,7 +140,7 @@ fun TipsAndSupportPage(
         currentVersion = context.getCurrentVersion().toString()
     }
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(

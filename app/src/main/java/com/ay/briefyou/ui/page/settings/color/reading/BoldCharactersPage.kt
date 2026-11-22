@@ -32,9 +32,9 @@ import com.ay.briefyou.infrastructure.preference.not
 import com.ay.briefyou.ui.component.base.Banner
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
-import com.ay.briefyou.ui.component.base.RYSwitch
-import com.ay.briefyou.brief.webview.RYWebView // Brief You
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.component.base.BYSwitch
+import com.ay.briefyou.brief.webview.BYWebView // Brief You
 import com.ay.briefyou.ui.theme.palette.onLight
 
 @Composable
@@ -48,7 +48,7 @@ fun BoldCharactersPage(
 
     val boldCharacters = LocalReadingBoldCharacters.current
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(
@@ -78,7 +78,7 @@ fun BoldCharactersPage(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        RYWebView(
+                        BYWebView(
                             content = stringResource(R.string.bold_characters_preview),
                         )
                     }
@@ -90,7 +90,7 @@ fun BoldCharactersPage(
                         modifier = Modifier.padding(horizontal = 8.dp),
                         title = stringResource(R.string.use_bold_characters),
                         action = {
-                            RYSwitch(activated = boldCharacters.value) {
+                            BYSwitch(activated = boldCharacters.value) {
                                 (!boldCharacters).put(context, scope)
                             }
                         },

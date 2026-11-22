@@ -21,7 +21,7 @@ class Choice(val text: String, val selected: Boolean, val style: TextStyle? = nu
 /**
  * A setting's choices as a sheet, like every other sheet: title (with a muted line when the
  * setting explains itself), divider, and the choices as one joined group, the chosen one filled
- * and ticked. Tapping one applies it and the sheet slides away. Replaces Read You's radio dialog.
+ * and ticked. Tapping one applies it and the sheet slides away. Replaces the original radio dialog.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

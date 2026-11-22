@@ -105,7 +105,7 @@ constructor(
 
     /**
      * [source] in the order of the account's settings, sorted again whenever the order changes.
-     * Used by Read You's GroupWithFeedsListUseCase, so every list of groups follows the order.
+     * Used by the original GroupWithFeedsListUseCase, so every list of groups follows the order.
      */
     fun sorted(
         source: Flow<List<GroupWithFeed>>,

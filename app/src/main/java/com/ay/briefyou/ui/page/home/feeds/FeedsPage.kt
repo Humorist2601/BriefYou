@@ -82,13 +82,12 @@ import com.ay.briefyou.infrastructure.preference.LocalNewVersionNumber
 import com.ay.briefyou.infrastructure.preference.LocalSkipVersionNumber
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
+import com.ay.briefyou.ui.component.base.BYScaffold
 import com.ay.briefyou.ui.component.scrollbar.drawVerticalScrollIndicator
 import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.ext.currentAccountId
 import com.ay.briefyou.ui.ext.findActivity
 import com.ay.briefyou.ui.ext.getCurrentVersion
-import com.ay.briefyou.ui.page.common.RouteName
 import com.ay.briefyou.ui.page.home.feeds.accounts.AccountsTab
 import com.ay.briefyou.ui.page.home.feeds.drawer.feed.FeedOptionDrawer
 import com.ay.briefyou.ui.page.home.feeds.drawer.group.GroupOptionDrawer
@@ -189,7 +188,7 @@ fun FeedsPage(
     // Back, and leaving Back unhandled lets the predictive "back to home" animation play.
     BackHandler(Build.VERSION.SDK_INT < Build.VERSION_CODES.S) { context.findActivity()?.moveTaskToBack(false) }
 
-    RYScaffold(
+    BYScaffold(
         topBar = {
             TopAppBar(
                 modifier =
@@ -234,7 +233,7 @@ fun FeedsPage(
             )
         },
         content = {
-            // Brief You: swipeable Starred / Unread / All pages; each runs Read You's list below
+            // Brief You: swipeable Starred / Unread / All pages; each runs the original list below
             // with its own filter state, groups, count line and list state.
             BriefFeedsPages(feedsPager, feedsViewModel, filterState, state = syncingState, isRefreshing = isSyncing, onRefresh = doSync) { filterState, groupWithFeedList, importantSum, listState ->
                 LazyColumn(modifier = Modifier.fillMaxSize().drawVerticalScrollIndicator(listState), state = listState) {

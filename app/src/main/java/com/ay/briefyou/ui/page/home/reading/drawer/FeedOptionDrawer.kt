@@ -26,36 +26,6 @@ import com.ay.briefyou.ui.component.base.BottomDrawer
 import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.page.home.feeds.drawer.feed.FeedOptionViewModel
 
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-fun StyleOptionDrawer(
-    drawerState: ModalBottomSheetState,
-    feedOptionViewModel: FeedOptionViewModel = hiltViewModel(),
-    content: @Composable () -> Unit = {},
-) {
-    val context = LocalContext.current
-    val view = LocalView.current
-    val scope = rememberCoroutineScope()
-    val feedOptionUiState = feedOptionViewModel.feedOptionUiState.collectAsStateValue()
-    val feed = feedOptionUiState.feed
-    val toastString = stringResource(R.string.rename_toast, feedOptionUiState.newName)
-
-    BackHandler(drawerState.isVisible) {
-        scope.launch {
-            drawerState.hide()
-        }
-    }
-
-    BottomDrawer(
-        drawerState = drawerState,
-        sheetContent = {
-            Info()
-        }
-    ) {
-        content()
-    }
-}
-
 @Composable
 fun Info() {
     Column(modifier = Modifier.navigationBarsPadding()) {

@@ -38,7 +38,7 @@ import com.ay.briefyou.brief.ui.FloatingBarGap
 import com.ay.briefyou.ui.page.adaptive.ArticleListReaderViewModel
 
 /*
- * Brief You's additions to Read You's article list (FlowPage), kept here so Read You's file only
+ * Brief You's additions to the article list (FlowPage), kept here so the original file only
  * needs a few one-line calls: what the AI button opens, Triage, the gist sheet and the inbox
  * zero celebration.
  */

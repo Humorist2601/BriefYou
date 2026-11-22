@@ -286,27 +286,6 @@ class PullToLoadState internal constructor(
         }
     }
 
-    internal fun flingWithVelocity(initialVelocity: Float) {
-        animationScope.launch {
-            mutatorMutex.mutate {
-                animateDecay(
-                    initialValue = offsetPulled,
-                    initialVelocity = initialVelocity,
-                    animationSpec = FloatExponentialDecaySpec(
-                        frictionMultiplier = 3f,
-                        absVelocityThreshold = 10f
-                    )
-                ) { value, _ ->
-                    if (abs(value) > threshold) {
-                        cancel()
-                    } else {
-                        onPull(value - offsetPulled)
-                    }
-                }
-            }
-        }.invokeOnCompletion { animateDistanceTo(0f) }
-    }
-
     internal fun setThreshold(threshold: Float) {
         _threshold = threshold
     }

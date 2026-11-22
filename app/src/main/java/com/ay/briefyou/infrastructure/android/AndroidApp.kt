@@ -121,6 +121,7 @@ class AndroidApp : Application(), Configuration.Provider {
                 p.edit().putBoolean("workers_after_rename", true).apply()
             }
         }
+        com.ay.briefyou.brief.app.GroupIdMigration.runOnce(this) // Brief You: the default group's new id, in the saved settings
         applicationScope.launch {
             accountInit()
             workerInit()

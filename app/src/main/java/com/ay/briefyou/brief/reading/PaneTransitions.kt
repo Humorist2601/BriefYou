@@ -22,14 +22,14 @@ import androidx.compose.material3.adaptive.layout.calculateDefaultExitTransition
  * Brief You: going between the article list and an article on a phone (opening an article, and
  * going back, also while the back gesture follows your finger).
  *
- * Read You uses Material's "shared axis" here: the old screen fades out completely before the new
+ * The original app uses Material's "shared axis" here: the old screen fades out completely before the new
  * one fades in, so for a moment only the empty background shows: a dark flash (a white one in
  * light theme). Here the new screen fades in first while the old one stays, and only then does the
  * old one fade out. Whichever of the two is drawn on top, one of them always covers the screen. Both
  * still slide a little where they slid before.
  *
  * On a phone (one pane) every switch uses this, whatever motion the scaffold picks for it (it
- * doesn't always say "from the right"; then Read You's plain fades also went through the
+ * doesn't always say "from the right"; then the original plain fades also went through the
  * background). With two panes side by side the scaffold's own motions stay.
  */
 

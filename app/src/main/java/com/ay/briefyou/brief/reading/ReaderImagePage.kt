@@ -210,7 +210,7 @@ fun ReaderImageViewer(
             val painter =
                 rememberAsyncImagePainter(
                     ImageRequest.Builder(LocalContext.current)
-                        .addHeader("Referer", imageData.imageUrl.extractReferer() ?: "") // a real address (Read You #1347)
+                        .addHeader("Referer", imageData.imageUrl.extractReferer() ?: "") // a real address 
                         .data(data = imageData.imageUrl)
                         .build()
                 )

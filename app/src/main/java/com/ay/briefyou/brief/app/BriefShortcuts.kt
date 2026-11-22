@@ -31,7 +31,7 @@ import com.ay.briefyou.ui.page.nav3.key.Route
 /**
  * App shortcuts (long-press the app icon): Triage, AI gist and the Unread list of everything, and
  * Sync now. Published from Brief You's own code (no manifest entry) and handled by Brief You's
- * navigation host, so Read You's files aren't involved.
+ * navigation host, so the original files aren't involved.
  */
 object BriefShortcuts {
 

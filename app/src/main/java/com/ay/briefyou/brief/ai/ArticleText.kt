@@ -14,7 +14,7 @@ import org.jsoup.Jsoup
 /**
  * The text the AI works on. Many feeds only send a teaser of two or three sentences, and a summary
  * of a teaser is thin or guessed. So when everything at hand is short, the full article is
- * fetched (with Read You's full-content reader, and kept in its cache, so opening the article
+ * fetched (with the original full-content reader, and kept in its cache, so opening the article
  * later is instant). Otherwise, or when fetching fails, the longest text at hand is used.
  */
 @Singleton

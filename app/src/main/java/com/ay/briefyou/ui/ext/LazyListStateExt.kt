@@ -5,16 +5,6 @@ import androidx.compose.runtime.*
 import androidx.paging.compose.LazyPagingItems
 import kotlin.math.abs
 
-fun LazyListState.calculateTopBarAnimateValue(start: Float, end: Float): Float =
-    if (firstVisibleItemIndex != 0) end
-    else {
-        val variable = firstVisibleItemScrollOffset.coerceAtLeast(0).toFloat()
-        val duration = 256f
-        val increase = abs(start - end) * (variable / duration)
-        if (start < end) (start + increase).coerceIn(start, end)
-        else (start - increase).coerceIn(end, start)
-    }
-
 @Composable
 fun <T : Any> LazyPagingItems<T>.rememberLazyListState(): LazyListState {
     // After recreation, LazyPagingItems first return 0 items, then the cached items.

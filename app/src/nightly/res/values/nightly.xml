@@ -2,7 +2,6 @@
 <!-- Brief You Nightly: the test builds (the "nightly" build type), which install next to Brief You
      with their own name and icon. -->
 <resources>
-    <string name="read_you" translatable="false">Brief You Nightly</string>
     <!-- Night sky behind the card stack. -->
     <color name="ic_launcher_background">#211B45</color>
     <!-- Nightly builds come from the single Nightly prerelease, so they don't offer Brief You's

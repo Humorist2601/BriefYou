@@ -12,10 +12,10 @@ import com.ay.briefyou.domain.model.article.ArticleWithFeed
 import com.ay.briefyou.infrastructure.db.AndroidDatabase
 
 /**
- * Brief You's own article queries (kept out of Read You's ArticleDao): recent articles for the
- * filters, every article id, and the articles for an AI gist. Read You's database lists it with
+ * Brief You's own article queries (kept out of the original ArticleDao): recent articles for the
+ * filters, every article id, and the articles for an AI gist. The original database lists it with
  * one line (AndroidDatabase.briefArticleDao). Queries only: no new tables, so the database schema
- * is Read You's.
+ * is the original.
  */
 @Dao
 interface BriefArticleDao {

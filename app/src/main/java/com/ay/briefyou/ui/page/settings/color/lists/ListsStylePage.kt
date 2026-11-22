@@ -32,8 +32,8 @@ import com.ay.briefyou.R
 import com.ay.briefyou.infrastructure.preference.*
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
-import com.ay.briefyou.ui.component.base.RYSwitch
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.component.base.BYSwitch
 import com.ay.briefyou.ui.component.base.RadioDialog
 import com.ay.briefyou.ui.component.base.RadioDialogOption
 import com.ay.briefyou.ui.component.base.Subtitle
@@ -60,7 +60,7 @@ fun ListsStylePage(onBack: () -> Unit) {
     var articleListReadIndicatorDialogVisible by remember { mutableStateOf(false) }
     var showArticleListDescDialog by remember { mutableStateOf(false) }
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(
@@ -103,7 +103,7 @@ fun ListsStylePage(onBack: () -> Unit) {
                             title = stringResource(R.string.always_expand),
                             onClick = { (!groupListExpand).put(context, scope) },
                         ) {
-                            RYSwitch(activated = groupListExpand.value) {
+                            BYSwitch(activated = groupListExpand.value) {
                                 (!groupListExpand).put(context, scope)
                             }
                         }
@@ -111,7 +111,7 @@ fun ListsStylePage(onBack: () -> Unit) {
                             title = stringResource(R.string.hide_empty_groups),
                             onClick = { hideEmptyGroups.toggle(context, scope) },
                         ) {
-                            RYSwitch(activated = hideEmptyGroups.value) {
+                            BYSwitch(activated = hideEmptyGroups.value) {
                                 hideEmptyGroups.toggle(context, scope)
                             }
                         }
@@ -130,7 +130,7 @@ fun ListsStylePage(onBack: () -> Unit) {
                             title = stringResource(R.string.feed_favicons),
                             onClick = { (!articleListFeedIcon).put(context, scope) },
                         ) {
-                            RYSwitch(activated = articleListFeedIcon.value) {
+                            BYSwitch(activated = articleListFeedIcon.value) {
                                 (!articleListFeedIcon).put(context, scope)
                             }
                         }
@@ -138,7 +138,7 @@ fun ListsStylePage(onBack: () -> Unit) {
                             title = stringResource(R.string.feed_names),
                             onClick = { (!articleListFeedName).put(context, scope) },
                         ) {
-                            RYSwitch(activated = articleListFeedName.value) {
+                            BYSwitch(activated = articleListFeedName.value) {
                                 (!articleListFeedName).put(context, scope)
                             }
                         }
@@ -146,7 +146,7 @@ fun ListsStylePage(onBack: () -> Unit) {
                             title = stringResource(R.string.article_images),
                             onClick = { (!articleListImage).put(context, scope) },
                         ) {
-                            RYSwitch(activated = articleListImage.value) {
+                            BYSwitch(activated = articleListImage.value) {
                                 (!articleListImage).put(context, scope)
                             }
                         }
@@ -159,7 +159,7 @@ fun ListsStylePage(onBack: () -> Unit) {
                             title = stringResource(R.string.article_date),
                             onClick = { (!articleListTime).put(context, scope) },
                         ) {
-                            RYSwitch(activated = articleListTime.value) {
+                            BYSwitch(activated = articleListTime.value) {
                                 (!articleListTime).put(context, scope)
                             }
                         }
@@ -167,7 +167,7 @@ fun ListsStylePage(onBack: () -> Unit) {
                             title = stringResource(R.string.article_date_sticky_header),
                             onClick = { (!articleListStickyDate).put(context, scope) },
                         ) {
-                            RYSwitch(activated = articleListStickyDate.value) {
+                            BYSwitch(activated = articleListStickyDate.value) {
                                 (!articleListStickyDate).put(context, scope)
                             }
                         }

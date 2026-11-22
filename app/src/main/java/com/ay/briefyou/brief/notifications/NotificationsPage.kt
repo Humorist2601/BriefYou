@@ -41,8 +41,8 @@ import com.ay.briefyou.infrastructure.di.IODispatcher
 import com.ay.briefyou.ui.component.base.Banner
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
-import com.ay.briefyou.ui.component.base.RYSwitch
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.component.base.BYSwitch
 import com.ay.briefyou.ui.component.base.Subtitle
 import com.ay.briefyou.ui.component.base.Tips
 import com.ay.briefyou.ui.ext.collectAsStateValue
@@ -120,7 +120,7 @@ fun NotificationsPage(onBack: () -> Unit, viewModel: NotificationsViewModel = hi
         onDispose { owner.lifecycle.removeObserver(observer) }
     }
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(
@@ -170,7 +170,7 @@ fun NotificationsPage(onBack: () -> Unit, viewModel: NotificationsViewModel = hi
                                     desc = row.group,
                                     onClick = { viewModel.set(row.feed, !row.feed.isNotification) },
                                 ) {
-                                    RYSwitch(activated = row.feed.isNotification) {
+                                    BYSwitch(activated = row.feed.isNotification) {
                                         viewModel.set(row.feed, !row.feed.isNotification)
                                     }
                                 }

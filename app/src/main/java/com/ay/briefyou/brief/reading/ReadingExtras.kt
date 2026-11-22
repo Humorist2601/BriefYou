@@ -77,7 +77,7 @@ import com.ay.briefyou.infrastructure.preference.ReadingTextAlignPreference
 import com.ay.briefyou.infrastructure.preference.ReadingTextFontSizePreference
 import com.ay.briefyou.infrastructure.preference.ReadingTextHorizontalPaddingPreference
 import com.ay.briefyou.infrastructure.preference.ReadingTextLineHeightPreference
-import com.ay.briefyou.ui.component.base.RYAsyncImage
+import com.ay.briefyou.ui.component.base.BYAsyncImage
 import com.ay.briefyou.ui.component.base.SIZE_1000
 
 /*
@@ -150,7 +150,7 @@ private fun NextArticle(next: ArticleWithFeed, onNext: () -> Unit) {
                 )
             }
             next.article.img?.takeIf { !com.ay.briefyou.brief.media.MediaFiles.isMedia(it) }?.let { img ->
-                RYAsyncImage(
+                BYAsyncImage(
                     modifier = Modifier.size(64.dp).clip(RoundedCornerShape(16.dp)),
                     data = FeedContent.listImage(img, next.article.link),
                     scale = Scale.FILL,

@@ -1,8 +1,7 @@
 package com.ay.briefyou.brief.reading
 
-// Brief You's copy of Read You's reading-page top bar (ui/page/home/reading/TopBar.kt), which it
+// Brief You's own reading-page top bar (ui/page/home/reading/TopBar.kt), which it
 // rewrote: tonal buttons, the article title and time left once scrolled, and a wavy progress bar.
-// Read You's original stays untouched; see .github/fork/copies.txt.
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.derivedStateOf

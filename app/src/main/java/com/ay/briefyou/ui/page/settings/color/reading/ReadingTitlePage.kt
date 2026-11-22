@@ -38,7 +38,7 @@ fun ReadingTitlePage(
     var titleAlignDialogVisible by remember { mutableStateOf(false) }
     var subtitleAlignDialogVisible by remember { mutableStateOf(false) }
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(
@@ -88,7 +88,7 @@ fun ReadingTitlePage(
                             ReadingThemePreference.Custom.put(context, scope)
                         },
                     ) {
-                        RYSwitch(activated = titleBold.value) {
+                        BYSwitch(activated = titleBold.value) {
                             (!titleBold).put(context, scope)
                             ReadingThemePreference.Custom.put(context, scope)
                         }
@@ -100,7 +100,7 @@ fun ReadingTitlePage(
                             ReadingThemePreference.Custom.put(context, scope)
                         },
                     ) {
-                        RYSwitch(activated = titleUpperCase.value) {
+                        BYSwitch(activated = titleUpperCase.value) {
                             (!titleUpperCase).put(context, scope)
                             ReadingThemePreference.Custom.put(context, scope)
                         }
@@ -128,7 +128,7 @@ fun ReadingTitlePage(
                             ReadingThemePreference.Custom.put(context, scope)
                         },
                     ) {
-                        RYSwitch(activated = subtitleBold.value) {
+                        BYSwitch(activated = subtitleBold.value) {
                             (!subtitleBold).put(context, scope)
                             ReadingThemePreference.Custom.put(context, scope)
                         }
@@ -140,7 +140,7 @@ fun ReadingTitlePage(
                             ReadingThemePreference.Custom.put(context, scope)
                         },
                     ) {
-                        RYSwitch(activated = subheadUpperCase.value) {
+                        BYSwitch(activated = subheadUpperCase.value) {
                             (!subheadUpperCase).put(context, scope)
                             ReadingThemePreference.Custom.put(context, scope)
                         }

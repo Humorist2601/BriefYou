@@ -53,9 +53,9 @@ import com.ay.briefyou.infrastructure.preference.SyncIntervalPreference
 import com.ay.briefyou.infrastructure.preference.not
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYDialog
-import com.ay.briefyou.ui.component.base.RYScaffold
-import com.ay.briefyou.ui.component.base.RYSwitch
+import com.ay.briefyou.ui.component.base.BYDialog
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.component.base.BYSwitch
 import com.ay.briefyou.ui.component.base.RadioDialog
 import com.ay.briefyou.ui.component.base.RadioDialogOption
 import com.ay.briefyou.ui.component.base.Subtitle
@@ -101,7 +101,7 @@ fun AccountDetailsPage(
             }
         }
 
-    RYScaffold(
+    BYScaffold(
         containerColor =
             MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
@@ -184,7 +184,7 @@ fun AccountDetailsPage(
                             }
                         },
                     ) {
-                        RYSwitch(activated = selectedAccount?.syncOnStart?.value == true) {
+                        BYSwitch(activated = selectedAccount?.syncOnStart?.value == true) {
                             selectedAccount?.id?.let {
                                 (!selectedAccount.syncOnStart).put(it, viewModel)
                             }
@@ -198,7 +198,7 @@ fun AccountDetailsPage(
                             }
                         },
                     ) {
-                        RYSwitch(activated = selectedAccount?.syncOnlyOnWiFi?.value == true) {
+                        BYSwitch(activated = selectedAccount?.syncOnlyOnWiFi?.value == true) {
                             selectedAccount?.id?.let {
                                 (!selectedAccount.syncOnlyOnWiFi).put(it, viewModel)
                             }
@@ -212,7 +212,7 @@ fun AccountDetailsPage(
                             }
                         },
                     ) {
-                        RYSwitch(activated = selectedAccount?.syncOnlyWhenCharging?.value == true) {
+                        BYSwitch(activated = selectedAccount?.syncOnlyWhenCharging?.value == true) {
                             selectedAccount?.id?.let {
                                 (!selectedAccount.syncOnlyWhenCharging).put(it, viewModel)
                             }
@@ -315,7 +315,7 @@ fun AccountDetailsPage(
         keepArchivedDialogVisible = false
     }
 
-    RYDialog(
+    BYDialog(
         visible = uiState.clearDialogVisible,
         onDismissRequest = { viewModel.hideClearDialog() },
         icon = {
@@ -349,7 +349,7 @@ fun AccountDetailsPage(
         },
     )
 
-    RYDialog(
+    BYDialog(
         visible = uiState.deleteDialogVisible,
         onDismissRequest = { viewModel.hideDeleteDialog() },
         icon = {
@@ -381,7 +381,7 @@ fun AccountDetailsPage(
         },
     )
 
-    RYDialog(
+    BYDialog(
         visible = exportOPMLModeDialogVisible,
         title = {
             Text(
@@ -458,7 +458,7 @@ private fun subscriptionOPMLFileLauncher(
     launcher: ManagedActivityResultLauncher<String, Uri?>,
 ) {
     launcher.launch(
-        "Read-You-" +
+        "Brief-You-" +
             "${context.getCurrentVersion()}-subscription-" +
             "${Date().toString(DateFormat.YYYY_MM_DD_DASH_HH_MM_SS_DASH)}.opml"
     )

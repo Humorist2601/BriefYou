@@ -3,7 +3,6 @@
  *
  * @link https://github.com/Kyant0/MusicYou
  * @author Kyant0
- * @modifier Ashinch
  */
 
 package com.ay.briefyou.ui.component.base
@@ -19,7 +18,7 @@ import androidx.compose.ui.Modifier
 import com.ay.briefyou.ui.page.settings.LocalInteractionSources
 
 @Composable
-fun RYSwitch(
+fun BYSwitch(
     modifier: Modifier = Modifier,
     activated: Boolean,
     enable: Boolean = true,

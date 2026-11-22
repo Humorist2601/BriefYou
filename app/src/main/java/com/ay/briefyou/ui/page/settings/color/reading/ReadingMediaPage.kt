@@ -24,8 +24,8 @@ import com.ay.briefyou.R
 import com.ay.briefyou.infrastructure.preference.*
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
-import com.ay.briefyou.ui.component.base.RYSwitch
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.component.base.BYSwitch
 import com.ay.briefyou.ui.component.base.Subtitle
 import com.ay.briefyou.ui.page.settings.SettingItem
 import com.ay.briefyou.ui.theme.palette.onLight
@@ -50,7 +50,7 @@ fun ReadingMediaPage(onBack: () -> Unit) {
     var videoCornersDialogVisible by remember { mutableStateOf(false) }
     var videoPaddingDialogVisible by remember { mutableStateOf(false) }
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(
@@ -88,7 +88,7 @@ fun ReadingMediaPage(onBack: () -> Unit) {
                                 ReadingThemePreference.Custom.put(context, scope)
                             },
                         ) {
-                            RYSwitch(activated = maximize.value) {
+                            BYSwitch(activated = maximize.value) {
                                 (!maximize).put(context, scope)
                                 ReadingThemePreference.Custom.put(context, scope)
                             }
@@ -121,7 +121,7 @@ fun ReadingMediaPage(onBack: () -> Unit) {
                                 ReadingThemePreference.Custom.put(context, scope)
                             },
                         ) {
-                            RYSwitch(activated = videoMaximize) {
+                            BYSwitch(activated = videoMaximize) {
                                 ReadingVideoMaximizePreference.put(context, scope, !videoMaximize)
                                 ReadingThemePreference.Custom.put(context, scope)
                             }

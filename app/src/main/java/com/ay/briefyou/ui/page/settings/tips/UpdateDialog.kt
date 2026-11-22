@@ -33,7 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import com.ay.briefyou.R
 import com.ay.briefyou.infrastructure.preference.*
 import com.ay.briefyou.infrastructure.net.Download
-import com.ay.briefyou.ui.component.base.RYDialog
+import com.ay.briefyou.ui.component.base.BYDialog
 import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.ext.installLatestApk
 import com.ay.briefyou.ui.ext.openURL
@@ -54,7 +54,7 @@ fun UpdateDialog(
     val newVersionDownloadUrl = LocalNewVersionDownloadUrl.current // Brief You
     val downloadingState = androidx.compose.runtime.remember(context) { com.ay.briefyou.brief.update.UpdateDownload.state(context) }.collectAsState(initial = com.ay.briefyou.brief.update.UpdateDownload.State.Idle).value // Brief You
 
-    RYDialog(
+    BYDialog(
         modifier = Modifier.heightIn(max = 400.dp),
         visible = updateUiState.updateDialogVisible,
         onDismissRequest = { updateViewModel.hideDialog() },

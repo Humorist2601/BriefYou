@@ -18,7 +18,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ay.briefyou.R
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYScaffold
+import com.ay.briefyou.ui.component.base.BYScaffold
 import com.ay.briefyou.ui.component.base.Subtitle
 import com.ay.briefyou.ui.page.settings.SettingItem
 import com.ay.briefyou.ui.page.settings.accounts.addition.*
@@ -33,7 +33,7 @@ fun AddAccountsPage(
 ) {
     val context = LocalContext.current
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(

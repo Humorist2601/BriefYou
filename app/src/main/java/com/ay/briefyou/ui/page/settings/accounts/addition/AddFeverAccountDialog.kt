@@ -36,11 +36,10 @@ import com.ay.briefyou.R
 import com.ay.briefyou.domain.model.account.Account
 import com.ay.briefyou.domain.model.account.AccountType
 import com.ay.briefyou.domain.model.account.security.FeverSecurityKey
-import com.ay.briefyou.ui.component.base.RYDialog
-import com.ay.briefyou.ui.component.base.RYOutlineTextField
+import com.ay.briefyou.ui.component.base.BYDialog
+import com.ay.briefyou.ui.component.base.BYOutlineTextField
 import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.ext.showToast
-import com.ay.briefyou.ui.page.common.RouteName
 import com.ay.briefyou.ui.page.settings.accounts.AccountViewModel
 
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
@@ -61,7 +60,7 @@ fun AddFeverAccountDialog(
     var feverPassword by rememberSaveable { mutableStateOf("") }
     var feverClientCertificateAlias by rememberSaveable { mutableStateOf("") }
 
-    RYDialog(
+    BYDialog(
         modifier = Modifier.padding(horizontal = 44.dp),
         visible = uiState.addFeverAccountDialogVisible,
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -94,7 +93,7 @@ fun AddFeverAccountDialog(
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Spacer(modifier = Modifier.height(10.dp))
-                RYOutlineTextField(
+                BYOutlineTextField(
                     modifier = Modifier.fillMaxWidth(),
                     readOnly = accountUiState.isLoading,
                     value = feverServerUrl,
@@ -104,7 +103,7 @@ fun AddFeverAccountDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                 )
                 Spacer(modifier = Modifier.height(10.dp))
-                RYOutlineTextField(
+                BYOutlineTextField(
                     modifier = Modifier.fillMaxWidth(),
                     requestFocus = false,
                     readOnly = accountUiState.isLoading,
@@ -114,7 +113,7 @@ fun AddFeverAccountDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 )
                 Spacer(modifier = Modifier.height(10.dp))
-                RYOutlineTextField(
+                BYOutlineTextField(
                     modifier = Modifier.fillMaxWidth(),
                     requestFocus = false,
                     readOnly = accountUiState.isLoading,

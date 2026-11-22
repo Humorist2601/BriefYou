@@ -38,7 +38,7 @@ import com.ay.briefyou.ui.ext.getDefaultGroupId
  * and each page needs its own list so swiping never shows another filter's groups. Each list is
  * in the user's order (see [FeedOrdering]) and kept up to date from the first time it's shown.
  *
- * The counting follows Read You's GroupWithFeedsListUseCase (which only keeps the current
+ * The counting follows the original GroupWithFeedsListUseCase (which only keeps the current
  * filter's list), so a fix there may need copying here.
  */
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -202,7 +202,7 @@ constructor(
             .debounce(200L)
             .flowOn(ioDispatcher)
 
-    /** A group with its counted feeds, or null when it's hidden (empty, as Read You does). */
+    /** A group with its counted feeds, or null when it's hidden (empty, as the original app does). */
     private fun keep(
         groupItem: GroupWithFeed,
         feedList: List<com.ay.briefyou.domain.model.feed.Feed>,

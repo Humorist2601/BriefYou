@@ -159,7 +159,7 @@ import com.ay.briefyou.brief.ui.LocalBackStack
 import com.ay.briefyou.ui.page.nav3.key.Route
 import com.ay.briefyou.domain.model.article.ArticleWithFeed
 import com.ay.briefyou.ui.component.FeedIcon
-import com.ay.briefyou.ui.component.base.RYAsyncImage
+import com.ay.briefyou.ui.component.base.BYAsyncImage
 import com.ay.briefyou.ui.component.base.SIZE_1000
 import com.ay.briefyou.ui.component.menu.AnimatedDropdownMenu
 import com.ay.briefyou.brief.feeds.rememberFeedAccent
@@ -1785,7 +1785,7 @@ private fun TriageCard(
                     )
                 if (FeedContent.listImage(item.img, item.link) != null && imageHeight > 0.5.dp) {
                     Spacer(Modifier.height(16.dp * (imageHeight / 150.dp)))
-                    RYAsyncImage(
+                    BYAsyncImage(
                         modifier =
                             Modifier.fillMaxWidth().height(imageHeight).clip(RoundedCornerShape(24.dp)),
                         data = FeedContent.listImage(item.img, item.link),
@@ -2403,55 +2403,67 @@ private fun TriageTopButtons(
         MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "auto width",
     )
+    // Both buttons shrink where they stand: each keeps its 48 dp slot and the circle forms inside
+    // it, so the row's width never changes and nothing slides sideways while the shapes change
+    // (before, the narrower circles pulled the left one to the right, while the press squeeze was
+    // still settling: the two moves together looked like a wobble).
     Row(verticalAlignment = Alignment.CenterVertically) {
         // From a pill segment (48 x 40, round outer edge, flat inner one) to a 40dp circle.
         val lead = androidx.compose.ui.unit.lerp(20.dp, 20.dp, t)
         val trail = androidx.compose.ui.unit.lerp(6.dp, 20.dp, t)
         Box(
-            modifier =
-                Modifier.size(width = androidx.compose.ui.unit.lerp(48.dp, 40.dp, t) + autoDelta, height = 40.dp)
-                    .clip(RoundedCornerShape(topStart = lead, bottomStart = lead, topEnd = trail, bottomEnd = trail))
-                    .background(container)
-                    .combinedClickable(
-                        interactionSource = autoSource,
-                        indication = androidx.compose.material3.ripple(),
-                        onClick = onToggle,
-                        onLongClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onLongPress()
-                        },
-                    ),
+            modifier = Modifier.size(width = 48.dp + autoDelta, height = 40.dp),
             contentAlignment = Alignment.Center,
         ) {
-            if (t > 0.01f) {
-                CompositionLocalProvider(LocalContentColor provides ringColor) {
-                    AutoRing(progress = progress, playing = running && !paused, alpha = { t })
+            Box(
+                modifier =
+                    Modifier.size(width = androidx.compose.ui.unit.lerp(48.dp, 40.dp, t) + autoDelta, height = 40.dp)
+                        .clip(RoundedCornerShape(topStart = lead, bottomStart = lead, topEnd = trail, bottomEnd = trail))
+                        .background(container)
+                        .combinedClickable(
+                            interactionSource = autoSource,
+                            indication = androidx.compose.material3.ripple(),
+                            onClick = onToggle,
+                            onLongClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onLongPress()
+                            },
+                        ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (t > 0.01f) {
+                    CompositionLocalProvider(LocalContentColor provides ringColor) {
+                        AutoRing(progress = progress, playing = running && !paused, alpha = { t })
+                    }
                 }
+                Icon(
+                    if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription =
+                        stringResource(
+                            when {
+                                paused -> R.string.triage_auto_paused
+                                running -> R.string.triage_auto_stop
+                                else -> R.string.triage_auto_start
+                            }
+                        ),
+                    tint = content,
+                    modifier = Modifier.size(androidx.compose.ui.unit.lerp(22.dp, 20.dp, t)),
+                )
             }
-            Icon(
-                if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                contentDescription =
-                    stringResource(
-                        when {
-                            paused -> R.string.triage_auto_paused
-                            running -> R.string.triage_auto_stop
-                            else -> R.string.triage_auto_start
-                        }
-                    ),
-                tint = content,
-                modifier = Modifier.size(androidx.compose.ui.unit.lerp(22.dp, 20.dp, t)),
-            )
         }
-        Spacer(Modifier.width(androidx.compose.ui.unit.lerp(2.dp, 6.dp, t)))
+        Spacer(Modifier.width(2.dp))
         // Undo stays a segment the whole way (so it keeps its greyed-out look when there's
-        // nothing to undo): its inner edge rounds off and it narrows into a 40dp circle.
+        // nothing to undo): its inner edge rounds off and it narrows into a 40dp circle, centred in
+        // its own 48 dp slot (the padding makes up the difference; the press squeeze still narrows the
+        // slot, as before).
+        val undoWidth =
+            if (others.size == 1) androidx.compose.ui.unit.lerp(48.dp, 40.dp, t) - (if (autoPressed) squeeze else 0.dp)
+            else 48.dp
         TopBarButtonGroup(
             others,
+            modifier = Modifier.padding(horizontal = (48.dp - androidx.compose.ui.unit.lerp(48.dp, 40.dp, t)) / 2),
             leadingCorner = androidx.compose.ui.unit.lerp(6.dp, 20.dp, t),
-            buttonWidth =
-                if (others.size == 1)
-                    androidx.compose.ui.unit.lerp(48.dp, 40.dp, t) - (if (autoPressed) squeeze else 0.dp)
-                else 48.dp,
+            buttonWidth = undoWidth,
             onPressedChange = { undoPressed = it },
             pressedGrow = squeeze,
             pressedSquircle = t,
@@ -3032,7 +3044,7 @@ private fun SharePicture(article: ArticleWithFeed, summary: CardSummary?, modifi
                 val picture = remember(item.img, item.link) { FeedContent.listImage(item.img, item.link) }
                 if (picture != null) {
                     Spacer(Modifier.height(14.dp))
-                    RYAsyncImage(
+                    BYAsyncImage(
                         modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(20.dp)),
                         data = picture,
                         scale = Scale.FILL,

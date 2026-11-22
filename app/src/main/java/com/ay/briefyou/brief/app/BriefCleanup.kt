@@ -28,10 +28,10 @@ import com.ay.briefyou.infrastructure.preference.KeepArchivedPreference
  * - custom icons (and their image files) and noted pictures of feeds that are gone,
  * - icons (and pictures) of groups that are gone, and website-icon searches that failed over a
  *   week ago (they're searched again anyway),
- * - Read You's saved full-text pages of articles that are gone (it deletes them only when its
+ * - the original saved full-text pages of articles that are gone (it deletes them only when its
  *   clean-up clears old articles, not when a feed, group or account is deleted, or a sync service
  *   drops articles),
- * - what a deleted account left: its saved pages, Read You's list of its changes still to be
+ * - what a deleted account left: its saved pages, the original list of its changes still to be
  *   sent, and its sort setting,
  * - once, after an update: the old feed-colour caches, and the cleared-article notes of
  *   accounts that aren't local (only local feeds read them; see ArchivedLinks).
@@ -85,7 +85,7 @@ constructor(
     }
 
     /**
-     * Saved full-text pages (Read You's ReaderCacheHelper: cache/readability/<account>/<SHA-256 of
+     * Saved full-text pages (the original ReaderCacheHelper: cache/readability/<account>/<SHA-256 of
      * the article id>.html) of articles that are gone, and whatever a deleted account left.
      */
     private suspend fun sweepAccounts() =
@@ -105,7 +105,7 @@ constructor(
                 val keep = articles.articleIds(id).mapTo(HashSet()) { pageName(sha, it) }
                 dir.listFiles()?.forEach { if (it.name !in keep && it.lastModified() < settled) it.delete() }
             }
-            // Read You's changes still to be sent (DiffMapHolder), per account: only deleted ones'.
+            // The original changes still to be sent (DiffMapHolder), per account: only deleted ones'.
             File(context.cacheDir, "diff").listFiles()?.forEach { if (it.isDirectory && it.name !in accounts) it.deleteRecursively() }
             val order = context.getSharedPreferences("feed_order", Context.MODE_PRIVATE)
             val gone = order.all.keys.filter { it.startsWith("order.") && it.removePrefix("order.") !in accounts }

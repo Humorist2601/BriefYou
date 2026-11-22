@@ -127,11 +127,11 @@ private fun FilterButton(item: Filter, selected: Boolean, onClick: () -> Unit) {
 
 /**
  * The bottom bar's surface, like Material's floating toolbar: a solid tonal container
- * (`surfaceContainerHighest`, one tone above the list cards (`surfaceContainerHigh`)) with a soft shadow, and no outline.
+ * (`surfaceContainer`) with a soft shadow, and no outline.
  */
 @Composable
 internal fun Modifier.glass(shape: Shape): Modifier {
-    val container = MaterialTheme.colorScheme.surfaceContainerHighest
+    val container = MaterialTheme.colorScheme.surfaceContainer
     return this
         .barShadow(shape)
         .clip(shape)

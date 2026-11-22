@@ -19,7 +19,7 @@ import com.ay.briefyou.infrastructure.di.IODispatcher
 import com.ay.briefyou.infrastructure.preference.SettingsProvider
 
 /**
- * Brief You's state and data for the article list and reading screen (kept apart from Read You's
+ * Brief You's state and data for the article list and reading screen (kept apart from the original
  * ArticleListReaderViewModel): the Triage run and what it continues with, and article previews
  * for the next article card. It lives as long as the list and reading screen do, so Triage
  * survives reading an article opened from it.

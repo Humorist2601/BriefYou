@@ -33,7 +33,7 @@ fun AccountsPage(
     val uiState = viewModel.accountUiState.collectAsStateValue()
     val accounts = viewModel.accounts.collectAsStateValue(initial = emptyList())
 
-    RYScaffold(
+    BYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
         navigationIcon = {
             FeedbackIconButton(

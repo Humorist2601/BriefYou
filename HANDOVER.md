@@ -58,13 +58,13 @@ These are the owner's standing preferences. A new assistant should follow them.
 8. When the owner says something "causes more issues", remove it entirely rather than patching
    around it.
 9. **New screens and sheets look like the existing ones** (the owner wants Brief You to feel
-   cohesive, down to the last corner). Pages: `RYScaffold` with the collapsing `DisplayText`
+   cohesive, down to the last corner). Pages: `BYScaffold` with the collapsing `DisplayText`
    title, the tonal back circle, hero cards (32 dp), cards and tiles (28 dp). Connected lists come
    from `brief/ui/Groups.kt`: `groupShape` (24 dp outer, 6 dp inner) on pages and sheets,
    `nestedGroupShape` (16 / 4) inside dialogs and cards, rows `Group.Gap` (3 dp) apart. Bottom
    sheets: a Title Large title (normal weight), an optional Body Medium muted subtitle, a divider,
    24 dp sides, opened fully (`skipPartiallyExpanded`; the AI sheet's 70 % is the one exception).
-   Dialogs: `InWindowAlertDialog` (Read You's `RYDialog` draws through it), the standard title, no
+   Dialogs: `InWindowAlertDialog` (Read You's `BYDialog` draws through it), the standard title, no
    icon. Labels: pills (`RoundedCornerShape(50)`), Label Medium, 10 × 4 dp padding; tertiary for
    what's yours or watched, neutral for plain info. Tiles, cards, banners (Read You's `Banner`: the Starred / Unread / All
    openers and the Settings banners; their icon sits on a turning cookie, `BannerCookie`, and the openers' arrow
@@ -92,7 +92,7 @@ These are the owner's standing preferences. A new assistant should follow them.
    (Speed adds quick picks); the Sponsor sheet is in the same design. Add a feed is a floating dialog
    (`AddFeedDialog`) using the same `FeedOptions`, in its own window like the sheets' dialogs (in the app's window
    the keyboard's slide re-laid out the feeds page every frame). `SubscribeState.Configure` compares its `SyndFeed` by
-   identity: Rome's reflective `equals` over every entry made each tap in the found-feed dialog lag. Every `InWindowAlertDialog` (so RYDialog and
+   identity: Rome's reflective `equals` over every entry made each tap in the found-feed dialog lag. Every `InWindowAlertDialog` (so BYDialog and
    TextFieldDialog too) is drawn in a full-screen window of its own that doesn't move for the keyboard: the
    dialog moves above it inside, the cursor's handle stays put, and nothing behind is re-laid out per keyboard
    frame. `DialogHost` now only carries `ScreenOverlay`; `OptionSheetDialogs` is kept but no longer needed. Read You's `FeedOptionView` and `BottomDrawer` are no longer used
@@ -151,11 +151,11 @@ any Issue, it starts from `d2b979cc`, Read You's last commit included in Brief Y
 | `tour/` | `BriefTour.kt`: the first-run tour (replaces Read You's welcome page through one hook in `AppEntry`'s `Route.Startup`, which takes the tour off the back stack when you start, so back on Feeds closes the app; the tour (first run and from Tips & support) opens with a Restore page and then the AI page (the two with *Later*, together): Restore takes the zip from *Back up everything* (`BackupService.restore` through `TourEntryPoint`, the same as an account's *Restore from backup*) or a settings JSON file; the agreement is on its last page) and a tour button in *Settings → Tips & support* (a full-screen dialog). `BriefHints.kt`: one-time hint bubbles (`BriefHint`, a `Popup` placed against its parent Box; one at a time; remembered in `brief_hints` prefs, with one shared change counter so every bubble sees *Got it*); `ShowHintsAgain` (under the round buttons in Tips & support) resets them. |
 | `share/` | `Newspaper.kt`: an article as a newspaper front page (hold Share on the reading page, or the list's long-press menu). One `NewspaperMaker` lives in `BriefNavigationHost` (`LocalNewspaperMaker`); it runs the steps (full text via `ArticleText`, *In brief* via `summarizeForCard`, the page), shows `PressSheet` after 0.5 s, and takes the picture off screen. The picture is a toned black-and-white photo with a faint dot screen, drawn on the CPU; the page is straight, cut with a transparent zig-zag top and bottom, and captured with `OffscreenPictureAt` at a fixed 1600 px (a 400 dp page at 4×, font scale 1). `BriefYouMark` on shared pictures is the themed-icon glyph in the accent colour on a cookie; the newspaper's is black and white on a squircle. Masthead: Literata at weight 900. |
 | `stats/` | Reading stats page and data; `MonthRecap.kt` is the monthly recap (Stats card, Past months, home row). `YearRecap.kt` is the year in review (first week of January in place of December's card, then first under Past months); it reuses the month card's heading, tiles and rows. Days also count opens per feed and filtered articles (for the recap). |
-| `ai/Translation.kt` | **Translate an article** with Gemma. `TranslationState` (per article, reset when the article changes): parses the shown HTML with Jsoup, translates the title and the leaf text blocks (`p, h1–h6, li, figcaption, blockquote, td, th`) in batches as numbered paragraphs (`[3] text`, `GemmaSummarizer.translate`): a small first batch (450 characters) so words show quickly, then about 1,800. While the model writes, each paragraph that is complete (the next `[n]` has begun) replaces its original with `Element.text` (links and bold/italic words are sent as numbered tags `<1>…</1>`, and `rebuild` turns them back into the original elements; broken tags give plain text) and the HTML is published. The web view is given the page as it was when the run began (`shownHtml`, blocks marked `data-bt`) and each finished paragraph is swapped in with JavaScript from `patches` (`RYWebView`, via `LocalTranslation`), so the page never reloads; `htmlFor(webView)` picks it (the native reader gets the latest HTML). Blocks still waiting carry `opacity:.45` until translated or until the run ends (`generation` stops a replaced run publishing). `ReadingPage` shows `translation.html` / `title` instead of the article's while `showing`; `TranslationBanner` goes under the headline via `Content`'s `afterHeadline` slot; `TranslateController` is the top bar button (tap: translate, stop, or flip original/translation; hold: `TranslateLanguageSheet`). Language in prefs `translate` (default: the phone's). |
+| `ai/Translation.kt` | **Translate an article** with Gemma. `TranslationState` (per article, reset when the article changes): parses the shown HTML with Jsoup, translates the title and the leaf text blocks (`p, h1–h6, li, figcaption, blockquote, td, th`) in batches as numbered paragraphs (`[3] text`, `GemmaSummarizer.translate`): a small first batch (450 characters) so words show quickly, then about 1,800. While the model writes, each paragraph that is complete (the next `[n]` has begun) replaces its original with `Element.text` (links and bold/italic words are sent as numbered tags `<1>…</1>`, and `rebuild` turns them back into the original elements; broken tags give plain text) and the HTML is published. The web view is given the page as it was when the run began (`shownHtml`, blocks marked `data-bt`) and each finished paragraph is swapped in with JavaScript from `patches` (`BYWebView`, via `LocalTranslation`), so the page never reloads; `htmlFor(webView)` picks it (the native reader gets the latest HTML). Blocks still waiting carry `opacity:.45` until translated or until the run ends (`generation` stops a replaced run publishing). `ReadingPage` shows `translation.html` / `title` instead of the article's while `showing`; `TranslationBanner` goes under the headline via `Content`'s `afterHeadline` slot; `TranslateController` is the top bar button (tap: translate, stop, or flip original/translation; hold: `TranslateLanguageSheet`). Language in prefs `translate` (default: the phone's). |
 | `triage/` | **Triage** (`TriageScreen.kt`, the biggest file): card stack, swipe right read / left save / up open / down skip, undo, auto-advance with a wavy ring, next-group end screen, haptics. A run moves through groups (or feeds, when opened from a feed) in the Feeds order. In a group run the groups sheet is drawn like the Feeds page (tile, count pill, arrow); a group opens to its feeds and picking one calls `TriageSession.startFeedRun`, which turns the run into a run of feeds (state reset, the group kept in `previous` for Undo; the same call turns a feed run back into a group run when a group is picked in the feed run's sheet, which lists the groups with the current feed open; `Saved` also keeps `knownPlaces` and the start totals for that). `TriageSession` keeps the run: visited places, cards left behind per place (`leftIn`), sizes for the run bar, totals, and saved states so Undo can step back into the previous group. Header: "Triage" + a "2 of 5" chip (opens `TriagePlacesSheet`: jump, skip, reopen groups left with cards) + group · cards left. After a group, the bar becomes `RunBar` (one piece per group). `TriageSummary.kt`: long-press AI summary on a card. |
 | `ui/` | `BackPreview.kt` (predictive back like stock Android, scrim 35 % dark / 12 % light), `SharedFilterBar.kt` + `BriefFilterBar.kt` + `BriefAiButton.kt` (the bottom bar drawn once above all screens: a solid tonal Starred/Unread/All toolbar, `Modifier.glass` = `surfaceContainer` + soft `dropShadow`, no outline, no blur (the Haze blur was removed: it recorded every screen, the article WebView included, into a second layer and is the suspected cause of the article-text flicker); on Unread the AI button beside it (toolbar and button are one group, 8 dp apart, centred together as in Material's floating toolbar with a FAB; the toolbar glides back to the middle when the button goes), Material 3's `FloatingActionButtonMenu` with our own button: tap = AI Gist / Triage menu, long press = `AiLongPress` (prefs `ai_button`, set in AI settings); Read You's filter bar style / padding / tonal elevation settings are removed), `InWindowDialog.kt`, `MaterialYouScheme.kt`, `TopBarButtons.kt`, `SharePicture.kt` (share a composable as a PNG: Triage card, monthly recap), `PressFeel.kt` (Triage's press for tiles and cards: squeeze, tighter corners, the cookie turns, spring back, matching Triage's Next card and buttons; used by the Filters and Reading stats tiles, the sort tiles and the recap cards), `Type.kt` (Google Sans Flex). |
 | `update/` | **App update download** (GitHub build only). `UpdateDownload.kt`: like the AI model download, a WorkManager job with a progress notification that resumes after drops; saves to `cache/latest.apk` (the FileProvider path Read You already had), checks it's this app and newer, then a notification / the update dialog's Install button opens Android's installer. `UpdateDialog.kt` shows Download → percent → Install. `app/src/github/AndroidManifest.xml` adds `REQUEST_INSTALL_PACKAGES` (not in the Play build). `AppService.checkUpdate` picks the `.apk` asset of the release. `UpdateCheck.kt`: the "Check for updates when the app starts" switch in Tips & support (SharedPreferences, default on; `AndroidApp` respects it). `AndroidApp` no longer deletes `latest.apk` at start (that would remove a downloaded update): `readyApk` removes it only when stale. |
-| `webview/` | The article web view (Brief You's copy): `RYWebView.kt` (styles cached with `remember`, one web view per article), `WebViewPool.kt` (a spare web view made at a quiet moment so opening an article doesn't stutter; closed web views freed after the animation), `ImagePlaceholders.kt` (boxes + Expressive shape-morphing loader while pictures load; small pictures centred). |
+| `webview/` | The article web view (Brief You's copy): `BYWebView.kt` (styles cached with `remember`, one web view per article), `WebViewPool.kt` (a spare web view made at a quiet moment so opening an article doesn't stutter; closed web views freed after the animation), `ImagePlaceholders.kt` (boxes + Expressive shape-morphing loader while pictures load; small pictures centred). |
 
 Other places worth knowing:
 - `ui/component/FeedIcon.kt` (Read You file, hooks): emoji icons (`emoji:` prefix) and the
@@ -196,7 +196,7 @@ and KSP about 2.4 min, Gradle's own setup about 1 min.
 Each build installs as an update (Obtainium works with the releases).
 
 **Signing:** repository secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`. Without them
-builds are signed with Read You's public key (a warning in the build). **Never lose the keystore**
+the build stops (Read You's public key is no longer in the repo). **Never lose the keystore**
 — without it, future releases can't update installed copies.
 
 **Reading build results from the command line** (what the assistant did):
@@ -336,7 +336,7 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
 - **Moving pictures inside the article web view are repainted every frame.** The pictures'
   loading shapes (an animated SVG) slowed scrolling and left blank frames on picture-heavy pages;
   they hold still while the page scrolls (`brief-scrolling` class, toggled from `Content`'s scroll
-  state in `RYWebView`). They are **CSS animations** (`brief-morph` animating `d: path()`, `brief-turn`
+  state in `BYWebView`). They are **CSS animations** (`brief-morph` animating `d: path()`, `brief-turn`
   rotating), so `animation-play-state: paused` freezes each in the shape it has reached and it
   carries on from there 150 ms after the scroll stops. Not SVG/SMIL animations: inline ones don't
   start until the page's load event, which waits for the pictures (the shapes sat on the first
@@ -381,7 +381,7 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
   so nothing is remembered): every row recomposes. Make them in the composable (`onArticleClick`
   in `FlowPage`).
 - **Don't build `Regex(...)` or Coil `ImageRequest`s per row per recomposition** — build once
-  (`extractDomain`) / `remember` them (`RYAsyncImage`).
+  (`extractDomain`) / `remember` them (`BYAsyncImage`).
 - **Nightly stutter log:** Tips & support → *Copy stutter log* (`brief/perf/PerfLog.kt`): slow
   frames split by part, plus main-thread samples while stuck, plus "what happened" markers
   (`PerfLog.note`: new pager, list rows, row built, slide done, feed colour ready). On Android
@@ -579,8 +579,13 @@ Work from this list; tick items off here as they are done.
     old installs can't update in place: the owner makes a backup and restores it, which is accepted),
     the GitHub run/build counters and Nightly releases and tags (delete the old ones, first Nightly
     `1.0.0.1`), the User-Agent, README and release-notes mentions of 0.16.x, the CI workflows reset
-    to a clean start, and the Room/DataStore/schema numbering only if the owner also says so (a
-    restored backup must still open). Do it as one planned change, tell the owner the list first.
+    to a clean start. **The owner has decided the database version also restarts at 1** (backup and
+    restore is how data moves). So at the reset: set `AndroidDatabase` `version = 1`, delete every
+    `MIGRATION_*` (incl. `MIGRATION_9_10`) and `allMigrations`, `moveOldDatabase`, the old
+    `app/schemas/…/*.json` files (the build regenerates `1.json`; commit it), `GroupIdMigration` and its
+    call in `AndroidApp`, `OLD_DEFAULT_GROUP_SALT`, and the `OLD_SYNC_WORK_NAME_PERIODIC` cancel in
+    `SyncWorker`; check the backup/restore code does not compare database versions. Do it as one
+    planned change, tell the owner the list first.
 
 **Set aside by the owner (only if asked again)**
 13. Brandfetch logos: ask Brandfetch about caching, or a live-only "Brand logo" choice in Change
@@ -594,6 +599,25 @@ Work from this list; tick items off here as they are done.
 
 - **Certificates are checked.** `cachingHttpClient` used to trust every certificate by default (Read You's behaviour); it now checks them normally. A self-hosted sync server with a self-signed certificate needs an option added before it can work again.
 - **Scripts inside articles are blocked.** The reading web view's page (`brief/webview/BriefWebViewHtml.kt`) carries a content policy (`script-src 'nonce-…'`) with a new one-time key on each load; only the app's own `<script>` has it. Scripts the app runs from outside (`evaluateJavascript`: picture taps, Translate swaps) are not affected. Inline `onerror` handlers are blocked too, so a picture's fallback address is a `data-fallback` attribute that `ImagePlaceholders.SCRIPT` reads. Anything new that needs a script inside the page must go in that script or in `evaluateJavascript`.
-- **Builds never use Read You's public signing key.** `build.yaml` stops when the `KEYSTORE_BASE64` secret is missing.
+- **Builds never use any public signing key (Read You's was removed from the repo).** `build.yaml` stops when the `KEYSTORE_BASE64` secret is missing.
 - **Cloud backup leaves out the database, the AI model and the offline copies** (`res/xml/backup_rules.xml`, `data_extraction_rules.xml`).
 - **The AI model download is fixed to one commit and one SHA-256** (`ModelDownload`: `COMMIT`, `SHA256`); the file is checked before it is installed. To use a newer model, change both together.
+
+
+## Cleanup of Read You leftovers (22 Nov 2026)
+
+Done: the Google Play and F-Droid build types (only `github` is left, with the `release` and `nightly`
+build types), `app/src/googlePlay`, the store icons, Read You's unit tests and test libraries, the
+`me.ash.reader` launcher alias and widget stubs (home-screen icons and widgets from before the
+package rename need adding again), the Ashinch comment headers (other authors' headers stay: GPL),
+the public signing keystore, the user agent / Google Reader client name (`BriefYou`), the unused
+`read_you` string, the sync work name (`BriefYou`; the old `ReadYou` one is cancelled when work is
+set up), and the `RY` prefix of the UI helpers (now `BY`: `BYScaffold`, `BYSwitch`, `BYDialog`,
+`BYAsyncImage`, `BYWebView`...). Also changed (0.16.2.176): the default group's id salt `read_you_app_default_group` → `default_group`
+(Room `MIGRATION_9_10`, database version 10, plus `brief/app/GroupIdMigration.kt`, which once rewrites
+every saved key and text in the SharedPreferences files and the DataStore), and the database file
+`Reader` → `BriefYou` (renamed on first open, `AndroidDatabase.moveOldDatabase`). The OPML export file
+name starts with `Brief-You-`. Comments no longer name Read You. **The new schema file
+`app/schemas/…AndroidDatabase/10.json` comes from the CI artifact `brief-schemas-<sha>`: commit it.**
+Kept on purpose: the GPL licence and the README credit (plus the credit link in Tips & support and
+the "Based on Read You" line in About), the weekly Read You watch workflow (the owner wants it).

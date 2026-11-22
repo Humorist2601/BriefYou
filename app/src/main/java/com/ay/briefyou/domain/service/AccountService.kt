@@ -95,7 +95,7 @@ constructor(
 
     private suspend fun addDefaultAccount(): Account = addAccount(getDefaultAccount())
 
-    // Brief You: a new account starts empty (Read You added its own "ReadYou Releases" feed).
+    // Brief You: a new account starts empty (no starter feed is added).
     suspend fun initWithDefaultAccount() {
         addDefaultAccount()
     }

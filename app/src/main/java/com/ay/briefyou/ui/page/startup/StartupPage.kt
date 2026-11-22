@@ -31,13 +31,12 @@ import kotlinx.coroutines.launch
 import com.ay.briefyou.R
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.DynamicSVGImage
-import com.ay.briefyou.ui.component.base.RYDialog
-import com.ay.briefyou.ui.component.base.RYScaffold
+import com.ay.briefyou.ui.component.base.BYDialog
+import com.ay.briefyou.ui.component.base.BYScaffold
 import com.ay.briefyou.ui.component.base.Tips
 import com.ay.briefyou.ui.ext.DataStoreKey
 import com.ay.briefyou.ui.ext.dataStore
 import com.ay.briefyou.ui.ext.put
-import com.ay.briefyou.ui.page.common.RouteName
 import com.ay.briefyou.ui.svg.SVGString
 import com.ay.briefyou.ui.svg.WELCOME
 
@@ -50,7 +49,7 @@ fun StartupPage(
     val scope = rememberCoroutineScope()
     var tosVisible by remember { mutableStateOf(false) }
 
-    RYScaffold(
+    BYScaffold(
         content = {
             LazyColumn(modifier = Modifier.navigationBarsPadding()) {
                 item {
@@ -102,7 +101,7 @@ fun StartupPage(
         },
     )
 
-    RYDialog(
+    BYDialog(
         visible = tosVisible,
         onDismissRequest = { tosVisible = false },
         icon = {

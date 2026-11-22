@@ -26,30 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import kotlin.math.absoluteValue
 
-@OptIn(ExperimentalFoundationApi::class)
-fun Modifier.pagerAnimate(pagerState: PagerState, page: Int): Modifier {
-    return graphicsLayer {
-        // Calculate the absolute offset for the current page from the
-        // scroll position. We use the absolute value which allows us to mirror
-        // any effects for both directions
-        val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
-
-        // We animate the alpha, between 20% and 100%
-        alpha = lerp(
-            start = 0.2f.dp,
-            stop = 1f.dp,
-            fraction = 1f - pageOffset.coerceIn(0f, 1f) * 1.5f
-        ).value
-    }
-}
-
 fun Modifier.roundClick(enabled: Boolean = true, onClick: () -> Unit = {}) = this
     .clip(RoundedCornerShape(8.dp))
     .clickable(enabled = enabled, onClick = onClick)
-
-fun Modifier.paddingFixedHorizontal(top: Dp = 0.dp, bottom: Dp = 0.dp) = this
-    .padding(horizontal = 10.dp)
-    .padding(top = top, bottom = bottom)
 
 @OptIn(
     ExperimentalFoundationApi::class,

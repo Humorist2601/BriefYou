@@ -3,7 +3,6 @@
  *
  * @link https://github.com/Kyant0/MusicYou
  * @author Kyant0
- * @modifier Ashinch
  */
 
 package com.ay.briefyou.ui.theme.palette

@@ -8,9 +8,9 @@ import androidx.compose.runtime.snapshotFlow
 import com.ay.briefyou.ui.page.home.flow.CONTENT_TYPE_ARTICLE
 
 /**
- * The articles that have been on screen in this list, for "mark as read on scroll". Read You
+ * The articles that have been on screen in this list, for "mark as read on scroll". The original app
  * marked everything above the first visible article, including articles a sync had just added
- * at the top, which were never seen: "random" articles were marked read (Read You #1274).
+ * at the top, which were never seen: "random" articles were marked read .
  */
 @Composable
 fun rememberSeenArticles(listState: LazyListState, key: Any): Set<String> {

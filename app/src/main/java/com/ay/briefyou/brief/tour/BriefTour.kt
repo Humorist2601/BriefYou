@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION") // Read You's DataStoreKey is deprecated; every preference here must still use it
-
 package com.ay.briefyou.brief.tour
 
 import com.ay.briefyou.brief.ui.groupShape
@@ -99,7 +97,7 @@ import kotlinx.coroutines.launch
 import com.ay.briefyou.R
 import com.ay.briefyou.brief.ai.PhoneCheck
 import com.ay.briefyou.brief.ui.GoogleSansWideFontFamily
-import com.ay.briefyou.ui.component.base.RYDialog
+import com.ay.briefyou.ui.component.base.BYDialog
 import com.ay.briefyou.ui.ext.DataStoreKey
 import com.ay.briefyou.ui.ext.dataStore
 import com.ay.briefyou.ui.ext.fromJSONStringToDataStore
@@ -115,7 +113,7 @@ private const val HOLD = 4
 /**
  * The first run: restoring a settings backup (for someone coming from another phone), then four
  * pages on what's different about Brief You (Triage, the on-device AI, calmer feeds, and the
- * buttons that do more when held), in place of Read You's welcome page.
+ * buttons that do more when held), in place of the original welcome page.
  * Its agreement (terms and privacy) is kept on the last page: Skip goes there, and "Agree and
  * start" is the only way on. "Set up AI" opens the AI page once you've agreed.
  */
@@ -385,7 +383,7 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
         }
     }
 
-    RYDialog(
+    BYDialog(
         visible = termsVisible,
         onDismissRequest = { termsVisible = false },
         title = { Text(text = stringResource(R.string.terms_of_service)) },
