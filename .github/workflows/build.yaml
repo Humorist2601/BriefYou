@@ -61,6 +61,7 @@ jobs:
                       echo "::error title=Signing::No KEYSTORE_BASE64 secret: the build stops instead of using Read You's public key."
                       exit 1
                   fi
+                  mkdir -p signature
                   echo "$KEYSTORE_BASE64" | base64 -d > signature/briefyou-release.jks
                   {
                       echo "storeFile=../signature/briefyou-release.jks"
