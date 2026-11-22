@@ -34,6 +34,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -227,9 +231,67 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
     val ring by animateFloatAsState(c.progress, label = "ring")
     // The tinted colours reach the play button and icons too (the rest of the theme stays).
     MaterialTheme(colorScheme = scheme, typography = MaterialTheme.typography, shapes = MaterialTheme.shapes, motionScheme = MaterialTheme.motionScheme) {
+    // Swipe either way to dismiss: a muted red "Close" pill is uncovered behind the sliding pill, a
+    // light buzz marks the point where letting go closes it (same as the old close button: stops).
+    val haptic = LocalHapticFeedback.current
+    val dragScope = rememberCoroutineScope()
+    val dragX = remember { Animatable(0f) }
+    var boxWidth by remember { mutableStateOf(0) }
+    var armed by remember { mutableStateOf(false) }
+    LaunchedEffect(live != null) { if (live != null) { dragX.snapTo(0f); armed = false } }
+    val dismissAt = boxWidth / 3f
+    Box(
+        modifier = modifier.onSizeChanged { boxWidth = it.width } // Brief You: the caller gives its width and height (the bar group's, see SharedFilterBar)
+            .pointerInput(live != null) {
+                if (live == null) return@pointerInput
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        val past = kotlin.math.abs(dragX.value) > dismissAt
+                        dragScope.launch {
+                            if (past) {
+                                val dir = if (dragX.value > 0) 1f else -1f
+                                if (c.episode) BriefPlayer.stop() else tts?.stop()
+                                dragX.animateTo(dir * boxWidth * 1.1f, tween(180))
+                            } else {
+                                dragX.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = 500f))
+                            }
+                            armed = false
+                        }
+                    },
+                    onDragCancel = { dragScope.launch { dragX.animateTo(0f); armed = false } },
+                ) { change, delta ->
+                    change.consume()
+                    dragScope.launch { dragX.snapTo(dragX.value + delta) }
+                    val now = kotlin.math.abs(dragX.value + delta) > dismissAt
+                    if (now != armed) {
+                        armed = now
+                        if (now) haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    }
+                }
+            },
+    ) {
+    val toRight = dragX.value > 0f
+    Row(
+        modifier = Modifier.matchParentSize().clip(CircleShape)
+            .background(scheme.errorContainer.copy(alpha = if (dragX.value == 0f) 0f else 1f))
+            .padding(horizontal = 22.dp),
+        horizontalArrangement = if (toRight) Arrangement.Start else Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val fade = (kotlin.math.abs(dragX.value) / dismissAt).coerceIn(0f, 1f)
+        Row(
+            Modifier.graphicsLayer { alpha = fade },
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (!toRight) Text(stringResource(R.string.close), style = MaterialTheme.typography.titleSmall, color = scheme.onErrorContainer)
+            Icon(Icons.Rounded.Close, null, tint = scheme.onErrorContainer, modifier = Modifier.size(20.dp))
+            if (toRight) Text(stringResource(R.string.close), style = MaterialTheme.typography.titleSmall, color = scheme.onErrorContainer)
+        }
+    }
     Surface(
         onClick = { if (c.episode && live != null) sheet = true },
-        modifier = modifier, // Brief You: the caller gives its width and height (the bar group's, see SharedFilterBar)
+        modifier = Modifier.fillMaxSize().offset { IntOffset(dragX.value.toInt(), 0) },
         shape = CircleShape,
         color = container,
         contentColor = onContainer,
@@ -291,13 +353,8 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                 // Always on screen: turns for a few seconds after play, then settles.
                 spinFor = 4_000,
             )
-            IconButton(
-                onClick = { if (c.episode) BriefPlayer.stop() else tts?.stop() },
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(Icons.Rounded.Close, stringResource(R.string.player_stop), modifier = Modifier.size(20.dp))
-            }
         }
+    }
     }
     }
     if (sheet && now != null) NowPlayingSheet(onDismiss = { sheet = false })
