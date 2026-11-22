@@ -1,0 +1,71 @@
+package com.ay.briefyou.ui.page.nav3.key
+
+import androidx.compose.runtime.saveable.Saver
+import androidx.navigation3.runtime.NavKey
+import kotlinx.serialization.Serializable
+
+@Serializable
+sealed interface Route : NavKey {
+    // Startup
+    @Serializable data object Startup : Route
+
+    // Home
+    @Serializable data object Feeds : Route
+
+    //    @Serializable data object Flow : Route
+
+    @Serializable
+    data class Reading(val articleId: String?) : Route {
+        companion object {
+            val Saver = Saver<Reading, String>(save = { it.articleId }, restore = { Reading(it) })
+        }
+    }
+
+    // Settings
+    @Serializable data object Settings : Route
+
+    // Accounts
+    @Serializable data object Accounts : Route
+
+    @Serializable data class AccountDetails(val accountId: Int) : Route
+
+    @Serializable data object AddAccounts : Route
+
+    // Color & Style
+    @Serializable data object ColorAndStyle : Route
+
+    @Serializable data object DarkTheme : Route
+
+    @Serializable data object ListsStyle : Route
+
+
+    @Serializable data object ReadingPageStyle : Route
+
+    @Serializable data object ReadingBoldCharacters : Route
+
+    @Serializable data object ReadingPageTitle : Route
+
+    @Serializable data object ReadingPageText : Route
+
+    @Serializable data object ReadingPageMedia : Route
+
+    // Interaction
+    @Serializable data object Interaction : Route
+
+    // AI model // Brief You
+    @Serializable data object AiModel : Route
+
+    @Serializable data object Filters : Route
+
+    @Serializable data object Notifications : Route // Brief You
+
+    @Serializable data object ReadingStats : Route // Brief You
+
+    // Troubleshooting
+    @Serializable data object Troubleshooting : Route
+
+    // Tips & Support
+    @Serializable data object TipsAndSupport : Route
+
+    @Serializable data object LicenseList : Route
+}

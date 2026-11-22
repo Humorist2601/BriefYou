@@ -35,27 +35,10 @@ jobs:
             contents: write
         steps:
             - uses: actions/checkout@v7
-              with:
-                  # Full history, to find the newest Read You change included.
-                  fetch-depth: 0
             - uses: actions/setup-java@v6
               with:
                   distribution: temurin
                   java-version: 17
-
-            - name: Fork check (warnings only)
-              # Every change to a Read You file should be small and marked "Brief You", so Read You
-              # updates merge easily (see .github/fork/). Warns, never fails the build.
-              continue-on-error: true
-              run: |
-                  git fetch -q --no-tags https://github.com/Ashinch/ReadYou.git main || exit 0
-                  base=$(git merge-base HEAD FETCH_HEAD)
-                  if ! python3 .github/fork/fork_check.py check "$base" > fork.txt; then
-                      grep '^- ' fork.txt | head -30 | while read -r line; do
-                          echo "::warning title=Unmarked change to a Read You file::${line#- }"
-                      done
-                  fi
-                  cat fork.txt >> "$GITHUB_STEP_SUMMARY"
 
             - name: Set build number
               # This workflow's run number: 1, 2, 3… (it started again at 1 when the workflow
@@ -78,6 +61,7 @@ jobs:
                       echo "::error title=Signing::No KEYSTORE_BASE64 secret: the build stops instead of using Read You's public key."
                       exit 1
                   fi
+                  mkdir -p signature
                   echo "$KEYSTORE_BASE64" | base64 -d > signature/briefyou-release.jks
                   {
                       echo "storeFile=../signature/briefyou-release.jks"
@@ -103,33 +87,33 @@ jobs:
               # BriefYou-<version>-<commit>.apk (0.16.2.36, or 0.16.2.137-nightly). AGP 9 removed the
               # old variant API the build file used to name it with.
               run: |
-                  readyou=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
+                  version=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
                   suffix=""; [ "$VARIANT" = "nightly" ] && suffix="-nightly"
                   dir="app/build/outputs/apk/github/$VARIANT"
                   for f in "$dir"/*.apk; do
-                      mv "$f" "$dir/BriefYou-${readyou}.${CI_BUILD_NUMBER}${suffix}-$(git rev-parse --short HEAD).apk"
+                      mv "$f" "$dir/BriefYou-${version}.${CI_BUILD_NUMBER}${suffix}-$(git rev-parse --short HEAD).apk"
                   done
                   ls "$dir"
             - name: Summarise warnings
-              # Kotlin warnings, Brief You's (brief/ and its copies) and Read You's, as a few
-              # annotations (readable from the GitHub API) and a table in the summary.
+              # Kotlin warnings: how many (should be 0), the most common kinds, and the warnings
+              # themselves as annotations (readable from the GitHub API), Brief You's newest code
+              # (brief/) first.
               if: always()
               continue-on-error: true
               run: |
                   grep -E '^w: ' build.log | sed -E "s#file://$GITHUB_WORKSPACE/##; s#^w: ##" | sort -u > warnings.txt || true
                   total=$(wc -l < warnings.txt)
-                  brief=$(grep -cE '^app/src/main/java/me/ash/reader/brief/' warnings.txt || true)
                   {
-                      echo "### Kotlin warnings"
+                      echo "### Kotlin warnings: $total (should be 0)"
                       echo
-                      echo "- **Brief You's own code: $brief** (should be 0; listed in the annotations)"
-                      echo "- Read You's code: $((total - brief)) (left to Read You on purpose: see README, How Brief You is organised)"
+                      if [ "$total" -gt 0 ]; then
+                          echo "| Count | Kind |"
+                          echo "|---:|---|"
+                          sed -E "s/^[^ ]+ //; s/'[^']*'/…/g" warnings.txt | cut -c1-90 | sort | uniq -c | sort -rn | head -10 \
+                              | awk '{n=$1; $1=""; sub(/^ /, ""); gsub(/\|/, "\\|"); print "| " n " | " $0 " |"}'
+                      fi
                   } >> "$GITHUB_STEP_SUMMARY"
-                  # Brief You's own first (these are the ones to fix), then Read You's deprecated
-                  # library calls, as annotations readable from the GitHub API.
-                  grep -E '^app/src/main/java/me/ash/reader/brief/' warnings.txt > fix.txt || true
-                  grep -vE '^app/src/main/java/me/ash/reader/brief/' warnings.txt \
-                      | grep 'is deprecated' | grep -v 'type-safe PreferencesKey' >> fix.txt || true
+                  { grep -E '^app/src/main/java/com/ay/briefyou/brief/' warnings.txt; grep -vE '^app/src/main/java/com/ay/briefyou/brief/' warnings.txt; } > fix.txt || true
                   split -l 12 -d fix.txt part_ || true
                   n=0
                   for f in part_*; do
@@ -150,7 +134,7 @@ jobs:
 
             - uses: actions/upload-artifact@v7
               with:
-                  name: ReadYou-GitHub-Build-${{ github.sha }}
+                  name: BriefYou-GitHub-Build-${{ github.sha }}
                   path: app/build/outputs/apk/github/${{ env.VARIANT }}/*.apk
 
             - uses: actions/upload-artifact@v7
@@ -168,7 +152,7 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   apk=$(ls app/build/outputs/apk/github/nightly/*.apk | head -1)
-                  readyou=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
+                  version=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
                   {
                       echo "Brief You Nightly: a test build of \`${{ github.ref_name }}\` at ${GITHUB_SHA::7}. It installs next to Brief You, with its own data."
                       echo
@@ -177,7 +161,7 @@ jobs:
                   } > notes.md
                   gh release delete nightly --cleanup-tag --yes 2>/dev/null || true
                   gh release create nightly "$apk" \
-                      --title "Brief You Nightly ${readyou}.${CI_BUILD_NUMBER}" \
+                      --title "Brief You Nightly ${version}.${CI_BUILD_NUMBER}" \
                       --notes-file notes.md \
                       --target "$GITHUB_SHA" \
                       --prerelease \
@@ -190,22 +174,12 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   apk=$(ls app/build/outputs/apk/github/release/*.apk | head -1)
-                  # Read You's version (from its line in the build file) plus the build number:
+                  # The app's version (from its line in the build file) plus the build number:
                   # 0.16.2.102, the same as the app's version.
-                  readyou=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
-                  tag="${readyou}.${CI_BUILD_NUMBER}"
-                  # The newest Read You change included, and the last check for new ones.
-                  included="unknown"
-                  if git fetch -q --no-tags https://github.com/Ashinch/ReadYou.git main; then
-                      included=$(git log -1 --format=%cd --date=format:'%b %-d, %Y' "$(git merge-base HEAD FETCH_HEAD)")
-                  fi
-                  checked=$(gh api "repos/${{ github.repository }}/actions/workflows/sync.yaml/runs?status=success&per_page=1" \
-                      -q '.workflow_runs[0].updated_at // empty' 2>/dev/null | cut -c1-10 || true)
-                  [ -n "$checked" ] && checked=$(date -d "$checked" '+%b %-d, %Y') || checked="never"
+                  version=$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
+                  tag="${version}.${CI_BUILD_NUMBER}"
                   {
                       echo "Automatic build of \`${{ github.ref_name }}\` at ${GITHUB_SHA::7}."
-                      echo
-                      echo "Based on **Read You ${readyou}**: includes Read You's changes up to ${included} (last checked for updates ${checked})."
                       echo
                       echo "### Changes"
                       git log -1 --format='%s%n%n%b' | grep -vE '^(Co-Authored-By|Claude-Session):'

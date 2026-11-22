@@ -12,7 +12,7 @@ in [§9](#9-pending-work-the-baseline).
 
 ## 1. What Brief You is
 
-- An Android RSS reader: a **fork of [Read You](https://github.com/ReadYouApp/ReadYou)** by Ashinch
+- An Android RSS reader: **built on [Read You](https://github.com/ReadYouApp/ReadYou)** by Ashinch (now its own app)
   (Kotlin, Jetpack Compose, Material 3), redesigned with **Material 3 Expressive** and extended
   with its own features: Triage, on-device AI (Gemma), read aloud, a calmer digest notification,
   muted keywords and duplicate hiding, Read Later, reading stats, backup and more.
@@ -20,7 +20,7 @@ in [§9](#9-pending-work-the-baseline).
 - Repository: **github.com/Humorist2601/BriefYou** (owner: Humorist2601). Branch `main` is the
   released app.
 - App IDs: **`com.ay.briefyou`** (release), **`com.ay.briefyou.nightly`** (test builds, installs
-  next to it). The code's Kotlin package is still Read You's `me.ash.reader` (on purpose, see §3).
+  next to it). The code's Kotlin package is `com.ay.briefyou` (renamed from Read You's `me.ash.reader` in 0.16.2.163; see step 17).
 - Phones: Android 8.0+ (minSdk 26), 64-bit ARM only (`arm64-v8a`), targetSdk 34, compileSdk 36.
 - The owner uses: a **Local account** (no sync service), ~300–400 articles a day, Triage first
   thing, GrapheneOS on a Pixel 9 Pro (Android 16).
@@ -46,6 +46,9 @@ These are the owner's standing preferences. A new assistant should follow them.
    ones; remake it whenever the screenshots change.
 4. **Watch every build to the end.** After a push, follow the GitHub Actions run until it
    finishes; read failures, fix them, push again, and report the result (and the release name).
+   **"Commit and build"** from the owner means all of it, every time: commit, push once, watch the build to
+   the end, send the APK (check its name has the new commit hash), and list everything the owner should
+   test on it.
 5. **Plain language** in replies: what changed and what the owner will notice, not jargon.
 6. **Commit messages:** a short title, then bullet points of what changed for the user. Commits
    have been authored as `Claude <noreply@anthropic.com>` (owner's choice); keep or change that
@@ -55,13 +58,13 @@ These are the owner's standing preferences. A new assistant should follow them.
 8. When the owner says something "causes more issues", remove it entirely rather than patching
    around it.
 9. **New screens and sheets look like the existing ones** (the owner wants Brief You to feel
-   cohesive, down to the last corner). Pages: `RYScaffold` with the collapsing `DisplayText`
+   cohesive, down to the last corner). Pages: `BYScaffold` with the collapsing `DisplayText`
    title, the tonal back circle, hero cards (32 dp), cards and tiles (28 dp). Connected lists come
    from `brief/ui/Groups.kt`: `groupShape` (24 dp outer, 6 dp inner) on pages and sheets,
    `nestedGroupShape` (16 / 4) inside dialogs and cards, rows `Group.Gap` (3 dp) apart. Bottom
    sheets: a Title Large title (normal weight), an optional Body Medium muted subtitle, a divider,
    24 dp sides, opened fully (`skipPartiallyExpanded`; the AI sheet's 70 % is the one exception).
-   Dialogs: `InWindowAlertDialog` (Read You's `RYDialog` draws through it), the standard title, no
+   Dialogs: `InWindowAlertDialog` (Read You's `BYDialog` draws through it), the standard title, no
    icon. Labels: pills (`RoundedCornerShape(50)`), Label Medium, 10 × 4 dp padding; tertiary for
    what's yours or watched, neutral for plain info. Tiles, cards, banners (Read You's `Banner`: the Starred / Unread / All
    openers and the Settings banners; their icon sits on a turning cookie, `BannerCookie`, and the openers' arrow
@@ -89,7 +92,7 @@ These are the owner's standing preferences. A new assistant should follow them.
    (Speed adds quick picks); the Sponsor sheet is in the same design. Add a feed is a floating dialog
    (`AddFeedDialog`) using the same `FeedOptions`, in its own window like the sheets' dialogs (in the app's window
    the keyboard's slide re-laid out the feeds page every frame). `SubscribeState.Configure` compares its `SyndFeed` by
-   identity: Rome's reflective `equals` over every entry made each tap in the found-feed dialog lag. Every `InWindowAlertDialog` (so RYDialog and
+   identity: Rome's reflective `equals` over every entry made each tap in the found-feed dialog lag. Every `InWindowAlertDialog` (so BYDialog and
    TextFieldDialog too) is drawn in a full-screen window of its own that doesn't move for the keyboard: the
    dialog moves above it inside, the cursor's handle stays put, and nothing behind is re-laid out per keyboard
    frame. `DialogHost` now only carries `ScreenOverlay`; `OptionSheetDialogs` is kept but no longer needed. Read You's `FeedOptionView` and `BottomDrawer` are no longer used
@@ -99,44 +102,32 @@ These are the owner's standing preferences. A new assistant should follow them.
 
 ---
 
-## 3. How the fork is organised (important)
+## 3. How Brief You relates to Read You (important)
 
-Brief You stays mergeable with Read You's ongoing development. Three rules make that work:
+Brief You is **built on Read You** (GPL-3.0) but **no longer follows it** (since 17 November 2026,
+0.16.2.38: Read You had been quiet since 12 August, Brief You had changed 122 of its files, and
+merging had become unrealistic). Read You's code that Brief You uses is now simply Brief You's
+code: change it like any other file. Keep the GPL-3.0 licence, Read You's copyright notices and
+the credit in the README and the About screen.
 
-1. **Brief You's own code lives in `app/src/main/java/me/ash/reader/brief/`** (and its own
+1. **Brief You's own code lives in `app/src/main/java/com/ay/briefyou/brief/`** (and its own
    resources: `res/values/strings_fork.xml`, `res/values/themes_fork.xml`, drawables named
-   `ic_shortcut_*` etc.). Read You never touches these, so they never conflict.
-2. **Read You's files are changed only with small hooks**, and **every changed block must contain
-   the words `Brief You`** (a `// Brief You` comment on the line, or `<!-- Brief You … -->`,
-   `# Brief You` in TOML). That way a merge conflict always shows whose line is whose.
-3. **Rewritten Read You files** have a Brief You copy instead; Read You's original stays unused
-   and untouched. The list is in **`.github/fork/copies.txt`** (e.g. Read You's
-   `NotificationHelper.kt` → `brief/notifications/NotificationHelper.kt`, `RYWebView.kt` →
-   `brief/webview/RYWebView.kt`, `BottomBar.kt` → `brief/reading/ReadingBar.kt`).
+   `ic_shortcut_*` etc.). New code still goes there.
+2. **Read You's files** can be edited freely. The old `// Brief You` comments on earlier hooks stay
+   as useful notes; they are no longer required or checked.
+3. **Unused Read You code** is being removed over time (§9, item 19), each piece checked first. The
+   11 Read You files Brief You had replaced with its own copies were deleted in November 2026.
 
-**Checking it:** `.github/fork/fork_check.py`
-
-```sh
-# Base = the Read You commit Brief You is built on (currently d2b979cc).
-# Find it again with: git fetch https://github.com/Ashinch/ReadYou.git main && git merge-base HEAD FETCH_HEAD
-FORK_WORKTREE=1 python3 .github/fork/fork_check.py check d2b979cc   # includes uncommitted edits
-```
-
-It must say "All changes to Read You's files are marked". Every CI build runs it too (as
-warnings). About 67 Read You files have marked hooks today (MainActivity, FlowPage, FeedsPage,
-ReadingPage, SyncWorker, RssHelper, the account services, AndroidManifest, build.gradle.kts, …).
-
-**Read You updates:** the **`sync.yaml`** workflow runs daily (03:17 UTC), merges Read You's new
-commits into a **`read-you-sync`** branch and opens/updates a pull request called *Read You
-update*, with a merge-risk report (which hooked/copied files Read You changed). Nothing is built
-or released until the owner merges it. If Read You changed a file listed in `copies.txt`, copy
-the fix over into the Brief You copy by hand. If the merge conflicts, the run fails and lists the
-files. For the PR to open by itself: *Settings → Actions → General → Allow GitHub Actions to
-create and approve pull requests*.
+**Read You watch:** the **`readyou-watch.yaml`** workflow runs on Mondays (04:43 UTC) and, when Read
+You has new commits, opens or updates one Issue, *Read You changes to look at* (`.github/readyou_watch.py`):
+new releases first, then commits touching account syncing, feed parsing, the database or security,
+then the rest; translation-only commits are counted. Nothing is merged. Copy over by hand what's
+worth having, then close the Issue (its `reviewed-up-to` note is where the next look starts; before
+any Issue, it starts from `d2b979cc`, Read You's last commit included in Brief You).
 
 ---
 
-## 4. Code map — `app/src/main/java/me/ash/reader/brief/`
+## 4. Code map — `app/src/main/java/com/ay/briefyou/brief/`
 
 | Folder | What's there |
 | --- | --- |
@@ -146,25 +137,25 @@ create and approve pull requests*.
 | `data/` | `BriefArticleDao.kt`: Brief You's own Room queries (Read You's DB lists it with one line). |
 | `feeds/` | Swipeable Starred/Unread/All pages on Feeds (`BriefFeeds.kt`, `FilterFeedLists.kt` — lists stay live with `SharingStarted.Eagerly` so returning never shows stale groups), feed/group sort (`FeedOrdering`, `FeedSort`), feed accent colours from icons (`FeedAccent`; a white or grey icon keeps its faint tint, muted, and a colourless article picture gives a muted reading page; an unreadable icon or picture keeps Brief You's own colours), custom feed icons (`FeedIconOverrides`, `FeedIconDialog`), the feed's own picture vs the website's icon (`FeedPictures`: noted by feed address in prefs `brief_feed_pictures` when a feed is found and on each local sync, from its RSS image / Atom logo, iTunes cover or Atom icon; `IconSourceButtons`, the joined "Feed's picture" | "Website icon" in Add a feed and Change icon; a chosen picture is kept as a `FeedIconOverrides` value (its address), so it survives syncs that rewrite icons; Add a feed's choice is noted by address and becomes an override at the next `reapply`; feeds added earlier get the choice once a local sync notes their picture), weekly retry for missing site icons (`IconLookups`); the website icon is found by `SiteIconFinder` (replaces Read You's `BestIconFinder` in `RssHelper.queryRssIconLink`): home-screen icons, the web app manifest's icons, favicons, `/apple-touch-icon.png` and `/favicon.ico`, measured (the biggest roughly square one up to 256 px wins; never og:image or Safari's mask-icon). Sheets use `rememberFullSheetState()` and sliders `BriefSlider` (`brief/ui/SheetParts.kt`), Material 3 1.5's replacements for the deprecated calls. |
 | `filters/` | Muted keywords and duplicate stories (`BriefFilters.kt`), the Filters screen with the "recently filtered" log and Undo. |
-| `list/` | Article list additions: `BriefFlow.kt` (Triage/gist state), `FlowFab.kt` (AI gist / Triage pill), `InboxZero.kt`. |
+| `list/` | Article list additions: `BriefFlow.kt` (Triage/gist state, `briefAiActions` for the AI button), `InboxZero.kt`. |
 | `offline/` | **Offline copies of starred articles** (Read later and Triage saves are starred too). `OfflineCopies.kt`: stores the full text (feeds set to Full content) in `files/offline/text` and each picture once, by address hash, in `files/offline/images` (+ `.type` file), with a per-article list in `lists/`; `prune` removes copies of unstarred articles and unused pictures. `OfflineWorker.kt`: WorkManager job (setting `OfflineCopies.Mode`: Off, Mobile, Wifi (default) or Both, chosen in Account → Syncing: `OfflineSettingsItem.kt`; Off cancels the job). `AndroidApp` watches the starred ids (debounced 2 s) and schedules it, so starring, old stars after the update, and app start all use one path. Offline use: `webview/WebViewClient.kt` serves a stored picture before the network; `ReaderCacheHelper.readFullContent` falls back to the stored text. Stored outside the cache on purpose (Android may clear caches). |
 | `media/` | `ArticleMedia.kt`: an article's podcast episode or video, episode picture and length, and comments link (`ArticleExtras`), plus playback positions, in a small Room database of Brief You's own (`brief_media`, version 1, so Read You's tables and schema stay as they are). Filled by `FeedMedia.fromSyndEntry` (hooked into `RssHelper.buildArticleFromSyndEntry`: RSS enclosures, Media RSS, iTunes tags, `<comments>`) and `fromEnclosures` (the Google Reader sync's `enclosure` list). Articles from before: the audio or video file sits in `Article.img` (Read You took the first attachment as the picture), so `ArticleMedia.of` falls back to it, and `MediaFiles` keeps such files out of pictures (`FeedContent.listImage`, Triage, offline copies, `RssHelper.findThumbnail`). |
-| `player/` | **The podcast and video player** (Media3 1.11). `PlayerService` (a `MediaSessionService`: ExoPlayer, its own media notification with back/forward 30 s, speed and stop as custom session commands; its session activity follows the playing article via `PlayerIntents`, which read aloud's notification uses too; `MainActivity` leaves an already open article as it is and keeps the list's filter for these; it keeps Read You's half-second wait before opening a different article: adding the new reading entry in the same frame as removing the old one put the list/reader scaffold's shared navigator in two transitions at once and crashed ("SeekableTransitionState has been used in different Transitions"); read aloud keeps `ReadAloudService`). `http://` media are played as `https://`; a playback error sets `State.error` (the card and sheet show Try again / Open in browser). Notification: ±30 in the back/forward slots, speed and stop as overflow custom commands; speed icons are our own number drawables for every speed (`SpeedIcons`, `ic_brief_speed_*`, made from Poppins Bold at one size), used by read aloud too. The service keeps the place itself on pause and stop. Each notification has its own tap link (`PlayerIntents.open(readAloud =)`). `play()` uses a token so a slower earlier load can't win. Media RSS `medium` isn't trusted for web pages or Flash (`MediaFiles.isPage`). A chosen feed picture follows the feed's new cover in `reapply`. Android's playback resumption: `onPlaybackResumption` returns the last item at its kept speed and attaches the app (`BriefPlayer.attach`) (`BriefPlayer.lastItem`, prefs `last_*`), with Media3's `MediaButtonReceiver` in the manifest; `BriefPlayer.adopt` takes over an item the app didn't start. Motion: the card's play button and wave only move while the card is on screen (`onGloballyPositioned`), the pill's button turns for 4 s after play (`spinFor`) and settles on one of the cookie's nine turns. The sleep timer's end moves on while paused. Sheets and full screen close when picture-in-picture starts. Video shapes are kept per article (prefs `brief_video_shapes`); `BriefSync.afterSync` forgets shapes, attachments and places of removed articles. The player's database exports its schema (CI uploads it as the `brief-schemas-<sha>` artifact; commit it to `app/schemas` when it changes, and write a migration instead of relying on the destructive fallback). The speed number icons come from `tools/make_speed_icons.py`. Only Brief You, its notification and Android's trusted controllers can connect to the player session. Feed-given addresses are web-only (`WebUrl`). One shared speed sheet and label (`brief/ui/SpeedSheet.kt`) for read aloud and the player. The bottom bar and video host watch only the parts of the player and read aloud state they need. Item details found while reading feeds are held in memory (`ArticleMedia.found` → `flush`, three tries 5 s apart) and only saved for items that became articles. Add a feed only keeps a feed's picture on subscribe (`FeedPictures.foundForAdding` / `keep`); deleting a feed removes its custom icon, image file and picture (`FeedIconOverrides.feedDeleted`). `BriefCleanup.sweepIfDue` (after a sync, as often as the account's Keep archived articles, monthly for Always) sweeps what else is gone: attachments/places/shapes of missing articles, the resume item, custom icons and image files of missing feeds, noted pictures of missing feeds, group icons and pictures of missing groups (deleting a group or choosing its website icon removes them at once), website-icon failures older than a week, Read You's saved full-text pages (`cache/readability/<account>/<sha256(id)>.html`) of missing articles, and what deleted accounts left (their pages, `cache/diff/<account>`, their `feed_order` key). Once after an update (not waiting for the sweep): the old feed-colour caches, and the `archived_article` notes of accounts that aren't local. **Cleared-article notes:** Read You keeps the link of every cleared article (`archived_article`) so a local feed doesn't add it again, and never forgot them. Now only local accounts keep them (`clearKeepArchivedArticles`), and `ArchivedLinks.tidy` (after each local feed's sync) forgets a link once the feed hasn't listed it for 5 syncs in a row and at least 3 days; a feed that lists nothing (couldn't be read) isn't counted. The counts are in the player database (`archived_miss`, version 2, an AutoMigration from 1). Read You's database is at version 9: `MIGRATION_8_9` adds the `archived_article.feedId` index. Version 8's schema file was never kept, and the 7 → 8 AutoMigration needs it once there is a 9: `app/schemas/…AndroidDatabase/8.json` is rebuilt from 7.json plus 8's two article indexes (its identity hash is a stand-in; only the tables matter for migrations). If Read You adds database versions of its own, renumber ours when merging. CI now uploads every schema (`brief-schemas-<sha>`); commit the new ones to `app/schemas`. **Opening an article with an episode or video doesn't mark it read** (`ArticleListReaderViewModel.markOpened`, `ArticleMedia.keepsUnread`); the player marks episodes and videos read past the chosen share. `BriefPlayer` (the app's side, a `MediaController`: state, play/resume from the saved position, speed in prefs `brief_player` (`speed` for podcasts, `speed_video` for videos), sleep timer with a fade, mark episodes and videos as read past the chosen share; pauses read aloud, and read aloud's `read`/`resume` pause it). `PlayerUi.kt`: the article's card (`ArticleMediaCard`, in `Content`'s `afterHeadline` slot), the speed sheet and the sleep timer sheet (separate, opening fully expanded; the speed pill and the moon are the same size), the Expressive `PlayButton` (Twine's: circle → turning `Cookie9Sided` morph, bouncy size, `primary` → `primaryContainer`), `MediaControls` (the other buttons spring in, each in its own weighted slot so play stays centred), `NowPlayingPill` + `NowPlayingSheet` (drawn above the shared bottom bar; `FilterBarSpace` keeps room for it so lists and the AI gist / Triage button move up; the pill's bottom padding is `FloatingBarGap - FILTER_BAR_TOP_PADDING` so the gaps above and below it are both 12 dp; it keeps its last content while sliding away). The reading bar's read aloud button stays read aloud. `VideoUi.kt`: `VideoFrame` (the video in its own shape, capped at 3:4, with PiP and full screen on its corner; in the card and in `NowPlayingSheet`, which takes the picture while open via `VideoWindow.inSheet`), full screen (a dialog, sideways) and picture-in-picture (`VideoHost` in `BriefRoot`; `MainActivity` handles size changes itself and supports PiP). `PlayerSettings.kt`: *Usage → Audio and video*. |
+| `player/` | **The podcast and video player** (Media3 1.11). `PlayerService` (a `MediaSessionService`: ExoPlayer, its own media notification with back/forward 30 s, speed and stop as custom session commands; its session activity follows the playing article via `PlayerIntents`, which read aloud's notification uses too; `MainActivity` leaves an already open article as it is and keeps the list's filter for these; it keeps Read You's half-second wait before opening a different article: adding the new reading entry in the same frame as removing the old one put the list/reader scaffold's shared navigator in two transitions at once and crashed ("SeekableTransitionState has been used in different Transitions"); read aloud keeps `ReadAloudService`). `http://` media are played as `https://`; a playback error sets `State.error` (the card and sheet show Try again / Open in browser). Notification: ±30 in the back/forward slots, speed and stop as overflow custom commands; speed icons are our own number drawables for every speed (`SpeedIcons`, `ic_brief_speed_*`, made from Poppins Bold at one size), used by read aloud too. The service keeps the place itself on pause and stop. Each notification has its own tap link (`PlayerIntents.open(readAloud =)`). `play()` uses a token so a slower earlier load can't win. Media RSS `medium` isn't trusted for web pages or Flash (`MediaFiles.isPage`). A chosen feed picture follows the feed's new cover in `reapply`. Android's playback resumption: `onPlaybackResumption` returns the last item at its kept speed and attaches the app (`BriefPlayer.attach`) (`BriefPlayer.lastItem`, prefs `last_*`), with Media3's `MediaButtonReceiver` in the manifest; `BriefPlayer.adopt` takes over an item the app didn't start. Motion: the card's play button and wave only move while the card is on screen (`onGloballyPositioned`), the pill's button turns for 4 s after play (`spinFor`) and settles on one of the cookie's nine turns. The sleep timer's end moves on while paused. Sheets and full screen close when picture-in-picture starts. Video shapes are kept per article (prefs `brief_video_shapes`); `BriefSync.afterSync` forgets shapes, attachments and places of removed articles. The player's database exports its schema (CI uploads it as the `brief-schemas-<sha>` artifact; commit it to `app/schemas` when it changes, and write a migration instead of relying on the destructive fallback). The speed number icons come from `tools/make_speed_icons.py`. Only Brief You, its notification and Android's trusted controllers can connect to the player session. Feed-given addresses are web-only (`WebUrl`). One shared speed sheet and label (`brief/ui/SpeedSheet.kt`) for read aloud and the player. The bottom bar and video host watch only the parts of the player and read aloud state they need. Item details found while reading feeds are held in memory (`ArticleMedia.found` → `flush`, three tries 5 s apart) and only saved for items that became articles. Add a feed only keeps a feed's picture on subscribe (`FeedPictures.foundForAdding` / `keep`); deleting a feed removes its custom icon, image file and picture (`FeedIconOverrides.feedDeleted`). `BriefCleanup.sweepIfDue` (after a sync, as often as the account's Keep archived articles, monthly for Always) sweeps what else is gone: attachments/places/shapes of missing articles, the resume item, custom icons and image files of missing feeds, noted pictures of missing feeds, group icons and pictures of missing groups (deleting a group or choosing its website icon removes them at once), website-icon failures older than a week, Read You's saved full-text pages (`cache/readability/<account>/<sha256(id)>.html`) of missing articles, and what deleted accounts left (their pages, `cache/diff/<account>`, their `feed_order` key). Once after an update (not waiting for the sweep): the old feed-colour caches, and the `archived_article` notes of accounts that aren't local. **Cleared-article notes:** Read You keeps the link of every cleared article (`archived_article`) so a local feed doesn't add it again, and never forgot them. Now only local accounts keep them (`clearKeepArchivedArticles`), and `ArchivedLinks.tidy` (after each local feed's sync) forgets a link once the feed hasn't listed it for 5 syncs in a row and at least 3 days; a feed that lists nothing (couldn't be read) isn't counted. The counts are in the player database (`archived_miss`, version 2, an AutoMigration from 1). Read You's database is at version 9: `MIGRATION_8_9` adds the `archived_article.feedId` index. Version 8's schema file was never kept, and the 7 → 8 AutoMigration needs it once there is a 9: `app/schemas/…AndroidDatabase/8.json` is rebuilt from 7.json plus 8's two article indexes (its identity hash is a stand-in; only the tables matter for migrations). If Read You adds database versions of its own, renumber ours when merging. CI now uploads every schema (`brief-schemas-<sha>`); commit the new ones to `app/schemas`. **Opening an article with an episode or video doesn't mark it read** (`ArticleListReaderViewModel.markOpened`, `ArticleMedia.keepsUnread`); the player marks episodes and videos read past the chosen share. `BriefPlayer` (the app's side, a `MediaController`: state, play/resume from the saved position, speed in prefs `brief_player` (`speed` for podcasts, `speed_video` for videos), sleep timer with a fade, mark episodes and videos as read past the chosen share; pauses read aloud, and read aloud's `read`/`resume` pause it). The player's UI is in four files: `PlayerUi.kt` (the article's card, `ArticleMediaCard`, in `Content`'s `afterHeadline` slot; `SeekRow`, `PlayError`), `PlayerControls.kt` (play, skip, speed pill, seek bar, artwork), `PlayerSheets.kt` and `NowPlaying.kt`. The speed sheet and the sleep timer sheet (separate, opening fully expanded; the speed pill and the moon are the same size), the Expressive `PlayButton` (Twine's: circle → turning `Cookie9Sided` morph, bouncy size, `primary` → `primaryContainer`), `MediaControls` (the other buttons spring in, each in its own weighted slot so play stays centred), `NowPlayingPill` + `NowPlayingSheet` (drawn above the shared bottom bar; `FilterBarSpace` keeps room for it so lists move up; the pill's bottom padding is `FloatingBarGap - FILTER_BAR_TOP_PADDING` so the gaps above and below it are both 12 dp; it keeps its last content while sliding away; its width is the widest bar group's (`WidestGroupWidth`, measured in `SharedFilterBar`), its height the bottom bar's; read aloud shows here too and **keeps going after its article is closed** (no stop on close any more): its picture is the feed's icon (`FeedIcon`, its letter when none, the sound wave only without a feed; `TextToSpeechManager.feedName/feedIcon`, set by `readHtml`), tapping it opens the article through `PlayerIntents.open`; `Artwork(fillIcon = true)` draws feed icons full circle in the pill; the pill and the sheet are tinted by the cover's picture scheme (`rememberCoverScheme`: cover, else the feed icon); a long title scrolls while playing; **swipe the pill either way to close it**: a muted `errorContainer` "✕ Close" reveal sits behind it, a light haptic marks the dismiss line (a third of the width), release past it stops playback/read aloud like the old close button, which no longer exists). The reading bar's read aloud button stays read aloud. `VideoUi.kt`: `VideoFrame` (the video in its own shape, capped at 3:4, with PiP and full screen on its corner; in the card and in `NowPlayingSheet`, which takes the picture while open via `VideoWindow.inSheet`), full screen (a dialog, sideways) and picture-in-picture (`VideoHost` in `BriefRoot`; `MainActivity` handles size changes itself and supports PiP). `PlayerSettings.kt`: *Usage → Audio and video*. |
 | `webview/YouTubeCards.kt` | **YouTube cards**: the reading web view replaces embedded YouTube players (`embed/`, `v/`, `shorts/`, also youtube-nocookie) with a card (thumbnail `i.ytimg.com/vi/<id>/hqdefault.jpg`; in the middle a wide play tile in `--link-text-color` with a "YouTube" chip under it; Videos corners/padding; no YouTube logo or red, which is their trademark) by script before the picture placeholders; a tap (and any YouTube watch link) opens a plain `ACTION_VIEW` so the YouTube app takes it. Why: YouTube refuses embeds without a Referer ("Error 153"), and the page is loaded with no base URL; giving it one would block `http` pictures (mixed content) and the phone font. The picture-tap script and placeholders skip `.brief-yt`. The text-only reader already did this (Read You's `VideoTagHunter`). |
 | list position | **Back from an article** (single pane) the list pane is composed again, so `FlowPage`'s return effect runs every time: it leaves the list alone if the article's row is fully on screen, else jumps to it. It used to compare and jump by the paging item number, but with pinned (sticky) date headings a day's gap above its heading is a row of its own in the `LazyColumn`, so the list's row numbers run ahead: the row was never "on screen" and the jump landed a screen or so higher each time. It now finds the row by its key (the article id) and scrolls to the list's own row (`brief/list/ListIndex.kt` `lazyIndexOf`; two-pane uses it too). Nightly stutter log notes: "list: article opened from row", "list: shown at row", "list: moved by itself from … to …". |
 | `notifications/` | **The digest** (`NotificationHelper.kt`): one notification per sync, stored in SharedPreferences, posted once after the sync. InboxStyle list, one line per feed ("Variety (5) · newest title"); **Android 16 shows at most 6 lines and ignores bold**, so >6 feeds = 5 lines + "+N more: …". Buttons: Mark all read (`DigestActionReceiver`) and Triage. |
-| `readaloud/` | Text-to-speech by sentences with a media notification/lock-screen controls (`ReadAloudService`), progress ring buttons. |
+| `readaloud/` | Text-to-speech by sentences with a media notification/lock-screen controls (`ReadAloudService`: a Media3 `MediaSession` over `ReadAloudPlayer`, a `SimpleBasePlayer` that only reports what `TextToSpeechManager` does; speed and stop as custom commands; only Brief You and Android's trusted controllers connect), progress ring buttons. |
 | `reading/` | The reading page: colours from the article picture (`BriefReading.kt`), header, top bar, floating reading bar, next-article card, image viewer, reading time (`ReadingTime.kt`, one-pass counter), **`FeedContent.kt`** (tidies every article's HTML: complete URLs, removes share junk, lead-picture split; cached with `prepared()`, done off the main thread with `forReaderInBackground()`), **`EmailContent.kt`** (newsletters read as feeds: detects emails, turns layout tables into plain blocks, removes hidden preheaders/Outlook XML/pixels/social/footers, makes big text headings, no lead picture; `adjust()` is hooked into `RssHelper.buildArticleFromSyndEntry` for the list text, picture, author and the "view in browser" link), screen transitions (`PaneTransitions.kt`). |
 | `readlater/` | **Read Later**: `ReadLaterActivity` (Share menu entry "Read Later": fetches the page, saves it starred+unread with full text into a never-synced **Saved Articles** feed, shows a sheet that closes after 3 s). `ReadLater.kt` does the saving. Local accounts only. The saved feed has URL `briefyou://saved-for-later`; `LocalRssService` and OPML export skip it. Its icon is `icon:bookmark`, drawn by `FeedIcon.kt`. |
 | `splash/` | Animated splash (card stack). |
-| `tour/` | `BriefTour.kt`: the first-run tour (replaces Read You's welcome page through one hook in `AppEntry`'s `Route.Startup`, which takes the tour off the back stack when you start, so back on Feeds closes the app; the tour (first run and from Tips & support) opens with a Restore page and then the AI page (the two with *Later*, together): Restore takes the zip from *Back up everything* (`BackupService.restore` through `TourEntryPoint`, the same as an account's *Restore from backup*) or, still, a settings JSON from Troubleshooting's *Export as JSON*; the agreement is on its last page) and a tour button in *Settings → Tips & support* (a full-screen dialog). `BriefHints.kt`: one-time hint bubbles (`BriefHint`, a `Popup` placed against its parent Box; one at a time; remembered in `brief_hints` prefs, with one shared change counter so every bubble sees *Got it*); `ShowHintsAgain` (under the round buttons in Tips & support) resets them. |
+| `tour/` | `BriefTour.kt`: the first-run tour (replaces Read You's welcome page through one hook in `AppEntry`'s `Route.Startup`, which takes the tour off the back stack when you start, so back on Feeds closes the app; the tour (first run and from Tips & support) opens with a Restore page and then the AI page (the two with *Later*, together): Restore takes the zip from *Back up everything* (`BackupService.restore` through `TourEntryPoint`, the same as an account's *Restore from backup*) or a settings JSON file; the agreement is on its last page) and a tour button in *Settings → Tips & support* (a full-screen dialog). `BriefHints.kt`: one-time hint bubbles (`BriefHint`, a `Popup` placed against its parent Box; one at a time; remembered in `brief_hints` prefs, with one shared change counter so every bubble sees *Got it*); `ShowHintsAgain` (under the round buttons in Tips & support) resets them. |
 | `share/` | `Newspaper.kt`: an article as a newspaper front page (hold Share on the reading page, or the list's long-press menu). One `NewspaperMaker` lives in `BriefNavigationHost` (`LocalNewspaperMaker`); it runs the steps (full text via `ArticleText`, *In brief* via `summarizeForCard`, the page), shows `PressSheet` after 0.5 s, and takes the picture off screen. The picture is a toned black-and-white photo with a faint dot screen, drawn on the CPU; the page is straight, cut with a transparent zig-zag top and bottom, and captured with `OffscreenPictureAt` at a fixed 1600 px (a 400 dp page at 4×, font scale 1). `BriefYouMark` on shared pictures is the themed-icon glyph in the accent colour on a cookie; the newspaper's is black and white on a squircle. Masthead: Literata at weight 900. |
 | `stats/` | Reading stats page and data; `MonthRecap.kt` is the monthly recap (Stats card, Past months, home row). `YearRecap.kt` is the year in review (first week of January in place of December's card, then first under Past months); it reuses the month card's heading, tiles and rows. Days also count opens per feed and filtered articles (for the recap). |
-| `ai/Translation.kt` | **Translate an article** with Gemma. `TranslationState` (per article, reset when the article changes): parses the shown HTML with Jsoup, translates the title and the leaf text blocks (`p, h1–h6, li, figcaption, blockquote, td, th`) in batches as numbered paragraphs (`[3] text`, `GemmaSummarizer.translate`): a small first batch (450 characters) so words show quickly, then about 1,800. While the model writes, each paragraph that is complete (the next `[n]` has begun) replaces its original with `Element.text` (links and bold/italic words are sent as numbered tags `<1>…</1>`, and `rebuild` turns them back into the original elements; broken tags give plain text) and the HTML is published. The web view is given the page as it was when the run began (`shownHtml`, blocks marked `data-bt`) and each finished paragraph is swapped in with JavaScript from `patches` (`RYWebView`, via `LocalTranslation`), so the page never reloads; `htmlFor(webView)` picks it (the native reader gets the latest HTML). Blocks still waiting carry `opacity:.45` until translated or until the run ends (`generation` stops a replaced run publishing). `ReadingPage` shows `translation.html` / `title` instead of the article's while `showing`; `TranslationBanner` goes under the headline via `Content`'s `afterHeadline` slot; `TranslateController` is the top bar button (tap: translate, stop, or flip original/translation; hold: `TranslateLanguageSheet`). Language in prefs `translate` (default: the phone's). |
+| `ai/Translation.kt` | **Translate an article** with Gemma. `TranslationState` (per article, reset when the article changes): parses the shown HTML with Jsoup, translates the title and the leaf text blocks (`p, h1–h6, li, figcaption, blockquote, td, th`) in batches as numbered paragraphs (`[3] text`, `GemmaSummarizer.translate`): a small first batch (450 characters) so words show quickly, then about 1,800. While the model writes, each paragraph that is complete (the next `[n]` has begun) replaces its original with `Element.text` (links and bold/italic words are sent as numbered tags `<1>…</1>`, and `rebuild` turns them back into the original elements; broken tags give plain text) and the HTML is published. The web view is given the page as it was when the run began (`shownHtml`, blocks marked `data-bt`) and each finished paragraph is swapped in with JavaScript from `patches` (`BYWebView`, via `LocalTranslation`), so the page never reloads; `htmlFor(webView)` picks it (the native reader gets the latest HTML). Blocks still waiting carry `opacity:.45` until translated or until the run ends (`generation` stops a replaced run publishing). `ReadingPage` shows `translation.html` / `title` instead of the article's while `showing`; `TranslationBanner` goes under the headline via `Content`'s `afterHeadline` slot; `TranslateController` is the top bar button (tap: translate, stop, or flip original/translation; hold: `TranslateLanguageSheet`). Language in prefs `translate` (default: the phone's). |
 | `triage/` | **Triage** (`TriageScreen.kt`, the biggest file): card stack, swipe right read / left save / up open / down skip, undo, auto-advance with a wavy ring, next-group end screen, haptics. A run moves through groups (or feeds, when opened from a feed) in the Feeds order. In a group run the groups sheet is drawn like the Feeds page (tile, count pill, arrow); a group opens to its feeds and picking one calls `TriageSession.startFeedRun`, which turns the run into a run of feeds (state reset, the group kept in `previous` for Undo; the same call turns a feed run back into a group run when a group is picked in the feed run's sheet, which lists the groups with the current feed open; `Saved` also keeps `knownPlaces` and the start totals for that). `TriageSession` keeps the run: visited places, cards left behind per place (`leftIn`), sizes for the run bar, totals, and saved states so Undo can step back into the previous group. Header: "Triage" + a "2 of 5" chip (opens `TriagePlacesSheet`: jump, skip, reopen groups left with cards) + group · cards left. After a group, the bar becomes `RunBar` (one piece per group). `TriageSummary.kt`: long-press AI summary on a card. |
-| `ui/` | `BackPreview.kt` (predictive back like stock Android, scrim 35 % dark / 12 % light), `SharedFilterBar.kt` + `BriefFilterBar.kt` (the bottom Starred/Unread/All bar drawn once above all screens), `InWindowDialog.kt`, `MaterialYouScheme.kt`, `TopBarButtons.kt`, `SharePicture.kt` (share a composable as a PNG: Triage card, monthly recap), `PressFeel.kt` (Triage's press for tiles and cards: squeeze, tighter corners, the cookie turns, spring back, matching Triage's Next card and buttons; used by the Filters and Reading stats tiles, the sort tiles and the recap cards), `Type.kt` (Google Sans Flex). |
+| `ui/` | `BackPreview.kt` (predictive back like stock Android, scrim 35 % dark / 12 % light), `SharedFilterBar.kt` + `BriefFilterBar.kt` + `BriefAiButton.kt` (the bottom bar drawn once above all screens: a solid tonal Starred/Unread/All toolbar, `Modifier.glass` = `surfaceContainer` + soft `dropShadow`, no outline, no blur (the Haze blur was removed: it recorded every screen, the article WebView included, into a second layer and is the suspected cause of the article-text flicker); on Unread the AI button beside it (toolbar and button are one group, 8 dp apart, centred together as in Material's floating toolbar with a FAB; the toolbar glides back to the middle when the button goes), Material 3's `FloatingActionButtonMenu` with our own button: tap = AI Gist / Triage menu, long press = `AiLongPress` (prefs `ai_button`, set in AI settings); Read You's filter bar style / padding / tonal elevation settings are removed), `InWindowDialog.kt`, `MaterialYouScheme.kt`, `TopBarButtons.kt`, `SharePicture.kt` (share a composable as a PNG: Triage card, monthly recap), `PressFeel.kt` (Triage's press for tiles and cards: squeeze, tighter corners, the cookie turns, spring back, matching Triage's Next card and buttons; used by the Filters and Reading stats tiles, the sort tiles and the recap cards), `Type.kt` (Google Sans Flex). |
 | `update/` | **App update download** (GitHub build only). `UpdateDownload.kt`: like the AI model download, a WorkManager job with a progress notification that resumes after drops; saves to `cache/latest.apk` (the FileProvider path Read You already had), checks it's this app and newer, then a notification / the update dialog's Install button opens Android's installer. `UpdateDialog.kt` shows Download → percent → Install. `app/src/github/AndroidManifest.xml` adds `REQUEST_INSTALL_PACKAGES` (not in the Play build). `AppService.checkUpdate` picks the `.apk` asset of the release. `UpdateCheck.kt`: the "Check for updates when the app starts" switch in Tips & support (SharedPreferences, default on; `AndroidApp` respects it). `AndroidApp` no longer deletes `latest.apk` at start (that would remove a downloaded update): `readyApk` removes it only when stale. |
-| `webview/` | The article web view (Brief You's copy): `RYWebView.kt` (styles cached with `remember`, one web view per article), `WebViewPool.kt` (a spare web view made at a quiet moment so opening an article doesn't stutter; closed web views freed after the animation), `ImagePlaceholders.kt` (boxes + Expressive shape-morphing loader while pictures load; small pictures centred). |
+| `webview/` | The article web view (Brief You's copy): `BYWebView.kt` (styles cached with `remember`, one web view per article), `WebViewPool.kt` (a spare web view made at a quiet moment so opening an article doesn't stutter; closed web views freed after the animation), `ImagePlaceholders.kt` (boxes + Expressive shape-morphing loader while pictures load; small pictures centred). |
 
 Other places worth knowing:
 - `ui/component/FeedIcon.kt` (Read You file, hooks): emoji icons (`emoji:` prefix) and the
@@ -186,9 +177,9 @@ or `assembleGithubNightly`.)
 | Workflow | When | What |
 | --- | --- | --- |
 | `build.yaml` "Build" | push to `main` (not when a push only changes documents: `.md` files, the README's pictures in `.github/assets` and `.github/readme`, issue templates, FUNDING or LICENSE) | Builds `githubRelease` and publishes a **GitHub release "Brief You 0.16.2.N"**, marked latest. N = this workflow's run number (also the versionCode). Release notes = the **last commit message on main** (so a merge commit with a full changelog becomes the release notes). |
-| `test.yaml` "Test build" | push to **any other branch** (not `read-you-sync`; not documents-only pushes, same list as build.yaml) | Reuses build.yaml with `nightly: true`: builds **Brief You Nightly** and replaces the single **"nightly" prerelease** (its notes = that commit's message). |
-| `sync.yaml` | daily | Read You update pull request (see §3). |
-| `clean.yaml` | by hand only | Keeps only the latest of everything: the newest release (and the Nightly), the newest run of each workflow (none of removed workflows), the kept releases' tags, and branches with work not yet in main (merged branches are deleted; never `main` or `read-you-sync`). Starts as a dry run. |
+| `test.yaml` "Test build" | push to **any other branch** (not documents-only pushes, same list as build.yaml) | Reuses build.yaml with `nightly: true`: builds **Brief You Nightly** and replaces the single **"nightly" prerelease** (its notes = that commit's message). |
+| `readyou-watch.yaml` | Mondays | *Read You changes to look at* Issue (see §3). |
+| `clean.yaml` | by hand only | Keeps only the latest of everything: the newest release (and the Nightly), the newest run of each workflow (none of removed workflows), the kept releases' tags, and branches with work not yet in main (merged branches are deleted; never `main`). Starts as a dry run. |
 
 Removed (Nov 2026): Read You's `build_pull_request.yaml` and `testing.yml` (they never ran: Read You update pull requests are opened by a workflow, which doesn't trigger others, and other branches are built by `test.yaml`), and `notification-preview.yml` with its script and the Nightly-only `DigestPreviewReceiver` (a one-off for the digest screenshots; in the git history if notifications change again).
 
@@ -205,7 +196,7 @@ and KSP about 2.4 min, Gradle's own setup about 1 min.
 Each build installs as an update (Obtainium works with the releases).
 
 **Signing:** repository secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`. Without them
-builds are signed with Read You's public key (a warning in the build). **Never lose the keystore**
+the build stops (Read You's public key is no longer in the repo). **Never lose the keystore**
 — without it, future releases can't update installed copies.
 
 **Reading build results from the command line** (what the assistant did):
@@ -219,8 +210,10 @@ gh api repos/Humorist2601/BriefYou/check-runs/<job id>/annotations --jq '.[] | "
 gh api repos/Humorist2601/BriefYou/releases --jq '.[0:2][] | "\(.tag_name) \(.name) \(.published_at)"'
 ```
 
-The build also lists Kotlin warnings: **Brief You's own code should have 0 warnings** (Read
-You's warnings are left alone on purpose).
+The build also lists Kotlin warnings: **the whole app should have 0 warnings.** Brief You is its
+own app now: we no longer take updates from Read You, so its old code is ours to fix and clean
+(owner's rule, 22 Nov 2026). Read You's own deprecation markers were removed instead of migrating
+every call site; the Locale constructors, redundant code and unchecked casts were fixed.
 
 **README pictures** are SVGs drawn with Google Sans Flex outlines and Material Symbols
 (`tools/readme/make_assets.py`: hero, feature tiles, section headers; `tools/readme/make_media.py`:
@@ -232,7 +225,7 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
 `table()` draws the same layout.
 
 **Usual flow for a change:**
-1. `git checkout -b <topic>` from `main`; make the change; run the fork check; update README.
+1. `git checkout -b <topic>` from `main`; make the change; update README.
 2. Ask the owner → commit → push → watch the Test build → the owner tries **Brief You Nightly**.
 3. When approved: `git checkout main && git merge --no-ff <topic>` with a message like
    *"Brief You 0.16.2.N: …"* followed by a full changelog since the last release → push → watch
@@ -297,6 +290,8 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
 
 ## 6. Pitfalls already hit (save yourself the time)
 
+- **Feeds with paths instead of addresses** (Chandra's video podcast: item link and enclosure are `/resources/podcasts/...`): `RssHelper.buildArticleFromSyndEntry` completes the item link with the feed's own address (`itemLink`), and `FeedMedia.fromSyndEntry` uses that as the base; before, the media address stayed relative, `WebUrl.of` dropped it and the item showed no video. Already stored articles keep their old data: remove and re-add the feed to test. The same feed types its files `video/x-m4v]` (stray bracket): still read as video by the `video/` prefix.
+
 - **"Plugin … was not found" on `main` (0.16.2.38):** a download hiccup during a release build got
   "not found" saved in `main`'s Gradle cache, and re-running believed it. The build step now
   retries once with `--refresh-dependencies` when a dependency couldn't be resolved. A new commit
@@ -323,7 +318,6 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
   "Keep archived articles" removes them).
 - **Saved articles (Read Later)** are starred, so "Keep archived articles" never removes them
   until they're unstarred and read.
-- The **"Read You update"** PR can change files Brief You copied (`copies.txt`): port the fix.
 - **A draw modifier that wraps a whole list redraws every row when it changes.** The scrollbar
   thumb (shows on open, moves as rows arrive, fades after 0.8 s) re-recorded the whole article
   list each time: 10–33 ms draw frames when opening a list. The scrolled content now sits in its
@@ -342,7 +336,20 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
 - **Moving pictures inside the article web view are repainted every frame.** The pictures'
   loading shapes (an animated SVG) slowed scrolling and left blank frames on picture-heavy pages;
   they hold still while the page scrolls (`brief-scrolling` class, toggled from `Content`'s scroll
-  state in `RYWebView`).
+  state in `BYWebView`). They are **CSS animations** (`brief-morph` animating `d: path()`, `brief-turn`
+  rotating), so `animation-play-state: paused` freezes each in the shape it has reached and it
+  carries on from there 150 ms after the scroll stops. Not SVG/SMIL animations: inline ones don't
+  start until the page's load event, which waits for the pictures (the shapes sat on the first
+  shape; a still copy swapped in for scrolling also snapped every pause to the same shape).
+- **Unsaved read/unread changes (`DiffMapHolder`) are easy to lose.** Triage and the list's swipe only
+  put them in the holder's map; the database gets them on leaving Feeds, a manual sync, or when
+  the app stops. Two losses were fixed: (1) the account row changes after every sync (its update
+  time), and `DiffMapHolder` took that for a different account and emptied the map (and wrote an
+  empty cache from another coroutine), so everything read since the last save became unread when a
+  background sync finished; now only a different account id starts over, and the cache is written
+  from a copy taken at once; (2) the cache was written 2 s after the last change and never on
+  leaving, so closing the app at once lost the last swipes; now 0.5 s, `flush()` on pause and
+  `commitDiffsToDb()` on stop (`BriefActivity`).
 - **Restyling a long article repaints all of it** (100–240 ms frames). A picture colour that
   arrives after the article was handed to its web view only fades the screen around it; the
   article keeps the colours it opened with (`BriefReadingTheme`).
@@ -374,7 +381,7 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
   so nothing is remembered): every row recomposes. Make them in the composable (`onArticleClick`
   in `FlowPage`).
 - **Don't build `Regex(...)` or Coil `ImageRequest`s per row per recomposition** — build once
-  (`extractDomain`) / `remember` them (`RYAsyncImage`).
+  (`extractDomain`) / `remember` them (`BYAsyncImage`).
 - **Nightly stutter log:** Tips & support → *Copy stutter log* (`brief/perf/PerfLog.kt`): slow
   frames split by part, plus main-thread samples while stuck, plus "what happened" markers
   (`PerfLog.note`: new pager, list rows, row built, slide done, feed colour ready). On Android
@@ -387,7 +394,7 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
 
 - **Picker icons** (`feeds/SymbolIcons.kt`) are Material Symbols (outlined, fill 0), stored as path data in `SymbolPaths.kt` and drawn with `ImageVector.Builder`; the stored `icon:<name>` keys did not change. (The "outlined" Material Icons have solid shapes, such as the paw, globe and note.) New icons: take the path from the `symbols/android/<name>/materialsymbolsoutlined/<name>_24px.xml` file of google/material-design-icons.
 - **Number settings** use `brief/ui/NumberSheet.kt` (− / + stepper, slider, Custom value, Reset; `onReset` for settings that follow another, like the video ones). **Triage auto-advance** settings (action and delay, `TriageAuto` in `triage/TriageAuto.kt`, shown on the Usage page) share the `triage` SharedPreferences with the long-press delay menu; the screen reads the action once when it opens.
-- **Reading page picture/video settings in the web view:** `brief/webview/MediaStyle.kt` adds the CSS Read You's `WebViewStyle` doesn't have (Maximize for pictures, the Videos page's corners/padding/maximize; `SAME_AS_IMAGES` = -1 means follow the Images values); subhead alignment is `--subhead-align` in `WebViewStyle`. The video preferences are in `ReadingVideoPreferences.kt` and registered in `DataStoreExt.kt`. CSS class names: `brief-box` is the picture placeholder (`ImagePlaceholders`), `brief-note` is a newsletter's boxed note — keep them apart.
+- **Reading page picture/video settings in the web view:** `brief/webview/MediaStyle.kt` adds the CSS Read You's `WebViewStyle` doesn't have (Maximize for pictures, the Videos page's corners/padding/maximize; `SAME_AS_IMAGES` = -1 means follow the Images values); subhead alignment is `--subhead-align` in `WebViewStyle`. The video preferences are in `ReadingVideoPreferences.kt` and registered in `DataStoreExt.kt`; the Images and Videos settings share one page (`ReadingMediaPage.kt`). CSS class names: `brief-box` is the picture placeholder (`ImagePlaceholders`), `brief-note` is a newsletter's boxed note — keep them apart.
 - **Newsletter tidying** (`EmailContent.kt`) can be tried on a real email's HTML without a phone: copy the file into a small JVM Gradle project with `org.jsoup:jsoup:1.11.3`, stub `Article`, and print `tidy(doc, title)`. HTML of an email: politicalemails.org/messages/<id>/html_body (links are replaced by `#` there). The extras (buttons, boxes, dividers, logo and repeated-headline removal, kept "Read more") only run when the **Tidy newsletters** setting is on (`EmailContent.tidyMore`, loaded in `AndroidApp.onCreate`, switch in `NewsletterSettingItem.kt` on the Reading page). Buttons, bordered boxes and divider lines are noted from the email's styles before they are stripped, then styled by classes in `WebViewStyle.kt`; `forReader(html, link, title)` takes the title to drop a repeated headline.
 - **Stutters / animation bugs:** ask the owner for a **screen recording**. Extract frames and
   timestamps with ffmpeg (`ffprobe -show_entries frame=pts_time`), compute frame-to-frame
@@ -441,19 +448,34 @@ Work from this list; tick items off here as they are done.
    Telephoto, LiteRT-LM, Coil 2.7 and Media3 (fixes the last two warnings, in `PlayerService.kt`:
    `AcceptedResultBuilder` and an override of a deprecated member). Also split the player file
    into its podcast part (`PlayerUi.kt`) and video part (`VideoUi.kt`), with no visible change.
+   *Progress (`deps-b`):* AndroidX done (0.16.2.143). OkHttp 5.5.1 (`okhttp3.coroutines.executeAsync`,
+   `isSuccessful`), Coil 2.7.0, Telephoto 0.19.0 and LiteRT-LM 0.19.1 with speculative decoding
+   (`SpeculativeDecodingMode.ADAPTIVE` on the engine, loads without it for model files from before
+   May 2026; the stutter log notes each answer's speed as "AI answer: …"). Then: Media3's
+   two warnings fixed, read aloud's controls on Media3 (the old `androidx.media` library is gone), and the
+   player UI split into four files. Step B is then done.
 2. **Step C**, one at a time (code changes): Coil 3, Retrofit 3, AboutLibraries 15,
    MaterialKolor 5, then raise targetSdk.
-3. **Step 8 (optional):** Dependabot or Renovate for small automatic update pull requests.
+   *Done on `deps-b` (not yet built):* **Coil 3.6.3** (`coil3.*`; the loader fetches through the shared
+   OkHttpClient with `OkHttpNetworkFetcherFactory`; Referer via `brief/ui/CoilExtras.kt` `addHeader`;
+   painters' `state` is a StateFlow, read with `collectAsState()`; `Precision.AUTOMATIC` is gone, so
+   INEXACT). **Retrofit 3.0.0**, **MaterialKolor 5.0.1** (same API),
+   **AboutLibraries 15.3.0** (the `.android` plugin generates the list; `export { excludeFields }`;
+   the licences page loads it with `produceLibraries()`). **targetSdk 36** (Android 16: edge-to-edge
+   and predictive back were already in place; on tablets, the video's forced landscape is ignored).
+   Not 37 yet: Android 17 makes a self-hosted server on the local network (FreshRSS at home) need
+   the new `ACCESS_LOCAL_NETWORK` runtime permission, and caps widget updates' memory.
+3. ~~**Step 8 (optional):** Dependabot or Renovate for small automatic update pull requests.~~ **Done on `deps-b` (not yet built):** `.github/dependabot.yml` (monthly, gradle + GitHub Actions, no major versions, grouped) and `dependency-check.yaml` (only compiles, no signing). Dependabot's branches are ignored by `test.yaml` (a Nightly from one would replace the Nightly being tried), and Dependabot runs cannot read Actions secrets. The file only takes effect once it is on `main`. A suggested update merged into `main` makes a release: try it first in a test branch.
 
 **Tidy-up**
 4. Run `clean.yaml` (dry run first): the merged `deps-a` branch, old releases and runs.
 5. README screenshots still show the old sheets and dialogs: retake them.
 6. ~~HANDOVER header still at 0.16.2.9.~~ Done.
-7. Remove the Reading stats diagnosis notes from the stutter log (`ReadingStatsPage.kt`: "stats: …
+7. ~~Remove the Reading stats diagnosis notes from the stutter log (`ReadingStatsPage.kt`: "stats: …
    top feeds"; `FeedAccent.kt`: "feed colour: none", "feed colour not read"); keep the Triage
-   open/close notes.
-8. Read You's Languages page is unused (the entry is hidden, the app is English only); leave it so
-   the fork stays close to Read You.
+   open/close notes.~~ Done (on `deps-b`).
+8. ~~Read You's Languages page is unused; leave it so the fork stays close to Read You.~~ Replaced
+   by item 19 (Brief You no longer follows Read You).
 
 **Performance (optional)**
 9. "Open a group's list": late frames about a second after the list settled (drawing and GPU,
@@ -463,6 +485,113 @@ Work from this list; tick items off here as they are done.
     `setup-gradle`).
 12. R8 full mode (`android.enableR8.fullMode`): maybe a smaller app; risky with reflection
     (Rome, Gson), needs careful testing.
+
+**Independence from Read You** (agreed 17 November 2026)
+16. ~~**Cut loose from Read You.** Brief You becomes its own app, built on Read You (credit and GPL-3.0
+    kept). Replace the daily merge (`sync.yaml`) with a weekly check that opens or updates one Issue,
+    "Read You changes to look at": new releases first, then commits touching account syncing
+    (FreshRSS, Fever, Google Reader, local feeds), feed parsing, the database or security, then the
+    rest briefly (translation-only commits counted, not listed); nothing is merged. Remove the marker
+    rule and its check (`fork_check.py`, its use in the build), `copies.txt`, and the 11 replaced
+    Read You originals (which drops the Coil 2 `compileOnly` workaround). Update HANDOVER and the
+    README to match.~~ Done on `deps-b` (see §3).
+17. **Rename the package** `me.ash.reader` → `com.ay.briefyou`, as its own Nightly after step C builds
+    and is tested. Safeguards: re-schedule background sync on the first start (WorkManager stores
+    the old worker class names); keep the old launcher activity and widget names as aliases (so the
+    home-screen icon and placed widgets stay); move Room's schema folders; update R8 rules. Check
+    after installing over the previous build: icon, widgets, sync, settings and articles kept.
+    *Done on `deps-b` (not yet built, as its own Nightly):* sources moved to `app/src/main/java/com/ay/briefyou`
+    (and `src/test`), `namespace` and every import/string rewritten (493 files), Room's schema folders
+    renamed (`app/schemas/com.ay.briefyou.…`), R8 rules, baseline profile and the CI paths updated.
+    Safeguards: the launcher entry is an `<activity-alias>` named `me.ash.reader.infrastructure.android.MainActivity`
+    (it carries MAIN/LAUNCHER), the two widget receivers keep stubs at their old names
+    (`app/src/main/java/me/ash/reader/ui/widget/LegacyWidgetReceivers.kt`, plus manifest entries; the real
+    receivers are `open`), and on the first start after the update `AndroidApp` cancels all saved
+    WorkManager work once (flag `brief_migration/workers_after_rename`) and the usual schedulers
+    set it up again. The Read You cleanup (19) is the next Nightly. Check after installing over the
+    previous build: icon, widgets, sync, settings, articles, auto backup. Delete the stubs, the alias
+    and the keep rule at the 1.0.0 restart (22).
+    *Cleanup, first pass (on `deps-b`, not yet built):* removed `BestIconFinder`, `LanguagesPage` (its route
+    and the `navigateToLanguages` parameter too), `LocalSecurityKey`, `FeedWithGroup`, `RemoteCallException`,
+    `AnimatedText`, `CanBeDisabledIconButton`, `CurlyCornerShape`, `ViewPager`,
+    `ClickableTextWithInlineContent`, `NavGraphBuilderExt`, `RoundedPolygonShape`, `ScrollToPositionFab`,
+    `Harmonies`, and Read You's 51 translation folders (`values-xx`; the APK is English only).
+    Found by listing top-level names that nothing else mentions (Hilt modules excluded). A second
+    pass is needed for what the first leaves unused (strings, helpers only they used).
+18. **Leave the GitHub fork network** (the owner, through GitHub Support), whenever convenient.
+19. **Remove unused Read You code** over time (the Languages page, old drawers, BestIconFinder…),
+    each piece checked to be unused. **The owner's decision: together
+    with the package rename (17) remove everything of Read You that is no longer required**, so the
+    rename touches as little dead code as possible; each piece still checked to be unused.
+20. **targetSdk 37 (Android 17): done on `deps-b` (not yet built).** Changes: `targetSdk = 37`; `ACCESS_LOCAL_NETWORK` declared and asked once (`brief/app/LocalNetwork.kt`, `AccountService.usesLocalNetwork`, `MainActivity`) only when an account server or feed is on a private address; `usesCleartextTraffic` replaced by `res/xml/network_security_config.xml` (http stays allowed); the card widget's picture capped at 600 x 600 (widget memory limit). Checked and fine: no reflection on MessageQueue or static final fields, no background activity launch modes, no content-capture calls, no orientation locks in the manifest (video fullscreen rotation is ignored on tablets). To test on Android 17: a FreshRSS/feed on a 192.168.x address, the permission prompt, sync, widgets, read aloud with the screen off. *Old note:* a self-hosted server on the home network needs
+    the new `ACCESS_LOCAL_NETWORK` permission; widget updates get a memory cap.
+
+21. **Fix Read You's Kotlin warnings** (466 in 0.16.2.148): 270 from Read You's deprecated
+    `DataStoreKey` (one change in the settings code), 69 unchecked casts, ~100 old Compose/Android
+    calls (old text fields, the old Scaffold, `LocalUriHandler`…). Step by step, a Nightly each.
+    The build summary already counts them all ("should be 0") with the most common kinds.
+
+23. **Settings review, section by section with the owner (22 November 2026).** Decisions so far, to build
+    after the review is finished (nothing built yet):
+    *Color & style:* remove all four tonal elevation settings (Feeds top bar, Flow top bar, Flow
+    list, Reading toolbars, and the dead `FeedsGroupListTonalElevation` preference); merge the
+    Feeds and Flow style pages into one **Lists** page (with "Always expand"), previews rebuilt from the
+    real components (`TonalCircleButton`, `TopBarButtonGroup`, `FeedsBanner`, `GroupItem`, `BriefFilterBar`
+    and AI button; mockup agreed); the duplicates "Sort unread articles", "Pull from bottom" (Flow page)
+    and "Pull to switch article" (Reading page) stay only on Interaction; merge the Images and Videos
+    pages into **Images and videos**; remove the *Content renderer* setting (WebView only; delete the
+    native renderer code in the cleanup); move "AI button long press" to the AI settings page; add
+    **Keep screen on while reading** (a Reading background setting was dropped by the owner).
+    *Interaction:* nothing removed (all 13 settings verified wired); swipe actions get **Share** and **Open in
+    browser**; add **Mark as read when opened** (default on, `markOpened`) and a master **Haptic feedback**
+    switch (63 call sites in 30 files); **Hide empty groups** moves to the Lists page.
+    *Brief You block (AI, Filters, Stats):* nothing removed; add a **Notifications** page (feeds that notify,
+    each switchable, plus a button to Android's notification settings); **Collect reading stats**
+    on/off; **Prepare the AI model at start** on/off (today automatic, with battery and power-saver
+    guards); Filters unchanged.
+    *App block (decided):* rebuild **Tips & support** as Brief You's own (title "Brief You", your GitHub,
+    Bug report to your issues (the crash screen too), Tour kept; Telegram, wiki and Sponsor removed; a
+    "Based on Read You" credit with its link and GPL licence; the licences page's LICENSE link points
+    to Brief You). **Update check from Brief You's releases:** a Nightly app follows the single
+    release tagged `nightly` (its name carries the build, e.g. "Brief You Nightly 0.16.2.164"), a stable
+    app follows `releases/latest`; today `AppService.checkUpdate` asks Read You (`update_link`), which
+    would offer Read You's APK once Read You passes 0.16.2. Remove Troubleshooting's **App preferences
+    JSON import/export** (Back up everything already carries `preferences.json`). **No default
+    "ReadYou Releases" feed** for a new account (`AccountService.getInitialFeed`). Cleanup list: the
+    commented-out Feedly/Inoreader account entries (strings, icons, `AccountType` 5 and 6 branches),
+    the commented-out Block list item, the native renderer.
+    **Built (one Nightly, three commits):** the new on/off settings are `BriefSwitch` (`infrastructure/preference/BriefSwitches.kt`: booleans/ints in the settings store,
+    registered from `entries` in `DataStoreExt.kt`, read as `settings.isOn(...)` or `BriefSwitch.X.isOn()`;
+    Haptic feedback is one wrapper of `LocalHapticFeedback` plus `View.isHapticFeedbackEnabled` in
+    `SettingsProvider.ProvidesSettings`; Collect stats gates `ReadingStats`; Prepare the AI model gates
+    `GemmaSummarizer.onAppForeground`; Mark as read when opened gates `markOpened`). Notifications page:
+    `brief/notifications/NotificationsPage.kt`. Lists page: `ui/page/settings/color/lists/`.
+    *Order to build (own Nightlies):* 1) the Read You leftovers above (updates, about page, links, default
+    feed), 2) removals and merges (Lists page, previews, duplicates, Images and videos, renderer,
+    JSON export), 3) the new settings (Keep screen on, swipe Share/Open in
+    browser, Mark as read when opened, Haptic feedback, Notifications page, Collect reading stats,
+    Prepare AI model at start).
+
+22. **Last step of all: a full restart ("new beginning")**, once we no longer depend on Read You.
+    **Only when the owner writes the exact words `RESET ALL CLAUDE` do you reset anything**; until
+    then leave every number and workflow alone. Then, everything starts over: `versionName`
+    `1.0.0` and `versionCode` back to 1 (`app/build.gradle.kts`; the CI build number restarts too, so
+    old installs can't update in place: the owner makes a backup and restores it, which is accepted),
+    the GitHub run/build counters and Nightly releases and tags (delete the old ones, first Nightly
+    `1.0.0.1`), the User-Agent, README and release-notes mentions of 0.16.x, the CI workflows reset
+    to a clean start. **The owner has decided the database version also restarts at 1** (backup and
+    restore is how data moves). So at the reset: set `AndroidDatabase` `version = 1`, delete every
+    `MIGRATION_*` (incl. `MIGRATION_9_10`) and `allMigrations`, `moveOldDatabase`, the old
+    `app/schemas/…/*.json` files (the build regenerates `1.json`; commit it), `GroupIdMigration` and its
+    call in `AndroidApp`, `OLD_DEFAULT_GROUP_SALT`, and the `OLD_SYNC_WORK_NAME_PERIODIC` cancel in
+    `SyncWorker`; check the backup/restore code does not compare database versions. Do it as one
+    planned change, tell the owner the list first. **Also at the reset: a brand-new GitHub repository,
+    so Brief You is fully disconnected from the fork network** (a repo made as a fork of Read You stays
+    linked to it; a fresh repo is not). Plan it with the owner first: the new repo's name and secrets
+    (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`), pushing the code (a clean history or the
+    existing one: ask), the README/in-app links and the update checker that point at the repo
+    (`Humorist2601/BriefYou`), the Nightly release and tags, the Read You watch workflow, and what
+    happens to the old repo (archive it, with a pointer to the new one).
 
 **Set aside by the owner (only if asked again)**
 13. Brandfetch logos: ask Brandfetch about caching, or a live-only "Brand logo" choice in Change
@@ -476,6 +605,25 @@ Work from this list; tick items off here as they are done.
 
 - **Certificates are checked.** `cachingHttpClient` used to trust every certificate by default (Read You's behaviour); it now checks them normally. A self-hosted sync server with a self-signed certificate needs an option added before it can work again.
 - **Scripts inside articles are blocked.** The reading web view's page (`brief/webview/BriefWebViewHtml.kt`) carries a content policy (`script-src 'nonce-…'`) with a new one-time key on each load; only the app's own `<script>` has it. Scripts the app runs from outside (`evaluateJavascript`: picture taps, Translate swaps) are not affected. Inline `onerror` handlers are blocked too, so a picture's fallback address is a `data-fallback` attribute that `ImagePlaceholders.SCRIPT` reads. Anything new that needs a script inside the page must go in that script or in `evaluateJavascript`.
-- **Builds never use Read You's public signing key.** `build.yaml` stops when the `KEYSTORE_BASE64` secret is missing.
+- **Builds never use any public signing key (Read You's was removed from the repo).** `build.yaml` stops when the `KEYSTORE_BASE64` secret is missing.
 - **Cloud backup leaves out the database, the AI model and the offline copies** (`res/xml/backup_rules.xml`, `data_extraction_rules.xml`).
 - **The AI model download is fixed to one commit and one SHA-256** (`ModelDownload`: `COMMIT`, `SHA256`); the file is checked before it is installed. To use a newer model, change both together.
+
+
+## Cleanup of Read You leftovers (22 Nov 2026)
+
+Done: the Google Play and F-Droid build types (only `github` is left, with the `release` and `nightly`
+build types), `app/src/googlePlay`, the store icons, Read You's unit tests and test libraries, the
+`me.ash.reader` launcher alias and widget stubs (home-screen icons and widgets from before the
+package rename need adding again), the Ashinch comment headers (other authors' headers stay: GPL),
+the public signing keystore, the user agent / Google Reader client name (`BriefYou`), the unused
+`read_you` string, the sync work name (`BriefYou`; the old `ReadYou` one is cancelled when work is
+set up), and the `RY` prefix of the UI helpers (now `BY`: `BYScaffold`, `BYSwitch`, `BYDialog`,
+`BYAsyncImage`, `BYWebView`...). Also changed (0.16.2.176): the default group's id salt `read_you_app_default_group` → `default_group`
+(Room `MIGRATION_9_10`, database version 10, plus `brief/app/GroupIdMigration.kt`, which once rewrites
+every saved key and text in the SharedPreferences files and the DataStore), and the database file
+`Reader` → `BriefYou` (renamed on first open, `AndroidDatabase.moveOldDatabase`). The OPML export file
+name starts with `Brief-You-`. Comments no longer name Read You. **The new schema file
+`app/schemas/…AndroidDatabase/10.json` comes from the CI artifact `brief-schemas-<sha>`: commit it.**
+Kept on purpose: the GPL licence and the README credit (plus the credit link in Tips & support and
+the "Based on Read You" line in About), the weekly Read You watch workflow (the owner wants it).

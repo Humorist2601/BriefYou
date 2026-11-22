@@ -10,10 +10,10 @@
 # used at startup (S) and used after startup (P).
 
 # All of the app's classes.
-Lme/ash/reader/**;
+Lcom/ay/briefyou/**;
 
 # All of the app's methods.
-HSPLme/ash/reader/**;->**(**)**
+HSPLcom/ay/briefyou/**;->**(**)**
 
 # Compose and Material 3 (animations, sheets, sliders, the Expressive shapes and loading indicator).
 Landroidx/compose/**;

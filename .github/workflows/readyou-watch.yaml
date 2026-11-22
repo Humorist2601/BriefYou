@@ -1,0 +1,50 @@
+name: "Read You watch"
+
+# Once a week: what changed in Read You (the app Brief You is built on) since the last review, as
+# one Issue, "Read You changes to look at". Nothing is merged into Brief You. Closing the Issue marks
+# those changes as reviewed; when Read You has nothing new, nothing happens (no Issue, no email).
+# The comparison starts from the last closed Issue's "reviewed-up-to" note, or from the Read You
+# commit Brief You was last based on.
+on:
+    schedule:
+        - cron: "43 4 * * 1" # Mondays, 04:43 UTC
+    workflow_dispatch:
+env:
+    READ_YOU: https://github.com/ReadYouApp/ReadYou.git
+    BASED_ON: d2b979ccad9a # Read You's last commit included in Brief You (12 Aug 2026)
+    TITLE: "Read You changes to look at"
+jobs:
+    watch:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            issues: write
+        steps:
+            - uses: actions/checkout@v7
+            - name: Look at Read You
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  git clone -q --filter=blob:none --no-checkout "$READ_YOU" readyou
+                  # Where the last review ended (the newest closed Issue's note), else BASED_ON.
+                  reviewed=$(gh issue list --state closed --search "\"$TITLE\" in:title" --limit 1 \
+                      --json body -q '.[0].body // ""' | grep -oE 'reviewed-up-to: [0-9a-f]+' | cut -d' ' -f2 || true)
+                  reviewed=${reviewed:-$BASED_ON}
+                  python3 .github/readyou_watch.py readyou "$reviewed" > body.md
+                  if [ ! -s body.md ]; then
+                      echo "Nothing new in Read You since ${reviewed::7}." >> "$GITHUB_STEP_SUMMARY"
+                      exit 0
+                  fi
+                  open=$(gh issue list --state open --search "\"$TITLE\" in:title" --limit 1 --json number -q '.[0].number // ""')
+                  if [ -n "$open" ]; then
+                      before=$(gh issue view "$open" --json body -q .body | grep -oE 'reviewed-up-to: [0-9a-f]+' || true)
+                      after=$(grep -oE 'reviewed-up-to: [0-9a-f]+' body.md)
+                      if [ "$before" != "$after" ]; then
+                          gh issue edit "$open" --body-file body.md
+                          # An edit sends no email; a comment does.
+                          gh issue comment "$open" --body "Read You has new commits: the list above is updated."
+                      fi
+                  else
+                      gh issue create --title "$TITLE" --body-file body.md
+                  fi
+                  cat body.md >> "$GITHUB_STEP_SUMMARY"

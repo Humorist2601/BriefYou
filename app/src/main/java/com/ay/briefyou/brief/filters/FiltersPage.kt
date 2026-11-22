@@ -1,0 +1,1387 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
+package com.ay.briefyou.brief.filters
+
+import com.ay.briefyou.brief.ui.rememberPressFeel
+import androidx.compose.runtime.rememberCoroutineScope
+import com.ay.briefyou.brief.ui.GoogleSansWideFontFamily
+import com.ay.briefyou.brief.ui.StatTile
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.toShape
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Button
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import android.content.Intent
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.rounded.Undo
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.remember
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalContext
+import com.ay.briefyou.brief.filters.FilterLogEntry
+import com.ay.briefyou.brief.filters.FilterReason
+import com.ay.briefyou.infrastructure.android.MainActivity
+import com.ay.briefyou.ui.page.common.ExtraName
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.outlined.FilterAlt
+import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import com.ay.briefyou.R
+import com.ay.briefyou.domain.service.AccountService
+import com.ay.briefyou.brief.filters.BriefFilters
+import com.ay.briefyou.ui.component.base.DisplayText
+import com.ay.briefyou.ui.component.base.FeedbackIconButton
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.component.base.BYSwitch
+import com.ay.briefyou.ui.component.base.Subtitle
+import com.ay.briefyou.ui.component.base.TextFieldDialog
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import com.ay.briefyou.ui.ext.collectAsStateValue
+import com.ay.briefyou.ui.page.settings.SettingItem
+import com.ay.briefyou.ui.theme.palette.onLight
+
+@HiltViewModel
+class FiltersViewModel
+@Inject
+constructor(val filters: BriefFilters, private val accountService: AccountService) : ViewModel() {
+    private val _applied = MutableStateFlow<Int?>(null)
+    val applied: StateFlow<Int?> = _applied.asStateFlow()
+
+    init {
+        // Drop entries for articles that were deleted since the app started.
+        viewModelScope.launch { runCatching { filters.prune() } }
+    }
+
+    fun undo(entry: FilterLogEntry) {
+        viewModelScope.launch { runCatching { filters.undo(entry) } }
+    }
+
+    fun resetUndone() {
+        viewModelScope.launch { runCatching { filters.resetExemptions() } }
+    }
+
+    fun clearLog() {
+        viewModelScope.launch { filters.clearLog() }
+    }
+
+    private val _watchedFound = MutableStateFlow<Int?>(null)
+    /** How many new watched articles Apply now found on the Watched tab. */
+    val watchedFound: StateFlow<Int?> = _watchedFound.asStateFlow()
+
+    fun watchNow() {
+        _watchedFound.value = null
+        viewModelScope.launch {
+            val before = WatchedWords.log.size
+            runCatching { filters.apply(accountService.getCurrentAccountId()) }
+            _watchedFound.value = (WatchedWords.log.size - before).coerceAtLeast(0)
+        }
+    }
+
+    fun applyNow() {
+        _applied.value = null
+        viewModelScope.launch {
+            _applied.value = runCatching { filters.apply(accountService.getCurrentAccountId()) }.getOrDefault(0)
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel()) {
+    val keywords = viewModel.filters.mutedKeywords.collectAsStateValue()
+    val dupes = viewModel.filters.hideDuplicates.collectAsStateValue()
+    val applied = viewModel.applied.collectAsStateValue()
+    val log = viewModel.filters.log.collectAsStateValue()
+    val undoneCount = viewModel.filters.exemptCount.collectAsStateValue()
+    val context = LocalContext.current
+
+    var addDialogVisible by rememberSaveable { mutableStateOf(false) }
+    var addWatchedVisible by rememberSaveable { mutableStateOf(false) }
+    // Watched (0) or Muted (1); Muted, on the left, first.
+    var tab by rememberSaveable { mutableStateOf(1) }
+    val watched = WatchedWords.words
+    val watchedLog = WatchedWords.log
+    val watchedFound = viewModel.watchedFound.collectAsStateValue()
+    // Older days are grouped by reason (duplicate stories, then each keyword), each group closed
+    // until tapped; an open group shows a few articles at a time. Today's are always shown.
+    var openGroups by rememberSaveable { mutableStateOf(setOf<String>()) }
+    var shownInGroup by remember { mutableStateOf(mapOf<String, Int>()) }
+    // Earlier days sit under their month; every month starts closed. // Brief You
+    var openMonths by rememberSaveable { mutableStateOf(setOf<String>()) }
+    val mutedCount = log.count { it.reason == FilterReason.MutedKeyword }
+    val duplicateCount = log.count { it.reason == FilterReason.Duplicate }
+    // The filtered articles, newest first, under Today / Yesterday / a date.
+    // Duplicates of one story are grouped under it.
+    val days =
+        remember(log) {
+            log.sortedByDescending { it.at }.groupBy { dayOf(it.at) }.mapValues { logRows(it.value) }
+        }
+
+    // The settings pages' common scaffold, so this page looks like the others.
+    BYScaffold(
+        containerColor =
+            MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
+        navigationIcon = {
+            FeedbackIconButton(
+                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = stringResource(R.string.back),
+                tint = MaterialTheme.colorScheme.onSurface,
+                onClick = onBack,
+            )
+        },
+        content = {
+            // One list: the header (title, tiles, tabs), then the chosen tab's part.
+            LazyColumn {
+                item {
+                    DisplayText(text = stringResource(R.string.filters_settings), desc = "")
+                    Spacer(Modifier.height(8.dp))
+                    // At a glance: what the filters have caught recently.
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        StatTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Outlined.NotificationsOff,
+                            onClick = { tab = 1 },
+                            value = mutedCount.toString(),
+                            label = pluralStringResource(R.plurals.filters_stat_muted, mutedCount),
+                        )
+                        StatTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Outlined.ContentCopy,
+                            onClick = { tab = 1 },
+                            value = duplicateCount.toString(),
+                            label =
+                                pluralStringResource(R.plurals.filters_stat_duplicates, duplicateCount),
+                        )
+                        StatTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Outlined.Visibility,
+                            onClick = { tab = 0 },
+                            value = watchedLog.size.toString(),
+                            label = pluralStringResource(R.plurals.filters_stat_watched, watchedLog.size),
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    // Muted on the left, watched on the right.
+                    FilterTabs(page = tab) { tab = it }
+                    Spacer(Modifier.height(8.dp))
+                }
+                if (tab == 0) {
+                item {
+                    Subtitle(
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        text = stringResource(R.string.filters_watched),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    // Watched words, the opposite of muted ones, in a card like theirs: the words
+                    // as tertiary chips with an eye (tap one to stop watching it) and Add.
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(28.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                ShapeIcon(Icons.Outlined.Visibility, MaterialShapes.Cookie7Sided)
+                                Spacer(Modifier.width(14.dp))
+                                Text(
+                                    text = stringResource(R.string.filters_watched),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    shape = CircleShape,
+                                ) {
+                                    Text(
+                                        text = watched.size.toString(),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                watched.forEach { word ->
+                                    InputChip(
+                                        selected = false,
+                                        onClick = { WatchedWords.remove(context, word) },
+                                        label = { Text(word) },
+                                        shape = CircleShape,
+                                        trailingIcon = {
+                                            Icon(
+                                                Icons.Rounded.Close,
+                                                contentDescription = stringResource(R.string.filters_remove, word),
+                                                modifier = Modifier.size(InputChipDefaults.IconSize),
+                                            )
+                                        },
+                                    )
+                                }
+                                AssistChip(
+                                    onClick = { addWatchedVisible = true },
+                                    label = { Text(stringResource(R.string.filters_add)) },
+                                    shape = CircleShape,
+                                    colors =
+                                        AssistChipDefaults.assistChipColors(
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        ),
+                                    border = null,
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Rounded.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(AssistChipDefaults.IconSize),
+                                        )
+                                    },
+                                )
+                            }
+                            if (watched.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.filters_watched_none),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                                )
+                            }
+                            Spacer(Modifier.height(14.dp))
+                            // Look through recent articles now, with what it found next to the button.
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Button(
+                                    onClick = viewModel::watchNow,
+                                    modifier = Modifier.weight(1f).height(48.dp),
+                                ) {
+                                    Text(stringResource(R.string.filters_apply_now))
+                                }
+                                watchedFound?.let {
+                                    Spacer(Modifier.width(12.dp))
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        shape = CircleShape,
+                                    ) {
+                                        Text(
+                                            text = pluralStringResource(R.plurals.filters_watched_found, it, it),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(if (watchedLog.isEmpty()) 28.dp else 20.dp))
+                }
+                // Recently watched, laid out like Recently filtered: today's articles in full,
+                // earlier days under their date with one closed row per word and its count.
+                if (watchedLog.isNotEmpty()) {
+                    item(key = "watched-head") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Subtitle(modifier = Modifier.weight(1f), text = stringResource(R.string.filters_watched_log))
+                            TextButton(onClick = { WatchedWords.clearLog() }) {
+                                Text(stringResource(R.string.filters_log_clear))
+                            }
+                        }
+                    }
+                    val openWatched = { entry: WatchedEntry ->
+                        context.startActivity(
+                            Intent(context, MainActivity::class.java).putExtra(ExtraName.ARTICLE_ID, entry.articleId)
+                        )
+                    }
+                    val watchedDays = watchedLog.groupBy { dayOf(it.at) }
+                    val todayDay = java.time.LocalDate.now().toEpochDay()
+                    watchedDays[todayDay]?.let { rows ->
+                        item(key = "watched-day-$todayDay") {
+                            Text(
+                                text = dayLabel(todayDay),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.animateItem().padding(start = 24.dp, top = 12.dp, bottom = 8.dp),
+                            )
+                        }
+                        itemsIndexed(rows, key = { _, it -> "watched-today-${it.articleId}" }) { index, entry ->
+                            Box(Modifier.animateItem()) {
+                                WatchedLogCard(entry, groupShape(index, rows.size)) { openWatched(entry) }
+                            }
+                        }
+                    }
+                    watchedDays.filterKeys { it != todayDay }.forEach { (day, dayRows) ->
+                        item(key = "watched-day-$day") {
+                            Text(
+                                text = dayLabel(day),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.animateItem().padding(start = 24.dp, top = 12.dp, bottom = 8.dp),
+                            )
+                        }
+                        dayRows.groupBy { it.word }.forEach { (word, rows) ->
+                            val key = "watch-$day-$word"
+                            val isOpen = key in openGroups
+                            item(key = "group-$key") {
+                                ReasonGroupRow(
+                                    title = stringResource(R.string.filters_group_keyword, word),
+                                    count = rows.size,
+                                    open = isOpen,
+                                    modifier = Modifier.animateItem(),
+                                    onClick = {
+                                        openGroups = if (isOpen) openGroups - key else openGroups + key
+                                        if (isOpen) shownInGroup = shownInGroup - key
+                                    },
+                                )
+                            }
+                            if (isOpen) {
+                                val shown = rows.take(shownInGroup[key] ?: GROUP_PAGE)
+                                itemsIndexed(shown, key = { _, it -> "$key-${it.articleId}" }) { index, entry ->
+                                    Box(Modifier.animateItem()) {
+                                        WatchedLogCard(entry, groupShape(index, shown.size)) { openWatched(entry) }
+                                    }
+                                }
+                                val more = rows.size - shown.size
+                                if (more > 0) {
+                                    item(key = "more-$key") {
+                                        TextButton(
+                                            onClick = { shownInGroup = shownInGroup + (key to shown.size + GROUP_PAGE * 4) },
+                                            modifier = Modifier.animateItem().fillMaxWidth().padding(horizontal = 16.dp),
+                                        ) {
+                                            Text(stringResource(R.string.filters_show_more, more))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    item(key = "watched-end") { Spacer(Modifier.height(28.dp)) }
+                }
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            ShapeIcon(Icons.Outlined.Info, MaterialShapes.Cookie4Sided, tonal = true)
+                            Spacer(Modifier.width(14.dp))
+                            Text(
+                                text = stringResource(R.string.filters_watched_desc),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+                }
+                } else {
+                item {
+                    Subtitle(
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        text = stringResource(R.string.filters_keywords),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    // The muted keywords in one card: a header with how many, the words as
+                    // removable chips with an Add chip at the end, and Apply now at the bottom.
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(28.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    ) {
+                      Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            ShapeIcon(Icons.Outlined.NotificationsOff, MaterialShapes.Cookie7Sided)
+                            Spacer(Modifier.width(14.dp))
+                            Text(
+                                text = stringResource(R.string.filters_keywords),
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                shape = CircleShape,
+                            ) {
+                                Text(
+                                    text = keywords.size.toString(),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            keywords.forEach { word ->
+                                InputChip(
+                                    selected = false,
+                                    onClick = { viewModel.filters.removeKeyword(word) },
+                                    label = { Text(word) },
+                                    shape = CircleShape,
+                                    trailingIcon = {
+                                        Icon(
+                                            Icons.Rounded.Close,
+                                            contentDescription =
+                                                stringResource(R.string.filters_remove, word),
+                                            modifier = Modifier.size(InputChipDefaults.IconSize),
+                                        )
+                                    },
+                                )
+                            }
+                            AssistChip(
+                                onClick = { addDialogVisible = true },
+                                label = { Text(stringResource(R.string.filters_add)) },
+                                shape = CircleShape,
+                                colors =
+                                    AssistChipDefaults.assistChipColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    ),
+                                border = null,
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Rounded.Add,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(AssistChipDefaults.IconSize),
+                                    )
+                                },
+                            )
+                        }
+                        if (keywords.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.filters_none),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                            )
+                        }
+                        Spacer(Modifier.height(14.dp))
+                        // Run the filters now, with what they caught next to the button.
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Button(
+                                onClick = viewModel::applyNow,
+                                modifier = Modifier.weight(1f).height(48.dp),
+                            ) {
+                                Text(stringResource(R.string.filters_apply_now))
+                            }
+                            applied?.let {
+                                Spacer(Modifier.width(12.dp))
+                                Surface(
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    shape = CircleShape,
+                                ) {
+                                    Text(
+                                        text = pluralStringResource(R.plurals.filters_caught, it, it),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    )
+                                }
+                            }
+                        }
+                      }
+                    }
+                    Spacer(Modifier.height(if (undoneCount > 0) 12.dp else 24.dp))
+                    // Articles brought back with Undo are skipped from then on; this lets the
+                    // filters catch them again.
+                    if (undoneCount > 0) {
+                        SettingItem(
+                            title = stringResource(R.string.filters_reset_undone),
+                            desc =
+                                pluralStringResource(
+                                    R.plurals.filters_reset_undone_desc,
+                                    undoneCount,
+                                    undoneCount,
+                                ),
+                            onClick = viewModel::resetUndone,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                    }
+                }
+                item {
+                    Subtitle(
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        text = stringResource(R.string.filters_duplicates),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    // The switch in its own card, with its icon on an Expressive shape.
+                    Surface(
+                        onClick = { viewModel.filters.setHideDuplicates(!dupes) },
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            ShapeIcon(Icons.Outlined.ContentCopy, MaterialShapes.Cookie4Sided)
+                            Spacer(Modifier.width(14.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.filters_dupes),
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                Text(
+                                    text = stringResource(R.string.filters_dupes_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            BYSwitch(activated = dupes) { viewModel.filters.setHideDuplicates(!dupes) }
+                        }
+                    }
+                    Spacer(Modifier.height(28.dp))
+                }
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Subtitle(
+                            modifier = Modifier.weight(1f),
+                            text = stringResource(R.string.filters_log),
+                        )
+                        if (log.isNotEmpty()) {
+                            TextButton(onClick = viewModel::clearLog) {
+                                Text(stringResource(R.string.filters_log_clear))
+                            }
+                        }
+                    }
+                    if (log.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.filters_log_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+                val open = { articleId: String ->
+                    context.startActivity(
+                        Intent(context, MainActivity::class.java)
+                            .putExtra(ExtraName.ARTICLE_ID, articleId)
+                    )
+                }
+                // One day's filtered articles: duplicates grouped under the story that was kept.
+                fun dayRows(day: Long, entries: List<LogRow>, header: Boolean) {
+                    if (header) {
+                        item(key = "day-$day") {
+                            Text(
+                                text = dayLabel(day),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 8.dp),
+                            )
+                        }
+                    }
+                    itemsIndexed(entries, key = { _, it -> it.key }) { index, row ->
+                        Box(Modifier.animateItem()) {
+                        when (row) {
+                            is LogRow.Single ->
+                                FilterLogCard(
+                                    entry = row.entry,
+                                    shape = groupShape(index, entries.size),
+                                    onOpen = { open(row.entry.articleId) },
+                                    onUndo = { viewModel.undo(row.entry) },
+                                )
+                            is LogRow.Duplicates ->
+                                DuplicateGroupCard(
+                                    group = row,
+                                    shape = groupShape(index, entries.size),
+                                    onOpen = open,
+                                    onUndo = { viewModel.undo(it) },
+                                )
+                        }
+                        }
+                    }
+                }
+                val today = java.time.LocalDate.now().toEpochDay()
+                val earlier = days.filterKeys { it != today }
+                val todayRows = days[today]
+                if (todayRows != null) {
+                    dayRows(today, todayRows, header = true)
+                } else if (earlier.isNotEmpty()) {
+                    item(key = "nothing-today") {
+                        Text(
+                            text = stringResource(R.string.filters_nothing_today),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+                // Earlier days: a row per month (closed to start), opening to a row per day, and a
+                // day opening to its articles. Neighbouring closed rows join into one group. // Brief You
+                val months = earlier.entries.groupBy { java.time.YearMonth.from(java.time.LocalDate.ofEpochDay(it.key)) }.entries.toList()
+                if (months.isNotEmpty()) {
+                    item(key = "earlier-label") {
+                        Text(
+                            text = stringResource(R.string.filters_earlier),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 8.dp),
+                        )
+                    }
+                }
+                fun filteredIn(rows: List<LogRow>) = rows.sumOf { if (it is LogRow.Duplicates) it.copies.size else 1 }
+                months.forEachIndexed { mi, (month, monthDays) ->
+                    val monthKey = month.toString()
+                    val monthOpen = monthKey in openMonths
+                    // The run of closed months this row belongs to (an open month stands alone).
+                    var from = mi
+                    while (from > 0 && months[from - 1].key.toString() !in openMonths) from--
+                    var to = mi
+                    while (to < months.lastIndex && months[to + 1].key.toString() !in openMonths) to++
+                    val shape = if (monthOpen) groupShape(0, 1) else groupShape(mi - from, to - from + 1)
+                    item(key = "month-$monthKey") {
+                        FilterRow(
+                            title = monthLabel(month),
+                            count = monthDays.sumOf { (_, rows) -> filteredIn(rows) },
+                            open = monthOpen,
+                            shape = shape,
+                            modifier = Modifier.animateItem(),
+                            onClick = { openMonths = if (monthOpen) openMonths - monthKey else openMonths + monthKey },
+                        )
+                    }
+                    if (monthOpen) {
+                        item(key = "month-gap-$monthKey") { Spacer(Modifier.height(10.dp)) }
+                        monthDays.forEachIndexed { di, (day, entries) ->
+                            val dayKey = "day-$day"
+                            val dayOpen = dayKey in openGroups
+                            item(key = "daygroup-$day") {
+                                FilterRow(
+                                    title = dayLabel(day),
+                                    count = filteredIn(entries),
+                                    open = dayOpen,
+                                    shape = if (dayOpen) groupShape(0, 1) else groupShape(di, monthDays.size),
+                                    raised = true,
+                                    label = java.time.LocalDate.ofEpochDay(day).dayOfMonth.toString(),
+                                    modifier = Modifier.animateItem(),
+                                    onClick = {
+                                        openGroups = if (dayOpen) openGroups - dayKey else openGroups + dayKey
+                                        if (dayOpen) shownInGroup = shownInGroup - dayKey
+                                    },
+                                )
+                            }
+                            if (dayOpen) {
+                                item(key = "daygap-$day") { Spacer(Modifier.height(6.dp)) }
+                                val shown = entries.take(shownInGroup[dayKey] ?: GROUP_PAGE)
+                                itemsIndexed(shown, key = { _, it -> "$dayKey-" + it.key }) { index, row ->
+                                    Box(Modifier.animateItem()) {
+                                        val cardShape = groupShape(index, shown.size)
+                                        when (row) {
+                                            is LogRow.Single ->
+                                                FilterLogCard(
+                                                    entry = row.entry,
+                                                    shape = cardShape,
+                                                    onOpen = { open(row.entry.articleId) },
+                                                    onUndo = { viewModel.undo(row.entry) },
+                                                )
+                                            is LogRow.Duplicates ->
+                                                DuplicateGroupCard(
+                                                    group = row,
+                                                    shape = cardShape,
+                                                    onOpen = open,
+                                                    onUndo = { viewModel.undo(it) },
+                                                )
+                                        }
+                                    }
+                                }
+                                val more = entries.size - shown.size
+                                if (more > 0) {
+                                    item(key = "more-$dayKey") {
+                                        TextButton(
+                                            onClick = { shownInGroup = shownInGroup + (dayKey to shown.size + GROUP_PAGE * 4) },
+                                            modifier = Modifier.animateItem().fillMaxWidth().padding(horizontal = 16.dp),
+                                        ) {
+                                            Text(stringResource(R.string.filters_show_more, more))
+                                        }
+                                    }
+                                }
+                                item(key = "dayend-$day") { Spacer(Modifier.height(6.dp)) }
+                            }
+                        }
+                        item(key = "month-end-$monthKey") { Spacer(Modifier.height(10.dp)) }
+                    }
+                }
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            ShapeIcon(Icons.Outlined.Info, MaterialShapes.Cookie4Sided, tonal = true)
+                            Spacer(Modifier.width(14.dp))
+                            Text(
+                                text = stringResource(R.string.filters_intro),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+                }
+                }
+            }
+        },
+    )
+
+    if (addWatchedVisible) {
+        val draft = rememberTextFieldState()
+        TextFieldDialog(
+            textFieldState = draft,
+            visible = true,
+            title = stringResource(R.string.filters_add_watched),
+            icon = Icons.Outlined.Visibility,
+            placeholder = stringResource(R.string.filters_add_hint),
+            confirmText = stringResource(R.string.filters_add),
+            onDismissRequest = { addWatchedVisible = false },
+            onConfirm = { word ->
+                if (word.isNotBlank()) WatchedWords.add(context, word.trim())
+                addWatchedVisible = false
+            },
+        )
+    }
+    // Only composed while open, so it starts empty every time.
+    if (addDialogVisible) {
+        val draft = rememberTextFieldState()
+        TextFieldDialog(
+            textFieldState = draft,
+            visible = true,
+            title = stringResource(R.string.filters_add_keyword),
+            icon = Icons.Outlined.NotificationsOff,
+            placeholder = stringResource(R.string.filters_add_hint),
+            confirmText = stringResource(R.string.filters_add),
+            onDismissRequest = { addDialogVisible = false },
+            onConfirm = { word ->
+                if (word.isNotBlank()) viewModel.filters.addKeyword(word.trim())
+                addDialogVisible = false
+            },
+        )
+    }
+}
+
+/**
+ * The two tabs, muted on the left and watched on the right, as one joined pill (the chosen half
+ * filled, its icon with it), like the app's other joined buttons.
+ */
+@Composable
+private fun FilterTabs(page: Int, onSelect: (Int) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        listOf(
+                Triple(Icons.Outlined.NotificationsOff, R.string.filters_tab_muted, 1),
+                Triple(Icons.Outlined.Visibility, R.string.filters_tab_watched, 0),
+            )
+            .forEachIndexed { position, (icon, label, index) ->
+                val selected = page == index
+                val outer = com.ay.briefyou.brief.ui.Group.Outer
+                val inner = com.ay.briefyou.brief.ui.Group.Inner
+                val color by
+                    androidx.compose.animation.animateColorAsState(
+                        if (selected) MaterialTheme.colorScheme.secondaryContainer
+                        else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        label = "tab",
+                    )
+                Surface(
+                    onClick = { onSelect(index) },
+                    color = color,
+                    contentColor =
+                        if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    shape =
+                        if (position == 0) RoundedCornerShape(outer, inner, inner, outer)
+                        else RoundedCornerShape(inner, outer, outer, inner),
+                    modifier = Modifier.weight(1f).height(48.dp),
+                ) {
+                    Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(label),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+    }
+}
+
+/** One watched article: its title and feed, on the eye's shape; tap to open it. */
+@Composable
+private fun WatchedLogCard(entry: WatchedEntry, shape: RoundedCornerShape, onOpen: () -> Unit) {
+    Surface(
+        onClick = onOpen,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = shape,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.5.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier =
+                    Modifier.size(36.dp)
+                        .clip(MaterialShapes.Cookie7Sided.toShape())
+                        .background(MaterialTheme.colorScheme.tertiaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Visibility,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(6.dp))
+                // Like a filtered article's row: the word as a small chip, then the feed.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        shape = CircleShape,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.filters_reason_watched, entry.word),
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.filters_from_feed, entry.feedName),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 8.dp).weight(1f, fill = false),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** One filtered article: its title, the feed and why it was filtered, and Undo. */
+@Composable
+private fun FilterLogCard(
+    entry: FilterLogEntry,
+    shape: RoundedCornerShape,
+    onOpen: () -> Unit,
+    onUndo: () -> Unit,
+) {
+    Surface(
+        onClick = onOpen,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = shape,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.5.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Why it was filtered, at a glance: a muted word or a duplicate story.
+            val muted = entry.reason == FilterReason.MutedKeyword
+            Box(
+                modifier =
+                    Modifier.size(36.dp)
+                        .clip((if (muted) MaterialShapes.Cookie7Sided else MaterialShapes.Cookie4Sided).toShape())
+                        .background(
+                            if (muted) MaterialTheme.colorScheme.tertiaryContainer
+                            else MaterialTheme.colorScheme.secondaryContainer
+                        ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    if (muted) Icons.Outlined.NotificationsOff else Icons.Outlined.ContentCopy,
+                    contentDescription = null,
+                    tint =
+                        if (muted) MaterialTheme.colorScheme.onTertiaryContainer
+                        else MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Why it was filtered, as a small chip.
+                    Surface(
+                        color =
+                            if (muted) MaterialTheme.colorScheme.tertiaryContainer
+                            else MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor =
+                            if (muted) MaterialTheme.colorScheme.onTertiaryContainer
+                            else MaterialTheme.colorScheme.onSecondaryContainer,
+                        shape = CircleShape,
+                    ) {
+                        Text(
+                            text =
+                                when (entry.reason) {
+                                    FilterReason.MutedKeyword ->
+                                        stringResource(R.string.filters_reason_muted, entry.detail)
+                                    FilterReason.Duplicate ->
+                                        stringResource(
+                                            R.string.filters_reason_duplicate,
+                                            entry.detailFeed ?: entry.detail,
+                                        )
+                                },
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                        )
+                    }
+                    // The feed this copy came from (the chip names the feed that had it first).
+                    Text(
+                        text = stringResource(R.string.filters_from_feed, entry.feedName) + " · " + timeOf(entry.at), // Brief You: when it was filtered
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 8.dp).weight(1f, fill = false),
+                    )
+                }
+                // For a duplicate: the original story it repeats.
+                if (entry.reason == FilterReason.Duplicate && entry.detailFeed != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.filters_original_story, entry.detail),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            IconButton(onClick = onUndo) {
+                Icon(
+                    Icons.AutoMirrored.Rounded.Undo,
+                    contentDescription = stringResource(R.string.filters_log_undo),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+    }
+}
+
+/** A row of the filtered list: one muted article, or the hidden copies of one story. */
+private sealed interface LogRow {
+    val key: String
+
+    data class Single(val entry: FilterLogEntry) : LogRow {
+        override val key: String
+            get() = entry.articleId
+    }
+
+    data class Duplicates(
+        val originalTitle: String,
+        val originalFeed: String?,
+        val originalId: String?,
+        val copies: List<FilterLogEntry>,
+    ) : LogRow {
+        override val key: String
+            get() = "dupes-" + copies.first().articleId
+    }
+}
+
+/** A day's filtered articles as rows: duplicates of the same story together, in list order. */
+private fun logRows(entries: List<FilterLogEntry>): List<LogRow> {
+    val groups = LinkedHashMap<Any, MutableList<FilterLogEntry>>()
+    for (entry in entries) {
+        val key: Any =
+            if (entry.reason == FilterReason.Duplicate) Triple(entry.detailId, entry.detailFeed, entry.detail)
+            else entry.articleId
+        groups.getOrPut(key) { mutableListOf() } += entry
+    }
+    return groups.values.map { list ->
+        val first = list.first()
+        if (first.reason == FilterReason.Duplicate) {
+            LogRow.Duplicates(
+                originalTitle = first.detail,
+                originalFeed = first.detailFeed,
+                originalId = first.detailId,
+                copies = list,
+            )
+        } else {
+            LogRow.Single(first)
+        }
+    }
+}
+
+/**
+ * The story that was published first (its feed and title; tap to open it, when known), with the
+ * copies that were marked as read under it: each with its feed, and Undo.
+ */
+@Composable
+private fun DuplicateGroupCard(
+    group: LogRow.Duplicates,
+    shape: RoundedCornerShape,
+    onOpen: (String) -> Unit,
+    onUndo: (FilterLogEntry) -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = shape,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.5.dp),
+    ) {
+        Column {
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .then(
+                            if (group.originalId != null) Modifier.clickable { onOpen(group.originalId) }
+                            else Modifier
+                        )
+                        .padding(start = 14.dp, end = 16.dp, top = 14.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier =
+                        Modifier.size(36.dp)
+                            .clip(MaterialShapes.Cookie4Sided.toShape())
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.ContentCopy,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text =
+                            group.originalFeed?.let { stringResource(R.string.filters_kept_unread_from, it) }
+                                ?: stringResource(R.string.filters_kept_unread),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = group.originalTitle,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 62.dp, end = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+            group.copies.forEach { copy ->
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .clickable { onOpen(copy.articleId) }
+                            .padding(start = 62.dp, end = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // The hidden copy: which feed it came from, and its own title.
+                    Column(modifier = Modifier.weight(1f).padding(vertical = 8.dp)) {
+                        Text(
+                            text = stringResource(R.string.filters_hidden_from, copy.feedName) + " · " + timeOf(copy.at), // when it was hidden
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = copy.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    // Undo on a soft round background.
+                    IconButton(
+                        onClick = { onUndo(copy) },
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                contentColor = MaterialTheme.colorScheme.primary,
+                            ),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.Undo,
+                            contentDescription = stringResource(R.string.filters_log_undo),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+        }
+    }
+}
+
+/** "Earlier (12)": opens and closes the filtered articles of the days before today. */
+/** A reason's filtered articles on an earlier day, closed: its name, how many, and an arrow. */
+@Composable
+private fun ReasonGroupRow(title: String, count: Int, open: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val turn by animateFloatAsState(if (open) 180f else 0f, label = "group arrow")
+    Surface(
+        onClick = onClick,
+        color = if (open) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = if (open) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+        shape = RoundedCornerShape(24.dp),
+        modifier = modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 6.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
+            Icon(
+                Icons.Rounded.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier.graphicsLayer { rotationZ = turn },
+            )
+        }
+    }
+}
+
+/**
+ * A month or a day in the log: a calendar icon on a cookie, the name, how many were filtered and an
+ * arrow. Neighbours join into a group by [shape]; [raised] is the paler tone used for days. // Brief You
+ */
+@Composable
+private fun FilterRow(
+    title: String,
+    count: Int,
+    open: Boolean,
+    shape: RoundedCornerShape,
+    modifier: Modifier = Modifier,
+    raised: Boolean = false,
+    label: String? = null, // Brief You: the day's date number on its icon (months keep the calendar)
+    onClick: () -> Unit,
+) {
+    val turn by animateFloatAsState(if (open) 180f else 0f, label = "filter row arrow")
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        color =
+            when {
+                open -> scheme.secondaryContainer
+                raised -> scheme.surfaceContainerHigh
+                else -> scheme.surfaceContainer
+            },
+        contentColor = if (open) scheme.onSecondaryContainer else scheme.onSurface,
+        shape = shape,
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.5.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ShapeIcon(Icons.Outlined.CalendarMonth, MaterialShapes.Cookie7Sided, tonal = open, label = label)
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    text = stringResource(R.string.filters_n_filtered, count),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (open) scheme.onSecondaryContainer else scheme.onSurfaceVariant,
+                )
+            }
+            Box(
+                modifier =
+                    Modifier.size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (open) scheme.onSecondaryContainer.copy(alpha = 0.16f) else Color.Transparent),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.ExpandMore, contentDescription = null, modifier = Modifier.graphicsLayer { rotationZ = turn })
+            }
+        }
+    }
+}
+
+/** How many articles an opened group shows at first ("Show more" adds more). */
+private const val GROUP_PAGE = 5
+
+/** An icon on a small Expressive shape, for the cards on this page. */
+@Composable
+private fun ShapeIcon(
+    icon: ImageVector,
+    shape: androidx.graphics.shapes.RoundedPolygon,
+    tonal: Boolean = false,
+    label: String? = null, // Brief You: a number on the shape instead of the icon (days in the log)
+) {
+    Box(
+        modifier =
+            Modifier.size(40.dp)
+                .clip(shape.toShape())
+                .background(
+                    if (tonal) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f)
+                    else MaterialTheme.colorScheme.secondaryContainer
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (label != null) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                color = if (tonal) LocalContentColor.current else MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        } else {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (tonal) LocalContentColor.current else MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+/** Big corners on the outside of a group, small ones between its cards. */
+private fun groupShape(position: Int, size: Int): RoundedCornerShape =
+    com.ay.briefyou.brief.ui.groupShape(position, size)
+
+/** The day a time falls on, as days since the epoch in the phone's time zone. */
+private fun dayOf(millis: Long): Long =
+    java.time.Instant.ofEpochMilli(millis)
+        .atZone(java.time.ZoneId.systemDefault())
+        .toLocalDate()
+        .toEpochDay()
+
+/** The time of day a filtered article was caught, in the phone's own style (14:32 or 2:32 PM). */
+private fun timeOf(millis: Long): String =
+    java.time.Instant.ofEpochMilli(millis)
+        .atZone(java.time.ZoneId.systemDefault())
+        .toLocalTime()
+        .format(java.time.format.DateTimeFormatter.ofLocalizedTime(java.time.format.FormatStyle.SHORT))
+
+/** "November 2026". */
+private fun monthLabel(month: java.time.YearMonth): String =
+    month.month.getDisplayName(java.time.format.TextStyle.FULL_STANDALONE, java.util.Locale.getDefault()) + " " + month.year
+
+@Composable
+private fun dayLabel(day: Long): String {
+    val today = java.time.LocalDate.now().toEpochDay()
+    return when (day) {
+        today -> stringResource(R.string.filters_today)
+        today - 1 -> stringResource(R.string.filters_yesterday)
+        else ->
+            java.time.LocalDate.ofEpochDay(day)
+                .format(
+                    java.time.format.DateTimeFormatter.ofLocalizedDate(
+                        java.time.format.FormatStyle.MEDIUM
+                    )
+                )
+    }
+}

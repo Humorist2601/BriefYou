@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Brief You: read aloud in the background -->
+    <!-- Android 17: servers and feeds on the home network. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <!-- Brief You: the AI model downloads in the background, with a progress notification -->
@@ -43,11 +45,11 @@
         android:fullBackupContent="@xml/backup_rules"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/read_you"
+        android:label="@string/app_display_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Reader"
-        android:usesCleartextTraffic="true">
+        android:networkSecurityConfig="@xml/network_security_config">
 
         <!-- Brief You: lets LiteRT-LM use the GPU for on-device summaries (optional on devices without it). -->
         <uses-native-library
@@ -74,6 +76,7 @@
             android:launchMode="singleInstance"
             android:theme="@style/Theme.Reader"
             android:windowSoftInputMode="adjustResize">
+            <!-- The launcher entry: the home-screen icon opens the app here. -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -116,11 +119,11 @@
         </activity>
         <!-- Brief You: the digest notification's Mark all read button. -->
         <receiver
-            android:name="me.ash.reader.brief.notifications.DigestActionReceiver"
+            android:name="com.ay.briefyou.brief.notifications.DigestActionReceiver"
             android:exported="false" />
         <!-- Brief You: Read later, in the Share menu: saves a shared link as a starred article. -->
         <activity
-            android:name="me.ash.reader.brief.readlater.ReadLaterActivity"
+            android:name="com.ay.briefyou.brief.readlater.ReadLaterActivity"
             android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/read_later_label"
@@ -164,7 +167,11 @@
         <service
             android:name=".brief.readaloud.ReadAloudService"
             android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
 
         <!-- Brief You: podcast episodes and videos, with their own media notification; Android's "resume" (lock screen, Quick Settings, after a restart) reaches it through the media button receiver. -->
         <service

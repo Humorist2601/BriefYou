@@ -1,0 +1,266 @@
+package com.ay.briefyou.brief.list
+
+import com.ay.briefyou.domain.data.DiffMapHolder
+import com.ay.briefyou.brief.app.BriefShortcuts
+import com.ay.briefyou.brief.stats.ReadingStats
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
+import androidx.paging.compose.LazyPagingItems
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.ay.briefyou.R
+import com.ay.briefyou.brief.ai.SummaryRequest
+import com.ay.briefyou.brief.ai.SummarySheet
+import com.ay.briefyou.brief.triage.TriageScreen
+import com.ay.briefyou.brief.triage.TriageSession
+import com.ay.briefyou.brief.ui.ScreenOverlay
+import com.ay.briefyou.domain.data.FilterState
+import com.ay.briefyou.domain.model.article.ArticleFlowItem
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.ui.unit.Dp
+import com.ay.briefyou.brief.ui.AiActions
+import com.ay.briefyou.brief.ui.BottomBarHeight
+import com.ay.briefyou.brief.ui.FILTER_BAR_TOP_PADDING
+import com.ay.briefyou.brief.ui.BarScreenOffset
+import com.ay.briefyou.brief.ui.FloatingBarGap
+import com.ay.briefyou.ui.page.adaptive.ArticleListReaderViewModel
+
+/*
+ * Brief You's additions to the article list (FlowPage), kept here so the original file only
+ * needs a few one-line calls: what the AI button opens, Triage, the gist sheet and the inbox
+ * zero celebration.
+ */
+
+/** Brief You's state on the article list. */
+@Stable
+class BriefFlowState internal constructor(private val triage: MutableState<Boolean>) {
+    /** The AI gist sheet is open. */
+    var showGist by mutableStateOf(false)
+
+    /** Triage is open (kept across configuration changes). */
+    var showTriage: Boolean
+        get() = triage.value
+        set(value) {
+            triage.value = value
+        }
+
+    /** The inbox zero celebration is showing. */
+    internal var celebrate by mutableStateOf(false)
+
+    /**
+     * "Mark all as read" from swiping up on the Unread list, then the inbox zero celebration, but
+     * only when something on the list was still unread: an empty list is already at inbox zero.
+     */
+    fun markAllAsRead(items: List<ArticleFlowItem>, diff: DiffMapHolder, markAllAsRead: () -> Unit) {
+        val anyUnread =
+            items.any { it is ArticleFlowItem.Article && diff.checkIfUnread(it.articleWithFeed) }
+        markAllAsRead()
+        if (anyUnread && !showTriage) celebrate = true
+    }
+}
+
+@Composable
+fun rememberBriefFlowState(filterUiState: FilterState): BriefFlowState {
+    val triage = rememberSaveable { mutableStateOf(false) }
+    return remember { BriefFlowState(triage) }
+}
+
+/**
+ * What the AI button beside the bottom bar opens (AI Gist and Triage), or null when it doesn't
+ * show: only in Unread, and not while searching.
+ */
+@Composable
+fun briefAiActions(
+    state: BriefFlowState,
+    filterUiState: FilterState,
+    searching: Boolean,
+    briefViewModel: BriefListViewModel = hiltViewModel(),
+): AiActions? {
+    if (!filterUiState.filter.isUnread() || searching) return null
+    return remember(state, briefViewModel) {
+        AiActions(
+            onGist = { state.showGist = true },
+            onTriage = {
+                // A new run each time.
+                briefViewModel.triageSession = null
+                briefViewModel.triageResume = false
+                state.showTriage = true
+            },
+        )
+    }
+}
+
+/**
+ * Brief You's overlays on the article list: inbox zero, Triage (full screen, over the list) and
+ * the AI gist sheet. Put last inside the list's outer Box.
+ */
+@Composable
+fun BriefFlowOverlays(
+    state: BriefFlowState,
+    viewModel: ArticleListReaderViewModel,
+    filterUiState: FilterState,
+    titleText: String,
+    isTwoPane: Boolean,
+    openArticleId: String?,
+    pagingItems: LazyPagingItems<ArticleFlowItem>?,
+    navigateToArticle: (String, Int) -> Unit,
+    briefViewModel: BriefListViewModel = hiltViewModel(),
+) {
+    val context = LocalContext.current
+    // Opens links the way chosen in the settings ("open links in").
+    val uriHandler = LocalUriHandler.current
+
+    // Inbox zero, in the exact middle of the screen, over everything (Triage has its own, at the
+    // end of the cards).
+    // App shortcuts: Triage or the gist, once the Unread list of everything is showing.
+    val pendingShortcut = BriefShortcuts.pending
+    LaunchedEffect(pendingShortcut, filterUiState) {
+        val ready =
+            filterUiState.filter.isUnread() && filterUiState.feed == null && filterUiState.group == null
+        if (pendingShortcut == null || !ready) return@LaunchedEffect
+        BriefShortcuts.pending = null
+        when (pendingShortcut) {
+            BriefShortcuts.Action.Triage -> {
+                briefViewModel.triageSession = null
+                briefViewModel.triageResume = false
+                state.showTriage = true
+            }
+            BriefShortcuts.Action.Gist -> state.showGist = true
+            else -> {}
+        }
+    }
+
+    // An empty list says so (Starred with nothing starred, a caught-up Unread list…).
+    EmptyListState(pagingItems, filterUiState.filter, searching = !filterUiState.searchContent.isNullOrBlank())
+
+    if (state.celebrate) {
+        // Only when nothing is unread anywhere: marking one feed or group as read while others
+        // still have unread articles is not inbox zero.
+        val elsewhere =
+            remember { briefViewModel.unreadOutside(filterUiState.feed?.id, filterUiState.group?.id) }
+        if (elsewhere > 0) {
+            LaunchedEffect(Unit) { state.celebrate = false }
+        } else {
+            LaunchedEffect(Unit) { ReadingStats.inboxZero(context) } // Reading stats
+            ScreenOverlay {
+                InboxZeroCelebration(visible = true, onFinished = { state.celebrate = false })
+            }
+        }
+    }
+
+    // Triage comes back when you close an article that was opened from one of its cards.
+    LaunchedEffect(openArticleId) {
+        if (briefViewModel.triageResume && openArticleId == null) {
+            briefViewModel.triageResume = false
+            state.showTriage = true
+        }
+    }
+
+    // Triage is a full-screen overlay (not a dialog), so the predictive back gesture can animate it.
+    if (state.showTriage) {
+        // The unread articles at the moment triage was opened. The session itself is kept in the
+        // view model, so it survives reading an article and coming back.
+        val session = remember {
+            briefViewModel.triageSession
+                ?: TriageSession(
+                        articles =
+                            pagingItems
+                                ?.itemSnapshotList
+                                ?.filterIsInstance<ArticleFlowItem.Article>()
+                                ?.map { it.articleWithFeed }
+                                ?.filter { viewModel.diffMapHolder.checkIfUnread(it) }
+                                ?.distinctBy { it.article.id }
+                                // Watched words first.
+                                ?.let { list -> com.ay.briefyou.brief.filters.WatchedWords.watchedFirst(list) { it.article.title } }
+                                ?: emptyList(),
+                        // A feed wins over its group: after a feed comes the next feed.
+                        groupId = if (filterUiState.feed == null) filterUiState.group?.id else null,
+                        feedId = filterUiState.feed?.id,
+                        title = filterUiState.feed?.name ?: filterUiState.group?.name,
+                    )
+                    .also {
+                        // The place it starts in begins with the list's cards; on an Unread list
+                        // they are its first articles, so its next load carries on after them.
+                        val place = it.feedId ?: it.groupId
+                        it.listPlace = place
+                        if (place != null && filterUiState.filter.isUnread()) {
+                            val listRows = pagingItems?.itemSnapshotList?.count { item -> item is ArticleFlowItem.Article } ?: 0
+                            it.rowsUsed = mapOf(place to listRows)
+                        }
+                        // How much is unread everywhere as it starts, for the progress ring.
+                        if (it.groupId != null || it.feedId != null) {
+                            val (unread, places) = briefViewModel.triageTotals(feeds = it.feedId != null)
+                            it.setStart(unread, places)
+                        }
+                        briefViewModel.triageSession = it
+                    }
+        }
+        TriageScreen(
+            session = session,
+            onRead = { viewModel.diffMapHolder.updateDiff(it, isUnread = false) },
+            onUnread = { viewModel.diffMapHolder.updateDiff(it, isUnread = true) },
+            onStar = { article, starred ->
+                viewModel.updateStarredStatus(articleId = article.article.id, isStarred = starred)
+            },
+            onOpen = { articleWithFeed ->
+                if (articleWithFeed.feed.isBrowser) {
+                    // Triage stays open underneath; you return to it from the browser.
+                    viewModel.diffMapHolder.updateDiff(articleWithFeed, isUnread = false)
+                    uriHandler.openUri(articleWithFeed.article.link)
+                } else {
+                    // Hide triage while the article is open; it returns when you go back.
+                    briefViewModel.triageResume = !isTwoPane
+                    state.showTriage = false
+                    val index =
+                        pagingItems
+                            ?.itemSnapshotList
+                            ?.indexOfFirst {
+                                it is ArticleFlowItem.Article &&
+                                    it.articleWithFeed.article.id == articleWithFeed.article.id
+                            }
+                            ?.coerceAtLeast(0) ?: 0
+                    navigateToArticle(articleWithFeed.article.id, index)
+                }
+            },
+            onClose = {
+                state.showTriage = false
+                briefViewModel.triageSession = null
+                briefViewModel.triageResume = false
+            },
+            findNext = { groupId, feedId, visited -> briefViewModel.nextTriage(groupId, feedId, visited) },
+            findLeft = { groupId, feedId, visited -> briefViewModel.triageLeft(groupId, feedId, visited) },
+            loadNext = { next, from -> briefViewModel.loadTriage(next, from) },
+            listPlaces = { feeds, visited -> briefViewModel.triagePlaces(feeds, visited) },
+            feedsOf = { group, visited -> briefViewModel.triageFeedsOf(group, visited) }, // Brief You
+        )
+    }
+
+    if (state.showGist) {
+        val gistFilter = filterUiState.copy(searchContent = null)
+        SummarySheet(
+            requestKey = gistFilter,
+            request = SummaryRequest.Gist(gistFilter),
+            heading = stringResource(R.string.ai_gist_of, titleText),
+            onDismissRequest = { state.showGist = false },
+        )
+    }
+}
+
+/** The pull-to-load hint's distance from the bottom: [FloatingBarGap] above the bottom bar. */
+val briefPullToLoadPadding: Dp = BottomBarHeight + FILTER_BAR_TOP_PADDING + BarScreenOffset + FloatingBarGap
+
+/** The pull-to-load hint stays above the navigation bar. */
+val briefPullToLoadInsets: WindowInsets
+    @Composable get() = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)

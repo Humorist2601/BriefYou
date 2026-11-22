@@ -3,13 +3,14 @@ name: "Test build"
 # Builds every branch except main as Brief You Nightly: its own app (own app ID, name and icon),
 # so it installs next to Brief You. The same steps as build.yaml (reused, so they never differ),
 # with its own run numbers, so test builds don't use up release numbers. Each one replaces the
-# single "Nightly" prerelease. Read You updates (read-you-sync) wait for review and are built
-# once merged into main.
+# single "Nightly" prerelease.
 on:
     push:
         branches-ignore:
             - main
-            - read-you-sync
+            # Dependabot's branches are checked by dependency-check.yaml instead: a Nightly from
+            # one would replace the Nightly being tried.
+            - "dependabot/**"
         # A commit that only changes documents, the README's pictures or the repository's GitHub
         # pages makes no Nightly.
         paths-ignore:

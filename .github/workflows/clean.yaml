@@ -5,8 +5,7 @@ name: "Clean up old releases, tags and runs"
 # - the newest release (and the single Nightly prerelease, which each test build replaces),
 # - the newest run of each workflow, and no runs of workflows that were removed,
 # - the release tags of the kept releases only,
-# - branches with work not yet in main (fully merged ones are deleted; never main or
-#   read-you-sync).
+# - branches with work not yet in main (fully merged ones are deleted; never main).
 # Gradle caches are left alone: GitHub removes the ones unused for 7 days by itself.
 # Starts as a dry run: it lists what it would delete, and deletes only when "Dry run" is unticked.
 
@@ -103,12 +102,12 @@ jobs:
 
             - name: Merged branches
               # A branch with nothing that isn't already in main (its work was merged) is
-              # deleted. Branches with unmerged work stay; main and read-you-sync are never touched.
+              # deleted. Branches with unmerged work stay; main is never touched.
               run: |
                   gh api "repos/$REPO/branches?per_page=100" --paginate -q '.[].name' > branches.txt
                   : > old_branches.txt
                   while read -r branch; do
-                      case "$branch" in main|read-you-sync|"") continue ;; esac
+                      case "$branch" in main|"") continue ;; esac
                       ahead=$(gh api "repos/$REPO/compare/main...$branch" -q .ahead_by 2>/dev/null || echo "?")
                       if [ "$ahead" = "0" ]; then echo "$branch" >> old_branches.txt
                       else echo "keeping $branch ($ahead commits not in main)"; fi

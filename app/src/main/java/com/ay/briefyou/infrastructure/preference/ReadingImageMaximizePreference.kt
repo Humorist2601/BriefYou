@@ -1,0 +1,46 @@
+@file:Suppress("UNCHECKED_CAST")
+
+package com.ay.briefyou.infrastructure.preference
+
+import android.content.Context
+import androidx.compose.runtime.compositionLocalOf
+import androidx.datastore.preferences.core.Preferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import com.ay.briefyou.ui.ext.DataStoreKey
+import com.ay.briefyou.ui.ext.DataStoreKey.Companion.readingImageMaximize
+import com.ay.briefyou.ui.ext.dataStore
+import com.ay.briefyou.ui.ext.put
+
+val LocalReadingImageMaximize =
+    compositionLocalOf<ReadingImageMaximizePreference> { ReadingImageMaximizePreference.default }
+
+sealed class ReadingImageMaximizePreference(val value: Boolean) : Preference() {
+    object ON : ReadingImageMaximizePreference(true)
+    object OFF : ReadingImageMaximizePreference(false)
+
+    override fun put(context: Context, scope: CoroutineScope) {
+        scope.launch {
+            context.dataStore.put(DataStoreKey.readingImageMaximize, value)
+        }
+    }
+
+    companion object {
+
+        val default = OFF // Brief You: pictures keep their own size until you turn Maximize on
+        val values = listOf(ON, OFF)
+
+        fun fromPreferences(preferences: Preferences) =
+            when (preferences[DataStoreKey.keys[readingImageMaximize]?.key as Preferences.Key<Boolean>]) {
+                true -> ON
+                false -> OFF
+                else -> default
+            }
+    }
+}
+
+operator fun ReadingImageMaximizePreference.not(): ReadingImageMaximizePreference =
+    when (value) {
+        true -> ReadingImageMaximizePreference.OFF
+        false -> ReadingImageMaximizePreference.ON
+    }

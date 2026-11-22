@@ -1,6 +1,5 @@
 import java.io.FileInputStream
 import java.util.Properties
-import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
 
 plugins {
     // Brief You: no Kotlin Android plugin: AGP 9 has Kotlin built in.
@@ -25,30 +24,27 @@ fun fetchGitCommitHash(): String {
 val gitCommitHash = fetchGitCommitHash()
 val keyProps = Properties()
 val releaseKeyPropsFile: File = rootProject.file("signature/keystore_release.properties")
-val debugKeyPropsFile: File = rootProject.file("signature/keystore.properties")
 
 
 if (releaseKeyPropsFile.exists()) {
     println("Loading keystore properties from ${releaseKeyPropsFile.absolutePath}")
     keyProps.load(FileInputStream(releaseKeyPropsFile))
-} else if (debugKeyPropsFile.exists()) {
-    keyProps.load(FileInputStream(debugKeyPropsFile))
 }
 
 android {
     compileSdk = 37 // Brief You: Compose 1.12 needs it
 
     defaultConfig {
-        applicationId = "me.ash.reader"
+        applicationId = "com.ay.briefyou"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 37 // Brief You: Android 17
         versionCode = 47
         versionName = "0.16.2"
 
         buildConfigField(
             "String",
             "USER_AGENT_STRING",
-            "\"ReadYou/${versionName}(${versionCode})\"",
+            "\"BriefYou/${versionName}(${versionCode})\"",
         )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -67,7 +63,7 @@ android {
         create("github") {
             isDefault = true
             dimension = "channel"
-            // Brief You (fork of Read You) has its own app ID, so it installs next to Read You.
+            // Brief You has its own app ID.
             applicationId = "com.ay.briefyou"
             // Brief You's own name in the network user agent.
             buildConfigField(
@@ -76,16 +72,11 @@ android {
                 "\"BriefYou/${defaultConfig.versionName}(${defaultConfig.versionCode})\"",
             )
             // CI builds get a rising version so each release installs as an update. Kept here,
-            // away from the upstream version lines, so Read You's version bumps merge cleanly.
+            // in one place.
             System.getenv("CI_BUILD_NUMBER")?.toIntOrNull()?.let { build ->
                 versionCode = build
                 versionNameSuffix = ".$build"
             }
-        }
-        create("fdroid") { dimension = "channel" }
-        create("googlePlay") {
-            dimension = "channel"
-            applicationIdSuffix = ".google.play"
         }
     }
     signingConfigs {
@@ -144,11 +135,10 @@ android {
         // Brief You: English only (Brief You's own text is English; about 1 MB smaller).
         localeFilters += listOf("en")
     }
-    composeCompiler { featureFlags = setOf(ComposeFeatureFlag.PausableComposition) }
-    namespace = "me.ash.reader"
+    namespace = "com.ay.briefyou"
 }
 
-aboutLibraries { excludeFields = arrayOf("generated") }
+aboutLibraries { export { excludeFields.add("generated") } } // Brief You: AboutLibraries 15
 
 // Brief You: the compilerOptions DSL, in place of the deprecated kotlinOptions.
 kotlin {
@@ -162,8 +152,6 @@ kotlin {
 
 dependencies {
     // AboutLibraries
-    // Read aloud: the system media notification and controls. // Brief You
-    implementation(libs.androidx.media)
     implementation(libs.media3.exoplayer) // Brief You: the podcast and video player
     implementation(libs.media3.session) // Brief You
     implementation(libs.media3.ui.compose) // Brief You
@@ -174,7 +162,6 @@ dependencies {
     implementation(libs.compose.html)
     implementation(platform(libs.compose.bom.stable)) // Brief You: Compose 1.11.1 (Material 3 is pinned in libs.versions.toml)
     implementation(libs.androidx.ui.graphics)
-    androidTestImplementation(platform(libs.compose.bom.stable))
     implementation(libs.compose.animation.graphics)
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.util)
@@ -183,11 +170,11 @@ dependencies {
     implementation(libs.material.kolor) // Brief You
     implementation(libs.compose.ui.tooling)
     implementation(libs.compose.ui.tooling.preview)
-    androidTestImplementation(libs.compose.ui.test.junit4)
     implementation(libs.compose.material3)
 
     // Coil
     implementation(libs.coil.base)
+    implementation(libs.coil.network) // Brief You: Coil 3 fetches through OkHttp with this
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
     implementation(libs.coil.gif)
@@ -195,7 +182,6 @@ dependencies {
     // Hilt
     implementation(libs.hilt.work)
     implementation(libs.hilt.android)
-    androidTestImplementation(platform(libs.compose.bom.stable))
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     ksp(libs.hilt.android.compiler)
@@ -251,11 +237,4 @@ dependencies {
     // On-device AI summaries (LiteRT-LM + Gemma) // Brief You
     implementation(libs.litertlm.android)
 
-    // Testing
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.junit.ext)
-    androidTestImplementation(libs.espresso)
-    testImplementation(libs.mockito.core)
-    testImplementation(libs.mockito.junit.jupiter)
-    testImplementation(libs.mockito.kotlin)
 }

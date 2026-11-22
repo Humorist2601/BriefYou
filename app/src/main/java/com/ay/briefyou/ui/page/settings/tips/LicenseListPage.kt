@@ -1,0 +1,73 @@
+package com.ay.briefyou.ui.page.settings.tips
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue // Brief You: AboutLibraries 15
+import com.mikepenz.aboutlibraries.ui.compose.android.produceLibraries // Brief You
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
+import com.ay.briefyou.R
+import com.ay.briefyou.infrastructure.preference.OpenLinkPreference
+import com.ay.briefyou.ui.component.base.FeedbackIconButton
+import com.ay.briefyou.ui.component.base.BYScaffold
+import com.ay.briefyou.ui.ext.openURL
+import com.ay.briefyou.ui.theme.palette.onLight
+
+@Composable
+fun LicenseListPage(
+    onBack: () -> Unit,
+) {
+    val context = LocalContext.current
+
+    BYScaffold(
+        containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
+        navigationIcon = {
+            FeedbackIconButton(
+                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = stringResource(R.string.back),
+                tint = MaterialTheme.colorScheme.onSurface,
+                onClick = onBack
+            )
+        },
+        actions = {
+            FeedbackIconButton(
+                modifier = Modifier.size(20.dp),
+                imageVector = Icons.Rounded.Star,
+                contentDescription = stringResource(R.string.open_source_licenses),
+                tint = MaterialTheme.colorScheme.onSurface
+            ) {
+                context.openURL(
+                    url = context.getString(R.string.github_link) + "/blob/main/LICENSE",
+                    openLink = OpenLinkPreference.AutoPreferCustomTabs,
+                )
+            }
+        },
+        content = {
+            Column {
+                // Brief You: AboutLibraries 15. Named by its resource, so shrinking keeps the list
+                // (looked up by name, it was removed from the app and the page stayed empty).
+                val libraries by produceLibraries(R.raw.aboutlibraries)
+                LibrariesContainer(
+                    libraries = libraries, // Brief You
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = WindowInsets(0, 0, 0, 24)
+                        .add(WindowInsets.navigationBars)
+                        .asPaddingValues(),
+                )
+            }
+        },
+    )
+}

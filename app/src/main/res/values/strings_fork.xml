@@ -26,7 +26,6 @@
     <string name="ai_summary_regenerate">Regenerate</string>
     <string name="ai_summary_retry">Try again</string>
     <string name="ai_read_aloud">Read</string>
-    <string name="ai_stop_reading">Stop</string>
 
     <!-- Reading page (experiments) -->
     <string name="reading_time_left">%1$d min left</string>
@@ -55,6 +54,7 @@
     <string name="sheet_step_down">Less</string>
     <string name="sheet_step_up">More</string>
     <string name="speed_quick_picks">Quick picks</string>
+    <string name="text_settings_font_google" translatable="false">Google Sans</string>
     <string name="text_settings_all">All reading settings</string>
 
     <!-- Group gist -->
@@ -135,7 +135,6 @@
     <string name="filters_kept_unread_from">Kept unread · %1$s</string>
     <string name="filters_kept_unread">Kept unread</string>
     <string name="filters_hidden_from">Hidden · %1$s</string>
-    <string name="filters_group_duplicates">Duplicate stories</string>
     <string name="filters_group_keyword">“%1$s”</string>
     <string name="filters_show_more">Show %1$d more</string>
     <string name="filters_earlier">Earlier</string>
@@ -187,10 +186,37 @@
     <!-- Triage mode -->
     <string name="flow_fab_gist">AI Gist</string>
     <string name="triage">Triage</string>
+    <string name="lists_page">Lists</string>
+    <string name="mark_as_read_when_opened">Mark as read when opened</string>
+    <string name="mark_as_read_when_opened_desc">Podcasts and videos are marked once played</string>
+    <string name="keep_screen_on">Keep screen on while reading</string>
+    <string name="collect_stats">Collect reading stats</string>
+    <string name="collect_stats_desc">Count what you read. Off, nothing new is counted and the recap stops</string>
+    <string name="prepare_ai_model">Prepare the model at start</string>
+    <string name="prepare_ai_model_desc">Loads the model when the app opens, so the first summary is quick. Off, it loads when first used.</string>
+    <string name="ai_settings_model_start">At start</string>
+    <string name="notifications_page_desc">Feeds that notify, Android\'s settings</string>
+    <string name="notifications_android">Android\'s notification settings</string>
+    <string name="notifications_android_desc">Sound, vibration, lock screen</string>
+    <string name="notifications_feeds">Feeds that notify</string>
+    <string name="notifications_none">No feed notifies yet. Turn it on in a feed\'s options: hold a feed on the Feeds page.</string>
+    <string name="notifications_tips">New articles of these feeds arrive in one notification, with Mark all read.</string>
+    <string name="notifications_off_title">Notifications are off</string>
+    <string name="notifications_off_desc">Android blocks Brief You\'s notifications. Tap to allow them.</string>
+    <string name="haptic_feedback">Haptic feedback</string>
+    <string name="haptic_feedback_desc">Vibration on taps, swipes and holds</string>
+    <string name="images_and_videos">Images and videos</string>
+    <string name="images_and_videos_desc">Corners, padding and width</string>
+    <string name="ai_button">AI button</string>
+    <string name="ai_button_long_press">Hold the AI button</string>
+    <string name="ai_button_opens">Opens %1$s</string>
+    <string name="ai_button_tips">The AI button sits beside the bottom bar on the Unread list. A tap shows AI Gist and Triage; holding it opens the one chosen here straight away.</string>
     <plurals name="triage_left">
         <item quantity="one">%d left</item>
         <item quantity="other">%d left</item>
     </plurals>
+    <string name="triage_left_of">%1$d/%2$d left</string>
+    <string name="triage_of_left">/%1$d left</string>
     <string name="triage_undo">Undo</string>
     <string name="triage_read">Read</string>
     <string name="triage_save">Save</string>
@@ -253,7 +279,7 @@
     <string name="sort_count">Unread</string>
     <string name="sort_most_first">Most first</string>
     <string name="sort_fewest_first">Fewest first</string>
-    <!-- First-start terms for Brief You (Read You's own text names Read You and its repo). -->
+    <!-- First-start terms for Brief You. -->
     <string name="brief_tos_tips">Please read and agree to Brief You\'s terms of service and privacy policy to continue.</string>
     <string name="brief_tos_content"><h5> Privacy policy </h5> <br /> <p> <b>Brief You</b> does not collect any user data. Your feeds, articles and settings, and any account passwords, stay in the app\'s storage on your device. AI summaries run on your device with a model you add yourself; nothing is sent anywhere for them. </p> <br /> <p> <b>Brief You</b> uses these permissions: </p> <br /> <p> - Network access (to fetch the feeds and pages you choose) </p> <p> - Network status (to know whether you are online, or on Wi-Fi) </p> <p> - Background work and notifications (to sync on a schedule, and for read aloud) </p> <br /> <br /> <h5> Third-party services </h5> <br /> <p> This policy does not cover services you use with <b>Brief You</b>, such as an RSS server. See their own privacy policies. </p> <br /> <br /> <h5> Disclaimers </h5> <br /> <p> <b>Brief You</b> is only a tool for reading content you choose. You are responsible for using it within the laws of your country or region. </p> <br /> <br /> <h5> Open source license </h5> <br /> <p> <b>Brief You</b> is a fork of Read You[1], and like it is open source under the GNU GPL 3.0 license[2]: you may use, study and change the source code for free, but changed or derived versions may not be distributed as closed-source software. </p> <br /> <br /> <h5> Appendix </h5> <br /> <p> - [1] https://github.com/Humorist2601/BriefYou (based on https://github.com/ReadYouApp/ReadYou) </p> <p> - [2] https://www.gnu.org/licenses/gpl-3.0.html </p></string>
     <!-- Reading stats -->
@@ -406,7 +432,7 @@
     <string name="hint_show_again">Show hints again</string>
     <string name="hint_reset_done">The hints will show again</string>
     <string name="hint_got_it">Got it</string>
-    <string name="hint_unread_triage">swipes through these one card at a time; AI gist sums up the newest.</string>
+    <string name="hint_unread_ai_button">opens Triage, which goes through these one card at a time, and AI Gist, which sums up the newest. Hold it to open one of them straight away.</string>
     <string name="hint_reading_ai_bold">Tap ✨</string>
     <string name="hint_reading_ai">for this article\'s key points. Hold it for the AI\'s settings.</string>
     <string name="hint_triage_hold_bold">Hold a card</string>
@@ -504,7 +530,7 @@
     <string name="number_past_slider">Past the slider (%1$s–%2$s), a custom value</string>
     <string name="same_as_images">Same as images</string>
     <string name="tidy_newsletters">Tidy newsletters</string>
-    <string name="tidy_newsletters_desc">Outlined buttons, boxed notes and divider lines, without the sender\'s logo or a repeated headline. Off shows the plain article.</string>
+    <string name="tidy_newsletters_desc">Cleaner layout, no logos or repeats</string>
     <string name="offline_copies_title">Starred downloads</string>
     <string name="offline_mode_off">Off</string>
     <string name="offline_mode_mobile">Mobile data only</string>
@@ -555,4 +581,6 @@
     <string name="translate_show_original">Show original</string>
     <string name="translate_show_translation">Show translation</string>
     <string name="translate_needs_model">Set up the AI model first (Settings → AI model).</string>
+    <string name="app_display_name" translatable="false">Brief You</string>
+    <string name="about_based_on">Based on Read You, open source under the GPL-3.0 licence</string>
 </resources>

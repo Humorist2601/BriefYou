@@ -1,0 +1,30 @@
+# Automatic update pull requests (Dependabot). Small updates only: major versions are left out
+# on purpose, because the big jumps (Compose, Kotlin, AGP, Room, Media3…) are done by hand, one at
+# a time, and tested as their own Nightly (see HANDOVER). A pull request here is only a suggestion:
+# nothing is merged by itself, and merging one into main makes a release, so try it first (merge
+# it into a test branch, let the owner install the Nightly).
+version: 2
+updates:
+    - package-ecosystem: "gradle"
+      directory: "/"
+      schedule:
+          interval: "monthly"
+      open-pull-requests-limit: 3
+      labels: ["dependencies"]
+      ignore:
+          - dependency-name: "*"
+            update-types: ["version-update:semver-major"]
+      groups:
+          androidx:
+              patterns: ["androidx.*"]
+          kotlin-and-compose:
+              patterns: ["org.jetbrains.kotlin*", "org.jetbrains.compose*", "com.google.devtools.ksp*"]
+          everything-else:
+              patterns: ["*"]
+              exclude-patterns: ["androidx.*", "org.jetbrains.kotlin*", "org.jetbrains.compose*", "com.google.devtools.ksp*"]
+    - package-ecosystem: "github-actions"
+      directory: "/"
+      schedule:
+          interval: "monthly"
+      open-pull-requests-limit: 2
+      labels: ["dependencies"]

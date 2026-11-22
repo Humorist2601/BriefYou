@@ -1,0 +1,34 @@
+package com.ay.briefyou.ui.page.settings.accounts.connection
+
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.ay.briefyou.R
+import com.ay.briefyou.domain.model.account.Account
+import com.ay.briefyou.domain.model.account.AccountType
+import com.ay.briefyou.ui.component.base.Subtitle
+
+@Composable
+fun LazyItemScope.AccountConnection(
+    account: Account,
+) {
+    if (account.type.id != AccountType.Local.id) {
+        Subtitle(
+            modifier = Modifier.padding(horizontal = 24.dp),
+            text = stringResource(R.string.connection),
+        )
+    }
+    when (account.type.id) {
+        AccountType.Fever.id -> FeverConnection(account)
+        AccountType.GoogleReader.id -> GoogleReaderConnection(account)
+        AccountType.FreshRSS.id -> FreshRSSConnection(account)
+    }
+    if (account.type.id != AccountType.Local.id) {
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}

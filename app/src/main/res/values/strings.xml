@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="read_you" translatable="false">Read You</string>
     <string name="all">All</string>
     <plurals name="all_desc">
         <item quantity="one">%1$d archived item</item>
@@ -17,23 +16,18 @@
         <item quantity="other">%1$d starred items</item>
     </plurals>
     <string name="feeds">Feeds</string>
-    <string name="syncing">Syncing…</string>
     <string name="loading">Loading…</string>
     <string name="expand_less">Shrink</string>
     <string name="expand_more">Expand</string>
-    <string name="unfold_more">Expand all</string>
     <string name="unfold_less">Collapse all</string>
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
-    <string name="allow">Allow</string>
-    <string name="deny">Deny</string>
     <string name="defaults">Default</string>
     <string name="unknown">Unknown</string>
     <string name="empty">Empty</string>
     <string name="back">Back</string>
     <string name="go_to">Go to</string>
     <string name="settings">Settings</string>
-    <string name="refresh">Refresh</string>
     <string name="search">Search</string>
     <string name="searching">Searching…</string>
     <string name="subscribe">Subscribe</string>
@@ -43,19 +37,9 @@
     <string name="feed_or_site_url">Feed or site URL</string>
     <string name="import_from_opml">Import from OPML</string>
     <string name="preset">Preset</string>
-    <string name="selected">Selected</string>
     <string name="allow_notification">Allow notifications</string>
-    <string name="all_allow_notification_tips">Allow all feeds in the \"%1$s\" group to send notifications</string>
-    <string name="all_allow_notification_toast">Notifications from the \"%1$s\" group are allowed</string>
-    <string name="all_deny_notification_toast">Notifications from the \"%1$s\" group are denied</string>
     <string name="parse_full_content">Parse full content</string>
-    <string name="all_parse_full_content_tips">Full content parsing of all articles in the \"%1$s\" group</string>
-    <string name="all_parse_full_content_toast">Full content parsing of all articles in the \"%1$s\" group is allowed</string>
-    <string name="all_deny_parse_full_content_toast">Full content parsing of all articles in the \"%1$s\" group is denied</string>
     <string name="open_in_browser">Open in browser</string>
-    <string name="all_open_in_browser_tips">Open all articles in the \"%1$s\" group using the default browser</string>
-    <string name="all_open_in_browser_toast">Opening all articles in the \"%1$s\" group in the default browser is allowed</string>
-    <string name="all_deny_open_in_browser_toast">Opening all articles in the \"%1$s\" group in the default browser is denied</string>
     <string name="clear_articles">Clear articles</string>
     <string name="clear_articles_in_feed_toast">Cleared all archived articles in the \"%1$s\" feed</string>
     <string name="clear_articles_in_group_toast">Cleared all archived articles in the \"%1$s\" group</string>
@@ -71,8 +55,6 @@
     <string name="rename_toast">Renamed to \"%1$s\"</string>
     <string name="create_new_group">Create new group</string>
     <string name="name">Name</string>
-    <string name="open_with">Open %1$s</string>
-    <string name="options">Options</string>
     <string name="delete">Delete</string>
     <string name="delete_toast">Deleted \"%1$s\"</string>
     <string name="unsubscribe">Unsubscribe</string>
@@ -90,9 +72,6 @@
     <string name="mark_as_unread">Mark as unread</string>
     <string name="mark_as_starred">Mark as starred</string>
     <string name="mark_as_unstar">Mark as unstarred</string>
-    <string name="mark_as_read_one_day">Mark as read older than 1 day</string>
-    <string name="mark_as_read_three_days">Mark as read older than 3 days</string>
-    <string name="mark_as_read_seven_days">Mark as read older than 7 days</string>
     <string name="one_day">1d</string>
     <string name="three_days">3d</string>
     <string name="seven_days">7d</string>
@@ -107,34 +86,17 @@
     <string name="color_and_style_desc">Theme, color style, font size</string>
     <string name="interaction">Usage</string>
     <string name="interaction_desc">Startup page, gestures</string>
-    <string name="languages">Languages</string>
-    <string name="help_translate">Help translate</string>
-    <string name="translatable_url" translatable="false">https://hosted.weblate.org/projects/readyou/</string>
     <string name="use_device_languages">Use device language</string>
-    <string name="english" translatable="false">English</string>
     <string name="chinese_simplified" translatable="false">简体中文</string>
-    <string name="german" translatable="false">Deutsch</string>
-    <string name="french" translatable="false">Français</string>
-    <string name="czech" translatable="false">Čeština</string>
-    <string name="italian" translatable="false">Italiano</string>
-    <string name="hindi" translatable="false">हिंदी</string>
-    <string name="spanish" translatable="false">Español</string>
-    <string name="polish" translatable="false">Polski</string>
-    <string name="russian" translatable="false">Русский</string>
-    <string name="basque" translatable="false">Euskara</string>
-    <string name="indonesian" translatable="false">Bahasa Indonesia</string>
     <string name="chinese_traditional" translatable="false">繁體中文</string>
     <string name="tips_and_support">Tips &amp; support</string>
     <string name="tips_and_support_desc">About, sponsor, open source licenses</string>
     <string name="welcome">Welcome</string>
-    <string name="tos_tips">Please read and agree to Read You\'s terms of service and privacy policy to continue.</string>
     <string name="browse_tos_tips">Browse the <i><u>terms of service and privacy policy</u></i></string>
     <string name="terms_of_service">Terms of service</string>
-    <string name="tos_content"><h5> Privacy policy </h5> <br /> <p> We take your privacy very seriously. </p> <br /> <p> <b>Read You</b> does not collect any user data, and all sensitive information (passwords and other account information) is stored securely in the local application database on your device. </p> <br /> <p> <b>Read You</b> will use the following permissions to provide you with the service. </p> <br /> <p> - Access network permission (to access online content as you specify) </p> <p> - Get network status permission (to determine if the device currently has available network conditions) </p> <p> - Background service permission (to automatically sync your favorites for you on a regular basis) </p> <br /> <br /> <h5> Third-party services </h5> <br /> <p> This policy does not apply to third-party services that you use with <b>Read You</b>. You can review the privacy policies of the third-party services you use on their websites </p> <br /> <br /> <h5> Disclaimers </h5> <br /> <p> <b>Read You</b> is a content collection tool only. Your use of <b>Read You</b> is subject to the laws and regulations of your country and region, and any liability arising from your actions will be borne by you personally. </p> <br /> <br /> <h5> Open source license </h5> <br /> <p> <b>Read You</b> is an open source project under the GNU GPL 3.0 Open Source License[1], which allows you to use, reference, and modify the source code of <b>Read You</b> free of charge, but does not allow the modified and derived code to be distributed and sold as closed-source commercial software. For details, please see the full GNU GPL 3.0 Open Source License[2]. </p> <br /> <br /> <h5> Appendix </h5> <br /> <p> - [1] https://github.com/ReadYouApp/ReadYou </p> <p> - [2] https://www.gnu.org/licenses/gpl-3.0.html </p></string>
     <string name="agree">Agree</string>
     <string name="wallpaper_colors">Wallpaper colors</string>
     <string name="no_palettes">No palettes</string>
-    <string name="only_android_8.1_plus">Only Android 8.1+</string>
     <string name="basic_colors">Basic colors</string>
     <string name="primary_color">Primary color</string>
     <string name="primary_color_hint">Like #666666 or 666666</string>
@@ -146,28 +108,22 @@
     <string name="off">Off</string>
     <string name="other">Other</string>
     <string name="amoled_dark_theme">Black dark theme</string>
-    <string name="tonal_elevation">Tonal elevation</string>
     <string name="reading_fonts">Reading fonts</string>
     <string name="basic_fonts">Basic fonts</string>
     <string name="google_sans" translatable="false">Google Sans Flex</string>
-    <string name="feeds_page">Feeds page</string>
-    <string name="flow_page">Flow page</string>
     <string name="reading_page">Reading page</string>
-    <string name="sponsor">Sponsor</string>
     <string name="open_source_licenses">Open source licenses</string>
-    <string name="github_link" translatable="false">https://github.com/ReadYouApp/ReadYou</string>
-    <string name="telegram_link" translatable="false">https://t.me/ReadYouApp</string>
-    <string name="wiki_link" translatable="false">https://github.com/ReadYouApp/ReadYou/wiki/Getting-Started</string>
-    <string name="update_link">https://api.github.com/repos/ReadYouApp/ReadYou/releases/latest</string>
+    <string name="github_link" translatable="false">https://github.com/Humorist2601/BriefYou</string>
+    <string name="read_you_link" translatable="false">https://github.com/ReadYouApp/ReadYou</string>
+    <string name="update_link" translatable="false">https://api.github.com/repos/Humorist2601/BriefYou/releases/latest</string>
+    <string name="update_link_nightly" translatable="false">https://api.github.com/repos/Humorist2601/BriefYou/releases/tags/nightly</string>
     <string name="change_log">Changelog</string>
-    <string name="update">Update</string>
     <string name="skip_this_version">Skip this version</string>
     <string name="checking_updates">Checking for updates…</string>
     <string name="is_latest_version">This is the latest version of the app</string>
     <string name="check_failure">Failed to check for updates</string>
     <string name="download_failure">Could not download updates</string>
     <string name="rate_limit">The request rate is limited</string>
-    <string name="help">Help</string>
     <string name="on_start">On start</string>
     <string name="initial_page">Startup page</string>
     <string name="initial_filter">Default filter</string>
@@ -175,8 +131,8 @@
     <string name="preview_article_desc">The Fool is the eighth and final volume of the Lord of the Mysteries series
         written by Cuttlefish That Loves Diving.
     </string>
+    <string name="only_android_8_1_plus">Only on Android 8.1 and newer</string>
     <string name="preview_feed_name">Reddit</string>
-    <string name="value">value</string>
     <string name="horizontal_padding">Horizontal padding</string>
     <string name="article_date">Article publication time</string>
     <string name="article_desc">Article descriptions</string>
@@ -186,28 +142,16 @@
     <string name="article_date_sticky_header">Sticky publication date header</string>
     <string name="article_list">Article list</string>
     <string name="group_list">Group list</string>
+    <string name="feeds_page">Feeds page</string>
+    <string name="flow_page">Flow page</string>
     <string name="always_expand">Always expand</string>
-    <string name="top">Top</string>
-    <string name="mark_as_read_button_position">\"Mark as read\" button position</string>
-    <string name="top_bar">Top bar</string>
-    <string name="fill_selected_icon">Fill current filter icon</string>
-    <string name="filter_bar">Filter bar</string>
-    <string name="icons">Icons</string>
-    <string name="icons_and_labels">Icons and labels</string>
-    <string name="icons_and_label_only_selected">Icons and label (only active)</string>
-    <string name="tips_top_bar_tonal_elevation">Tonal elevation for the top bar list is only available when scrolling</string>
-    <string name="tips_article_list_tonal_elevation">Tonal elevation for the article list is only available in the light theme</string>
-    <string name="tips_group_list_tonal_elevation">Tonal elevation for the group list is only available in the light theme</string>
     <string name="share">Share</string>
-    <string name="touch_to_play_video">Tap to play a video</string>
     <string name="text">Text</string>
     <string name="font_size">Font size</string>
     <string name="letter_spacing">Letter spacing</string>
-    <string name="line_spacing">Line spacing</string>
     <string name="alignment">Alignment</string>
     <string name="general">General</string>
     <string name="auto_hide_toolbars">Automatically hide toolbars</string>
-    <string name="rearrange_buttons">Rearrange buttons</string>
     <string name="images">Images</string>
     <string name="rounded_corners">Rounded corners</string>
     <string name="videos">Videos</string>
@@ -220,13 +164,9 @@
     <string name="bold">Bold</string>
     <string name="upper_case">Upper case</string>
     <string name="subhead">Subhead</string>
-    <string name="use_app_theme">Use app theme</string>
     <string name="advanced">Advanced</string>
-    <string name="dark_reading_theme">Dark reading theme</string>
     <string name="title_desc">Bold, upper case, alignment</string>
     <string name="text_desc">Font size, letter spacing, alignment</string>
-    <string name="images_desc">Rounded corners, horizontal padding</string>
-    <string name="videos_desc">Rounded corners, horizontal padding</string>
     <string name="maximize">Maximize</string>
     <string name="every_15_minutes">Every 15 minutes</string>
     <string name="every_30_minutes">Every 30 minutes</string>
@@ -248,12 +188,7 @@
     <string name="fever" translatable="false">Fever</string>
     <string name="google_reader" translatable="false">Google Reader</string>
     <string name="fresh_rss" translatable="false">FreshRSS</string>
-    <string name="feedly" translatable="false">Feedly</string>
-    <string name="inoreader" translatable="false">Inoreader</string>
     <string name="local_desc">On this device</string>
-    <string name="services">Services</string>
-    <string name="feedly_desc" translatable="false">feedly.com</string>
-    <string name="inoreader_desc" translatable="false">inoreader.com</string>
     <string name="self_hosted">Self-hosted</string>
     <string name="fresh_rss_desc" translatable="false">freshrss.org</string>
     <string name="google_reader_desc" translatable="false">Google Reader API</string>
@@ -269,7 +204,6 @@
     <string name="only_on_wifi">Only on Wi-Fi</string>
     <string name="only_when_charging">Only when charging</string>
     <string name="keep_archived_articles">Keep archived articles</string>
-    <string name="block_list">Block list</string>
     <string name="export_as_opml">Export as OPML</string>
     <string name="clear_all_articles">Clear all articles</string>
     <string name="delete_account">Delete account</string>
@@ -280,7 +214,6 @@
     <string name="delete_account_toast">Account deleted</string>
     <string name="synchronous_tips">Restart required for changes to take effect</string>
     <string name="keep_archived_tips">Archived items are articles which are marked as read, not starred and not tagged. The \"Keep archived articles\" setting is only effective on this device. Older archived articles will be deleted from this device. The deletion of articles cannot be undone.</string>
-    <string name="switch_account">Switch</string>
     <string name="add">Add</string>
     <string name="accounts_tips">You can switch accounts by tapping on the account name on the feed page</string>
     <string name="server_url">Server URL</string>
@@ -300,10 +233,8 @@
     <string name="always_ask">Always ask</string>
     <string name="open_link_specific_browser">Browser</string>
     <string name="open_link_something_wrong">\"Open link\" setting ignored because something went wrong</string>
-    <string name="open_link_ask_dialog_title">Open with…</string>
     <string name="include_additional_info">Include additional info</string>
     <string name="exclude">Exclude</string>
-    <string name="additional_info_desc">Additional information includes configuration options for each feed, such as whether to allow notification, parse full content, etc. When you intend to use the exported OPML file with other readers, please select \"Exclude\".</string>
     <string name="grey_out_articles">Grey out articles</string>
     <string name="all_read">All read</string>
     <string name="read_excluding_starred">Read, excluding starred</string>
@@ -332,32 +263,16 @@
     <string name="troubleshooting">Troubleshooting</string>
     <string name="troubleshooting_desc">Bug report, app preferences</string>
     <string name="bug_report">Bug report</string>
-    <string name="issue_tracer_url" translatable="false">https://github.com/ReadYouApp/ReadYou/issues</string>
-    <string name="app_preferences">App preferences</string>
-    <string name="import_from_protobuf_file">Import from protobuf file</string>
-    <string name="export_as_protobuf_file">Export as protobuf file</string>
-    <string name="invalid_protobuf_file_warning">This file may not be a valid protobuf file. Importing it could potentially corrupt the app and result in the loss of current preferences. Are you sure you want to proceed?</string>
-    <string name="import_from_json">Import from JSON</string>
-    <string name="export_as_json">Export as JSON</string>
-    <string name="invalid_json_file_warning">This file may not be a valid JSON file. Importing it could potentially corrupt the app and result in the loss of current preferences. Are you sure you want to proceed?</string>
-    <string name="webview" translatable="false">WebView</string>
-    <string name="native_component">Native component</string>
-    <string name="content_renderer">Content renderer</string>
+    <string name="issue_tracer_url" translatable="false">https://github.com/Humorist2601/BriefYou/issues</string>
     <string name="read_aloud">Read aloud</string>
-    <string name="only_available_on_webview">Only available when using the WebView content renderer</string>
-    <string name="about">About</string>
     <string name="mark_as_read_on_scroll">Mark as read on scroll</string>
     <string name="hide_empty_groups">Hide empty groups</string>
-    <string name="become_a_sponsor">Become a sponsor</string>
-    <string name="sponsor_desc">We build and maintain this free, open source app in our free time. If you enjoy it, please consider supporting us with a small donation! ☕️</string>
-    <string name="toolbars">Toolbars</string>
     <string name="sort_unread_articles">Sort unread articles</string>
     <string name="latest">Latest</string>
     <string name="earliest">Earliest</string>
     <string name="short_desc">Short</string>
     <string name="long_desc">Long</string>
     <string name="none_desc">None</string>
-    <string name="pull_to_switch_feed">Pull to load next feed</string>
     <string name="bold_characters">Bold characters</string>
     <string name="use_bold_characters">Use bold characters</string>
     <string name="bold_characters_preview">Bold the first few characters of words in an article</string>
@@ -379,8 +294,6 @@
     <string name="apply">Apply</string>
     <string name="notifications">Notifications</string>
     <string name="group_configuration_description">Configure \"%1$s\" for feeds in \"%2$s\"</string>
-    <string name="disabled">Disabled</string>
-    <string name="enabled">Enabled</string>
     <string name="notifications_desc">Get notifications when new unread articles are available</string>
     <string name="open_in_browser_desc">Open articles in the browser</string>
     <string name="parse_full_content_desc">Fetch full articles from webpages</string>
