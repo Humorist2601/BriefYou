@@ -162,7 +162,6 @@ dependencies {
     implementation(libs.compose.html)
     implementation(platform(libs.compose.bom.stable)) // Brief You: Compose 1.11.1 (Material 3 is pinned in libs.versions.toml)
     implementation(libs.androidx.ui.graphics)
-    androidTestImplementation(platform(libs.compose.bom.stable))
     implementation(libs.compose.animation.graphics)
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.util)
@@ -183,7 +182,6 @@ dependencies {
     // Hilt
     implementation(libs.hilt.work)
     implementation(libs.hilt.android)
-    androidTestImplementation(platform(libs.compose.bom.stable))
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     ksp(libs.hilt.android.compiler)

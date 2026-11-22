@@ -74,6 +74,12 @@
             android:launchMode="singleInstance"
             android:theme="@style/Theme.Reader"
             android:windowSoftInputMode="adjustResize">
+            <!-- The launcher entry: the home-screen icon opens the app here. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 

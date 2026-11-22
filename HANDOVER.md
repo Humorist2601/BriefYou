@@ -585,7 +585,13 @@ Work from this list; tick items off here as they are done.
     `app/schemas/…/*.json` files (the build regenerates `1.json`; commit it), `GroupIdMigration` and its
     call in `AndroidApp`, `OLD_DEFAULT_GROUP_SALT`, and the `OLD_SYNC_WORK_NAME_PERIODIC` cancel in
     `SyncWorker`; check the backup/restore code does not compare database versions. Do it as one
-    planned change, tell the owner the list first.
+    planned change, tell the owner the list first. **Also at the reset: a brand-new GitHub repository,
+    so Brief You is fully disconnected from the fork network** (a repo made as a fork of Read You stays
+    linked to it; a fresh repo is not). Plan it with the owner first: the new repo's name and secrets
+    (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`), pushing the code (a clean history or the
+    existing one: ask), the README/in-app links and the update checker that point at the repo
+    (`Humorist2601/BriefYou`), the Nightly release and tags, the Read You watch workflow, and what
+    happens to the old repo (archive it, with a pointer to the new one).
 
 **Set aside by the owner (only if asked again)**
 13. Brandfetch logos: ask Brandfetch about caching, or a live-only "Brand logo" choice in Change
