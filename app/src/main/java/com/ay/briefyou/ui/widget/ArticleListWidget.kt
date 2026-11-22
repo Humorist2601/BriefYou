@@ -325,16 +325,3 @@ private val previewArticles =
             id = "",
         ),
     )
-
-@OptIn(ExperimentalGlancePreviewApi::class)
-@Composable
-@GlanceComposable
-
-@OptIn(ExperimentalGlancePreviewApi::class)
-@Composable
-@GlanceComposable
-
-@SuppressLint("RestrictedApi")
-@OptIn(ExperimentalGlancePreviewApi::class)
-@Composable
-@GlanceComposable

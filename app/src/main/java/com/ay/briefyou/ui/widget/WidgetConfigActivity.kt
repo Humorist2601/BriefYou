@@ -305,5 +305,3 @@ fun SingleChoiceItem(
         RadioButton(selected = selected, onClick = null, interactionSource = interactionSource)
     }
 }
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)

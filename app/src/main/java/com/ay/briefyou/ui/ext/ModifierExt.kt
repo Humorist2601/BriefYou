@@ -29,8 +29,3 @@ import kotlin.math.absoluteValue
 fun Modifier.roundClick(enabled: Boolean = true, onClick: () -> Unit = {}) = this
     .clip(RoundedCornerShape(8.dp))
     .clickable(enabled = enabled, onClick = onClick)
-
-@OptIn(
-    ExperimentalFoundationApi::class,
-    androidx.compose.ui.ExperimentalComposeUiApi::class
-)
