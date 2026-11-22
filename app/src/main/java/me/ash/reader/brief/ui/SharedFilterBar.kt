@@ -44,7 +44,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import me.ash.reader.domain.model.general.Filter
 
@@ -181,14 +182,18 @@ fun SharedFilterBar(
                         modifier = Modifier.padding(bottom = FloatingBarGap - FILTER_BAR_TOP_PADDING).height(NOW_PLAYING_PILL_HEIGHT)
                     )
                 }
-                // The toolbar stays in the middle of the screen, with the AI button on the right.
-                // On a narrow phone where they would touch, the toolbar moves left just enough
-                // to keep a gap (smoothly, as the button comes and goes).
+                // Material's floating toolbar with a button: the two are one group, 8 dp apart,
+                // and the group is centred on the screen. With the button the toolbar sits a
+                // little left of the middle, and glides back when the button goes.
                 val aiShown by androidx.compose.animation.core.animateFloatAsState(
                     if (s.ai != null) 1f else 0f,
                     MaterialTheme.motionScheme.defaultSpatialSpec(),
                     label = "toolbar place",
                 )
+                val density = androidx.compose.ui.platform.LocalDensity.current
+                var boxWidth by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+                var barWidth by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+                val groupExtra = with(density) { (BottomBarHeight + ToolbarToButtonGap).roundToPx() }
                 Box(
                     modifier =
                         Modifier.fillMaxWidth()
@@ -197,17 +202,16 @@ fun SharedFilterBar(
                             // Always the bar's height: the AI button's open menu reaches up out of
                             // it, so nothing above (the "now playing" pill) moves.
                             .height(BottomBarHeight)
+                            .onSizeChanged { boxWidth = it.width }
                 ) {
                     BriefFilterBar(
                         modifier =
-                            Modifier.align(Alignment.BottomStart).layout { measurable, constraints ->
-                                val bar = measurable.measure(constraints.copy(minWidth = 0))
-                                val width = constraints.maxWidth
-                                val middle = (width - bar.width) / 2
-                                val room = width - (BottomBarHeight + 8.dp).roundToPx() - bar.width
-                                val x = (middle - aiShown * (middle - room).coerceAtLeast(0)).toInt().coerceAtLeast(0)
-                                layout(width, bar.height) { bar.place(x, 0) }
-                            },
+                            Modifier.align(Alignment.BottomStart)
+                                .onSizeChanged { barWidth = it.width }
+                                .offset {
+                                    val x = ((boxWidth - barWidth - aiShown * groupExtra) / 2f).toInt()
+                                    IntOffset(x.coerceAtLeast(0), 0)
+                                },
                         filter = s.filter,
                         filterOnClick = {
                             menuOpen = false
@@ -220,7 +224,13 @@ fun SharedFilterBar(
                     // (Not the Column's own AnimatedVisibility: this one is inside a Box.)
                     androidx.compose.animation.AnimatedVisibility(
                         visible = s.ai != null,
-                        modifier = Modifier.align(Alignment.BottomEnd),
+                        // The group's right end (the toolbar is at its left, see above), counted
+                        // from the right edge, where the button would otherwise sit.
+                        modifier =
+                            Modifier.align(Alignment.BottomEnd).offset {
+                                val barX = ((boxWidth - barWidth - groupExtra) / 2).coerceAtLeast(0)
+                                IntOffset(barX + barWidth + groupExtra - boxWidth, 0)
+                            },
                         enter = scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()),
                         exit = scaleOut(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
                     ) {
@@ -276,6 +286,9 @@ internal fun rememberNowPlayingShown(): Boolean {
 }
 
 internal val FILTER_BAR_TOP_PADDING = 8.dp
+
+/** The gap between the toolbar and the AI button (Material's floating toolbar uses 8 dp). */
+internal val ToolbarToButtonGap = 8.dp
 
 /**
  * Put by a screen that has the bar (Feeds and the article list) where the bar is: keeps the bar's

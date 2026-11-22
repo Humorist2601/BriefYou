@@ -115,6 +115,12 @@ fun TopBarButtonGroup(
     leadingCorner: Dp? = null,
     /** Each button's width, instead of the usual 48dp (Triage's Undo narrowing into a circle). */
     buttonWidth: Dp = ButtonWidth,
+    /** Tells whether one of the buttons is pressed (Triage: its neighbour squeezes to make room). */
+    onPressedChange: (Boolean) -> Unit = {},
+    /** How much a single button widens when pressed, when something is joined next to it. */
+    pressedGrow: Dp = 0.dp,
+    /** 0..1: how far a single button's corners go towards a squircle when pressed (a lone circle). */
+    pressedSquircle: Float = 0f,
 ) {
     if (actions.isEmpty()) return
     // One action alone is a circle, unless something is joined on before it (then it's the end
@@ -128,6 +134,15 @@ fun TopBarButtonGroup(
     val pressed = interactions.map { it.collectIsPressedAsState().value }
     val pressedIndex = pressed.indexOf(true)
     val spatial = MaterialTheme.motionScheme.fastSpatialSpec<Dp>()
+    val anyPressed = pressedIndex >= 0
+    androidx.compose.runtime.LaunchedEffect(anyPressed) { onPressedChange(anyPressed) }
+    val press by androidx.compose.animation.core.animateFloatAsState(
+        if (anyPressed) 1f else 0f,
+        MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "press",
+    )
+    // A single joined button: its corners round towards a squircle as it's pressed.
+    val squircle = if (actions.size == 1) pressedSquircle * press else 0f
     Row(
         modifier = modifier.padding(end = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(GroupGap),
@@ -137,8 +152,8 @@ fun TopBarButtonGroup(
             val target =
                 when {
                     pressedIndex < 0 -> buttonWidth
-                    // A single segment doesn't widen when pressed (nothing to squeeze).
-                    actions.size == 1 -> buttonWidth
+                    // A single segment widens only when told to (when a neighbour outside squeezes).
+                    actions.size == 1 -> buttonWidth + pressedGrow
                     index == pressedIndex -> buttonWidth + PressedExtraWidth
                     else -> buttonWidth - PressedExtraWidth / (actions.size - 1)
                 }
@@ -148,8 +163,18 @@ fun TopBarButtonGroup(
                 interaction = interactions[index],
                 width = width,
                 height = ButtonHeight,
-                leadingCorner = if (index == 0) leadingCorner ?: OuterCorner else InnerCorner,
-                trailingCorner = if (index == actions.lastIndex) OuterCorner else InnerCorner,
+                leadingCorner =
+                    androidx.compose.ui.unit.lerp(
+                        if (index == 0) leadingCorner ?: OuterCorner else InnerCorner,
+                        SquircleCorner,
+                        squircle,
+                    ),
+                trailingCorner =
+                    androidx.compose.ui.unit.lerp(
+                        if (index == actions.lastIndex) OuterCorner else InnerCorner,
+                        SquircleCorner,
+                        squircle,
+                    ),
             )
         }
     }

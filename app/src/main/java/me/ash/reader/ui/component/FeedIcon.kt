@@ -51,11 +51,17 @@ fun FeedIcon(
             ) // Brief You
         } // Brief You
     } else if (iconUrl != null && iconUrl.startsWith(EMOJI_PREFIX)) { // Brief You
-        Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
+        // On a circle in the feed's name colour (taken from the emoji itself), like the website
+        // icons and the Material icons are round.
+        val accent = me.ash.reader.brief.feeds.rememberFeedAccent(iconUrl) ?: MaterialTheme.colorScheme.primary
+        Box(
+            modifier = modifier.size(size).clip(CircleShape).background(accent.copy(alpha = 0.65f)),
+            contentAlignment = Alignment.Center,
+        ) {
             Text(
                 text = iconUrl.removePrefix(EMOJI_PREFIX),
-                fontSize = (size.value * 0.78f).sp,
-                lineHeight = (size.value * 0.9f).sp,
+                fontSize = (size.value * 0.45f).sp,
+                lineHeight = (size.value * 0.55f).sp,
                 maxLines = 1,
             )
         }

@@ -8,17 +8,18 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Badge // Brief You
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -90,10 +91,13 @@ fun GroupItem(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Brief You: one arrow that turns over, instead of two that swap.
+                val turn by androidx.compose.animation.core.animateFloatAsState(if (isExpanded()) 180f else 0f, label = "group arrow")
                 Icon(
-                    imageVector = if (isExpanded()) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    imageVector = Icons.Rounded.ExpandMore,
                     contentDescription = stringResource(if (isExpanded()) R.string.expand_less else R.string.expand_more),
                     tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.graphicsLayer { rotationZ = turn },
                 )
             }
         }

@@ -20,6 +20,8 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -284,13 +286,33 @@ fun FeedsPage(
                                     .padding(end = 8.dp)
                                     .size(28.dp),
                             ) {
-                                Icon(
-                                    imageVector =
-                                        if (hasGroupVisible) Icons.Rounded.UnfoldLess
-                                        else Icons.Rounded.UnfoldMore,
-                                    contentDescription = stringResource(R.string.unfold_less),
-                                    tint = MaterialTheme.colorScheme.primary,
+                                // Brief You: the two icons fade and scale into each other.
+                                val unfolded by androidx.compose.animation.core.animateFloatAsState(
+                                    if (hasGroupVisible) 1f else 0f,
+                                    label = "open all",
                                 )
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.UnfoldMore,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.graphicsLayer {
+                                            alpha = 1f - unfolded
+                                            scaleX = 1f - 0.4f * unfolded
+                                            scaleY = scaleX
+                                        },
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Rounded.UnfoldLess,
+                                        contentDescription = stringResource(R.string.unfold_less),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.graphicsLayer {
+                                            alpha = unfolded
+                                            scaleX = 0.6f + 0.4f * unfolded
+                                            scaleY = scaleX
+                                        },
+                                    )
+                                }
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))

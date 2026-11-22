@@ -91,7 +91,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.togetherWith
@@ -1035,7 +1034,7 @@ private fun TriageContent(
             val canJump = hasPlaces && position > 0
             val title = session.title?.takeIf { it.isNotBlank() }
             val leftText =
-                if (current != null) pluralStringResource(R.plurals.triage_left, total - index, total - index)
+                if (current != null) stringResource(R.string.triage_left_of, total - index, total)
                 else null
             // A gap before the buttons, so a long group name shortens instead of pushing the count
             // against them.
@@ -1086,16 +1085,10 @@ private fun TriageContent(
                                 }
                             }
                         }
-                        if (leftText != null) {
+                        if (current != null) {
                             Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = leftText,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                // Lined up with the button, which sits a little lower.
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
+                            // Lined up with the button, which sits a little lower.
+                            TriageLeftCount(left = total - index, total = total, modifier = Modifier.padding(top = 4.dp))
                         }
                     }
                 } else {
@@ -2380,16 +2373,35 @@ private fun TriageTopButtons(
     val ringColor = if (paused) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
     val container = lerp(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0f), t)
     val content = lerp(MaterialTheme.colorScheme.onSurface, ringColor, t)
+    // Pressing one of the two squeezes the other, as in the main screen's button groups: the
+    // pressed one widens by 12 dp and its neighbour narrows by the same, so the pill keeps its
+    // length. Once apart (auto-advance running) they are single circles, and Undo turns into a
+    // squircle while pressed.
+    val autoSource = remember { MutableInteractionSource() }
+    val autoPressed by autoSource.collectIsPressedAsState()
+    var undoPressed by remember { mutableStateOf(false) }
+    val squeeze = 12.dp * (1f - t)
+    val autoDelta by animateDpAsState(
+        when {
+            autoPressed -> squeeze
+            undoPressed -> -squeeze
+            else -> 0.dp
+        },
+        MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "auto width",
+    )
     Row(verticalAlignment = Alignment.CenterVertically) {
         // From a pill segment (48 x 40, round outer edge, flat inner one) to a 40dp circle.
         val lead = androidx.compose.ui.unit.lerp(20.dp, 20.dp, t)
         val trail = androidx.compose.ui.unit.lerp(6.dp, 20.dp, t)
         Box(
             modifier =
-                Modifier.size(width = androidx.compose.ui.unit.lerp(48.dp, 40.dp, t), height = 40.dp)
+                Modifier.size(width = androidx.compose.ui.unit.lerp(48.dp, 40.dp, t) + autoDelta, height = 40.dp)
                     .clip(RoundedCornerShape(topStart = lead, bottomStart = lead, topEnd = trail, bottomEnd = trail))
                     .background(container)
                     .combinedClickable(
+                        interactionSource = autoSource,
+                        indication = androidx.compose.material3.ripple(),
                         onClick = onToggle,
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -2423,7 +2435,13 @@ private fun TriageTopButtons(
         TopBarButtonGroup(
             others,
             leadingCorner = androidx.compose.ui.unit.lerp(6.dp, 20.dp, t),
-            buttonWidth = if (others.size == 1) androidx.compose.ui.unit.lerp(48.dp, 40.dp, t) else 48.dp,
+            buttonWidth =
+                if (others.size == 1)
+                    androidx.compose.ui.unit.lerp(48.dp, 40.dp, t) - (if (autoPressed) squeeze else 0.dp)
+                else 48.dp,
+            onPressedChange = { undoPressed = it },
+            pressedGrow = squeeze,
+            pressedSquircle = t,
         )
     }
 }
@@ -2753,11 +2771,12 @@ private fun TriagePlacesSheet(
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
+                                    val turn by androidx.compose.animation.core.animateFloatAsState(if (open) 180f else 0f, label = "group arrow")
                                     Icon(
-                                        imageVector =
-                                            if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                        imageVector = Icons.Rounded.ExpandMore,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.graphicsLayer { rotationZ = turn },
                                     )
                                 }
                             } else {
@@ -2962,8 +2981,8 @@ private fun TriageBar(
 /**
  * The picture shared from a Triage card: drawn just for sharing, as tall as its content, on a soft
  * backdrop in the theme's colours. The feed with its icon and the date (no reading time), then
- * the picture, title and a few lines of the article, or the title and the summary's points when
- * the card shows its summary. A footer with the site it's from and a small Brief You mark.
+ * the picture (whenever the article has one), the title and a few lines of the article, or the
+ * summary's points when the card shows its summary. A footer with the site it's from and a small Brief You mark.
  */
 @Composable
 private fun SharePicture(article: ArticleWithFeed, summary: CardSummary?, modifier: Modifier = Modifier) {
@@ -3001,11 +3020,13 @@ private fun SharePicture(article: ArticleWithFeed, summary: CardSummary?, modifi
                         Text(text = it, style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant, maxLines = 1)
                     }
                 }
-                if (summary == null && FeedContent.listImage(item.img, item.link) != null) {
+                // The article's picture whenever it has one, with the summary too.
+                val picture = remember(item.img, item.link) { FeedContent.listImage(item.img, item.link) }
+                if (picture != null) {
                     Spacer(Modifier.height(14.dp))
                     RYAsyncImage(
                         modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(20.dp)),
-                        data = FeedContent.listImage(item.img, item.link),
+                        data = picture,
                         scale = Scale.FILL,
                         precision = Precision.INEXACT,
                         size = SIZE_1000,
@@ -3080,3 +3101,23 @@ private fun SharePicture(article: ArticleWithFeed, summary: CardSummary?, modifi
     }
 }
 
+/**
+ * "12/40 left", with "/40 left" always in the same place: the number before it is right-aligned in
+ * a box as wide as the run's total can be (its digits at the widest digit), so a count going down
+ * only changes the number's own left edge, never the words after it.
+ */
+@Composable
+private fun TriageLeftCount(left: Int, total: Int, modifier: Modifier = Modifier) {
+    val style = MaterialTheme.typography.labelLarge
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val digit = remember(style, density) { (0..9).maxOf { measurer.measure(it.toString(), style).size.width } }
+    val width = with(density) { (digit * total.toString().length).toDp() }
+    Row(modifier = modifier) {
+        Box(modifier = Modifier.width(width), contentAlignment = Alignment.CenterEnd) {
+            Text(text = left.toString(), style = style, color = color, maxLines = 1, softWrap = false)
+        }
+        Text(text = stringResource(R.string.triage_of_left, total), style = style, color = color, maxLines = 1)
+    }
+}

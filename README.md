@@ -130,6 +130,8 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Open it with the **AI button** beside the bottom bar of an *Unread* list (tap, then **Triage**; or just hold the button). Undo takes back your last choice.
 - Summary: the card sinks a little and its border glows in Google's AI colours while the 3 key points are written. Tap the card to switch between the summary and the article's description.
 - The run bar has one piece per group, sized by its cards and filled as far as you got. When a group is done you see a ring with how much of your unread is cleared ("3 of 4 groups clear"), what's left and the next group, which starts by itself after a countdown while auto-advance is on.
+- The card picture you share (hold Share) always includes the article's image when it has one, also when the card shows its summary.
+- The top bar counts the cards as *12/40 left*; the words after the number stay put while it counts down.
 - *All caught up* only when nothing is unread anywhere, including cards you skipped or left behind, with the run's read, saved and skipped totals (skipped = swiped down; cards left behind by jumping aren't skipped).
 - The groups sheet lists every group in the run, laid out like the Feeds page: jump to any of them, or skip this one. Cards you leave stay unread. The arrow on a group opens its feeds; tap a feed to Triage just that feed, and the run carries on through the next feeds. Undo on that feed's first card returns to the group. In a run of feeds the sheet lists the groups too, with the feed you're on open inside its group: tap a group to go back to it, or another feed to switch.
 - Top right, Auto-advance and Undo share one joined pill, like the other screens; while auto-advance runs it becomes a circle with its countdown ring.
@@ -179,9 +181,11 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 <details>
 <summary>More details</summary>
 
+- The group arrows (the one on each group and the open-all button on the Feeds page, and in Triage's groups sheet) turn over or fade into each other when a group opens or closes.
 - Expressive loading and pull-to-refresh. Back buttons and Triage's close button are the same tonal circle. In Feeds and Settings, the big title moves into the top bar as you scroll.
 - Reading fonts: Google Sans Flex, Literata, system, or your own.
 - English only: Read You's translations are left out, which with slimmer fonts and a compressed AI library makes the download about 15 MB smaller.
+- An emoji chosen as a feed's icon sits on a round background in the feed's name colour (taken from the emoji), like the other icons.
 - A pale or grey feed icon gets a steady colour of its own. Icons are cached and loaded at the size they're shown; a site without an icon is searched again once a week.
 - Reading stats are in *Settings → Reading stats*: this week Monday to Sunday (a bar per day), articles read, your streak, top feeds, and this month compared with last.
 - Monthly recap: for the first week of a month it sits at the top of Reading stats:
@@ -198,7 +202,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Tiles and cards (Filters, Reading stats, the sort tiles and the recaps) squeeze and spring back when pressed, like Triage's buttons.
 - One card style everywhere: the feeds page shows groups as one joined list with icon tiles (a folder, or a Material icon, emoji or image you pick in the group's options) and compact feed rows, article lists count each day's articles in a header that gets a hairline while it's pinned, and every settings page groups its rows into joined cards. Empty lists say so (*Nothing starred yet*, *All caught up*).
 - *Add a feed* is a floating dialog in the same design. The options you get by holding a feed or group are the app's bottom sheets: icon and name on top (a pencil changes a feed's address), its settings as three tiles, groups as one sideways row of chips, and Clear / Unsubscribe as two buttons.
-- The bottom bar is a frosted glass toolbar (Starred / Unread / All; the chosen one shows its name in an accent pill): the list scrolls on underneath it and shows through, strongly blurred (Android 12 and newer). On *Unread*, the AI button sits on its right: a tap opens AI Gist and Triage, holding it opens the one chosen in *Settings → Flow page* straight away (the button shows that one's icon).
+- The bottom bar is a frosted glass toolbar (Starred / Unread / All; the chosen one shows its name in an accent pill): the list scrolls on underneath it and shows through, strongly blurred (Android 12 and newer). On *Unread*, the AI button sits on its right (the two are centred together, like Material's floating toolbar with a button): a tap opens AI Gist and Triage, holding it opens the one chosen in *Settings → Flow page* straight away (the button shows that one's icon).
 - Every other sheet looks the same: a title with a muted line under it, a divider, and its choices as one joined group with the chosen one filled and ticked. That includes every setting with a few choices (they used to be dialogs), the reading *Text* sheet (a live preview in your font, the sizes as one joined group, font and alignment as joined buttons, each font name in its own font), *Translate to* (each language in its own name), and the number and speed sheets (the value large between − and +, and quick picks for speed).
 - Predictive back uses a gentler dim on the screen behind, so it never flashes dark.
 - Wide headings use Google Sans Flex at its widest; long names shrink or wrap to fit.

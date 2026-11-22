@@ -234,25 +234,36 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
         ) {
             me.ash.reader.brief.ui.SheetTitle(stringResource(R.string.text_settings))
 
-            // A live preview in your font, size and spacing, so you see what you'd get.
+            // A live preview that follows the article's own style sheet (WebViewStyle): the font,
+            // size, boldness, letter spacing, line spacing (the article spaces lines at 1.5 times
+            // the chosen value, and headings at most 1.2), the side margins (scaled down to the
+            // preview's width) and the alignment, without hyphenation, as the article has none.
+            val letterSpacing = me.ash.reader.infrastructure.preference.LocalReadingTextLetterSpacing.current
+            val bold = me.ash.reader.infrastructure.preference.LocalReadingTextBold.current.value
+            val articleLine = lineHeight * 1.5f
+            val screenWidth = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
+            val sidePadding = (8f + padding * (screenWidth - 48f) / screenWidth).dp
             Surface(
                 shape = RoundedCornerShape(me.ash.reader.brief.ui.Corner.Card),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+                Column(modifier = Modifier.padding(horizontal = sidePadding, vertical = 16.dp)) {
                     Text(
                         stringResource(R.string.text_settings_preview_title),
                         fontFamily = family,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = (fontSize + 2).sp,
-                        lineHeight = ((fontSize + 2) * lineHeight).sp,
+                        letterSpacing = letterSpacing.sp,
+                        lineHeight = ((fontSize + 2) * minOf(1.2f, articleLine)).sp,
                     )
                     Text(
                         stringResource(R.string.text_settings_preview_text),
                         fontFamily = family,
+                        fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
                         fontSize = fontSize.sp,
-                        lineHeight = (fontSize * lineHeight).sp,
+                        letterSpacing = letterSpacing.sp,
+                        lineHeight = (fontSize * articleLine).sp,
                         textAlign =
                             if (align == ReadingTextAlignPreference.Justify) androidx.compose.ui.text.style.TextAlign.Justify
                             else androidx.compose.ui.text.style.TextAlign.Start,
@@ -261,9 +272,7 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
                         style =
                             MaterialTheme.typography.bodyLarge.copy(
                                 lineBreak = androidx.compose.ui.text.style.LineBreak.Simple,
-                                hyphens =
-                                    if (align == ReadingTextAlignPreference.Justify) androidx.compose.ui.text.style.Hyphens.Auto
-                                    else androidx.compose.ui.text.style.Hyphens.None,
+                                hyphens = androidx.compose.ui.text.style.Hyphens.None,
                             ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),
@@ -317,7 +326,9 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
             ) { i, on ->
                 // Each name in its own font, so you can see what you'd get.
                 me.ash.reader.brief.ui.JoinedLabel(
-                    fonts[i].toDesc(context),
+                    // "Google Sans Flex" was too long for a third of the width and ended with "…".
+                    if (fonts[i] == ReadingFontsPreference.GoogleSans) stringResource(R.string.text_settings_font_google)
+                    else fonts[i].toDesc(context),
                     on,
                     androidx.compose.ui.text.TextStyle(fontFamily = families[i]),
                 )
