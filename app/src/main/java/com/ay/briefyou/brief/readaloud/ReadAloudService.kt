@@ -271,19 +271,22 @@ class ReadAloudService : MediaSessionService() {
             return artworkBytes
         }
 
-    /** The same Speed (as a number) and Stop buttons as the podcast player's, on the right. */
+    /**
+     * Speed (as a number) at the start of the progress bar and Stop at its end, in the slots the
+     * podcast player uses for back and forward 30: no empty gaps, and the bar gets the rest.
+     */
     private fun buttons(): ImmutableList<CommandButton> =
         ImmutableList.of(
             CommandButton.Builder(CommandButton.ICON_UNDEFINED)
                 .setCustomIconResId(com.ay.briefyou.brief.player.SpeedIcons.of(tts.speed.value))
                 .setDisplayName(getString(R.string.read_aloud_speed, TextToSpeechManager.speedLabel(tts.speed.value)))
                 .setSessionCommand(SessionCommand(ACTION_SPEED, Bundle.EMPTY))
-                .setSlots(CommandButton.SLOT_OVERFLOW)
+                .setSlots(CommandButton.SLOT_BACK)
                 .build(),
             CommandButton.Builder(CommandButton.ICON_STOP)
                 .setDisplayName(getString(R.string.player_stop))
                 .setSessionCommand(SessionCommand(ACTION_STOP, Bundle.EMPTY))
-                .setSlots(CommandButton.SLOT_OVERFLOW)
+                .setSlots(CommandButton.SLOT_FORWARD)
                 .build(),
         )
 

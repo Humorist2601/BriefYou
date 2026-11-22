@@ -592,6 +592,16 @@ Work from this list; tick items off here as they are done.
     existing one: ask), the README/in-app links and the update checker that point at the repo
     (`Humorist2601/BriefYou`), the Nightly release and tags, the Read You watch workflow, and what
     happens to the old repo (archive it, with a pointer to the new one).
+    **The read-aloud card layout change is already in `main`'s code, committed with `[skip ci]` so
+    it was never built** (the owner asked for that; release 0.16.2.39 does not contain it): in
+    `brief/readaloud/ReadAloudService.kt`, `buttons()` puts **Speed in `CommandButton.SLOT_BACK`**
+    and **Stop (`ICON_STOP`, `R.string.player_stop`) in `SLOT_FORWARD`** (no `SLOT_OVERFLOW`), so the
+    system media card should show Speed at the start of the progress bar and Stop at its end with no
+    empty gaps; `onConnect` already removes the previous/next player commands. The first build of it
+    is the next push to `main` (or the reset): then check the card with the owner (option B of the
+    sketch; fall back to C, no buttons, if Android ignores custom buttons in those slots). Also still
+    open: the podcast card's picture (loaded from the web by Media3's bitmap loader; a Coil-backed
+    `BitmapLoader` would use the app's cache).
 
 **Set aside by the owner (only if asked again)**
 13. Brandfetch logos: ask Brandfetch about caching, or a live-only "Brand logo" choice in Change
