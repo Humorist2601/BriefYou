@@ -251,7 +251,7 @@ fun InteractionPage(
                     com.ay.briefyou.brief.ui.SettingGroup {
                     SettingItem(
                         title = stringResource(R.string.notifications),
-                        desc = stringResource(R.string.notifications_desc),
+                        desc = stringResource(R.string.notifications_page_desc),
                         onClick = navigateToNotifications,
                     ) {}
                     }

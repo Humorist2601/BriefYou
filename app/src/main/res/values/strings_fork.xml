@@ -197,7 +197,7 @@
     <string name="prepare_ai_model">Prepare the model at start</string>
     <string name="prepare_ai_model_desc">Loads the model when the app opens, so the first summary is quick. Off, it loads when first used.</string>
     <string name="ai_settings_model_start">At start</string>
-    <string name="notifications_desc">Feeds that notify, Android's settings</string>
+    <string name="notifications_page_desc">Feeds that notify, Android's settings</string>
     <string name="notifications_android">Android's notification settings</string>
     <string name="notifications_android_desc">Sound, vibration, lock screen</string>
     <string name="notifications_feeds">Feeds that notify</string>
