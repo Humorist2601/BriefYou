@@ -157,6 +157,7 @@ fun TroubleshootingPage(onBack: () -> Unit, viewModel: TroubleshootingViewModel 
             }
         },
     )
+}
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
