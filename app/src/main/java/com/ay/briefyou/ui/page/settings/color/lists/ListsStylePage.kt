@@ -81,10 +81,8 @@ fun ListsStylePage(onBack: () -> Unit) {
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp)
                             .clip(RoundedCornerShape(24.dp))
-                            .background(
-                                MaterialTheme.colorScheme.inverseOnSurface
-                                        onLight MaterialTheme.colorScheme.surface.copy(0.7f)
-                            )
+                            // Brief You: the container of the Color and style page's preview
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
                             .clickable { },
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically

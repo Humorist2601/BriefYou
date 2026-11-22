@@ -11,17 +11,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -35,7 +35,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ay.briefyou.R
+import com.ay.briefyou.brief.ui.BottomBarHeight
 import com.ay.briefyou.brief.ui.BriefFilterBar
+import com.ay.briefyou.brief.ui.bannerContainer
 import com.ay.briefyou.brief.ui.Group
 import com.ay.briefyou.brief.ui.TonalCircleButton
 import com.ay.briefyou.brief.ui.TopBarAction
@@ -67,8 +69,7 @@ fun ListsPagePreview(groupListExpand: Boolean) {
     Column(
         modifier = Modifier
             .animateContentSize()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
-            .padding(bottom = 12.dp)
+            .padding(vertical = 12.dp)
     ) {
         // The Feeds page: the round Settings button and the joined actions.
         Row(
@@ -95,8 +96,26 @@ fun ListsPagePreview(groupListExpand: Boolean) {
         // The Articles list: the large heading and the rows.
         Spacer(Modifier.height(20.dp))
         DisplayText(text = stringResource(R.string.unread), desc = "")
-        ArticleItem(articleWithFeed = article, isUnread = true)
-        ArticleItem(articleWithFeed = article, isUnread = false)
+        // The first is unread with a picture; the second is read (dimmed by the read indicator
+        // switch below) and not starred, since the default indicator leaves starred ones as they are.
+        ArticleItem(
+            feedName = article.feed.name,
+            title = article.article.title,
+            shortDescription = article.article.shortDescription,
+            timeString = article.article.dateString,
+            imgData = R.drawable.preview_picture,
+            isStarred = true,
+            isUnread = true,
+        )
+        ArticleItem(
+            feedName = article.feed.name,
+            title = article.article.title,
+            shortDescription = article.article.shortDescription,
+            timeString = article.article.dateString,
+            imgData = R.drawable.preview_picture,
+            isStarred = false,
+            isUnread = false,
+        )
 
         // The bottom bar with the AI button beside it.
         Spacer(Modifier.height(12.dp))
@@ -106,14 +125,18 @@ fun ListsPagePreview(groupListExpand: Boolean) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BriefFilterBar(filter = filter) { filter = it }
-            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(48.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Outlined.AutoAwesome,
-                        contentDescription = stringResource(R.string.ai_button),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
+            // The same button as the real one: a rounded square in the Unread card's colour.
+            val aiColor = bannerContainer()
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(BottomBarHeight).clip(RoundedCornerShape(20.dp)).background(aiColor),
+            ) {
+                Icon(
+                    Icons.Rounded.AutoAwesome,
+                    contentDescription = stringResource(R.string.ai_button),
+                    tint = MaterialTheme.colorScheme.contentColorFor(aiColor),
+                    modifier = Modifier.size(26.dp),
+                )
             }
         }
     }

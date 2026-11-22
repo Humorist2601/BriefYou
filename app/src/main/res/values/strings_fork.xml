@@ -208,7 +208,7 @@
     <string name="haptic_feedback">Haptic feedback</string>
     <string name="haptic_feedback_desc">Vibration on taps, swipes and holds</string>
     <string name="images_and_videos">Images and videos</string>
-    <string name="images_and_videos_desc">Rounded corners, padding and full width for pictures and videos</string>
+    <string name="images_and_videos_desc">Corners, padding and width</string>
     <string name="ai_button">AI button</string>
     <string name="ai_button_long_press">Hold the AI button</string>
     <string name="ai_button_opens">Opens %1$s</string>

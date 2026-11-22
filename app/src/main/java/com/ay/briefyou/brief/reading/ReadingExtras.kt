@@ -227,6 +227,9 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
         Column(
             modifier =
                 Modifier.fillMaxWidth()
+                    // Always the height of the AI and Triage sheets (70% of the screen), so it doesn't change
+                    // size with its content; what doesn't fit scrolls.
+                    .height((androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.7f).dp)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp)
                     .navigationBarsPadding()
