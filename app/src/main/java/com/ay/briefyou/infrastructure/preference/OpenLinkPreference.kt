@@ -1,3 +1,5 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package com.ay.briefyou.infrastructure.preference
 
 import android.content.Context
@@ -11,7 +13,6 @@ import com.ay.briefyou.ui.ext.DataStoreKey.Companion.openLink
 import com.ay.briefyou.ui.ext.dataStore
 import com.ay.briefyou.ui.ext.put
 
-@Deprecated("Use LocalUriHandler instead")
 val LocalOpenLink =
     compositionLocalOf<OpenLinkPreference> { OpenLinkPreference.default }
 

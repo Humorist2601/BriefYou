@@ -26,7 +26,6 @@ import com.ay.briefyou.ui.ext.surfaceColorAtElevation
 import com.ay.briefyou.ui.theme.palette.onDark
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Deprecated("Use m3 Scaffold instead")
 @Composable
 fun RYScaffold(
     modifier: Modifier = Modifier,

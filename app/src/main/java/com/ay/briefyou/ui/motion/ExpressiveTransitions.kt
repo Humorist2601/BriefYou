@@ -31,7 +31,7 @@ fun sharedYAxisTransitionExpressive(direction: Direction): ContentTransform {
     val exit = 150
     val enter = exit * 2
     return (slideInVertically(
-        initialOffsetY = { (it / 2 * direction).toInt() },
+        initialOffsetY = { (it / 2 * direction) },
         animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
     ) + fadeIn(
         tween(
@@ -40,7 +40,7 @@ fun sharedYAxisTransitionExpressive(direction: Direction): ContentTransform {
             easing = LinearOutSlowInEasing
         )
     )) togetherWith (slideOutVertically(
-        targetOffsetY = { (it / -4 * direction).toInt() },
+        targetOffsetY = { (it / -4 * direction) },
         animationSpec = MaterialTheme.motionScheme.slowSpatialSpec()
 
     ) + fadeOut(
@@ -57,7 +57,7 @@ fun sharedYAxisTransitionSlow(direction: Direction, motionScheme: MotionScheme):
     val exit = 150
     val enter = exit * 2
     return (slideInVertically(
-        initialOffsetY = { (it / 2 * direction).toInt() },
+        initialOffsetY = { (it / 2 * direction) },
         animationSpec = motionScheme.slowSpatialSpec()
     ) + fadeIn(
         tween(
@@ -66,7 +66,7 @@ fun sharedYAxisTransitionSlow(direction: Direction, motionScheme: MotionScheme):
             easing = LinearOutSlowInEasing
         )
     )) togetherWith (slideOutVertically(
-        targetOffsetY = { (it / -2 * direction).toInt() },
+        targetOffsetY = { (it / -2 * direction) },
         animationSpec = motionScheme.slowSpatialSpec()
 
     ) + fadeOut(

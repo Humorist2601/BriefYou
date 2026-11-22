@@ -180,7 +180,6 @@ fun ReadingStatsPage(onBack: () -> Unit) {
 
     // Read You's settings-page scaffold (deprecated by Read You, but all of Read You's settings
     // pages still use it), so this page looks like the others.
-    @Suppress("DEPRECATION")
     RYScaffold(
         containerColor =
             MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,

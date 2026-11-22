@@ -80,7 +80,7 @@ constructor(
                         Group(
                             id = it.id!!.getDefaultGroupId(),
                             name = context.getString(R.string.defaults),
-                            accountId = it.id!!,
+                            accountId = it.id,
                         )
                     )
                 }

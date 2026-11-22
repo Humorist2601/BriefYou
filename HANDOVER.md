@@ -210,8 +210,10 @@ gh api repos/Humorist2601/BriefYou/check-runs/<job id>/annotations --jq '.[] | "
 gh api repos/Humorist2601/BriefYou/releases --jq '.[0:2][] | "\(.tag_name) \(.name) \(.published_at)"'
 ```
 
-The build also lists Kotlin warnings: **Brief You's own code should have 0 warnings** (Read
-You's warnings are left alone on purpose).
+The build also lists Kotlin warnings: **the whole app should have 0 warnings.** Brief You is its
+own app now: we no longer take updates from Read You, so its old code is ours to fix and clean
+(owner's rule, 22 Nov 2026). Read You's own deprecation markers were removed instead of migrating
+every call site; the Locale constructors, redundant code and unchecked casts were fixed.
 
 **README pictures** are SVGs drawn with Google Sans Flex outlines and Material Symbols
 (`tools/readme/make_assets.py`: hero, feature tiles, section headers; `tools/readme/make_media.py`:

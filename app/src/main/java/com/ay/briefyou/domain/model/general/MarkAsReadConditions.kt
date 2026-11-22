@@ -27,7 +27,6 @@ enum class MarkAsReadConditions {
                 SevenDays -> -7
                 ThreeDays -> -3
                 OneDay -> -1
-                else -> throw IllegalArgumentException("Unknown condition: $this")
             })
         }.time
     }

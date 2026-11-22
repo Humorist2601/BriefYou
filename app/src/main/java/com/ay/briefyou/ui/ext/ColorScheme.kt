@@ -12,13 +12,6 @@ import kotlin.math.ln
 import kotlin.math.roundToInt
 
 @Composable
-@Deprecated(
-    message = "Migrate to tone-based surfaces", level = DeprecationLevel.WARNING,
-    replaceWith = ReplaceWith(
-        "surfaceColorAtElevation(elevation: Dp)",
-        "androidx.compose.runtime.remember"
-    )
-)
 fun ColorScheme.surfaceColorAtElevation(
     elevation: Dp,
     color: Color = surface,

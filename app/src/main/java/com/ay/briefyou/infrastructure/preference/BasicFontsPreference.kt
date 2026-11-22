@@ -1,3 +1,5 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package com.ay.briefyou.infrastructure.preference
 
 import com.ay.briefyou.brief.ui.emphasizeHeadings // Brief You

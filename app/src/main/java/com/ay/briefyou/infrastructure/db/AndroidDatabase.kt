@@ -93,8 +93,8 @@ val allMigrations = arrayOf(
  */
 @Suppress("ClassName")
 object MIGRATION_8_9 : Migration(8, 9) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL(
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
             "CREATE INDEX IF NOT EXISTS `index_archived_article_feedId` ON `archived_article` (`feedId`)"
         )
     }
@@ -103,8 +103,8 @@ object MIGRATION_8_9 : Migration(8, 9) {
 @Suppress("ClassName")
 object MIGRATION_1_2 : Migration(1, 2) {
 
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL(
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
             """
             ALTER TABLE article ADD COLUMN img TEXT DEFAULT NULL
             """.trimIndent()
@@ -115,38 +115,38 @@ object MIGRATION_1_2 : Migration(1, 2) {
 @Suppress("ClassName")
 object MIGRATION_2_3 : Migration(2, 3) {
 
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL(
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
             """
             ALTER TABLE article ADD COLUMN updateAt INTEGER DEFAULT ${System.currentTimeMillis()}
             """.trimIndent()
         )
-        database.execSQL(
+        db.execSQL(
             """
             ALTER TABLE account ADD COLUMN syncInterval INTEGER NOT NULL DEFAULT ${SyncIntervalPreference.default.value}
             """.trimIndent()
         )
-        database.execSQL(
+        db.execSQL(
             """
             ALTER TABLE account ADD COLUMN syncOnStart INTEGER NOT NULL DEFAULT ${SyncOnStartPreference.default.value.toInt()}
             """.trimIndent()
         )
-        database.execSQL(
+        db.execSQL(
             """
             ALTER TABLE account ADD COLUMN syncOnlyOnWiFi INTEGER NOT NULL DEFAULT ${SyncOnlyOnWiFiPreference.default.value.toInt()}
             """.trimIndent()
         )
-        database.execSQL(
+        db.execSQL(
             """
             ALTER TABLE account ADD COLUMN syncOnlyWhenCharging INTEGER NOT NULL DEFAULT ${SyncOnlyWhenChargingPreference.default.value.toInt()}
             """.trimIndent()
         )
-        database.execSQL(
+        db.execSQL(
             """
             ALTER TABLE account ADD COLUMN keepArchived INTEGER NOT NULL DEFAULT ${KeepArchivedPreference.default.value}
             """.trimIndent()
         )
-        database.execSQL(
+        db.execSQL(
             """
             ALTER TABLE account ADD COLUMN syncBlockList TEXT NOT NULL DEFAULT ''
             """.trimIndent()
@@ -157,8 +157,8 @@ object MIGRATION_2_3 : Migration(2, 3) {
 @Suppress("ClassName")
 object MIGRATION_3_4 : Migration(3, 4) {
 
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL(
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
             """
             ALTER TABLE account ADD COLUMN securityKey TEXT DEFAULT '${DESUtils.empty}'
             """.trimIndent()
@@ -169,8 +169,8 @@ object MIGRATION_3_4 : Migration(3, 4) {
 @Suppress("ClassName")
 object MIGRATION_4_5 : Migration(4, 5) {
 
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL(
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
             """
             ALTER TABLE account ADD COLUMN lastArticleId TEXT DEFAULT NULL
             """.trimIndent()

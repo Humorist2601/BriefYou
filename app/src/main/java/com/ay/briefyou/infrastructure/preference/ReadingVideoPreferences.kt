@@ -1,4 +1,3 @@
-@file:Suppress("DEPRECATION") // Read You's DataStoreKey is deprecated; every preference here must still use it
 
 package com.ay.briefyou.infrastructure.preference
 

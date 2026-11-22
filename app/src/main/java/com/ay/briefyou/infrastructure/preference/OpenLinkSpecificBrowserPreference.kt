@@ -1,3 +1,5 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package com.ay.briefyou.infrastructure.preference
 
 import android.content.Context
@@ -13,7 +15,6 @@ import com.ay.briefyou.ui.ext.DataStoreKey.Companion.openLinkAppSpecificBrowser
 import com.ay.briefyou.ui.ext.dataStore
 import com.ay.briefyou.ui.ext.put
 
-@Deprecated("Use LocalUriHandler instead")
 val LocalOpenLinkSpecificBrowser = compositionLocalOf { OpenLinkSpecificBrowserPreference.default }
 
 data class OpenLinkSpecificBrowserPreference(

@@ -207,8 +207,8 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                     title = stringResource(R.string.player_reading_aloud, tts.title.orEmpty()),
                     line = stringResource(R.string.read_aloud),
                     artwork = null,
-                    feedName = tts?.feedName,
-                    feedIcon = tts?.feedIcon,
+                    feedName = tts.feedName,
+                    feedIcon = tts.feedIcon,
                     progress = ttsState.readProgress(),
                     playing = ttsState is TextToSpeechManager.State.Reading,
                 )

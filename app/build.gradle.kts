@@ -1,6 +1,5 @@
 import java.io.FileInputStream
 import java.util.Properties
-import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
 
 plugins {
     // Brief You: no Kotlin Android plugin: AGP 9 has Kotlin built in.
@@ -144,7 +143,6 @@ android {
         // Brief You: English only (Brief You's own text is English; about 1 MB smaller).
         localeFilters += listOf("en")
     }
-    composeCompiler { featureFlags = setOf(ComposeFeatureFlag.PausableComposition) }
     namespace = "com.ay.briefyou"
 }
 

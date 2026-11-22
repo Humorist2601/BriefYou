@@ -29,10 +29,8 @@ val Context.skipVersionNumber: String
 val Context.isFirstLaunch: Boolean
     get() = this.dataStore.get(DataStoreKey.isFirstLaunch) ?: true
 
-@Deprecated("Use AccountService to retrieve the current account")
 val Context.currentAccountId: Int
     get() = this.dataStore.get(DataStoreKey.currentAccountId) ?: 1
-@Deprecated("Use AccountService to retrieve the current account")
 val Context.currentAccountType: Int
     get() = this.dataStore.get(DataStoreKey.currentAccountType) ?: 1
 
@@ -265,8 +263,6 @@ sealed interface PreferencesKey {
     }
 }
 
-// todo: remove
-@Deprecated("Use the type-safe PreferencesKey instead")
 @Suppress("ConstPropertyName")
 data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
     companion object {

@@ -141,7 +141,7 @@ fun SharedFilterBar(
 
     // The AI button's menu. It closes when the button goes (another screen or filter), with the
     // back button, or with a tap anywhere else (on the dimmed screen behind it).
-    val ai = if (visible) shown?.ai else null
+    val ai = if (visible) shown.ai else null
     var menuOpen by remember { androidx.compose.runtime.mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(ai == null) { if (ai == null) menuOpen = false }
     androidx.activity.compose.BackHandler(enabled = menuOpen) { menuOpen = false }

@@ -307,7 +307,6 @@ fun ArticleItem(
                             when (articleListDesc) {
                                 FlowArticleListDescPreference.LONG -> 4
                                 FlowArticleListDescPreference.SHORT -> 2
-                                else -> throw IllegalStateException()
                             },
                         overflow = TextOverflow.Ellipsis,
                     )
