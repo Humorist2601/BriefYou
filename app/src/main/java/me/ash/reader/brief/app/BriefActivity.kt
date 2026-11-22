@@ -50,6 +50,8 @@ object BriefActivity {
         fun briefArticleDao(): me.ash.reader.brief.data.BriefArticleDao
 
         fun accountService(): me.ash.reader.domain.service.AccountService
+
+        fun diffMapHolder(): me.ash.reader.domain.data.DiffMapHolder
     }
 
     /**
@@ -94,11 +96,19 @@ object BriefActivity {
         // after you leave it (see GemmaSummarizer.onAppForeground).
         val summarizer =
             EntryPointAccessors.fromApplication(appContext, Dependencies::class.java).summarizer()
+        // What was marked read or unread and isn't saved yet is saved the moment the app leaves the
+        // screen (a swipe in the list, closing the app from the recent apps list right after).
+        val unsaved =
+            EntryPointAccessors.fromApplication(appContext, Dependencies::class.java).diffMapHolder()
         activity.lifecycle.addObserver(
             androidx.lifecycle.LifecycleEventObserver { _, event ->
                 when (event) {
                     androidx.lifecycle.Lifecycle.Event.ON_START -> summarizer.onAppForeground()
-                    androidx.lifecycle.Lifecycle.Event.ON_STOP -> summarizer.onAppBackground()
+                    androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> unsaved.flush()
+                    androidx.lifecycle.Lifecycle.Event.ON_STOP -> {
+                        summarizer.onAppBackground()
+                        unsaved.commitDiffsToDb()
+                    }
                     androidx.lifecycle.Lifecycle.Event.ON_DESTROY ->
                         me.ash.reader.brief.webview.WebViewPool.clear()
                     else -> Unit

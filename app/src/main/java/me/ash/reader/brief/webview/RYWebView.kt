@@ -46,13 +46,6 @@ import me.ash.reader.infrastructure.preference.ReadingFontsPreference
 import me.ash.reader.ui.ext.ExternalFonts
 import me.ash.reader.ui.ext.surfaceColorAtElevation
 
-/**
- * False while the article's page is sliding in (or out). The article text waits for it to stop
- * before it fades in: while the page moved, the web view drew its text only on some frames, so
- * the text blinked (Brief You).
- */
-val LocalPaneSettled = androidx.compose.runtime.compositionLocalOf { true }
-
 @Composable
 fun RYWebView(
     modifier: Modifier = Modifier,
@@ -168,16 +161,6 @@ fun RYWebView(
         // (it popped in part way through the page's slide; and on pages with many pictures the
         // web view kept it invisible for a second or two, waiting for the reading font).
         var drawn by remember { androidx.compose.runtime.mutableStateOf(false) }
-        // The page says its text is drawn; shown once the page has also stopped sliding.
-        var pageDone by remember { androidx.compose.runtime.mutableStateOf(false) }
-        val settled = LocalPaneSettled.current
-        val settledNow = androidx.compose.runtime.rememberUpdatedState(settled)
-        LaunchedEffect(pageDone, settled) {
-            if (pageDone && settled && !drawn) {
-                me.ash.reader.brief.perf.PerfLog.note("text fades in (fonts loaded, text drawn, page still)") // Nightly stutter log
-                drawn = true
-            }
-        }
         val textAlpha by
             androidx.compose.animation.core.animateFloatAsState(
                 targetValue = if (drawn) 1f else 0f,
@@ -216,15 +199,9 @@ fun RYWebView(
             )
         }
         pageReady[0] = {
-            pageDone = true
+            if (!drawn) me.ash.reader.brief.perf.PerfLog.note("text fades in (fonts loaded, text drawn)") // Nightly stutter log
+            drawn = true
             pageIsReady[0] = true
-            // The page was made after the slide began: its loading indicators start still.
-            if (!settledNow.value) {
-                webView.evaluateJavascript(
-                    "(function(){if(document.querySelector('.brief-box:not(.brief-loaded)'))document.documentElement.classList.add('brief-scrolling');})();",
-                    null,
-                )
-            }
             // Styles that changed while the page was loading (the picture's colour arriving late).
             val wanted = wantedCss[0]
             if (wanted != null && shown[1] != wanted) {
@@ -235,10 +212,8 @@ fun RYWebView(
         }
         // The pictures' loading shapes hold still while the page scrolls, and move again shortly
         // after it stops (see ImagePlaceholders).
-        // They hold still while the page slides in too: they are drawn on every frame, and the
-        // text blinked then (the web view fell behind on a page this long, with pictures loading).
         LaunchedEffect(webView) {
-            androidx.compose.runtime.snapshotFlow { scrolling() || !settledNow.value }
+            androidx.compose.runtime.snapshotFlow { scrolling() }
                 .distinctUntilChanged()
                 .collectLatest { now ->
                     if (!now) kotlinx.coroutines.delay(150)
@@ -246,7 +221,10 @@ fun RYWebView(
                     webView.evaluateJavascript(
                         "(function(){var r=document.documentElement;" +
                             "if($now&&!document.querySelector('.brief-box:not(.brief-loaded)'))return;" +
-                            "r.classList.toggle('brief-scrolling',$now);})();",
+                            "r.classList.toggle('brief-scrolling',$now);" +
+                            // Each loading shape stops in the shape it has reached and goes on from there.
+                            "document.querySelectorAll('.brief-spin').forEach(function(s){" +
+                            "s.${if (now) "pauseAnimations" else "unpauseAnimations"}();});})();",
                         null,
                     )
                 }

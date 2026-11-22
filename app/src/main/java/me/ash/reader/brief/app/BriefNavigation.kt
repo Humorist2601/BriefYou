@@ -18,7 +18,6 @@ import me.ash.reader.brief.ui.FilterBarHost
 import me.ash.reader.brief.ui.LocalBackPreviewLeavingPicture
 import me.ash.reader.brief.ui.LocalBackPreviewPicture
 import me.ash.reader.brief.ui.LocalBackStack
-import dev.chrisbanes.haze.hazeSource
 import me.ash.reader.brief.ui.LocalFilterBarHost
 import me.ash.reader.brief.ui.LocalPageKey
 import me.ash.reader.brief.ui.SharedFilterBar
@@ -66,8 +65,6 @@ fun BriefNavigationHost(backStack: NavBackStack<NavKey>, content: @Composable ()
     val backPreviewPicture = rememberGraphicsLayer()
     val backPreviewLeavingPicture = rememberGraphicsLayer()
     val filterBarHost = remember { FilterBarHost() }
-    // The screens are the backdrop the bottom bar blurs.
-    val barBackdrop = dev.chrisbanes.haze.rememberHazeState()
     val newspapers = me.ash.reader.brief.share.rememberNewspaperMaker()
     BackPreviewController(backStack)
     BriefShortcuts.Handler(backStack)
@@ -76,11 +73,10 @@ fun BriefNavigationHost(backStack: NavBackStack<NavKey>, content: @Composable ()
         LocalBackPreviewPicture provides backPreviewPicture,
         LocalBackPreviewLeavingPicture provides backPreviewLeavingPicture,
         LocalFilterBarHost provides filterBarHost,
-        me.ash.reader.brief.ui.LocalBarBackdrop provides barBackdrop,
         me.ash.reader.brief.share.LocalNewspaperMaker provides newspapers,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize().hazeSource(barBackdrop)) { content() }
+            content()
             SharedFilterBar(
                 host = filterBarHost,
                 top = backStack.lastOrNull(),

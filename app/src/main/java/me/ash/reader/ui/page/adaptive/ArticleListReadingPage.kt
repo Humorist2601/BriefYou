@@ -194,11 +194,7 @@ fun ArticleListReaderPage(
                     }
                 }
 
-                CompositionLocalProvider(
-                    LocalTextContentWidth provides animatedContentWidth,
-                    // Brief You: the article's text waits for the slide to stop (see RYWebView)
-                    me.ash.reader.brief.webview.LocalPaneSettled provides (transition.currentState == transition.targetState),
-                ) {
+                CompositionLocalProvider(LocalTextContentWidth provides animatedContentWidth) {
                     BriefReadingPage( // Brief You: in the picture's colours
                         viewModel = viewModel,
                         navigationAction = navigationAction,

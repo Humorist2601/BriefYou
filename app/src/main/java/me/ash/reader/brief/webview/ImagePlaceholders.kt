@@ -41,8 +41,7 @@ object ImagePlaceholders {
 
     private fun buildCss(boxColor: Int, indicatorColor: Int): String {
         val box = cssColor(boxColor)
-        val indicator = svgDataUri(indicatorColor)
-        val stillIndicator = svgDataUri(indicatorColor, animated = false)
+        val indicator = "#%06X".format(indicatorColor and 0xFFFFFF)
         return """
 /* Brief You: picture placeholders (see ImagePlaceholders) */
 .brief-box {
@@ -55,26 +54,25 @@ object ImagePlaceholders {
     background: $box;
     transition: height 0.35s cubic-bezier(0.2, 0, 0, 1), background-color 0.4s ease;
 }
-.brief-box::after {
-    content: "";
+.brief-spin {
     position: absolute;
     left: 50%;
     top: 50%;
     width: 44px;
     height: 44px;
     margin: -22px 0 0 -22px;
-    background: url("$indicator") center / contain no-repeat;
     transition: opacity 0.2s ease;
+}
+.brief-spin path {
+    fill: $indicator;
 }
 .brief-box.brief-loaded {
     background-color: transparent;
 }
-/* While the page scrolls, the indicator holds its shape: the web view repaints a moving shape on
-   every frame, and with several of them it fell behind while scrolling (slow, blank frames). */
-.brief-scrolling .brief-box::after {
-    background-image: url("$stillIndicator");
-}
-.brief-box.brief-loaded::after {
+/* While the page scrolls, each indicator is paused in the shape it has reached (the web view's
+   scroll hook calls pauseAnimations): the web view repaints a moving shape on every frame, and
+   with several of them it fell behind while scrolling (slow, blank frames). */
+.brief-box.brief-loaded > .brief-spin {
     opacity: 0;
 }
 .brief-box > img {
@@ -110,11 +108,13 @@ img.brief-center {
     }
 
     /** The script: boxes the pictures still loading, and reveals each one when it arrives. */
-    val SCRIPT: String =
+    val SCRIPT: String by lazy {
         """
 // Brief You: picture placeholders (see ImagePlaceholders)
 (function () {
     var MIN = $MIN_SIZE;
+    // The loading indicator: the morphing shape, as an inline SVG so it can be paused where it is.
+    var SPIN = "${spinMarkup()}";
     // A picture (or its box) narrower than the text is centred; icons and emoji stay in the line.
     function centerIfSmall(el, width) {
         var column = el.parentElement;
@@ -160,6 +160,7 @@ img.brief-center {
         box.style.width = w ? w + "px" : "100vw";
         img.parentNode.insertBefore(box, img);
         box.appendChild(img);
+        box.insertAdjacentHTML("beforeend", SPIN);
         if (w) centerIfSmall(box, w);
 
         function unbox() {
@@ -198,6 +199,7 @@ img.brief-center {
     });
 })();
 """
+    }
 
     private fun cssColor(argb: Int): String {
         val a = (argb ushr 24 and 0xFF) / 255f
@@ -205,12 +207,12 @@ img.brief-center {
     }
 
     /**
-     * The loading indicator as an animated SVG data address, in [argb]: like Material 3
-     * Expressive's LoadingIndicator (used elsewhere in the app), it turns while morphing through
+     * The loading indicator as inline SVG markup (the colour comes from the styles): like Material
+     * 3 Expressive's LoadingIndicator (used elsewhere in the app), it turns while morphing through
      * soft burst, nine-sided cookie, pentagon, pill, sunny, four-sided cookie and oval. Every shape
      * is drawn with the same number of points around the centre so one can morph into the next.
      */
-    private fun svgDataUri(argb: Int, animated: Boolean = true): String {
+    private fun spinMarkup(): String {
         val paths = PATHS
         val n = paths.size
         val keyTimes = (0..n).joinToString(";") { fmt(it.toDouble() / n, 4) }
@@ -219,18 +221,11 @@ img.brief-center {
         val timing =
             "dur='${fmt(n * 0.65, 2)}s' repeatCount='indefinite' calcMode='spline' " +
                 "keyTimes='$keyTimes' keySplines='$keySplines'"
-        val hex = "%06X".format(argb and 0xFFFFFF)
-        if (!animated) {
-            return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'>" +
-                "<path fill='%23$hex' d='${paths[0]}'/></svg>"
-        }
-        val svg =
-            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'>" +
-                "<path fill='%23$hex' d='${paths[0]}'>" +
-                "<animate attributeName='d' $timing values='${(paths + paths[0]).joinToString(";")}'/>" +
-                "<animateTransform attributeName='transform' type='rotate' $timing values='$rotation'/>" +
-                "</path></svg>"
-        return "data:image/svg+xml;utf8,$svg"
+        return "<svg class='brief-spin' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'>" +
+            "<path d='${paths[0]}'>" +
+            "<animate attributeName='d' $timing values='${(paths + paths[0]).joinToString(";")}'/>" +
+            "<animateTransform attributeName='transform' type='rotate' $timing values='$rotation'/>" +
+            "</path></svg>"
     }
 
     private const val POINTS = 96

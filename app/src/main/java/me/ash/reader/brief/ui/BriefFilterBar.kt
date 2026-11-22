@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -37,10 +36,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.hazeBlur
 import me.ash.reader.domain.model.general.Filter
 
 /** The height of everything in the bottom bar: the filter toolbar and the AI button. */
@@ -53,8 +48,7 @@ val BottomBarHeight = 64.dp
 val FloatingBarGap = 12.dp
 
 /**
- * The Starred / Unread / All toolbar: a frosted glass pill (the list shows through it, strongly
- * blurred, on Android 12 and newer; older phones get the same colour, nearly solid). The chosen
+ * The Starred / Unread / All toolbar: a solid tonal pill like Material's floating toolbar. The chosen
  * filter is a filled accent pill with its name; the others are just icons.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -120,30 +114,15 @@ private fun FilterButton(item: Filter, selected: Boolean, onClick: () -> Unit) {
 }
 
 /**
- * Frosted glass for the bottom bar: the screens behind it, strongly blurred under a light tint,
- * a thin bright edge and a faint lift (no dark shadow, which looks dirty through glass).
+ * The bottom bar's surface, like Material's floating toolbar: a solid tonal container
+ * (`surfaceContainer`) with a soft shadow, and no outline.
  */
 @Composable
 internal fun Modifier.glass(shape: Shape): Modifier {
-    val tintColor = MaterialTheme.colorScheme.surfaceContainer
-    val dark = tintColor.luminance() < 0.5f
-    val backdrop = LocalBarBackdrop.current
-    val style =
-        remember(tintColor) {
-            HazeBlurStyle {
-                blurRadius(28.dp)
-                noiseFactor(0f)
-                backgroundColor(tintColor)
-                colorEffects(listOf(HazeColorEffect.tint(tintColor.copy(alpha = 0.6f))))
-                fallbackColorEffect(HazeColorEffect.tint(tintColor.copy(alpha = 0.95f)))
-            }
-        }
+    val container = MaterialTheme.colorScheme.surfaceContainer
+    val dark = container.luminance() < 0.5f
     return this
-        .dropShadow(shape, Shadow(radius = 16.dp, color = Color.Black, offset = DpOffset(0.dp, 4.dp), alpha = if (dark) 0.22f else 0.10f))
+        .dropShadow(shape, Shadow(radius = 16.dp, color = Color.Black, offset = DpOffset(0.dp, 4.dp), alpha = if (dark) 0.30f else 0.14f))
         .clip(shape)
-        .then(
-            if (backdrop != null) Modifier.hazeBlur(HazeInput.Sources(backdrop), style)
-            else Modifier.background(tintColor)
-        )
-        .border(1.dp, Color.White.copy(alpha = if (dark) 0.12f else 0.6f), shape)
+        .background(container)
 }

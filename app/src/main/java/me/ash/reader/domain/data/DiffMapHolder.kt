@@ -71,7 +71,17 @@ class DiffMapHolder @Inject constructor(
         applicationScope.launch {
             accountService.currentAccountFlow.mapNotNull { it }.collect { account ->
                 val previousAccount = currentAccount
-                if (previousAccount != null && previousAccount != account) {
+                // Brief You: only a different account starts over. The account's own row changes
+                // after every sync (its update time), and Read You then treated that as a new
+                // account: it emptied the unsaved read/unread changes (the cache was written from
+                // another coroutine after the clearing, so it was empty too) and read them back.
+                // Everything read since the last save, the Triage run included, became unread when
+                // a background sync finished.
+                if (previousAccount?.id == account.id) {
+                    currentAccount = account
+                    return@collect
+                }
+                if (previousAccount != null) {
                     cleanup(previousAccount)
                 }
                 currentAccount = account
@@ -92,7 +102,7 @@ class DiffMapHolder @Inject constructor(
     private fun cleanup(account: Account) {
         dbJob?.cancel()
         remoteJob?.cancel()
-        writeDiffsToCache()
+        writeDiffsToCacheNow() // Brief You: before the map is emptied, into this account's own file
         diffMap.clear()
         pendingSyncDiffs.clear()
         syncedDiffs.clear()
@@ -100,7 +110,8 @@ class DiffMapHolder @Inject constructor(
 
     private fun commitOnChange() {
         dbJob = applicationScope.launch(ioDispatcher) {
-            diffMapSnapshotFlow.debounce(2_000).collect {
+            // Brief You: 0.5 s (was 2 s); a quick close lost what was marked just before
+            diffMapSnapshotFlow.debounce(500).collect {
                 if (it.isNotEmpty()) {
                     writeDiffsToCache()
                 }
@@ -219,18 +230,38 @@ class DiffMapHolder @Inject constructor(
     }
 
     private fun writeDiffsToCache() {
-        applicationScope.launch(ioDispatcher) {
-            try {
-                val tmpJson = gson.toJson(diffMap)
-                userCacheDir.mkdirs()
-                cacheFile.createNewFile()
-                if (cacheFile.exists() && cacheFile.canWrite()) {
-                    cacheFile.writeText(tmpJson)
-                }
-            } catch (_: Exception) {
+        // Brief You: the map and the file are taken now, not inside the coroutine, where the map
+        // may have been emptied and the account's folder changed by then.
+        val json = gson.toJson(diffMap.toMap())
+        val file = cacheFile
+        applicationScope.launch(ioDispatcher) { writeCache(file, json) }
+    }
 
+    /** Writes the unsaved changes to the cache file before returning (a small file). */
+    private fun writeDiffsToCacheNow() {
+        writeCache(cacheFile, gson.toJson(diffMap.toMap()))
+    }
+
+    private fun writeCache(file: File, json: String) {
+        try {
+            file.parentFile?.mkdirs()
+            file.createNewFile()
+            if (file.exists() && file.canWrite()) {
+                file.writeText(json)
             }
+        } catch (_: Exception) {
+
         }
+    }
+
+    /**
+     * Brief You: called when the app leaves the screen. Saves the unsaved read/unread changes to
+     * the cache file at once (the app may be closed from the recent apps list right after, long
+     * before the 0.5 s wait above), and then writes them to the database.
+     */
+    fun flush() {
+        if (diffMap.isEmpty()) return
+        writeDiffsToCacheNow()
     }
 
     private suspend fun syncDiffsWithRemote(diffs: Map<String, Diff>) {

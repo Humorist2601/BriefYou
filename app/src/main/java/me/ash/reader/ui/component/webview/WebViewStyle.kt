@@ -306,6 +306,7 @@ li {
 /* Quote  */
 blockquote {
     margin-left: 0.5em !important;
+    margin-right: 0 !important; /* Brief You: the browser's 40px right margin left quotes narrower than the text */
     padding-left: calc(0.9em) !important;
     background-color: var(--blockquote-bg-color) !important;
     border-left: var(--blockquote-border-width) solid var(--blockquote-border-color) !important;
