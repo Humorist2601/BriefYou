@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
@@ -78,8 +80,10 @@ fun BriefFilterBar(
 private fun FilterButton(item: Filter, selected: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Color>()
-    val container by animateColorAsState(if (selected) colors.primary else colors.primary.copy(alpha = 0f), effects, label = "filter")
-    val content by animateColorAsState(if (selected) colors.onPrimary else colors.onSurfaceVariant, effects, label = "filter icon")
+    // The chosen filter has the colour of the Feeds page's Unread card (and of the AI button).
+    val banner = bannerContainer()
+    val container by animateColorAsState(if (selected) banner else banner.copy(alpha = 0f), effects, label = "filter")
+    val content by animateColorAsState(if (selected) colors.contentColorFor(banner) else colors.onSurfaceVariant, effects, label = "filter icon")
     val name = item.toName()
     Row(
         modifier =
@@ -120,9 +124,14 @@ private fun FilterButton(item: Filter, selected: Boolean, onClick: () -> Unit) {
 @Composable
 internal fun Modifier.glass(shape: Shape): Modifier {
     val container = MaterialTheme.colorScheme.surfaceContainer
-    val dark = container.luminance() < 0.5f
     return this
-        .dropShadow(shape, Shadow(radius = 16.dp, color = Color.Black, offset = DpOffset(0.dp, 4.dp), alpha = if (dark) 0.30f else 0.14f))
+        .barShadow(shape)
         .clip(shape)
         .background(container)
 }
+
+/**
+ * The shadow under the bottom bar and the AI button: Material's standard one at level 3 (6 dp),
+ * the elevation of a floating action button, so its look follows the platform.
+ */
+internal fun Modifier.barShadow(shape: Shape): Modifier = this.shadow(elevation = 6.dp, shape = shape)

@@ -25,6 +25,7 @@ import androidx.compose.material3.FloatingActionButtonMenu
 import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -115,7 +116,6 @@ internal fun BriefAiButton(
             )
             val shape = RoundedCornerShape(corner)
             val colors = MaterialTheme.colorScheme
-            val dark = colors.surface.luminance() < 0.5f
             val name = stringResource(R.string.ai_button)
             val hold = stringResource(if (longPress == AiLongPress.Triage) R.string.triage else R.string.flow_fab_gist)
             Box(contentAlignment = Alignment.Center) {
@@ -129,9 +129,9 @@ internal fun BriefAiButton(
                     contentAlignment = Alignment.Center,
                     modifier =
                         Modifier.size(BottomBarHeight)
-                            .dropShadow(shape, Shadow(radius = 16.dp, color = Color.Black, offset = DpOffset(0.dp, 4.dp), alpha = if (dark) 0.3f else 0.16f))
+                            .barShadow(shape)
                             .clip(shape)
-                            .background(colors.primary)
+                            .background(bannerContainer()) // the colour of the Unread card and of the chosen filter
                             .combinedClickable(
                                 role = Role.Button,
                                 onClickLabel = name,
@@ -165,7 +165,7 @@ internal fun BriefAiButton(
                                     else -> Icons.Rounded.AutoAwesome
                                 },
                             contentDescription = if (open) stringResource(R.string.close) else name,
-                            tint = colors.onPrimary,
+                            tint = colors.contentColorFor(bannerContainer()),
                             modifier = Modifier.size(26.dp),
                         )
                     }

@@ -42,6 +42,17 @@ object ImagePlaceholders {
     private fun buildCss(boxColor: Int, indicatorColor: Int): String {
         val box = cssColor(boxColor)
         val indicator = "#%06X".format(indicatorColor and 0xFFFFFF)
+        val n = PATHS.size
+        val duration = "${fmt(n * 0.65, 2)}s"
+        // Each shape in turn (and back to the first), the whole indicator turning three times
+        // meanwhile: the same easing between every two shapes.
+        fun stop(i: Int) = fmt(i * 100.0 / n, 4) + "%"
+        val keyframes =
+            "@keyframes brief-morph {\n" +
+                (0..n).joinToString("\n") { i -> "    ${stop(i)} { d: path(\"${PATHS[i % n]}\"); }" } +
+                "\n}\n@keyframes brief-turn {\n" +
+                (0..n).joinToString("\n") { i -> "    ${stop(i)} { transform: rotate(${fmt(i * 360.0 * 3 / n, 1)}deg); }" } +
+                "\n}"
         return """
 /* Brief You: picture placeholders (see ImagePlaceholders) */
 .brief-box {
@@ -61,17 +72,27 @@ object ImagePlaceholders {
     width: 44px;
     height: 44px;
     margin: -22px 0 0 -22px;
+    transform-origin: 50% 50%;
+    animation: brief-turn $duration cubic-bezier(0.3, 0, 0, 1) infinite;
     transition: opacity 0.2s ease;
 }
 .brief-spin path {
     fill: $indicator;
+    animation: brief-morph $duration cubic-bezier(0.3, 0, 0, 1) infinite;
 }
+$keyframes
 .brief-box.brief-loaded {
     background-color: transparent;
 }
-/* While the page scrolls, each indicator is paused in the shape it has reached (the web view's
-   scroll hook calls pauseAnimations): the web view repaints a moving shape on every frame, and
-   with several of them it fell behind while scrolling (slow, blank frames). */
+/* While the page scrolls, each indicator is paused in the shape it has reached (CSS animations
+   keep their place when paused): the web view repaints a moving shape on every frame, and with
+   several of them it fell behind while scrolling (slow, blank frames). The shapes are CSS
+   animations, not SVG ones: an inline SVG animation doesn't start until the page's load event,
+   which waits for the pictures, so the shapes sat still while they loaded. */
+.brief-scrolling .brief-spin,
+.brief-scrolling .brief-spin path {
+    animation-play-state: paused;
+}
 .brief-box.brief-loaded > .brief-spin {
     opacity: 0;
 }
@@ -207,26 +228,15 @@ img.brief-center {
     }
 
     /**
-     * The loading indicator as inline SVG markup (the colour comes from the styles): like Material
-     * 3 Expressive's LoadingIndicator (used elsewhere in the app), it turns while morphing through
-     * soft burst, nine-sided cookie, pentagon, pill, sunny, four-sided cookie and oval. Every shape
-     * is drawn with the same number of points around the centre so one can morph into the next.
+     * The loading indicator's markup: an SVG with the first shape; the styles ([buildCss]) move it.
+     * Like Material 3 Expressive's LoadingIndicator (used elsewhere in the app), it turns while
+     * morphing through soft burst, nine-sided cookie, pentagon, pill, sunny, four-sided cookie and
+     * oval. Every shape is drawn with the same number of points around the centre so one can morph
+     * into the next.
      */
-    private fun spinMarkup(): String {
-        val paths = PATHS
-        val n = paths.size
-        val keyTimes = (0..n).joinToString(";") { fmt(it.toDouble() / n, 4) }
-        val keySplines = List(n) { "0.3 0 0 1" }.joinToString(";")
-        val rotation = (0..n).joinToString(";") { "${fmt(it * 360.0 * 3 / n, 1)} 22 22" }
-        val timing =
-            "dur='${fmt(n * 0.65, 2)}s' repeatCount='indefinite' calcMode='spline' " +
-                "keyTimes='$keyTimes' keySplines='$keySplines'"
-        return "<svg class='brief-spin' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'>" +
-            "<path d='${paths[0]}'>" +
-            "<animate attributeName='d' $timing values='${(paths + paths[0]).joinToString(";")}'/>" +
-            "<animateTransform attributeName='transform' type='rotate' $timing values='$rotation'/>" +
-            "</path></svg>"
-    }
+    private fun spinMarkup(): String =
+        "<svg class='brief-spin' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'>" +
+            "<path d='${PATHS[0]}'/></svg>"
 
     private const val POINTS = 96
 

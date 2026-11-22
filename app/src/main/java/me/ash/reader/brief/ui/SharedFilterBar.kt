@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.NavigationBarDefaults
@@ -168,6 +169,10 @@ fun SharedFilterBar(
         ) {
             val s = shown ?: return@AnimatedVisibility
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                val density = androidx.compose.ui.platform.LocalDensity.current
+                var boxWidth by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+                var barWidth by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+                val groupExtra = with(density) { (BottomBarHeight + ToolbarToButtonGap).roundToPx() }
                 // Slides up from behind the bar, and back down behind it when closed. The gap
                 // under it matches the one above it (to the top of the screen's list space).
                 AnimatedVisibility(
@@ -175,8 +180,14 @@ fun SharedFilterBar(
                     enter = slideInVertically(spatial) { it } + fadeIn(effects),
                     exit = slideOutVertically(spatial) { it } + fadeOut(effects),
                 ) {
+                    // As wide as the bar and the AI button together (the button's room is kept even
+                    // when it isn't there, so the pill doesn't change width between filters).
+                    val groupWidth = with(density) { (barWidth + groupExtra).toDp() }
                     me.ash.reader.brief.player.NowPlayingPill(
-                        modifier = Modifier.padding(bottom = FloatingBarGap - FILTER_BAR_TOP_PADDING).height(NOW_PLAYING_PILL_HEIGHT)
+                        modifier =
+                            Modifier.padding(bottom = FloatingBarGap - FILTER_BAR_TOP_PADDING)
+                                .width(if (barWidth > 0) groupWidth else 292.dp)
+                                .height(NOW_PLAYING_PILL_HEIGHT)
                     )
                 }
                 // Material's floating toolbar with a button: the two are one group, 8 dp apart,
@@ -187,10 +198,6 @@ fun SharedFilterBar(
                     MaterialTheme.motionScheme.defaultSpatialSpec(),
                     label = "toolbar place",
                 )
-                val density = androidx.compose.ui.platform.LocalDensity.current
-                var boxWidth by remember { androidx.compose.runtime.mutableIntStateOf(0) }
-                var barWidth by remember { androidx.compose.runtime.mutableIntStateOf(0) }
-                val groupExtra = with(density) { (BottomBarHeight + ToolbarToButtonGap).roundToPx() }
                 Box(
                     modifier =
                         Modifier.fillMaxWidth()
@@ -248,8 +255,8 @@ fun SharedFilterBar(
     }
 }
 
-/** The pill's height: its 52 dp picture with 8 dp around it. */
-internal val NOW_PLAYING_PILL_HEIGHT = 68.dp
+/** The pill's height: the same as the bottom bar's. */
+internal val NOW_PLAYING_PILL_HEIGHT = BottomBarHeight
 
 /** Whether the pill shows: an episode or video is loaded, or read aloud is reading or paused. */
 @Composable

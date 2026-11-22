@@ -221,10 +221,7 @@ fun RYWebView(
                     webView.evaluateJavascript(
                         "(function(){var r=document.documentElement;" +
                             "if($now&&!document.querySelector('.brief-box:not(.brief-loaded)'))return;" +
-                            "r.classList.toggle('brief-scrolling',$now);" +
-                            // Each loading shape stops in the shape it has reached and goes on from there.
-                            "document.querySelectorAll('.brief-spin').forEach(function(s){" +
-                            "s.${if (now) "pauseAnimations" else "unpauseAnimations"}();});})();",
+                            "r.classList.toggle('brief-scrolling',$now);})();",
                         null,
                     )
                 }

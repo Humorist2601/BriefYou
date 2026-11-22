@@ -328,11 +328,12 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
   (rows rebuilt with none of their own inputs changed are the sign of it).
 - **Moving pictures inside the article web view are repainted every frame.** The pictures'
   loading shapes (an animated SVG) slowed scrolling and left blank frames on picture-heavy pages;
-  they hold still while the page scrolls: each one is an inline SVG (`.brief-spin`) paused with
-  `pauseAnimations()` in the shape it had reached and resumed with `unpauseAnimations()` 150 ms
-  after the scroll stops (`brief-scrolling` class and the calls, toggled from `Content`'s scroll
-  state in `RYWebView`). Earlier a still copy of the first shape was swapped in, so every pause
-  snapped to the same shape.
+  they hold still while the page scrolls (`brief-scrolling` class, toggled from `Content`'s scroll
+  state in `RYWebView`). They are **CSS animations** (`brief-morph` animating `d: path()`, `brief-turn`
+  rotating), so `animation-play-state: paused` freezes each in the shape it has reached and it
+  carries on from there 150 ms after the scroll stops. Not SVG/SMIL animations: inline ones don't
+  start until the page's load event, which waits for the pictures (the shapes sat on the first
+  shape; a still copy swapped in for scrolling also snapped every pause to the same shape).
 - **Unsaved read/unread changes (`DiffMapHolder`) are easy to lose.** Triage and the list's swipe only
   put them in the holder's map; the database gets them on leaving Feeds, a manual sync, or when
   the app stops. Two losses were fixed: (1) the account row changes after every sync (its update

@@ -20,6 +20,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -111,12 +112,17 @@ import androidx.graphics.shapes.toPath
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 import me.ash.reader.R
+import me.ash.reader.brief.feeds.FeedAccent
 import me.ash.reader.brief.media.ArticleExtras
 import me.ash.reader.brief.media.ArticleMedia
 import me.ash.reader.brief.media.PlaybackPosition
 import me.ash.reader.brief.readaloud.TextToSpeechManager
 import me.ash.reader.brief.readaloud.readProgress
+import me.ash.reader.brief.ui.animateColorScheme
+import me.ash.reader.brief.ui.pictureColorScheme
 import me.ash.reader.brief.ui.rememberPressFeel
+import me.ash.reader.infrastructure.preference.LocalAmoledDarkTheme
+import me.ash.reader.infrastructure.preference.LocalDarkTheme
 import me.ash.reader.ui.component.base.RYAsyncImage
 
 /* The Now playing pill above the bottom bar and its sheet. */
@@ -183,37 +189,60 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
     if (live != null) last[0] = live
     val c = live ?: last[0]?.copy(playing = false) ?: return
 
-    val scheme = MaterialTheme.colorScheme
+    // Tinted by the episode's cover (the same picture colour and scheme as the reading page); read
+    // aloud, a video without a picture or a cover still being worked out keeps the app's colours.
+    val coverUrl = if (c.episode) c.artwork?.takeIf { it.isNotBlank() } else null
+    val isDark = LocalDarkTheme.current.isDarkTheme()
+    val isAmoled = isDark && LocalAmoledDarkTheme.current.value
+    val iconUrl = if (c.episode) c.feedIcon?.takeIf { it.isNotBlank() } else null
+    val knownCover = remember(coverUrl) { coverUrl?.let { FeedAccent.knownPictureColor(it) } }
+    var coverSeed by remember(coverUrl, iconUrl) { mutableStateOf(knownCover?.second?.let { Color(it) }) }
+    LaunchedEffect(coverUrl, iconUrl) {
+        if (knownCover?.second != null) return@LaunchedEffect
+        // The cover's colour, or the feed icon's when there is no cover (or it has no colour).
+        val fromCover = coverUrl?.let { FeedAccent.pictureColor(context, it) }
+        coverSeed = (fromCover ?: iconUrl?.let { FeedAccent.sourceColor(context, it) })?.let { Color(it) }
+    }
+    val appScheme = MaterialTheme.colorScheme
+    val coverScheme = remember(coverSeed, isDark, isAmoled) { coverSeed?.let { pictureColorScheme(it, isDark, isAmoled) } }
+    val scheme = animateColorScheme(coverScheme ?: appScheme, durationMillis = 300)
     val transition = updateTransition(c.playing, label = "now playing")
-    val container by transition.animateColor(label = "container") { if (it) scheme.primaryContainer else scheme.surfaceContainerHighest }
-    val onContainer by transition.animateColor(label = "content") { if (it) scheme.onPrimaryContainer else scheme.onSurface }
+    // Soft tint in both states (playing a little stronger); the ring and the play button carry the
+    // stronger colours.
+    val container by transition.animateColor(label = "container") {
+        if (it) androidx.compose.ui.graphics.lerp(scheme.surfaceContainerHighest, scheme.primaryContainer, 0.35f)
+        else scheme.surfaceContainerHighest
+    }
+    val onContainer by transition.animateColor(label = "content") { scheme.onSurface }
     val ring by animateFloatAsState(c.progress, label = "ring")
+    // The tinted colours reach the play button and icons too (the rest of the theme stays).
+    MaterialTheme(colorScheme = scheme, typography = MaterialTheme.typography, shapes = MaterialTheme.shapes, motionScheme = MaterialTheme.motionScheme) {
     Surface(
         onClick = { if (c.episode && live != null) sheet = true },
-        modifier = modifier.widthIn(max = 360.dp).fillMaxWidth().padding(horizontal = 24.dp),
+        modifier = modifier, // Brief You: the caller gives its width and height (the bar group's, see SharedFilterBar)
         shape = CircleShape,
         color = container,
         contentColor = onContainer,
         shadowElevation = 6.dp,
     ) {
         Row(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier.padding(8.dp), // 8 + 48 + 8 = the bottom bar's 64 dp
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(modifier = Modifier.size(52.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(
                     progress = { ring },
-                    modifier = Modifier.size(52.dp),
+                    modifier = Modifier.size(48.dp),
                     color = scheme.primary,
                     trackColor = onContainer.copy(alpha = 0.16f),
                     strokeWidth = 3.dp,
                 )
                 if (c.episode) {
-                    Artwork(c.artwork, Modifier.size(40.dp), CircleShape, c.feedName, c.feedIcon, c.video)
+                    Artwork(c.artwork, Modifier.size(37.dp), CircleShape, c.feedName, c.feedIcon, c.video)
                 } else {
                     Box(
-                        Modifier.size(40.dp).clip(CircleShape).background(scheme.secondaryContainer),
+                        Modifier.size(37.dp).clip(CircleShape).background(scheme.secondaryContainer),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(Icons.Outlined.GraphicEq, null, tint = scheme.onSecondaryContainer, modifier = Modifier.size(20.dp))
@@ -221,7 +250,17 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                 }
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(c.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // While playing a long title slides slowly sideways; paused, it ends with an ellipsis.
+                Text(
+                    c.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = if (c.playing) TextOverflow.Clip else TextOverflow.Ellipsis,
+                    modifier =
+                        if (c.playing) Modifier.basicMarquee(iterations = Int.MAX_VALUE, initialDelayMillis = 2_000, repeatDelayMillis = 2_000, velocity = 24.dp)
+                        else Modifier,
+                )
                 Text(
                     c.line,
                     style = MaterialTheme.typography.bodySmall,
@@ -249,6 +288,7 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                 Icon(Icons.Rounded.Close, stringResource(R.string.player_stop), modifier = Modifier.size(20.dp))
             }
         }
+    }
     }
     if (sheet && now != null) NowPlayingSheet(onDismiss = { sheet = false })
 }
