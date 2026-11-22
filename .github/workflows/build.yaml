@@ -112,7 +112,7 @@ jobs:
                               | awk '{n=$1; $1=""; sub(/^ /, ""); gsub(/\|/, "\\|"); print "| " n " | " $0 " |"}'
                       fi
                   } >> "$GITHUB_STEP_SUMMARY"
-                  { grep -E '^app/src/main/java/me/ash/reader/brief/' warnings.txt; grep -vE '^app/src/main/java/me/ash/reader/brief/' warnings.txt; } > fix.txt || true
+                  { grep -E '^app/src/main/java/com/ay/briefyou/brief/' warnings.txt; grep -vE '^app/src/main/java/com/ay/briefyou/brief/' warnings.txt; } > fix.txt || true
                   split -l 12 -d fix.txt part_ || true
                   n=0
                   for f in part_*; do

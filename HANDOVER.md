@@ -20,7 +20,7 @@ in [§9](#9-pending-work-the-baseline).
 - Repository: **github.com/Humorist2601/BriefYou** (owner: Humorist2601). Branch `main` is the
   released app.
 - App IDs: **`com.ay.briefyou`** (release), **`com.ay.briefyou.nightly`** (test builds, installs
-  next to it). The code's Kotlin package is still Read You's `me.ash.reader` (on purpose, see §3).
+  next to it). The code's Kotlin package is `com.ay.briefyou` (renamed from Read You's `me.ash.reader` in 0.16.2.163; see step 17).
 - Phones: Android 8.0+ (minSdk 26), 64-bit ARM only (`arm64-v8a`), targetSdk 34, compileSdk 36.
 - The owner uses: a **Local account** (no sync service), ~300–400 articles a day, Triage first
   thing, GrapheneOS on a Pixel 9 Pro (Android 16).
@@ -107,7 +107,7 @@ merging had become unrealistic). Read You's code that Brief You uses is now simp
 code: change it like any other file. Keep the GPL-3.0 licence, Read You's copyright notices and
 the credit in the README and the About screen.
 
-1. **Brief You's own code lives in `app/src/main/java/me/ash/reader/brief/`** (and its own
+1. **Brief You's own code lives in `app/src/main/java/com/ay/briefyou/brief/`** (and its own
    resources: `res/values/strings_fork.xml`, `res/values/themes_fork.xml`, drawables named
    `ic_shortcut_*` etc.). New code still goes there.
 2. **Read You's files** can be edited freely. The old `// Brief You` comments on earlier hooks stay
@@ -124,7 +124,7 @@ any Issue, it starts from `d2b979cc`, Read You's last commit included in Brief Y
 
 ---
 
-## 4. Code map — `app/src/main/java/me/ash/reader/brief/`
+## 4. Code map — `app/src/main/java/com/ay/briefyou/brief/`
 
 | Folder | What's there |
 | --- | --- |
@@ -495,6 +495,17 @@ Work from this list; tick items off here as they are done.
     the old worker class names); keep the old launcher activity and widget names as aliases (so the
     home-screen icon and placed widgets stay); move Room's schema folders; update R8 rules. Check
     after installing over the previous build: icon, widgets, sync, settings and articles kept.
+    *Done on `deps-b` (not yet built, as its own Nightly):* sources moved to `app/src/main/java/com/ay/briefyou`
+    (and `src/test`), `namespace` and every import/string rewritten (493 files), Room's schema folders
+    renamed (`app/schemas/com.ay.briefyou.…`), R8 rules, baseline profile and the CI paths updated.
+    Safeguards: the launcher entry is an `<activity-alias>` named `me.ash.reader.infrastructure.android.MainActivity`
+    (it carries MAIN/LAUNCHER), the two widget receivers keep stubs at their old names
+    (`app/src/main/java/me/ash/reader/ui/widget/LegacyWidgetReceivers.kt`, plus manifest entries; the real
+    receivers are `open`), and on the first start after the update `AndroidApp` cancels all saved
+    WorkManager work once (flag `brief_migration/workers_after_rename`) and the usual schedulers
+    set it up again. The Read You cleanup (19) is the next Nightly. Check after installing over the
+    previous build: icon, widgets, sync, settings, articles, auto backup. Delete the stubs, the alias
+    and the keep rule at the 1.0.0 restart (22).
 18. **Leave the GitHub fork network** (the owner, through GitHub Support), whenever convenient.
 19. **Remove unused Read You code** over time (the Languages page, old drawers, BestIconFinder…),
     each piece checked to be unused. **The owner's decision: together

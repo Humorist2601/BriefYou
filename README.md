@@ -247,7 +247,7 @@ Already have the file? **Import** picks a `gemma-4-E2B-it.litertlm` you download
 
 Brief You is built on [Read You](https://github.com/ReadYouApp/ReadYou) and keeps its GPL-3.0 licence, but it's now its own app and no longer follows Read You's development.
 
-- **Brief You's own code** lives in `app/src/main/java/me/ash/reader/brief/` (and its own resources, such as `strings_fork.xml`). The rest started as Read You's code and is now changed like any other part of the app.
+- **Brief You's own code** lives in `app/src/main/java/com/ay/briefyou/brief/` (and its own resources, such as `strings_fork.xml`). The rest started as Read You's code and is now changed like any other part of the app.
 - A weekly workflow (*Read You watch*) opens an issue, *Read You changes to look at*, when Read You has new commits, with changes to account syncing, feed parsing, the database and security listed first. Nothing is merged; useful fixes are copied over by hand.
 
 ## About this project

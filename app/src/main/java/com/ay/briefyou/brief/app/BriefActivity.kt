@@ -1,0 +1,171 @@
+package com.ay.briefyou.brief.app
+
+import android.app.UiModeManager
+import android.content.Context
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import com.ay.briefyou.brief.notifications.NotificationHelper
+import com.ay.briefyou.brief.splash.BriefSplash
+import com.ay.briefyou.brief.ui.DialogHost
+import com.ay.briefyou.infrastructure.preference.DarkThemePreference
+import com.ay.briefyou.ui.ext.dataStore
+
+/*
+ * Brief You's additions to Read You's MainActivity, kept here so Read You's file only needs a few
+ * calls: the animated splash, dialogs drawn in the app's window, the system splash following the
+ * app's dark theme setting, and clearing the new-articles digest when the app is opened.
+ */
+object BriefActivity {
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    internal interface Dependencies {
+        fun notificationHelper(): NotificationHelper
+
+        fun readLater(): com.ay.briefyou.brief.readlater.ReadLater
+
+        fun summarizer(): com.ay.briefyou.brief.ai.GemmaSummarizer
+
+        fun briefArticleDao(): com.ay.briefyou.brief.data.BriefArticleDao
+
+        fun accountService(): com.ay.briefyou.domain.service.AccountService
+
+        fun diffMapHolder(): com.ay.briefyou.domain.data.DiffMapHolder
+    }
+
+    /**
+     * Call in onCreate. Returns whether the animated splash plays: on fresh launches only (not
+     * when the activity is recreated). Its first frame is the system splash's (the straight card),
+     * so the system splash is removed at once and BriefSplash tips the card and carries on.
+     */
+    @OptIn(kotlinx.coroutines.FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun onCreate(activity: ComponentActivity, savedInstanceState: Bundle?): Boolean {
+        val playSplash = savedInstanceState == null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && playSplash) {
+            activity.splashScreen.setOnExitAnimationListener { view -> view.remove() }
+        }
+        syncSplashNightMode(activity)
+        // Off the main thread: publishing shortcuts asks the system and can take a while.
+        val appContext = activity.applicationContext
+        activity.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+            BriefShortcuts.publish(appContext)
+        }
+        // The saved pages' feed with its current name and icon.
+        activity.lifecycleScope.launch {
+            EntryPointAccessors.fromApplication(appContext, Dependencies::class.java)
+                .readLater()
+                .refreshSavedFeed()
+        }
+        // Watched words, read once for lists and Triage, and counted per feed and group for home.
+        com.ay.briefyou.brief.filters.WatchedWords.load(appContext)
+        activity.lifecycleScope.launch {
+            val deps = EntryPointAccessors.fromApplication(appContext, Dependencies::class.java)
+            deps.accountService().currentAccountIdFlow
+                .filterNotNull()
+                .distinctUntilChanged()
+                .flatMapLatest { deps.briefArticleDao().unreadTitles(it) }
+                .combine(androidx.compose.runtime.snapshotFlow { com.ay.briefyou.brief.filters.WatchedWords.words }) { titles, _ -> titles }
+                .debounce(300)
+                .collect { com.ay.briefyou.brief.filters.WatchedWords.count(it) }
+        }
+        // A web view made ahead of time, so the first article opens without a stutter; freed
+        // with the screen.
+        com.ay.briefyou.brief.webview.WebViewPool.prepare(activity)
+        // The AI model loads in the background while the app is open and unloads a few minutes
+        // after you leave it (see GemmaSummarizer.onAppForeground).
+        val summarizer =
+            EntryPointAccessors.fromApplication(appContext, Dependencies::class.java).summarizer()
+        // What was marked read or unread and isn't saved yet is saved the moment the app leaves the
+        // screen (a swipe in the list, closing the app from the recent apps list right after).
+        val unsaved =
+            EntryPointAccessors.fromApplication(appContext, Dependencies::class.java).diffMapHolder()
+        activity.lifecycle.addObserver(
+            androidx.lifecycle.LifecycleEventObserver { _, event ->
+                when (event) {
+                    androidx.lifecycle.Lifecycle.Event.ON_START -> summarizer.onAppForeground()
+                    androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> unsaved.flush()
+                    androidx.lifecycle.Lifecycle.Event.ON_STOP -> {
+                        summarizer.onAppBackground()
+                        unsaved.commitDiffsToDb()
+                    }
+                    androidx.lifecycle.Lifecycle.Event.ON_DESTROY ->
+                        com.ay.briefyou.brief.webview.WebViewPool.clear()
+                    else -> Unit
+                }
+            }
+        )
+        return playSplash
+    }
+
+    /** Call in onResume: opening the app clears the new-articles digest. */
+    fun onResume(context: Context) {
+        EntryPointAccessors.fromApplication(context.applicationContext, Dependencies::class.java)
+            .notificationHelper()
+            .clearDigest()
+    }
+
+    /**
+     * The system splash is drawn before the app runs, from the phone's light or dark mode. Tell
+     * Android which one the app uses (its Dark theme setting), so the splash on the next launch
+     * matches the app: a light splash for a light app on a dark phone, and the other way round.
+     */
+    private fun syncSplashNightMode(activity: ComponentActivity) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        val uiModeManager = activity.getSystemService(UiModeManager::class.java) ?: return
+        activity.lifecycleScope.launch {
+            activity.dataStore.data
+                .map { DarkThemePreference.fromPreferences(it) }
+                .distinctUntilChanged()
+                .collect { preference ->
+                    val mode =
+                        when (preference) {
+                            DarkThemePreference.ON -> UiModeManager.MODE_NIGHT_YES
+                            DarkThemePreference.OFF -> UiModeManager.MODE_NIGHT_NO
+                            else -> UiModeManager.MODE_NIGHT_AUTO
+                        }
+                    // Only when it changed: setting it can restart the screen.
+                    val prefs =
+                        activity.getSharedPreferences("splash_night_mode", Context.MODE_PRIVATE)
+                    if (prefs.getInt("mode", -1) != mode) {
+                        prefs.edit().putInt("mode", mode).apply()
+                        uiModeManager.setApplicationNightMode(mode)
+                    }
+                }
+        }
+    }
+}
+
+/**
+ * Around the app's content: dialogs drawn in the app's window (see InWindowDialog), and the
+ * animated splash over everything when [playSplash].
+ */
+@Composable
+fun BriefRoot(playSplash: Boolean, content: @Composable () -> Unit) {
+    var showSplash by remember { mutableStateOf(playSplash) }
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Video full screen and picture-in-picture are drawn over the app (see VideoHost).
+        com.ay.briefyou.brief.player.VideoHost { DialogHost { content() } }
+        if (showSplash) BriefSplash(onFinished = { showSplash = false })
+    }
+}

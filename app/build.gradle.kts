@@ -39,7 +39,7 @@ android {
     compileSdk = 37 // Brief You: Compose 1.12 needs it
 
     defaultConfig {
-        applicationId = "me.ash.reader"
+        applicationId = "com.ay.briefyou"
         minSdk = 26
         targetSdk = 36 // Brief You: Android 16 (see HANDOVER for why not 37 yet)
         versionCode = 47
@@ -145,7 +145,7 @@ android {
         localeFilters += listOf("en")
     }
     composeCompiler { featureFlags = setOf(ComposeFeatureFlag.PausableComposition) }
-    namespace = "me.ash.reader"
+    namespace = "com.ay.briefyou"
 }
 
 aboutLibraries { export { excludeFields.add("generated") } } // Brief You: AboutLibraries 15
