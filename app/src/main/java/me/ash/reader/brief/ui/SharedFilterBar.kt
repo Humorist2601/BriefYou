@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.dp
 import me.ash.reader.domain.model.general.Filter
 
@@ -180,10 +181,11 @@ fun SharedFilterBar(
                         modifier = Modifier.padding(bottom = FloatingBarGap - FILTER_BAR_TOP_PADDING).height(NOW_PLAYING_PILL_HEIGHT)
                     )
                 }
-                // The toolbar is in the middle; with the AI button it moves to the left and the
-                // button takes the right.
-                val bias by androidx.compose.animation.core.animateFloatAsState(
-                    if (s.ai != null) -1f else 0f,
+                // The toolbar stays in the middle of the screen, with the AI button on the right.
+                // On a narrow phone where they would touch, the toolbar moves left just enough
+                // to keep a gap (smoothly, as the button comes and goes).
+                val aiShown by androidx.compose.animation.core.animateFloatAsState(
+                    if (s.ai != null) 1f else 0f,
                     MaterialTheme.motionScheme.defaultSpatialSpec(),
                     label = "toolbar place",
                 )
@@ -197,7 +199,15 @@ fun SharedFilterBar(
                             .height(BottomBarHeight)
                 ) {
                     BriefFilterBar(
-                        modifier = Modifier.align(androidx.compose.ui.BiasAlignment(bias, 1f)),
+                        modifier =
+                            Modifier.align(Alignment.BottomStart).layout { measurable, constraints ->
+                                val bar = measurable.measure(constraints.copy(minWidth = 0))
+                                val width = constraints.maxWidth
+                                val middle = (width - bar.width) / 2
+                                val room = width - (BottomBarHeight + 8.dp).roundToPx() - bar.width
+                                val x = (middle - aiShown * (middle - room).coerceAtLeast(0)).toInt().coerceAtLeast(0)
+                                layout(width, bar.height) { bar.place(x, 0) }
+                            },
                         filter = s.filter,
                         filterOnClick = {
                             menuOpen = false

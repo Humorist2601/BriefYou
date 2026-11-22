@@ -89,8 +89,9 @@ enum class AiLongPress {
 /**
  * The AI button beside the filter toolbar: a tap opens a small menu (AI Gist and Triage, Material
  * 3's floating action button menu), a long press opens the one chosen in Settings straight away.
- * Open, it turns round and shows a close icon. The menu keeps 16 dp around the button
- * ([AiButtonMenuMargin]); the bar takes that back so the button lines up with the toolbar.
+ * Closed, its icon is the long press's (Triage's or AI Gist's); open, it shows a close icon.
+ * The menu keeps 16 dp around the button ([AiButtonMenuMargin]); the bar takes that back so the
+ * button lines up with the toolbar.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -156,7 +157,13 @@ internal fun BriefAiButton(
                         label = "ai button icon",
                     ) { open ->
                         Icon(
-                            imageVector = if (open) Icons.Rounded.Close else Icons.Rounded.AutoAwesome,
+                            // Closed, it shows what a long press opens.
+                            imageVector =
+                                when {
+                                    open -> Icons.Rounded.Close
+                                    longPress == AiLongPress.Triage -> Icons.Rounded.Style
+                                    else -> Icons.Rounded.AutoAwesome
+                                },
                             contentDescription = if (open) stringResource(R.string.close) else name,
                             tint = colors.onPrimary,
                             modifier = Modifier.size(26.dp),
