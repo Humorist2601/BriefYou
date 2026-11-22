@@ -220,7 +220,7 @@ Brief You is a calm, private RSS reader with AI that runs **entirely on your pho
 
 <p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/h-backup-dark.svg"><img alt="Backup and updates" src=".github/assets/readme/h-backup-light.svg" width="100%"></picture></p>
 
-<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-backup-dark.svg"><img alt="Full backup and restore: Feeds, starred articles, filters and settings in one file. Own updates: The app checks Brief You’s releases, never anyone else’s. Signed releases: Every push to main is built and published as Brief You 0.16.2.N. Brief You Nightly: Test builds as their own app, next to Brief You." src=".github/assets/readme/t-backup-light.svg" width="100%"></picture></p>
+<p><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/t-backup-dark.svg"><img alt="Full backup and restore: Feeds, starred articles, filters and settings in one file. Own updates: The app checks Brief You’s releases, never anyone else’s. Signed releases: Every push to main is built and published as Brief You 1.0.0.N. Brief You Nightly: Test builds as their own app, next to Brief You." src=".github/assets/readme/t-backup-light.svg" width="100%"></picture></p>
 
 <details>
 <summary>More details</summary>

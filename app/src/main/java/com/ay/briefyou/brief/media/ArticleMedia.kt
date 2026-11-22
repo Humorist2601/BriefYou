@@ -120,12 +120,10 @@ interface ArticleMediaDao {
 }
 
 // The schema is exported (app/schemas), so a later change can be a migration.
-// 2 adds archived_miss.
 @Database(
     entities = [ArticleExtras::class, PlaybackPosition::class, ArchivedMiss::class],
-    version = 2,
+    version = 1,
     exportSchema = true,
-    autoMigrations = [androidx.room.AutoMigration(from = 1, to = 2)],
 )
 abstract class ArticleMediaDatabase : RoomDatabase() {
     abstract fun dao(): ArticleMediaDao

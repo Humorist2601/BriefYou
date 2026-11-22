@@ -111,17 +111,6 @@ class AndroidApp : Application(), Configuration.Provider {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
-        // Brief You: background work saved before the package rename names classes that no longer
-        // exist; once, all of it is cancelled and the schedulers below (sync, widgets, backup,
-        // offline copies) set it up again from the current classes.
-        getSharedPreferences("brief_migration", MODE_PRIVATE).let { p ->
-            if (!p.getBoolean("workers_after_rename", false)) {
-                androidx.work.WorkManager.getInstance(this).cancelAllWork()
-                androidx.work.WorkManager.getInstance(this).pruneWork()
-                p.edit().putBoolean("workers_after_rename", true).apply()
-            }
-        }
-        com.ay.briefyou.brief.app.GroupIdMigration.runOnce(this) // Brief You: the default group's new id, in the saved settings
         applicationScope.launch {
             accountInit()
             workerInit()

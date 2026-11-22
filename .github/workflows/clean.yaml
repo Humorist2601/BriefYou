@@ -48,7 +48,7 @@ jobs:
                   echo "- Releases: $(wc -l < old_releases.txt) older than the newest $([ "$DRY_RUN" = "true" ] && echo 'would be' || echo 'were') deleted" >> "$GITHUB_STEP_SUMMARY"
 
             - name: Leftover tags
-              # Release tags (0.16.2.7) that no kept release uses, such as tags left behind by
+              # Release tags (1.0.0.7) that no kept release uses, such as tags left behind by
               # releases deleted by hand. Other tags are never touched.
               run: |
                   gh api "repos/$REPO/releases?per_page=100" --paginate -q '.[].tag_name' \

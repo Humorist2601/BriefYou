@@ -38,8 +38,8 @@ android {
         applicationId = "com.ay.briefyou"
         minSdk = 26
         targetSdk = 37 // Brief You: Android 17
-        versionCode = 47
-        versionName = "0.16.2"
+        versionCode = 1
+        versionName = "1.0.0"
 
         buildConfigField(
             "String",

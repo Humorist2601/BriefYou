@@ -5,7 +5,7 @@ written for two readers at once: **you** (the owner), and **an AI assistant** (C
 other) that you hand this repository to. If you start a new chat, give it this repository and
 say: *"Read HANDOVER.md first, then …"*.
 
-Last updated: 16 November 2026, at **Brief You 0.16.2.38**. The agreed list of pending work is
+Last updated: 22 November 2026, at the **1.0.0 reset** (last release before it: 0.16.2.39). The agreed list of pending work is
 in [§9](#9-pending-work-the-baseline).
 
 ---
@@ -192,7 +192,7 @@ GRAD axis fixed at 0, renders identically; Literata kept to Latin, basic Greek a
 update a font, run the script on the new originals. Where the time goes: R8 about 4.7 min, Kotlin
 and KSP about 2.4 min, Gradle's own setup about 1 min.
 
-**Version names:** Read You's version + build number: `0.16.2.9` = Read You 0.16.2, build 9.
+**Version names:** `versionName` + build number: `1.0.0.9` = Brief You 1.0.0, build 9 (before the reset the numbers followed Read You's, e.g. `0.16.2.9`).
 Each build installs as an update (Obtainium works with the releases).
 
 **Signing:** repository secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`. Without them
@@ -572,7 +572,7 @@ Work from this list; tick items off here as they are done.
     browser, Mark as read when opened, Haptic feedback, Notifications page, Collect reading stats,
     Prepare AI model at start).
 
-22. **Last step of all: a full restart ("new beginning")**, once we no longer depend on Read You.
+22. **DONE in code (22 November 2026, `RESET ALL CLAUDE` given; the notes below say what was reset; the new repo and its first build are the owner's follow-up): a full restart ("new beginning")**, once we no longer depend on Read You.
     **Only when the owner writes the exact words `RESET ALL CLAUDE` do you reset anything**; until
     then leave every number and workflow alone. Then, everything starts over: `versionName`
     `1.0.0` and `versionCode` back to 1 (`app/build.gradle.kts`; the CI build number restarts too, so

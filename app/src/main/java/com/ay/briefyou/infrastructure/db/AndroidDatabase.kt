@@ -2,10 +2,7 @@ package com.ay.briefyou.infrastructure.db
 
 import android.content.Context
 import androidx.room.*
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ay.briefyou.domain.model.account.*
-import com.ay.briefyou.domain.model.account.security.DESUtils
 import com.ay.briefyou.domain.model.article.ArchivedArticle
 import com.ay.briefyou.domain.model.article.Article
 import com.ay.briefyou.domain.model.feed.Feed
@@ -15,18 +12,12 @@ import com.ay.briefyou.domain.repository.ArticleDao
 import com.ay.briefyou.domain.repository.FeedDao
 import com.ay.briefyou.domain.repository.GroupDao
 import com.ay.briefyou.infrastructure.preference.*
-import com.ay.briefyou.ui.ext.toInt
 import java.util.*
 
 @Database(
     entities = [Account::class, Feed::class, Article::class, Group::class, ArchivedArticle::class],
-    version = 10, // Brief You: 8 adds the article list indexes, 9 the archived_article index (MIGRATION_8_9), 10 renames the default groups' ids (MIGRATION_9_10)
-    autoMigrations = [
-        AutoMigration(from = 5, to = 6),
-        AutoMigration(from = 5, to = 7),
-        AutoMigration(from = 6, to = 7),
-        AutoMigration(from = 7, to = 8), // Brief You: the article list indexes
-    ]
+    version = 1,
+    exportSchema = true,
 )
 @TypeConverters(
     AndroidDatabase.DateConverters::class,
@@ -52,25 +43,13 @@ abstract class AndroidDatabase : RoomDatabase() {
 
         const val DATABASE_NAME = "BriefYou"
 
-        /** The database was called "Reader" (Read You's name); its files are renamed once, before it is opened. */
-        private fun moveOldDatabase(context: Context) {
-            val new = context.getDatabasePath(DATABASE_NAME)
-            val old = context.getDatabasePath("Reader")
-            if (new.exists() || !old.exists()) return
-            for (suffix in listOf("", "-wal", "-shm", "-journal")) {
-                val from = java.io.File(old.path + suffix)
-                if (from.exists()) from.renameTo(java.io.File(new.path + suffix))
-            }
-        }
-
         fun getInstance(context: Context): AndroidDatabase {
             return instance ?: synchronized(this) {
-                moveOldDatabase(context.applicationContext)
                 instance ?: Room.databaseBuilder(
                     context.applicationContext,
                     AndroidDatabase::class.java,
                     DATABASE_NAME
-                ).addMigrations(*allMigrations).build().also {
+                ).build().also {
                     instance = it
                 }
             }
@@ -88,123 +67,5 @@ abstract class AndroidDatabase : RoomDatabase() {
         fun fromDate(date: Date?): Long? {
             return date?.time
         }
-    }
-}
-
-val allMigrations = arrayOf(
-    MIGRATION_1_2,
-    MIGRATION_2_3,
-    MIGRATION_3_4,
-    MIGRATION_4_5,
-    MIGRATION_8_9, // Brief You
-    MIGRATION_9_10, // Brief You
-)
-
-/**
- * Brief You: an index on archived_article's feed, so a local feed's sync finds its notes, and
- * deleting a feed finds the notes to remove, without reading the whole table. The version 8 schema
- * file was never kept; app/schemas/…/8.json is rebuilt from 7.json plus 8's two article indexes
- * (the 7 → 8 AutoMigration needs it once there is a 9).
- */
-@Suppress("ClassName")
-object MIGRATION_8_9 : Migration(8, 9) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
-            "CREATE INDEX IF NOT EXISTS `index_archived_article_feedId` ON `archived_article` (`feedId`)"
-        )
-    }
-}
-
-/**
- * Brief You: each account's default group had an id ending in the old app name
- * (`<account>$read_you_app_default_group`); now it ends in `$default_group`. The groups are
- * renamed first (the feeds' `groupId` follows, the foreign key cascades on update), then the feeds
- * are made to match in case foreign keys weren't enforced here.
- */
-@Suppress("ClassName")
-object MIGRATION_9_10 : Migration(9, 10) {
-    override fun migrate(db: SupportSQLiteDatabase) {
-        val old = "\$read_you_app_default_group"
-        val new = "\$default_group"
-        db.execSQL("UPDATE `group` SET id = replace(id, '$old', '$new') WHERE id LIKE '%$old'")
-        db.execSQL("UPDATE feed SET groupId = replace(groupId, '$old', '$new') WHERE groupId LIKE '%$old'")
-    }
-}
-
-@Suppress("ClassName")
-object MIGRATION_1_2 : Migration(1, 2) {
-
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
-            """
-            ALTER TABLE article ADD COLUMN img TEXT DEFAULT NULL
-            """.trimIndent()
-        )
-    }
-}
-
-@Suppress("ClassName")
-object MIGRATION_2_3 : Migration(2, 3) {
-
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
-            """
-            ALTER TABLE article ADD COLUMN updateAt INTEGER DEFAULT ${System.currentTimeMillis()}
-            """.trimIndent()
-        )
-        db.execSQL(
-            """
-            ALTER TABLE account ADD COLUMN syncInterval INTEGER NOT NULL DEFAULT ${SyncIntervalPreference.default.value}
-            """.trimIndent()
-        )
-        db.execSQL(
-            """
-            ALTER TABLE account ADD COLUMN syncOnStart INTEGER NOT NULL DEFAULT ${SyncOnStartPreference.default.value.toInt()}
-            """.trimIndent()
-        )
-        db.execSQL(
-            """
-            ALTER TABLE account ADD COLUMN syncOnlyOnWiFi INTEGER NOT NULL DEFAULT ${SyncOnlyOnWiFiPreference.default.value.toInt()}
-            """.trimIndent()
-        )
-        db.execSQL(
-            """
-            ALTER TABLE account ADD COLUMN syncOnlyWhenCharging INTEGER NOT NULL DEFAULT ${SyncOnlyWhenChargingPreference.default.value.toInt()}
-            """.trimIndent()
-        )
-        db.execSQL(
-            """
-            ALTER TABLE account ADD COLUMN keepArchived INTEGER NOT NULL DEFAULT ${KeepArchivedPreference.default.value}
-            """.trimIndent()
-        )
-        db.execSQL(
-            """
-            ALTER TABLE account ADD COLUMN syncBlockList TEXT NOT NULL DEFAULT ''
-            """.trimIndent()
-        )
-    }
-}
-
-@Suppress("ClassName")
-object MIGRATION_3_4 : Migration(3, 4) {
-
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
-            """
-            ALTER TABLE account ADD COLUMN securityKey TEXT DEFAULT '${DESUtils.empty}'
-            """.trimIndent()
-        )
-    }
-}
-
-@Suppress("ClassName")
-object MIGRATION_4_5 : Migration(4, 5) {
-
-    override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
-            """
-            ALTER TABLE account ADD COLUMN lastArticleId TEXT DEFAULT NULL
-            """.trimIndent()
-        )
     }
 }
