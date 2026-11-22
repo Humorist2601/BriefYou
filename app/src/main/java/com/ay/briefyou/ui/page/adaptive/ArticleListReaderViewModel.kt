@@ -1,5 +1,6 @@
 package com.ay.briefyou.ui.page.adaptive
 
+import com.ay.briefyou.infrastructure.preference.isOn
 import com.ay.briefyou.brief.reading.FeedContent // Brief You
 import android.net.Uri
 import androidx.compose.ui.util.fastFirstOrNull
@@ -525,8 +526,12 @@ constructor(
      * away with the old read articles.
      */
     private fun markOpened(item: ArticleWithFeed) {
+        // Settings → Interaction → Mark as read when opened: off, the article stays as it was.
+        val markOnOpen = settingsProvider.settings.isOn(com.ay.briefyou.infrastructure.preference.BriefSwitch.MarkAsReadWhenOpened)
         viewModelScope.launch {
-            if (com.ay.briefyou.brief.media.ArticleMedia.keepsUnread(item.article.id, item.article.img)) {
+            val keepsUnread = !markOnOpen || com.ay.briefyou.brief.media.ArticleMedia.keepsUnread(item.article.id, item.article.img)
+            if (keepsUnread) {
+                kotlinx.coroutines.yield() // after the page has taken the article (it starts as read)
                 _readingUiState.update {
                     if (it.articleWithFeed?.article?.id == item.article.id) it.copy(isUnread = diffMapHolder.checkIfUnread(item)) else it
                 }

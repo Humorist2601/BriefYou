@@ -536,7 +536,7 @@ Work from this list; tick items off here as they are done.
     and "Pull to switch article" (Reading page) stay only on Interaction; merge the Images and Videos
     pages into **Images and videos**; remove the *Content renderer* setting (WebView only; delete the
     native renderer code in the cleanup); move "AI button long press" to the AI settings page; add
-    **Reading background** (app colours / paper / black) and **Keep screen on while reading**.
+    **Keep screen on while reading** (a Reading background setting was dropped by the owner).
     *Interaction:* nothing removed (all 13 settings verified wired); swipe actions get **Share** and **Open in
     browser**; add **Mark as read when opened** (default on, `markOpened`) and a master **Haptic feedback**
     switch (63 call sites in 30 files); **Hide empty groups** moves to the Lists page.
@@ -555,9 +555,15 @@ Work from this list; tick items off here as they are done.
     "ReadYou Releases" feed** for a new account (`AccountService.getInitialFeed`). Cleanup list: the
     commented-out Feedly/Inoreader account entries (strings, icons, `AccountType` 5 and 6 branches),
     the commented-out Block list item, the native renderer.
+    **Built (one Nightly, three commits):** the new on/off settings are `BriefSwitch` (`infrastructure/preference/BriefSwitches.kt`: booleans/ints in the settings store,
+    registered from `entries` in `DataStoreExt.kt`, read as `settings.isOn(...)` or `BriefSwitch.X.isOn()`;
+    Haptic feedback is one wrapper of `LocalHapticFeedback` plus `View.isHapticFeedbackEnabled` in
+    `SettingsProvider.ProvidesSettings`; Collect stats gates `ReadingStats`; Prepare the AI model gates
+    `GemmaSummarizer.onAppForeground`; Mark as read when opened gates `markOpened`). Notifications page:
+    `brief/notifications/NotificationsPage.kt`. Lists page: `ui/page/settings/color/lists/`.
     *Order to build (own Nightlies):* 1) the Read You leftovers above (updates, about page, links, default
     feed), 2) removals and merges (Lists page, previews, duplicates, Images and videos, renderer,
-    JSON export), 3) the new settings (Reading background, Keep screen on, swipe Share/Open in
+    JSON export), 3) the new settings (Keep screen on, swipe Share/Open in
     browser, Mark as read when opened, Haptic feedback, Notifications page, Collect reading stats,
     Prepare AI model at start).
 

@@ -2,6 +2,7 @@
 
 package com.ay.briefyou.brief.stats
 
+import com.ay.briefyou.infrastructure.preference.isOn
 import com.ay.briefyou.brief.ui.rememberPressFeel
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
@@ -336,6 +337,36 @@ fun ReadingStatsPage(onBack: () -> Unit) {
                     }
                     Spacer(Modifier.height(28.dp))
                     PastMonths(data)
+                    // Counting on or off (what is kept stays; Reset below clears it).
+                    val collecting = com.ay.briefyou.infrastructure.preference.BriefSwitch.CollectStats.isOn()
+                    val collectScope = androidx.compose.runtime.rememberCoroutineScope()
+                    Row(
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .clickable {
+                                    com.ay.briefyou.infrastructure.preference.BriefSwitch.CollectStats.put(context, collectScope, !collecting)
+                                }
+                                .padding(horizontal = 24.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f).padding(end = 16.dp)) {
+                            Text(
+                                text = stringResource(R.string.collect_stats),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Text(
+                                text = stringResource(R.string.collect_stats_desc),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = collecting,
+                            onCheckedChange = {
+                                com.ay.briefyou.infrastructure.preference.BriefSwitch.CollectStats.put(context, collectScope, it)
+                            },
+                        )
+                    }
                     // Last month's recap on home too (the first week of a month).
                     Row(
                         modifier =

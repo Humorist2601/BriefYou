@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import com.ay.briefyou.R
 import com.ay.briefyou.infrastructure.preference.InitialFilterPreference
 import com.ay.briefyou.infrastructure.preference.InitialPagePreference
+import com.ay.briefyou.infrastructure.preference.BriefSwitch
+import com.ay.briefyou.infrastructure.preference.isOn
 import com.ay.briefyou.infrastructure.preference.LocalArticleListSwipeEndAction
 import com.ay.briefyou.infrastructure.preference.LocalArticleListSwipeStartAction
 import com.ay.briefyou.infrastructure.preference.LocalInitialFilter
@@ -54,6 +56,7 @@ import com.ay.briefyou.ui.theme.palette.onLight
 @Composable
 fun InteractionPage(
     onBack: () -> Unit,
+    navigateToNotifications: () -> Unit = {}, // Brief You
 ) {
     val context = LocalContext.current
     val initialPage = LocalInitialPage.current
@@ -68,6 +71,8 @@ fun InteractionPage(
     val sharedContent = LocalSharedContent.current
     val settings = LocalSettings.current
     val pullToSwitchFeed = settings.pullToSwitchFeed
+    val markWhenOpened = BriefSwitch.MarkAsReadWhenOpened.isOn()
+    val hapticsOn = BriefSwitch.Haptics.isOn()
 
     val scope = rememberCoroutineScope()
     val isOpenLinkSpecificBrowserItemEnabled = remember(openLink) {
@@ -185,6 +190,15 @@ fun InteractionPage(
                             pullToSwitchArticle.toggle(context, scope)
                         }
                     }
+                    SettingItem(
+                        title = stringResource(R.string.mark_as_read_when_opened),
+                        desc = stringResource(R.string.mark_as_read_when_opened_desc),
+                        onClick = { BriefSwitch.MarkAsReadWhenOpened.put(context, scope, !markWhenOpened) },
+                    ) {
+                        RYSwitch(activated = markWhenOpened) {
+                            BriefSwitch.MarkAsReadWhenOpened.put(context, scope, !markWhenOpened)
+                        }
+                    }
                     } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
                     com.ay.briefyou.brief.player.PlayerSettings() // Brief You: Audio and video (podcasts, read aloud)
@@ -228,6 +242,36 @@ fun InteractionPage(
                         },
                     ) {}
                     } // Brief You
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Subtitle(
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        text = stringResource(R.string.notifications),
+                    )
+                    com.ay.briefyou.brief.ui.SettingGroup {
+                    SettingItem(
+                        title = stringResource(R.string.notifications),
+                        desc = stringResource(R.string.notifications_desc),
+                        onClick = navigateToNotifications,
+                    ) {}
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Subtitle(
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        text = stringResource(R.string.general),
+                    )
+                    com.ay.briefyou.brief.ui.SettingGroup {
+                    SettingItem(
+                        title = stringResource(R.string.haptic_feedback),
+                        desc = stringResource(R.string.haptic_feedback_desc),
+                        onClick = { BriefSwitch.Haptics.put(context, scope, !hapticsOn) },
+                    ) {
+                        RYSwitch(activated = hapticsOn) {
+                            BriefSwitch.Haptics.put(context, scope, !hapticsOn)
+                        }
+                    }
+                    }
                     Spacer(modifier = Modifier.height(24.dp))
                     com.ay.briefyou.brief.triage.TriageSettings() // Brief You: Triage's auto-advance
                 }

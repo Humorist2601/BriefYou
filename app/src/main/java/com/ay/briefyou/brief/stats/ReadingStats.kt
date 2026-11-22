@@ -64,6 +64,9 @@ object ReadingStats {
 
     private var loaded = false
 
+    /** Off in Settings → Reading stats: nothing new is counted (what is kept stays). */
+    @Volatile var collecting = true
+
     /** Articles already counted today, so rebuilding the screen doesn't count one twice. */
     private val countedToday = mutableSetOf<String>()
     private var countedDay = ""
@@ -83,6 +86,7 @@ object ReadingStats {
     /** An article was opened in the reader. Each article counts once a day. */
     @Synchronized
     fun articleOpened(context: Context, articleId: String, feedName: String) {
+        if (!collecting) return
         val today = today()
         if (countedDay != today) {
             countedDay = today
@@ -106,7 +110,7 @@ object ReadingStats {
     /** [seconds] more spent reading today. */
     @Synchronized
     fun addReadingTime(context: Context, seconds: Long) {
-        if (seconds <= 0) return
+        if (seconds <= 0 || !collecting) return
         val today = today()
         update(context) { d ->
             val day = d.days[today] ?: StatsDay()
@@ -116,6 +120,7 @@ object ReadingStats {
 
     @Synchronized
     fun inboxZero(context: Context) {
+        if (!collecting) return
         val today = today()
         update(context) { d ->
             val day = d.days[today] ?: StatsDay()
@@ -129,6 +134,7 @@ object ReadingStats {
     /** A Triage card dealt with ([delta] 1), or brought back with Undo ([delta] -1). */
     @Synchronized
     fun triaged(context: Context, delta: Int) {
+        if (!collecting) return
         val today = today()
         update(context) { d ->
             val day = d.days[today] ?: StatsDay()
@@ -142,7 +148,7 @@ object ReadingStats {
     /** The filters hid [delta] articles today, or one came back with Undo ([delta] -1). */
     @Synchronized
     fun filtered(context: Context, delta: Int) {
-        if (delta == 0) return
+        if (delta == 0 || !collecting) return
         val today = today()
         update(context) { d ->
             val day = d.days[today] ?: StatsDay()

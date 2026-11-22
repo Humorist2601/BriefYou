@@ -80,5 +80,8 @@ fun Preferences.toSettings(): Settings {
 
         // Languages
         languages = LanguagesPreference.fromPreferences(this),
+
+        // Brief You's on/off settings
+        switches = BriefSwitch.fromPreferences(this),
     )
 }

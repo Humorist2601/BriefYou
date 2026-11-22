@@ -57,6 +57,8 @@ sealed interface Route : NavKey {
 
     @Serializable data object Filters : Route
 
+    @Serializable data object Notifications : Route // Brief You
+
     @Serializable data object ReadingStats : Route // Brief You
 
     // Troubleshooting

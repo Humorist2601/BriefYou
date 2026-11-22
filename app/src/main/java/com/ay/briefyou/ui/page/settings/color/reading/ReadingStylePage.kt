@@ -1,5 +1,6 @@
 package com.ay.briefyou.ui.page.settings.color.reading
 
+import com.ay.briefyou.infrastructure.preference.isOn
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -75,6 +76,7 @@ fun ReadingStylePage(
     val fonts = LocalReadingFonts.current
     val autoHideToolbar = LocalReadingAutoHideToolbar.current
     val boldCharacters = LocalReadingBoldCharacters.current
+    val keepScreenOn = com.ay.briefyou.infrastructure.preference.BriefSwitch.KeepScreenOn.isOn()
 
     var fontsDialogVisible by remember { mutableStateOf(false) }
 
@@ -173,6 +175,16 @@ fun ReadingStylePage(
                     ) {
                         RYSwitch(activated = autoHideToolbar.value) {
                             (!autoHideToolbar).put(context, scope)
+                        }
+                    }
+                    SettingItem(
+                        title = stringResource(R.string.keep_screen_on),
+                        onClick = {
+                            com.ay.briefyou.infrastructure.preference.BriefSwitch.KeepScreenOn.put(context, scope, !keepScreenOn)
+                        },
+                    ) {
+                        RYSwitch(activated = keepScreenOn) {
+                            com.ay.briefyou.infrastructure.preference.BriefSwitch.KeepScreenOn.put(context, scope, !keepScreenOn)
                         }
                     }
                     com.ay.briefyou.brief.reading.NewsletterSettingItem() // Brief You

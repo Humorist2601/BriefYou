@@ -18,6 +18,8 @@ data object SwipeGestureActions {
     const val None = 0
     const val ToggleRead = 1
     const val ToggleStarred = 2
+    const val Share = 3
+    const val OpenInBrowser = 4
 }
 
 val LocalArticleListSwipeEndAction = compositionLocalOf { SwipeEndActionPreference.default }
@@ -35,12 +37,16 @@ sealed class SwipeEndActionPreference(val action: Int) : Preference() {
     data object ToggleRead : SwipeEndActionPreference(SwipeGestureActions.ToggleRead)
     data object ToggleStarred :
         SwipeEndActionPreference(SwipeGestureActions.ToggleStarred)
+    data object Share : SwipeEndActionPreference(SwipeGestureActions.Share)
+    data object OpenInBrowser : SwipeEndActionPreference(SwipeGestureActions.OpenInBrowser)
 
     val desc: String
         @Composable get() = when (this) {
             None -> stringResource(id = R.string.none)
             ToggleRead -> stringResource(id = R.string.toggle_read)
             ToggleStarred -> stringResource(id = R.string.toggle_starred)
+            Share -> stringResource(id = R.string.share)
+            OpenInBrowser -> stringResource(id = R.string.open_in_browser)
         }
 
     companion object {
@@ -48,7 +54,9 @@ sealed class SwipeEndActionPreference(val action: Int) : Preference() {
         val values = listOf(
             None,
             ToggleRead,
-            ToggleStarred
+            ToggleStarred,
+            Share,
+            OpenInBrowser,
         )
 
         fun fromPreferences(preferences: Preferences): SwipeEndActionPreference {
@@ -56,6 +64,8 @@ sealed class SwipeEndActionPreference(val action: Int) : Preference() {
                 SwipeGestureActions.None -> None
                 SwipeGestureActions.ToggleRead -> ToggleRead
                 SwipeGestureActions.ToggleStarred -> ToggleStarred
+                SwipeGestureActions.Share -> Share
+                SwipeGestureActions.OpenInBrowser -> OpenInBrowser
                 else -> default
             }
         }
@@ -75,12 +85,16 @@ sealed class SwipeStartActionPreference(val action: Int) : Preference() {
     data object ToggleRead : SwipeStartActionPreference(SwipeGestureActions.ToggleRead)
     data object ToggleStarred :
         SwipeStartActionPreference(SwipeGestureActions.ToggleStarred)
+    data object Share : SwipeStartActionPreference(SwipeGestureActions.Share)
+    data object OpenInBrowser : SwipeStartActionPreference(SwipeGestureActions.OpenInBrowser)
 
     val desc: String
         @Composable get() = when (this) {
             None -> stringResource(id = R.string.none)
             ToggleRead -> stringResource(id = R.string.toggle_read)
             ToggleStarred -> stringResource(id = R.string.toggle_starred)
+            Share -> stringResource(id = R.string.share)
+            OpenInBrowser -> stringResource(id = R.string.open_in_browser)
         }
 
     companion object {
@@ -88,7 +102,9 @@ sealed class SwipeStartActionPreference(val action: Int) : Preference() {
         val values = listOf(
             None,
             ToggleRead,
-            ToggleStarred
+            ToggleStarred,
+            Share,
+            OpenInBrowser,
         )
 
         fun fromPreferences(preferences: Preferences): SwipeStartActionPreference {
@@ -96,6 +112,8 @@ sealed class SwipeStartActionPreference(val action: Int) : Preference() {
                 SwipeGestureActions.None -> None
                 SwipeGestureActions.ToggleRead -> ToggleRead
                 SwipeGestureActions.ToggleStarred -> ToggleStarred
+                SwipeGestureActions.Share -> Share
+                SwipeGestureActions.OpenInBrowser -> OpenInBrowser
                 else -> default
             }
         }

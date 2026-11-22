@@ -277,9 +277,10 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     Route.ReadingPageTitle -> NavEntry(key) { ReadingTitlePage(onBack = onBack) }
                     Route.ReadingPageText -> NavEntry(key) { ReadingTextPage(onBack = onBack) }
                     Route.ReadingPageMedia -> NavEntry(key) { ReadingMediaPage(onBack = onBack) }
-                    Route.Interaction -> NavEntry(key) { InteractionPage(onBack = onBack) }
+                    Route.Interaction -> NavEntry(key) { InteractionPage(onBack = onBack, navigateToNotifications = { backStack.add(Route.Notifications) }) } // Brief You: Notifications sits under Usage
                     Route.AiModel -> NavEntry(key) { AiSettingsPage(onBack = onBack) } // Brief You
                     Route.Filters -> NavEntry(key) { FiltersPage(onBack = onBack) } // Brief You
+                    Route.Notifications -> NavEntry(key) { com.ay.briefyou.brief.notifications.NotificationsPage(onBack = onBack) } // Brief You
                     Route.ReadingStats -> NavEntry(key) { com.ay.briefyou.brief.stats.ReadingStatsPage(onBack = onBack) } // Brief You
                     Route.Troubleshooting -> NavEntry(key) { TroubleshootingPage(onBack = onBack) }
                     Route.TipsAndSupport ->

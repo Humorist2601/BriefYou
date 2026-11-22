@@ -61,6 +61,26 @@ class SettingsProvider @Inject constructor(
     @Composable
     fun ProvidesSettings(content: @Composable () -> Unit) {
         val settings = settingsFlow.collectAsStateValue()
+        // Brief You: the master Haptic feedback switch. Everything that vibrates through Compose
+        // asks this one; with the switch off it does nothing.
+        val systemHaptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+        val hapticsOn = settings.isOn(BriefSwitch.Haptics)
+        // The buttons and lists that ask the window's view directly are silenced there.
+        val rootView = androidx.compose.ui.platform.LocalView.current
+        androidx.compose.runtime.SideEffect {
+            rootView.isHapticFeedbackEnabled = hapticsOn
+            com.ay.briefyou.brief.stats.ReadingStats.collecting = settings.isOn(BriefSwitch.CollectStats)
+        }
+        val haptics =
+            androidx.compose.runtime.remember(systemHaptics, hapticsOn) {
+                object : androidx.compose.ui.hapticfeedback.HapticFeedback {
+                    override fun performHapticFeedback(
+                        hapticFeedbackType: androidx.compose.ui.hapticfeedback.HapticFeedbackType
+                    ) {
+                        if (hapticsOn) systemHaptics.performHapticFeedback(hapticFeedbackType)
+                    }
+                }
+            }
         CompositionLocalProvider(
             LocalSettings provides settings,
 
@@ -131,6 +151,10 @@ class SettingsProvider @Inject constructor(
 
             // Languages
             LocalLanguages provides settings.languages,
+
+            // Brief You
+            LocalBriefSwitches provides settings.switches,
+            androidx.compose.ui.platform.LocalHapticFeedback provides haptics,
         ) {
             content()
         }

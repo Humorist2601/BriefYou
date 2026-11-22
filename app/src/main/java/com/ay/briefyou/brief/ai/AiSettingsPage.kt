@@ -2,6 +2,7 @@
 
 package com.ay.briefyou.brief.ai
 
+import com.ay.briefyou.infrastructure.preference.isOn
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.BorderStroke
 import com.ay.briefyou.brief.ui.GoogleSansWideFontFamily
@@ -95,6 +96,8 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
     var editing by rememberSaveable { mutableStateOf<PromptKind?>(null) }
     var downloadAsk by rememberSaveable { mutableStateOf(false) }
     var aiButtonDialogVisible by rememberSaveable { mutableStateOf(false) }
+    val prepareModel = com.ay.briefyou.infrastructure.preference.BriefSwitch.PrepareAiModel.isOn()
+    val preparerScope = androidx.compose.runtime.rememberCoroutineScope()
     var aiLongPress by remember { mutableStateOf(com.ay.briefyou.brief.ui.AiLongPress.get(context)) }
     com.ay.briefyou.ui.component.base.RadioDialog(
         visible = aiButtonDialogVisible,
@@ -193,6 +196,25 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                             shape = com.ay.briefyou.brief.ui.groupShape(2, 3),
                             onClick = { editing = PromptKind.Card },
                         )
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+                item {
+                    Subtitle(
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        text = stringResource(R.string.ai_settings_model_start),
+                    )
+                    com.ay.briefyou.brief.ui.SettingGroup {
+                        com.ay.briefyou.ui.page.settings.SettingItem(
+                            title = stringResource(R.string.prepare_ai_model),
+                            desc = stringResource(R.string.prepare_ai_model_desc),
+                            descMaxLines = 3,
+                            onClick = { com.ay.briefyou.infrastructure.preference.BriefSwitch.PrepareAiModel.put(context, preparerScope, !prepareModel) },
+                        ) {
+                            com.ay.briefyou.ui.component.base.RYSwitch(activated = prepareModel) {
+                                com.ay.briefyou.infrastructure.preference.BriefSwitch.PrepareAiModel.put(context, preparerScope, !prepareModel)
+                            }
+                        }
                     }
                     Spacer(modifier = Modifier.height(20.dp))
                 }

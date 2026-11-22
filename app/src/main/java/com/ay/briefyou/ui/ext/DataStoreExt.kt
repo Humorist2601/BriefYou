@@ -257,6 +257,8 @@ sealed interface PreferencesKey {
                 IntKey(sharedContent),
                 // Languages
                 IntKey(languages),
+                // Brief You's on/off settings
+                *com.ay.briefyou.infrastructure.preference.BriefSwitch.entries.map { BooleanKey(it.key) }.toTypedArray(),
             )
 
         val keys = keyList.associateBy { it.name }
@@ -466,6 +468,10 @@ data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
                 sharedContent to DataStoreKey(intPreferencesKey(sharedContent), Int::class.java),
                 // Languages
                 languages to DataStoreKey(intPreferencesKey(languages), Int::class.java),
+                // Brief You's on/off settings
+                *com.ay.briefyou.infrastructure.preference.BriefSwitch.entries
+                    .map { it.key to DataStoreKey(booleanPreferencesKey(it.key), Boolean::class.java) }
+                    .toTypedArray(),
             )
     }
 }

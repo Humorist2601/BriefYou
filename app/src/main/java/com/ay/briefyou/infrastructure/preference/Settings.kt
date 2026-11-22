@@ -73,5 +73,8 @@ data class Settings(
 
     // Languages
     val languages: LanguagesPreference = LanguagesPreference.default,
+
+    // Brief You's on/off settings (see BriefSwitch)
+    val switches: Map<BriefSwitch, Boolean> = BriefSwitch.defaults,
 )
 

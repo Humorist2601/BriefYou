@@ -1,5 +1,6 @@
 package com.ay.briefyou.brief.reading
 
+import com.ay.briefyou.infrastructure.preference.isOn
 import kotlinx.coroutines.flow.first
 import com.ay.briefyou.brief.stats.ReadingStats
 import androidx.compose.foundation.ScrollState
@@ -233,6 +234,13 @@ fun BriefTrackReadingProgress(
     scrollState: ScrollState,
     listState: LazyListState,
 ) {
+    // Settings → Reading page → Keep screen on while reading.
+    val keepScreenOn = com.ay.briefyou.infrastructure.preference.BriefSwitch.KeepScreenOn.isOn()
+    val view = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.DisposableEffect(keepScreenOn, view) {
+        if (keepScreenOn) view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
     LaunchedEffect(scrollState, listState) {
         snapshotFlow {
                 val max = scrollState.maxValue

@@ -34,6 +34,9 @@ import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.FiberManualRecord
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import com.ay.briefyou.ui.ext.openURL
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -383,6 +386,7 @@ fun SwipeableArticleItem(
         isStarred = articleWithFeed.article.isStarred,
         onToggleStarred = onToggleStarred,
         onToggleRead = onToggleRead,
+        onShare = onShare,
     ) {
         Box(
             modifier =
@@ -448,8 +452,16 @@ private fun SwipeActionBox(
     isRead: Boolean,
     onToggleStarred: (ArticleWithFeed) -> Unit,
     onToggleRead: (ArticleWithFeed) -> Unit,
+    onShare: ((ArticleWithFeed) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
+    // Brief You: the swipe's Open in browser, the way links open everywhere else.
+    val swipeContext = androidx.compose.ui.platform.LocalContext.current
+    val swipeOpenLink = com.ay.briefyou.infrastructure.preference.LocalOpenLink.current
+    val swipeOpenBrowser = com.ay.briefyou.infrastructure.preference.LocalOpenLinkSpecificBrowser.current
+    val onOpenInBrowser: (ArticleWithFeed) -> Unit = {
+        swipeContext.openURL(it.article.link, swipeOpenLink, swipeOpenBrowser)
+    }
     val containerColor = MaterialTheme.colorScheme.tertiaryContainer
     // Brief You: the icon sits on the page color until the swipe passes the threshold, then on the accent
     // container: it uses the accent there, and the container's own "on" color (which Material You
@@ -466,6 +478,8 @@ private fun SwipeActionBox(
             SwipeStartActionPreference.None -> null
             SwipeStartActionPreference.ToggleRead -> onToggleRead
             SwipeStartActionPreference.ToggleStarred -> onToggleStarred
+            SwipeStartActionPreference.Share -> onShare
+            SwipeStartActionPreference.OpenInBrowser -> onOpenInBrowser
         }
 
     val onSwipeStartToEnd =
@@ -473,6 +487,8 @@ private fun SwipeActionBox(
             SwipeEndActionPreference.None -> null
             SwipeEndActionPreference.ToggleRead -> onToggleRead
             SwipeEndActionPreference.ToggleStarred -> onToggleStarred
+            SwipeEndActionPreference.Share -> onShare
+            SwipeEndActionPreference.OpenInBrowser -> onOpenInBrowser
         }
 
     if (onSwipeStartToEnd == null && onSwipeEndToStart == null) {
@@ -562,6 +578,8 @@ private fun swipeActionIcon(
                     SwipeEndActionPreference.None -> null
                     SwipeEndActionPreference.ToggleRead -> readImageVector
                     SwipeEndActionPreference.ToggleStarred -> starImageVector
+                    SwipeEndActionPreference.Share -> Icons.Outlined.Share
+                    SwipeEndActionPreference.OpenInBrowser -> Icons.AutoMirrored.Outlined.OpenInNew
                 }
             }
 
@@ -570,6 +588,8 @@ private fun swipeActionIcon(
                     SwipeStartActionPreference.None -> null
                     SwipeStartActionPreference.ToggleRead -> readImageVector
                     SwipeStartActionPreference.ToggleStarred -> starImageVector
+                    SwipeStartActionPreference.Share -> Icons.Outlined.Share
+                    SwipeStartActionPreference.OpenInBrowser -> Icons.AutoMirrored.Outlined.OpenInNew
                 }
             }
         }
@@ -589,6 +609,8 @@ private fun swipeActionText(
         stringResource(if (isStarred) R.string.mark_as_unstar else R.string.mark_as_starred)
 
     val readText = stringResource(if (isRead) R.string.mark_as_unread else R.string.mark_as_read)
+    val shareText = stringResource(R.string.share)
+    val browserText = stringResource(R.string.open_in_browser)
 
     return remember(direction) {
         when (direction) {
@@ -597,6 +619,8 @@ private fun swipeActionText(
                     SwipeEndActionPreference.None -> "null"
                     SwipeEndActionPreference.ToggleRead -> readText
                     SwipeEndActionPreference.ToggleStarred -> starText
+                    SwipeEndActionPreference.Share -> shareText
+                    SwipeEndActionPreference.OpenInBrowser -> browserText
                 }
             }
 
@@ -605,6 +629,8 @@ private fun swipeActionText(
                     SwipeStartActionPreference.None -> "null"
                     SwipeStartActionPreference.ToggleRead -> readText
                     SwipeStartActionPreference.ToggleStarred -> starText
+                    SwipeStartActionPreference.Share -> shareText
+                    SwipeStartActionPreference.OpenInBrowser -> browserText
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.ay.briefyou.brief.ai
 
+import com.ay.briefyou.infrastructure.preference.isOn
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
@@ -83,6 +84,7 @@ class GemmaSummarizer
 constructor(
     @param:ApplicationContext private val context: Context,
     @param:ApplicationScope private val appScope: CoroutineScope,
+    private val settingsProvider: com.ay.briefyou.infrastructure.preference.SettingsProvider,
 ) {
     private val modelFile = File(context.filesDir, "models/summary-model.litertlm")
     private val prefs = context.getSharedPreferences("ai_settings", Context.MODE_PRIVATE)
@@ -477,7 +479,7 @@ constructor(
      * start-up animations), so every AI feature answers without waiting for it — Google's own
      * advice for LiteRT-LM, whose loading can take up to 10 seconds. Only when the phone can
      * afford it: not in battery saver, with battery to spare (or charging) and enough free
-     * memory; otherwise it loads on first use. It stays loaded while the app is open.
+     * memory, and only when Prepare the model at start is on; otherwise it loads on first use. It stays loaded while the app is open.
      */
     fun onAppForeground() {
         inForeground = true
@@ -486,6 +488,8 @@ constructor(
         warmJob =
             appScope.launch(Dispatchers.Default) {
                 delay(WARM_UP_DELAY_MS)
+                // Settings → AI settings → Prepare the model at start: off, it loads on first use.
+                if (!settingsProvider.settings.isOn(com.ay.briefyou.infrastructure.preference.BriefSwitch.PrepareAiModel)) return@launch
                 if (engine != null || !hasModel() || !canAfford()) return@launch
                 try {
                     acquireEngine()
