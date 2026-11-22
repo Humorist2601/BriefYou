@@ -131,6 +131,7 @@
     <string name="preview_article_desc">The Fool is the eighth and final volume of the Lord of the Mysteries series
         written by Cuttlefish That Loves Diving.
     </string>
+    <string name="only_android_8_1_plus">Only on Android 8.1 and newer</string>
     <string name="preview_feed_name">Reddit</string>
     <string name="horizontal_padding">Horizontal padding</string>
     <string name="article_date">Article publication time</string>
