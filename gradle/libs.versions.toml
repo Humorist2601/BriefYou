@@ -1,6 +1,6 @@
 [versions]
 # Android Gradle Plugin
-androidGradlePlugin = "9.5.1" # Brief You: dependency step A (built-in Kotlin)
+androidGradlePlugin = "9.5.2" # Brief You: dependency step A (built-in Kotlin)
 
 # Kotlin
 kotlin = "2.4.21" # Brief You
