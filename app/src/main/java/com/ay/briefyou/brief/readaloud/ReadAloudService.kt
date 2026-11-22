@@ -4,13 +4,10 @@ import com.ay.briefyou.brief.readaloud.TextToSpeechManager // Brief You
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
-import android.os.IBinder
 import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -26,7 +23,8 @@ import androidx.media3.common.SimpleBasePlayer
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaStyleNotificationHelper
+import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import com.google.common.collect.ImmutableList
@@ -43,13 +41,14 @@ import com.ay.briefyou.R
 
 /**
  * Read aloud in the system's media notification and controls, like a music app: the title, a
- * progress bar with the time (follows the words being spoken; drag it to jump), play/pause and
- * Stop, also on the lock screen and in Quick Settings. It keeps reading going when you leave the
+ * progress bar with the time (follows the words being spoken; drag it to jump), play/pause, and
+ * Speed and Stop on the right, also on the lock screen and in Quick Settings. A media session
+ * service like the podcast player's, so Android shows both the same way. It keeps reading going when you leave the
  * article or the app, and goes away when reading stops or finishes.
  */
 @OptIn(UnstableApi::class)
 @AndroidEntryPoint
-class ReadAloudService : Service() {
+class ReadAloudService : MediaSessionService() {
 
     @Inject lateinit var tts: TextToSpeechManager
 
@@ -111,20 +110,33 @@ class ReadAloudService : Service() {
                 )
                 .setMediaButtonPreferences(buttons())
                 .build()
+        // The same media notification as the podcast player's (Media3 builds it from the session),
+        // so Android lays the buttons out the same way: play/pause, then Speed and Stop.
+        ensureChannel(this)
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider.Builder(this)
+                .setChannelId(CHANNEL_ID)
+                .setNotificationId(NOTIFICATION_ID)
+                .build()
+                .apply { setSmallIcon(R.drawable.ic_notification) }
+        )
+        addSession(session)
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession = session
+
+    /** Swiping the app away from recent apps doesn't stop reading (as before). */
+    override fun onTaskRemoved(rootIntent: Intent?) {}
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> tts.stop()
-            ACTION_PAUSE -> tts.pause()
-            ACTION_PLAY -> tts.resume()
             ACTION_SPEED -> tts.cycleSpeed()
         }
         ensureChannel(this)
         updateSession(tts.state, force = true)
-        startInForeground(build(tts.state))
+        // Only to start in time; Media3 replaces it with the media notification straight away.
+        startInForeground(placeholder())
         if (!started) {
             started = true
             scope.launch {
@@ -133,7 +145,7 @@ class ReadAloudService : Service() {
                         is TextToSpeechManager.State.Reading,
                         is TextToSpeechManager.State.Paused,
                         TextToSpeechManager.State.Preparing -> {
-                            if (updateSession(state, force = false)) post(state)
+                            updateSession(state, force = false)
                         }
                         else -> finish()
                     }
@@ -145,11 +157,11 @@ class ReadAloudService : Service() {
                     val state = tts.state
                     if (state is TextToSpeechManager.State.Reading || state is TextToSpeechManager.State.Paused) {
                         updateSession(state, force = true)
-                        post(state)
                     }
                 }
             }
         }
+        super.onStartCommand(intent, flags, startId)
         return START_NOT_STICKY
     }
 
@@ -334,13 +346,6 @@ class ReadAloudService : Service() {
         }
     }
 
-    private fun post(state: TextToSpeechManager.State) {
-        val manager = NotificationManagerCompat.from(this)
-        if (manager.areNotificationsEnabled()) {
-            runCatching { manager.notify(NOTIFICATION_ID, build(state)) }
-        }
-    }
-
     private fun startInForeground(notification: Notification) {
         runCatching {
             ServiceCompat.startForeground(
@@ -370,60 +375,18 @@ class ReadAloudService : Service() {
     /** "Read aloud" (the speed shows on its own button now, as a number). */
     private fun subtitle(): String = getString(R.string.read_aloud)
 
-    private fun action(name: String, code: Int): PendingIntent =
-        PendingIntent.getService(
-            this,
-            code,
-            Intent(this, ReadAloudService::class.java).setAction(name),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-
-    @OptIn(UnstableApi::class)
-    private fun build(state: TextToSpeechManager.State): Notification {
-        val paused = state is TextToSpeechManager.State.Paused
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+    /** The notification shown for a moment while the media notification takes over. */
+    private fun placeholder(): Notification =
+        NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(tts.title ?: getString(R.string.read_aloud))
-            .setContentText(subtitle())
-            .setLargeIcon(artwork)
-            // The whole notification in the accent colour (where Android colours notifications).
-            .setColor(accent)
-            .setColorized(true)
-            .setOngoing(!paused)
-            .setOnlyAlertOnce(true)
             .setSilent(true)
-            .setShowWhen(false)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            // Opens the article being read (see PlayerIntents).
-            .setContentIntent(com.ay.briefyou.brief.player.PlayerIntents.open(this, com.ay.briefyou.brief.player.PlayerIntents.articleOf(tts.sourceKey), readAloud = true))
-            .setDeleteIntent(action(ACTION_STOP, 1))
-            .addAction(
-                if (paused) R.drawable.ic_read_aloud_play else R.drawable.ic_read_aloud_pause,
-                getString(if (paused) R.string.read_aloud_play else R.string.read_aloud_pause),
-                action(if (paused) ACTION_PLAY else ACTION_PAUSE, 2),
-            )
-            .addAction(
-                R.drawable.ic_read_aloud_stop,
-                getString(R.string.ai_stop_reading),
-                action(ACTION_STOP, 3),
-            )
-            .addAction(
-                com.ay.briefyou.brief.player.SpeedIcons.of(tts.speed.value),
-                getString(R.string.read_aloud_speed, TextToSpeechManager.speedLabel(tts.speed.value)),
-                action(ACTION_SPEED, 4),
-            )
-            .setStyle(
-                MediaStyleNotificationHelper.MediaStyle(session).setShowActionsInCompactView(0, 1, 2)
-            )
             .build()
-    }
 
     companion object {
         private const val CHANNEL_ID = "read_aloud"
         private const val NOTIFICATION_ID = 4201
         private const val ACTION_STOP = "com.ay.briefyou.READ_ALOUD_STOP"
-        private const val ACTION_PAUSE = "com.ay.briefyou.READ_ALOUD_PAUSE"
-        private const val ACTION_PLAY = "com.ay.briefyou.READ_ALOUD_PLAY"
         private const val ACTION_SPEED = "com.ay.briefyou.READ_ALOUD_SPEED"
         private const val UPDATE_EVERY_MS = 1_000L
 
