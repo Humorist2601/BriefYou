@@ -1,57 +1,33 @@
 package com.ay.briefyou.infrastructure.android
 
 import android.content.Context
-import android.content.Intent
-import android.os.Looper
 import android.util.Log
-import com.ay.briefyou.infrastructure.exception.BusinessException
-import com.ay.briefyou.ui.ext.showToastLong
+import java.io.File
 import java.lang.Thread.UncaughtExceptionHandler
 
 /**
  * The uncaught exception handler for the application.
+ *
+ * Brief You: Read You's handler only started its report screen and then returned, so a crash on
+ * the main thread ended that thread but not the app: the window stayed, froze, and Android reported
+ * "not responding" five seconds later with nothing about the real error. This one keeps the trace
+ * in a file (last-crash.txt, in the app's files) and then hands the crash on to Android's own
+ * handler, so the app closes at once and the crash report carries the real exception.
  */
 class CrashHandler(private val context: Context) : UncaughtExceptionHandler {
+
+    private val previous: UncaughtExceptionHandler? = Thread.getDefaultUncaughtExceptionHandler()
 
     init {
         Thread.setDefaultUncaughtExceptionHandler(this)
     }
 
-    /**
-     * Catch all uncaught exception and log it.
-     */
-    override fun uncaughtException(p0: Thread, p1: Throwable) {
-        val causeMessage = getCauseMessage(p1)
-        Log.e("RLog", "uncaughtException: $causeMessage", p1)
-
-        when (p1) {
-            is BusinessException -> {
-                context.startActivity(Intent(context, CrashReportActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    putExtra(CrashReportActivity.ERROR_REPORT_KEY, p1.stackTraceToString())
-                })
-            }
-
-            else -> {
-                context.startActivity(Intent(context, CrashReportActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    putExtra(CrashReportActivity.ERROR_REPORT_KEY, p1.stackTraceToString())
-                })
-            }
+    override fun uncaughtException(thread: Thread, throwable: Throwable) {
+        Log.e("RLog", "uncaughtException on ${thread.name}", throwable)
+        runCatching {
+            File(context.filesDir, "last-crash.txt")
+                .writeText("${thread.name}\n${throwable.stackTraceToString()}")
         }
-    }
-
-    private fun getCauseMessage(e: Throwable?): String? {
-        val cause = getCauseRecursively(e)
-        return if (cause != null) cause.message.toString() else e?.javaClass?.name
-    }
-
-    private fun getCauseRecursively(e: Throwable?): Throwable? {
-        var cause: Throwable?
-        cause = e
-        while (cause?.cause != null && cause !is RuntimeException) {
-            cause = cause.cause
-        }
-        return cause
+        previous?.uncaughtException(thread, throwable)
     }
 }
