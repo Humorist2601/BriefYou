@@ -39,7 +39,7 @@ android {
         minSdk = 26
         targetSdk = 37 // Brief You: Android 17
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = "1.0" // CI adds the build number: 1.0.N
 
         buildConfigField(
             "String",

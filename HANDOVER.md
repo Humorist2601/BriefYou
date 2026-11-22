@@ -5,7 +5,7 @@ written for two readers at once: **you** (the owner), and **an AI assistant** (C
 other) that you hand this repository to. If you start a new chat, give it this repository and
 say: *"Read HANDOVER.md first, then …"*.
 
-Last updated: 22 November 2026, at the **1.0.0 reset** (last release before it: 0.16.2.39). The agreed list of pending work is
+Last updated: 22 November 2026, at the **1.0 reset** (last release before it: 0.16.2.39). The agreed list of pending work is
 in [§9](#9-pending-work-the-baseline).
 
 ---
@@ -192,7 +192,7 @@ GRAD axis fixed at 0, renders identically; Literata kept to Latin, basic Greek a
 update a font, run the script on the new originals. Where the time goes: R8 about 4.7 min, Kotlin
 and KSP about 2.4 min, Gradle's own setup about 1 min.
 
-**Version names:** `versionName` + build number: `1.0.0.9` = Brief You 1.0.0, build 9 (before the reset the numbers followed Read You's, e.g. `0.16.2.9`).
+**Version names:** `versionName` + build number: `1.0.9` = Brief You 1.0, build 9 (before the reset the numbers followed Read You's, e.g. `0.16.2.9`).
 Each build installs as an update (Obtainium works with the releases).
 
 **Signing:** repository secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`. Without them
@@ -510,7 +510,7 @@ Work from this list; tick items off here as they are done.
     WorkManager work once (flag `brief_migration/workers_after_rename`) and the usual schedulers
     set it up again. The Read You cleanup (19) is the next Nightly. Check after installing over the
     previous build: icon, widgets, sync, settings, articles, auto backup. Delete the stubs, the alias
-    and the keep rule at the 1.0.0 restart (22).
+    and the keep rule at the 1.0 restart (22).
     *Cleanup, first pass (on `deps-b`, not yet built):* removed `BestIconFinder`, `LanguagesPage` (its route
     and the `navigateToLanguages` parameter too), `LocalSecurityKey`, `FeedWithGroup`, `RemoteCallException`,
     `AnimatedText`, `CanBeDisabledIconButton`, `CurlyCornerShape`, `ViewPager`,
@@ -575,10 +575,10 @@ Work from this list; tick items off here as they are done.
 22. **DONE in code (22 November 2026, `RESET ALL CLAUDE` given; the notes below say what was reset; the new repo and its first build are the owner's follow-up): a full restart ("new beginning")**, once we no longer depend on Read You.
     **Only when the owner writes the exact words `RESET ALL CLAUDE` do you reset anything**; until
     then leave every number and workflow alone. Then, everything starts over: `versionName`
-    `1.0.0` and `versionCode` back to 1 (`app/build.gradle.kts`; the CI build number restarts too, so
+    `1.0` and `versionCode` back to 1 (`app/build.gradle.kts`; the CI build number restarts too, so
     old installs can't update in place: the owner makes a backup and restores it, which is accepted),
     the GitHub run/build counters and Nightly releases and tags (delete the old ones, first Nightly
-    `1.0.0.1`), the User-Agent, README and release-notes mentions of 0.16.x, the CI workflows reset
+    `1.0.1`), the User-Agent, README and release-notes mentions of 0.16.x, the CI workflows reset
     to a clean start. **The owner has decided the database version also restarts at 1** (backup and
     restore is how data moves). So at the reset: set `AndroidDatabase` `version = 1`, delete every
     `MIGRATION_*` (incl. `MIGRATION_9_10`) and `allMigrations`, `moveOldDatabase`, the old
@@ -637,3 +637,11 @@ name starts with `Brief-You-`. Comments no longer name Read You. **The new schem
 `app/schemas/…AndroidDatabase/10.json` comes from the CI artifact `brief-schemas-<sha>`: commit it.**
 Kept on purpose: the GPL licence and the README credit (plus the credit link in Tips & support and
 the "Based on Read You" line in About), the weekly Read You watch workflow (the owner wants it).
+
+
+**New repository (22 November 2026):** Brief You now lives in a brand-new repo, `Humorist2601/BriefYou` (not a fork, so
+it is no longer in Read You's fork network). It was pushed with the full history of `main` only (no old tags,
+releases or issues). Versions are `1.0.N` (`versionName = "1.0"` + the CI run number); the first build is `1.0.1`.
+After that build, commit the generated `app/schemas/…/1.json` files (artifact `brief-schemas-<sha>`).
+The signing key is new (secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`), so 0.16.x installs can't be
+updated in place: back up, install 1.0, restore.

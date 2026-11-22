@@ -13,7 +13,7 @@ class Version(numbers: List<String>) {
     private var major: Int = 0
     private var minor: Int = 0
     private var point: Int = 0
-    // Brief You: the CI build number (1.0.0.17), so each build is newer than the last one.
+    // Brief You: the CI build number (1.0.17), so each build is newer than the last one.
     private var build: Int = 0
 
     init {
@@ -24,8 +24,8 @@ class Version(numbers: List<String>) {
     }
 
     constructor() : this(listOf())
-    // Brief You: the numbers are found inside the text, so "1.0.0.164-nightly" and
-    // "Brief You Nightly 1.0.0.164" both read as 1.0.0.164 (they used to read as 1.0.0).
+    // Brief You: the numbers are found inside the text, so "1.0.164-nightly" and
+    // "Brief You Nightly 1.0.164" both read as 1.0.164 (they used to read as 1.0).
     constructor(string: String?) : this(
         string?.let { Regex("""(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?""").find(it)?.groupValues?.drop(1)?.filter { g -> g.isNotEmpty() } }
             ?: string?.split(".") ?: listOf()

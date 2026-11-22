@@ -290,7 +290,7 @@ TABLES = {
     "backup": [
         ('Full backup and restore', 'Feeds, starred articles, filters and settings in one file.'),
         ('Own updates', 'The app checks Brief You’s releases, never anyone else’s.'),
-        ('Signed releases', 'Every push to main is built and published as Brief You 1.0.0.N.'),
+        ('Signed releases', 'Every push to main is built and published as Brief You 1.0.N.'),
         ('Brief You Nightly', 'Test builds as their own app, next to Brief You.'),
     ],
 }
