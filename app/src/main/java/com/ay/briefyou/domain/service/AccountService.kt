@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Looper
 import androidx.datastore.preferences.core.intPreferencesKey
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +16,6 @@ import kotlinx.coroutines.runBlocking
 import com.ay.briefyou.R
 import com.ay.briefyou.domain.model.account.Account
 import com.ay.briefyou.domain.model.account.AccountType
-import com.ay.briefyou.domain.model.feed.Feed
 import com.ay.briefyou.domain.model.group.Group
 import com.ay.briefyou.domain.repository.AccountDao
 import com.ay.briefyou.domain.repository.ArticleDao
@@ -30,7 +28,6 @@ import com.ay.briefyou.ui.ext.dataStore
 import com.ay.briefyou.ui.ext.getDefaultGroupId
 import com.ay.briefyou.ui.ext.put
 import com.ay.briefyou.ui.ext.showToast
-import com.ay.briefyou.ui.ext.spacerDollar
 
 class AccountService
 @Inject
@@ -94,26 +91,14 @@ constructor(
     }
 
     private fun getDefaultAccount(): Account =
-        Account(type = AccountType.Local, name = context.getString(R.string.read_you))
+        Account(type = AccountType.Local, name = context.getString(R.string.app_display_name))
 
     private suspend fun addDefaultAccount(): Account = addAccount(getDefaultAccount())
 
+    // Brief You: a new account starts empty (Read You added its own "ReadYou Releases" feed).
     suspend fun initWithDefaultAccount() {
-        val account = addDefaultAccount()
-        val group = getDefaultGroup()
-        val initialFeed = getInitialFeed(account, group)
-        feedDao.insert(initialFeed)
+        addDefaultAccount()
     }
-
-    private fun getInitialFeed(account: Account, group: Group): Feed =
-        Feed(
-            id = account.id!!.spacerDollar(UUID.randomUUID().toString()),
-            name = "ReadYou Releases",
-            icon = "https://github.com/ReadYouApp.png",
-            url = "https://github.com/ReadYouApp/ReadYou/releases.atom",
-            groupId = group.id,
-            accountId = account.id,
-        )
 
     fun getDefaultGroup(): Group =
         getCurrentAccountId().let {

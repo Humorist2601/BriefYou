@@ -562,4 +562,6 @@
     <string name="translate_show_original">Show original</string>
     <string name="translate_show_translation">Show translation</string>
     <string name="translate_needs_model">Set up the AI model first (Settings → AI model).</string>
+    <string name="app_display_name" translatable="false">Brief You</string>
+    <string name="about_based_on">Based on Read You, open source under the GPL-3.0 licence</string>
 </resources>

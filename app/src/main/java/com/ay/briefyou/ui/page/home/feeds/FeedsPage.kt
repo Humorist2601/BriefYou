@@ -130,6 +130,7 @@ fun FeedsPage(
     val filterState = feedsViewModel.filterStateFlow.collectAsStateValue()
     val importantSum = feedsUiState.importantSum
     val groupWithFeedList = feedsViewModel.groupWithFeedsListFlow.collectAsStateValue()
+    val hasFeeds = feedsViewModel.hasFeeds.collectAsStateValue() // Brief You: an account without feeds shows how to add one
     val groupsVisible: SnapshotStateMap<String, Boolean> = feedsUiState.groupsVisible
     val hasGroupVisible by
         remember(groupWithFeedList) {
@@ -316,6 +317,20 @@ fun FeedsPage(
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    // Brief You: a new account starts without feeds; this points to adding the first.
+                    if (hasFeeds == false && subscribeViewModel.rssService.get().addSubscription) {
+                        item {
+                            com.ay.briefyou.ui.component.base.Banner(
+                                modifier = Modifier.padding(bottom = 12.dp),
+                                title = stringResource(R.string.add_feed_title),
+                                desc = stringResource(R.string.add_feed_hint),
+                                icon = Icons.Rounded.Add,
+                            ) {
+                                subscribeViewModel.showDrawer()
+                            }
+                        }
                     }
 
                     itemsIndexed(groupWithFeedList) { index, (group, feeds) -> // Brief You: index, for the joined list

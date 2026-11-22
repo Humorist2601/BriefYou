@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -24,9 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Balance
-import androidx.compose.material.icons.rounded.TipsAndUpdates
 import androidx.compose.material.icons.rounded.TouchApp // Brief You
-import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -102,7 +102,6 @@ fun TipsAndSupportPage(
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     var currentVersion by remember { mutableStateOf("") }
-    var showSponsorDialog by remember { mutableStateOf(false) }
     var showTour by remember { mutableStateOf(false) } // Brief You
 
     val morphProgress = remember { Animatable(0f) }
@@ -219,7 +218,7 @@ fun TipsAndSupportPage(
                             Image(
                                 modifier = Modifier.size(90.dp),
                                 painter = painterResource(R.drawable.ic_launcher_pure),
-                                contentDescription = stringResource(R.string.read_you),
+                                contentDescription = stringResource(R.string.app_display_name),
                                 colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface alwaysLight true),
                             )
                         }
@@ -238,7 +237,7 @@ fun TipsAndSupportPage(
                             }
                         ) {
                             Text(
-                                text = stringResource(R.string.read_you),
+                                text = stringResource(R.string.app_display_name), // Brief You
                                 style = MaterialTheme.typography.displaySmall
                             )
                         }
@@ -251,17 +250,6 @@ fun TipsAndSupportPage(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Sponsor
-                        RoundIconButton(
-                            RoundIconButtonType.Sponsor(
-                                backgroundColor = MaterialTheme.colorScheme.tertiaryContainer alwaysLight true,
-                            ) {
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                view.playSoundEffect(SoundEffectConstants.CLICK)
-                                showSponsorDialog = true
-                            })
-                        Spacer(modifier = Modifier.width(16.dp))
-
                         // GitHub
                         RoundIconButton(
                             RoundIconButtonType.GitHub(
@@ -276,22 +264,6 @@ fun TipsAndSupportPage(
                             })
                         Spacer(modifier = Modifier.width(16.dp))
 
-                        // Telegram (Brief You: hidden when there is no link)
-                        if (context.getString(R.string.telegram_link).isNotEmpty()) {
-                            RoundIconButton(
-                                RoundIconButtonType.Telegram(
-                                    backgroundColor = MaterialTheme.colorScheme.primaryContainer alwaysLight true,
-                                ) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    view.playSoundEffect(SoundEffectConstants.CLICK)
-                                    context.openURL(
-                                        context.getString(R.string.telegram_link),
-                                        OpenLinkPreference.AutoPreferCustomTabs
-                                    )
-                                })
-                            Spacer(modifier = Modifier.width(16.dp))
-                        }
-
                         // Brief You: the tour again
                         RoundIconButton(
                             RoundIconButtonType.Tour(
@@ -301,21 +273,24 @@ fun TipsAndSupportPage(
                                 view.playSoundEffect(SoundEffectConstants.CLICK)
                                 showTour = true
                             })
-                        Spacer(modifier = Modifier.width(16.dp)) // Brief You
-
-                        // Help
-                        RoundIconButton(
-                            RoundIconButtonType.Help(
-                                backgroundColor = MaterialTheme.colorScheme.secondaryContainer alwaysLight true,
-                            ) {
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                view.playSoundEffect(SoundEffectConstants.CLICK)
+                    }
+                    Spacer(modifier = Modifier.height(20.dp)) // Brief You
+                    // Brief You: Read You is credited, with its link.
+                    Text(
+                        text = stringResource(R.string.about_based_on),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp)
+                            .clickable {
                                 context.openURL(
-                                    context.getString(R.string.wiki_link),
+                                    context.getString(R.string.read_you_link),
                                     OpenLinkPreference.AutoPreferCustomTabs
                                 )
-                            })
-                    }
+                            },
+                    )
                     Spacer(modifier = Modifier.height(12.dp)) // Brief You
                     com.ay.briefyou.brief.tour.ShowHintsAgain() // Brief You
                     com.ay.briefyou.brief.perf.PerfLogButton() // Brief You: Nightly only
@@ -327,9 +302,6 @@ fun TipsAndSupportPage(
     )
 
     UpdateDialog()
-    if (showSponsorDialog) {
-        SponsorDialog { showSponsorDialog = false }
-    }
     if (showTour) { // Brief You
         com.ay.briefyou.brief.tour.BriefTourDialog(onDismiss = { showTour = false }, onSetUpAi = navigateToAiModel)
     }
@@ -348,18 +320,6 @@ sealed class RoundIconButtonType(
 ) {
 
     @Immutable
-    data class Sponsor(
-        val desc: Int = R.string.sponsor,
-        override val backgroundColor: Color,
-        override val onClick: () -> Unit = {},
-    ) : RoundIconButtonType(
-        iconVector = Icons.Rounded.VolunteerActivism,
-        descResource = desc,
-        backgroundColor = backgroundColor,
-        onClick = onClick,
-    )
-
-    @Immutable
     data class GitHub(
         val desc: String = "GitHub",
         override val backgroundColor: Color,
@@ -367,32 +327,6 @@ sealed class RoundIconButtonType(
     ) : RoundIconButtonType(
         iconResource = R.drawable.ic_github,
         descString = desc,
-        backgroundColor = backgroundColor,
-        onClick = onClick,
-    )
-
-    @Immutable
-    data class Telegram(
-        val desc: String = "Telegram",
-        override val offset: Modifier = Modifier.offset(x = (-1).dp),
-        override val backgroundColor: Color,
-        override val onClick: () -> Unit = {},
-    ) : RoundIconButtonType(
-        iconResource = R.drawable.ic_telegram,
-        descString = desc,
-        backgroundColor = backgroundColor,
-        onClick = onClick,
-    )
-
-    @Immutable
-    data class Help(
-        val desc: Int = R.string.help,
-        override val offset: Modifier = Modifier.offset(x = (3).dp),
-        override val backgroundColor: Color,
-        override val onClick: () -> Unit = {},
-    ) : RoundIconButtonType(
-        iconVector = Icons.Rounded.TipsAndUpdates,
-        descResource = desc,
         backgroundColor = backgroundColor,
         onClick = onClick,
     )
@@ -423,7 +357,7 @@ private fun RoundIconButton(type: RoundIconButtonType) {
         onClick = { type.onClick() }
     ) {
         when (type) {
-            is RoundIconButtonType.Sponsor, is RoundIconButtonType.Help, is RoundIconButtonType.Tour -> { // Brief You: Tour
+            is RoundIconButtonType.Tour -> { // Brief You
                 Icon(
                     modifier = type.offset.size(type.size),
                     imageVector = type.iconVector!!,
@@ -432,7 +366,7 @@ private fun RoundIconButton(type: RoundIconButtonType) {
                 )
             }
 
-            is RoundIconButtonType.GitHub, is RoundIconButtonType.Telegram -> {
+            is RoundIconButtonType.GitHub -> {
                 Icon(
                     modifier = type.offset.size(type.size),
                     painter = painterResource(type.iconResource!!),

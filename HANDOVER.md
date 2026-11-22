@@ -526,6 +526,41 @@ Work from this list; tick items off here as they are done.
     calls (old text fields, the old Scaffold, `LocalUriHandler`…). Step by step, a Nightly each.
     The build summary already counts them all ("should be 0") with the most common kinds.
 
+23. **Settings review, section by section with the owner (22 November 2026).** Decisions so far, to build
+    after the review is finished (nothing built yet):
+    *Color & style:* remove all four tonal elevation settings (Feeds top bar, Flow top bar, Flow
+    list, Reading toolbars, and the dead `FeedsGroupListTonalElevation` preference); merge the
+    Feeds and Flow style pages into one **Lists** page (with "Always expand"), previews rebuilt from the
+    real components (`TonalCircleButton`, `TopBarButtonGroup`, `FeedsBanner`, `GroupItem`, `BriefFilterBar`
+    and AI button; mockup agreed); the duplicates "Sort unread articles", "Pull from bottom" (Flow page)
+    and "Pull to switch article" (Reading page) stay only on Interaction; merge the Images and Videos
+    pages into **Images and videos**; remove the *Content renderer* setting (WebView only; delete the
+    native renderer code in the cleanup); move "AI button long press" to the AI settings page; add
+    **Reading background** (app colours / paper / black) and **Keep screen on while reading**.
+    *Interaction:* nothing removed (all 13 settings verified wired); swipe actions get **Share** and **Open in
+    browser**; add **Mark as read when opened** (default on, `markOpened`) and a master **Haptic feedback**
+    switch (63 call sites in 30 files); **Hide empty groups** moves to the Lists page.
+    *Brief You block (AI, Filters, Stats):* nothing removed; add a **Notifications** page (feeds that notify,
+    each switchable, plus a button to Android's notification settings); **Collect reading stats**
+    on/off; **Prepare the AI model at start** on/off (today automatic, with battery and power-saver
+    guards); Filters unchanged.
+    *App block (decided):* rebuild **Tips & support** as Brief You's own (title "Brief You", your GitHub,
+    Bug report to your issues (the crash screen too), Tour kept; Telegram, wiki and Sponsor removed; a
+    "Based on Read You" credit with its link and GPL licence; the licences page's LICENSE link points
+    to Brief You). **Update check from Brief You's releases:** a Nightly app follows the single
+    release tagged `nightly` (its name carries the build, e.g. "Brief You Nightly 0.16.2.164"), a stable
+    app follows `releases/latest`; today `AppService.checkUpdate` asks Read You (`update_link`), which
+    would offer Read You's APK once Read You passes 0.16.2. Remove Troubleshooting's **App preferences
+    JSON import/export** (Back up everything already carries `preferences.json`). **No default
+    "ReadYou Releases" feed** for a new account (`AccountService.getInitialFeed`). Cleanup list: the
+    commented-out Feedly/Inoreader account entries (strings, icons, `AccountType` 5 and 6 branches),
+    the commented-out Block list item, the native renderer.
+    *Order to build (own Nightlies):* 1) the Read You leftovers above (updates, about page, links, default
+    feed), 2) removals and merges (Lists page, previews, duplicates, Images and videos, renderer,
+    JSON export), 3) the new settings (Reading background, Keep screen on, swipe Share/Open in
+    browser, Mark as read when opened, Haptic feedback, Notifications page, Collect reading stats,
+    Prepare AI model at start).
+
 22. **Last step of all: a full restart ("new beginning")**, once we no longer depend on Read You.
     **Only when the owner writes the exact words `RESET ALL CLAUDE` do you reset anything**; until
     then leave every number and workflow alone. Then, everything starts over: `versionName`

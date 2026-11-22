@@ -34,7 +34,12 @@ class AppService @Inject constructor(
 
     suspend fun checkUpdate(showToast: Boolean = true): Boolean? = withContext(ioDispatcher) {
         try {
-            val response = networkDataSource.getReleaseLatest(context.getString(R.string.update_link))
+            // Brief You: this app's own releases. A Nightly follows the one release tagged "nightly"
+            // (a "latest" request never returns a pre-release), a stable build the latest release.
+            val nightly = com.ay.briefyou.BuildConfig.BUILD_TYPE == "nightly"
+            val response = networkDataSource.getReleaseLatest(
+                context.getString(if (nightly) R.string.update_link_nightly else R.string.update_link)
+            )
             when {
                 response.code() == 403 -> {
                     withContext(mainDispatcher) {
@@ -53,7 +58,9 @@ class AppService @Inject constructor(
             val skipVersion = context.skipVersionNumber.toVersion()
             val currentVersion = context.getCurrentVersion()
             val latest = response.body()!!
-            val latestVersion = latest.tag_name.toVersion()
+            // The Nightly release keeps one tag; its name and file carry the build number.
+            val latestAssetName = latest.assets?.firstOrNull { it.name?.endsWith(".apk") == true }?.name
+            val latestVersion = (if (nightly) (latest.name ?: latestAssetName) else latest.tag_name).toVersion()
 //            val latestVersion = "1.0.0".toVersion()
             val latestLog = latest.body ?: ""
             val latestPublishDate = latest.published_at ?: latest.created_at ?: ""

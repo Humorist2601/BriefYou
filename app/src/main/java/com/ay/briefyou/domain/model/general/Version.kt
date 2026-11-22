@@ -24,7 +24,12 @@ class Version(numbers: List<String>) {
     }
 
     constructor() : this(listOf())
-    constructor(string: String?) : this(string?.split(".") ?: listOf())
+    // Brief You: the numbers are found inside the text, so "0.16.2.164-nightly" and
+    // "Brief You Nightly 0.16.2.164" both read as 0.16.2.164 (they used to read as 0.16.2).
+    constructor(string: String?) : this(
+        string?.let { Regex("""(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?""").find(it)?.groupValues?.drop(1)?.filter { g -> g.isNotEmpty() } }
+            ?: string?.split(".") ?: listOf()
+    )
 
     override fun toString() = "$major.$minor.$point" + if (build > 0) ".$build" else "" // Brief You
 

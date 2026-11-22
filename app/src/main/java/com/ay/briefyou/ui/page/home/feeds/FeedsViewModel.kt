@@ -17,7 +17,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -90,6 +95,15 @@ class FeedsViewModel @Inject constructor(
     }
 
     private val accountFlow = accountService.currentAccountFlow
+
+    /** Brief You: whether the account has any feed at all (null while it is read). */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val hasFeeds: StateFlow<Boolean?> =
+        accountFlow
+            .filterNotNull()
+            .flatMapLatest { rssService.get(it.type.id).pullFeeds() }
+            .map<List<com.ay.briefyou.domain.model.group.GroupWithFeed>, Boolean?> { groups -> groups.any { it.feeds.isNotEmpty() } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     init {
         viewModelScope.launch {

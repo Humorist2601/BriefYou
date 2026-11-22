@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="read_you" translatable="false">Read You</string>
     <string name="all">All</string>
     <plurals name="all_desc">
         <item quantity="one">%1$d archived item</item>
@@ -127,10 +126,8 @@
     <string name="tips_and_support">Tips &amp; support</string>
     <string name="tips_and_support_desc">About, sponsor, open source licenses</string>
     <string name="welcome">Welcome</string>
-    <string name="tos_tips">Please read and agree to Read You\'s terms of service and privacy policy to continue.</string>
     <string name="browse_tos_tips">Browse the <i><u>terms of service and privacy policy</u></i></string>
     <string name="terms_of_service">Terms of service</string>
-    <string name="tos_content"><h5> Privacy policy </h5> <br /> <p> We take your privacy very seriously. </p> <br /> <p> <b>Read You</b> does not collect any user data, and all sensitive information (passwords and other account information) is stored securely in the local application database on your device. </p> <br /> <p> <b>Read You</b> will use the following permissions to provide you with the service. </p> <br /> <p> - Access network permission (to access online content as you specify) </p> <p> - Get network status permission (to determine if the device currently has available network conditions) </p> <p> - Background service permission (to automatically sync your favorites for you on a regular basis) </p> <br /> <br /> <h5> Third-party services </h5> <br /> <p> This policy does not apply to third-party services that you use with <b>Read You</b>. You can review the privacy policies of the third-party services you use on their websites </p> <br /> <br /> <h5> Disclaimers </h5> <br /> <p> <b>Read You</b> is a content collection tool only. Your use of <b>Read You</b> is subject to the laws and regulations of your country and region, and any liability arising from your actions will be borne by you personally. </p> <br /> <br /> <h5> Open source license </h5> <br /> <p> <b>Read You</b> is an open source project under the GNU GPL 3.0 Open Source License[1], which allows you to use, reference, and modify the source code of <b>Read You</b> free of charge, but does not allow the modified and derived code to be distributed and sold as closed-source commercial software. For details, please see the full GNU GPL 3.0 Open Source License[2]. </p> <br /> <br /> <h5> Appendix </h5> <br /> <p> - [1] https://github.com/ReadYouApp/ReadYou </p> <p> - [2] https://www.gnu.org/licenses/gpl-3.0.html </p></string>
     <string name="agree">Agree</string>
     <string name="wallpaper_colors">Wallpaper colors</string>
     <string name="no_palettes">No palettes</string>
@@ -153,12 +150,11 @@
     <string name="feeds_page">Feeds page</string>
     <string name="flow_page">Flow page</string>
     <string name="reading_page">Reading page</string>
-    <string name="sponsor">Sponsor</string>
     <string name="open_source_licenses">Open source licenses</string>
-    <string name="github_link" translatable="false">https://github.com/ReadYouApp/ReadYou</string>
-    <string name="telegram_link" translatable="false">https://t.me/ReadYouApp</string>
-    <string name="wiki_link" translatable="false">https://github.com/ReadYouApp/ReadYou/wiki/Getting-Started</string>
-    <string name="update_link">https://api.github.com/repos/ReadYouApp/ReadYou/releases/latest</string>
+    <string name="github_link" translatable="false">https://github.com/Humorist2601/BriefYou</string>
+    <string name="read_you_link" translatable="false">https://github.com/ReadYouApp/ReadYou</string>
+    <string name="update_link" translatable="false">https://api.github.com/repos/Humorist2601/BriefYou/releases/latest</string>
+    <string name="update_link_nightly" translatable="false">https://api.github.com/repos/Humorist2601/BriefYou/releases/tags/nightly</string>
     <string name="change_log">Changelog</string>
     <string name="update">Update</string>
     <string name="skip_this_version">Skip this version</string>
@@ -167,7 +163,6 @@
     <string name="check_failure">Failed to check for updates</string>
     <string name="download_failure">Could not download updates</string>
     <string name="rate_limit">The request rate is limited</string>
-    <string name="help">Help</string>
     <string name="on_start">On start</string>
     <string name="initial_page">Startup page</string>
     <string name="initial_filter">Default filter</string>
@@ -328,7 +323,7 @@
     <string name="troubleshooting">Troubleshooting</string>
     <string name="troubleshooting_desc">Bug report, app preferences</string>
     <string name="bug_report">Bug report</string>
-    <string name="issue_tracer_url" translatable="false">https://github.com/ReadYouApp/ReadYou/issues</string>
+    <string name="issue_tracer_url" translatable="false">https://github.com/Humorist2601/BriefYou/issues</string>
     <string name="app_preferences">App preferences</string>
     <string name="import_from_protobuf_file">Import from protobuf file</string>
     <string name="export_as_protobuf_file">Export as protobuf file</string>
@@ -344,8 +339,6 @@
     <string name="about">About</string>
     <string name="mark_as_read_on_scroll">Mark as read on scroll</string>
     <string name="hide_empty_groups">Hide empty groups</string>
-    <string name="become_a_sponsor">Become a sponsor</string>
-    <string name="sponsor_desc">We build and maintain this free, open source app in our free time. If you enjoy it, please consider supporting us with a small donation! ☕️</string>
     <string name="toolbars">Toolbars</string>
     <string name="sort_unread_articles">Sort unread articles</string>
     <string name="latest">Latest</string>
