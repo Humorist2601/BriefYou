@@ -180,15 +180,13 @@ fun SharedFilterBar(
                     enter = slideInVertically(spatial) { it } + fadeIn(effects),
                     exit = slideOutVertically(spatial) { it } + fadeOut(effects),
                 ) {
-                    // As wide as the bar and the AI button together (the button's room is kept even
-                    // when it isn't there, so the pill doesn't change width between filters).
-                    val groupWidth = with(density) { (barWidth + groupExtra).toDp() }
-                    me.ash.reader.brief.player.NowPlayingPill(
-                        modifier =
-                            Modifier.padding(bottom = FloatingBarGap - FILTER_BAR_TOP_PADDING)
-                                .width(if (barWidth > 0) groupWidth else 292.dp)
-                                .height(NOW_PLAYING_PILL_HEIGHT)
-                    )
+                    // A fixed width: the widest the bar and the AI button are together (the Unread
+                    // list, where the chosen filter shows its name), whichever filter is chosen.
+                    WidestGroupWidth(modifier = Modifier.padding(bottom = FloatingBarGap - FILTER_BAR_TOP_PADDING)) { width ->
+                        me.ash.reader.brief.player.NowPlayingPill(
+                            modifier = Modifier.width(width).height(NOW_PLAYING_PILL_HEIGHT)
+                        )
+                    }
                 }
                 // Material's floating toolbar with a button: the two are one group, 8 dp apart,
                 // and the group is centred on the screen. With the button the toolbar sits a
@@ -252,6 +250,30 @@ fun SharedFilterBar(
                 }
             }
         }
+    }
+}
+
+/**
+ * Gives [content] the width of the widest the bottom bar group gets: the toolbar with the longest
+ * of the three filters chosen (its name is shown) plus the AI button's room. Worked out by
+ * measuring the toolbar for each filter (not shown), so it follows the language and font size.
+ */
+@Composable
+private fun WidestGroupWidth(modifier: Modifier = Modifier, content: @Composable (androidx.compose.ui.unit.Dp) -> Unit) {
+    androidx.compose.ui.layout.SubcomposeLayout(modifier) { constraints ->
+        val bars =
+            Filter.values.map { filter ->
+                subcompose(filter) { BriefFilterBar(filter = filter) }
+                    .first()
+                    .measure(androidx.compose.ui.unit.Constraints())
+                    .width
+            }
+        val width = bars.max() + (BottomBarHeight + ToolbarToButtonGap).roundToPx()
+        val placeable =
+            subcompose("content") { content(width.toDp()) }
+                .first()
+                .measure(constraints.copy(minWidth = 0, minHeight = 0))
+        layout(placeable.width, placeable.height) { placeable.placeRelative(0, 0) }
     }
 }
 

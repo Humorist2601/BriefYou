@@ -140,6 +140,30 @@ internal data class PillContent(
 )
 
 /**
+ * The colours for what is playing, from its cover (the feed icon's colour when there is no cover or
+ * it has no clear colour), shared by the pill and its sheet. The app's own colours when neither has
+ * one, and while it is still being worked out; the change fades in.
+ */
+@Composable
+internal fun rememberCoverScheme(coverUrl: String?, feedIcon: String?): androidx.compose.material3.ColorScheme {
+    val context = LocalContext.current
+    val cover = coverUrl?.takeIf { it.isNotBlank() }
+    val iconUrl = feedIcon?.takeIf { it.isNotBlank() }
+    val isDark = LocalDarkTheme.current.isDarkTheme()
+    val isAmoled = isDark && LocalAmoledDarkTheme.current.value
+    val knownCover = remember(cover) { cover?.let { FeedAccent.knownPictureColor(it) } }
+    var seed by remember(cover, iconUrl) { mutableStateOf(knownCover?.second?.let { Color(it) }) }
+    LaunchedEffect(cover, iconUrl) {
+        if (knownCover?.second != null) return@LaunchedEffect
+        val fromCover = cover?.let { FeedAccent.pictureColor(context, it) }
+        seed = (fromCover ?: iconUrl?.let { FeedAccent.sourceColor(context, it) })?.let { Color(it) }
+    }
+    val app = MaterialTheme.colorScheme
+    val tinted = remember(seed, isDark, isAmoled) { seed?.let { pictureColorScheme(it, isDark, isAmoled) } }
+    return animateColorScheme(tinted ?: app, durationMillis = 300)
+}
+
+/**
  * The "now playing" pill above the bottom bar (on Feeds and the article lists): the episode's
  * picture with its progress as a ring, title and time left, and play/pause. While playing it
  * takes the softer accent colour (Twine's chip). Tap: the full controls. Read aloud shows here the
@@ -191,21 +215,7 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
 
     // Tinted by the episode's cover (the same picture colour and scheme as the reading page); read
     // aloud, a video without a picture or a cover still being worked out keeps the app's colours.
-    val coverUrl = if (c.episode) c.artwork?.takeIf { it.isNotBlank() } else null
-    val isDark = LocalDarkTheme.current.isDarkTheme()
-    val isAmoled = isDark && LocalAmoledDarkTheme.current.value
-    val iconUrl = if (c.episode) c.feedIcon?.takeIf { it.isNotBlank() } else null
-    val knownCover = remember(coverUrl) { coverUrl?.let { FeedAccent.knownPictureColor(it) } }
-    var coverSeed by remember(coverUrl, iconUrl) { mutableStateOf(knownCover?.second?.let { Color(it) }) }
-    LaunchedEffect(coverUrl, iconUrl) {
-        if (knownCover?.second != null) return@LaunchedEffect
-        // The cover's colour, or the feed icon's when there is no cover (or it has no colour).
-        val fromCover = coverUrl?.let { FeedAccent.pictureColor(context, it) }
-        coverSeed = (fromCover ?: iconUrl?.let { FeedAccent.sourceColor(context, it) })?.let { Color(it) }
-    }
-    val appScheme = MaterialTheme.colorScheme
-    val coverScheme = remember(coverSeed, isDark, isAmoled) { coverSeed?.let { pictureColorScheme(it, isDark, isAmoled) } }
-    val scheme = animateColorScheme(coverScheme ?: appScheme, durationMillis = 300)
+    val scheme = rememberCoverScheme(if (c.episode) c.artwork else null, if (c.episode) c.feedIcon else null)
     val transition = updateTransition(c.playing, label = "now playing")
     // Soft tint in both states (playing a little stronger); the ring and the play button carry the
     // stronger colours.
@@ -311,6 +321,9 @@ fun NowPlayingSheet(onDismiss: () -> Unit) {
         VideoWindow.inSheet = now.isVideo
         onDispose { VideoWindow.inSheet = false }
     }
+    // The sheet takes the cover's colours too (its own window, so the theme is given again).
+    val scheme = rememberCoverScheme(now.artwork, now.feedIcon)
+    MaterialTheme(colorScheme = scheme, typography = MaterialTheme.typography, shapes = MaterialTheme.shapes, motionScheme = MaterialTheme.motionScheme) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = me.ash.reader.brief.ui.rememberFullSheetState()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp),
@@ -353,5 +366,6 @@ fun NowPlayingSheet(onDismiss: () -> Unit) {
                 onPlay = { BriefPlayer.toggle(context) },
             )
         }
+    }
     }
 }
