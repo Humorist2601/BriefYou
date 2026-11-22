@@ -112,7 +112,6 @@ class CrashReportActivity : AppCompatActivity() {
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
-@Preview(apiLevel = 33)
 fun CrashReportPage(
     text: String = "Version: 0.9.11\n" +
             "Model: Google Pixel 6 Pro\n" + "System: Android 13 (API 33)\n\n" +

@@ -184,15 +184,3 @@ private fun NextFeedIndicator(feedName: String, modifier: Modifier = Modifier) {
         }
     }
 }
-
-@Preview
-@Composable
-private fun PreviewMarkAsRead() {
-    MarkAsReadIndicator()
-}
-
-@Preview
-@Composable
-private fun PreviewNextFeed() {
-    NextFeedIndicator("AndroidX Releases")
-}

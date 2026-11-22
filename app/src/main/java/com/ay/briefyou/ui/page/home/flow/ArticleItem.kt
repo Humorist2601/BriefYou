@@ -705,23 +705,6 @@ fun ArticleItemMenuContent(
     }
 }
 
-@Preview
-@Composable
-fun MenuContentPreview() {
-    MaterialTheme {
-        Surface() {
-            Column(modifier = Modifier.padding()) {
-                ArticleItemMenuContent(
-                    articleWithFeed = generateArticleWithFeedPreview(),
-                    onMarkBelowAsRead = {},
-                    onMarkAboveAsRead = {},
-                    onShare = {},
-                )
-            }
-        }
-    }
-}
-
 /** Brief You: the swipe icon's color: the accent on the page color, then the container's "on" color. */
 @Composable
 private fun swipeIconTint(state: SwipeableActionsState): Color {

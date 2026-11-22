@@ -170,7 +170,6 @@ fun DropdownMenuContent(
 
 
 // Size defaults.
-internal val MenuVerticalMargin = 48.dp
 internal val DropdownMenuVerticalPadding = 8.dp
 
 internal const val InTransitionDuration = 200
