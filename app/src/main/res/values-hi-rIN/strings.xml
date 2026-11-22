@@ -162,10 +162,6 @@
     <string name="mark_as_read_button_position">\"पठित चिह्नित करें\" बटन स्थिति</string>
     <string name="top_bar">शीर्ष पट्टी</string>
     <string name="fill_selected_icon">वर्तमान फिल्टर आइकन भरें</string>
-    <string name="filter_bar">फिल्टर बार</string>
-    <string name="icons">आइकन</string>
-    <string name="icons_and_labels">आइकन ऐवं लेबल</string>
-    <string name="icons_and_label_only_selected">आइकन और लेबल (केवल सक्रिय)</string>
     <string name="tips_top_bar_tonal_elevation">शीर्ष बार सूची के लिए टोनल ऊंचाई केवल स्क्रॉल करते समय उपलब्ध है</string>
     <string name="tips_article_list_tonal_elevation">लेख सूची के लिए टोनल ऊंचाई केवल हल्की थीम में उपलब्ध है</string>
     <string name="tips_group_list_tonal_elevation">समूह सूची के लिए टोनल एलिवेशन केवल हल्की थीम में उपलब्ध है</string>

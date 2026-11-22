@@ -158,10 +158,6 @@
     <string name="mark_as_read_button_position">「既読にする」ボタンの位置</string>
     <string name="top_bar">トップバー</string>
     <string name="fill_selected_icon">現在のフィルターアイコンを塗りつぶす</string>
-    <string name="filter_bar">フィルターバー</string>
-    <string name="icons">アイコン</string>
-    <string name="icons_and_labels">アイコンとラベル</string>
-    <string name="icons_and_label_only_selected">アイコンとラベル (選択済みのみ)</string>
     <string name="tips_top_bar_tonal_elevation">色調設定はスクロール時にのみ反映されます</string>
     <string name="tips_article_list_tonal_elevation">色調設定はライトテーマでのみ使用できます</string>
     <string name="tips_group_list_tonal_elevation">色調設定はライト テーマでのみ使用できます</string>

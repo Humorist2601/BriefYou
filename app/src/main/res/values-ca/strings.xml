@@ -164,10 +164,6 @@
     <string name="mark_as_read_button_position">Posició del botó \"Marcar com llegit\"</string>
     <string name="top_bar">Barra de dalt</string>
     <string name="fill_selected_icon">Omple la icona del filtre actual</string>
-    <string name="filter_bar">Barra de filtres</string>
-    <string name="icons">Icones</string>
-    <string name="icons_and_labels">Icones i etiquetes</string>
-    <string name="icons_and_label_only_selected">Icones i etiquetes (només actives)</string>
     <string name="tips_top_bar_tonal_elevation">L\'elevació tonal de la llista de la barra superior només està disponible quan es desplaça</string>
     <string name="tips_article_list_tonal_elevation">L\'elevació tonal de la llista d\'articles només està disponible al tema lluminós</string>
     <string name="tips_group_list_tonal_elevation">L\'elevació tonal de la llista de grups només està disponible al tema lluminós</string>

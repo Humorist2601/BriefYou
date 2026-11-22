@@ -187,6 +187,10 @@
     <!-- Triage mode -->
     <string name="flow_fab_gist">AI Gist</string>
     <string name="triage">Triage</string>
+    <string name="ai_button">AI button</string>
+    <string name="ai_button_long_press">Hold the AI button</string>
+    <string name="ai_button_opens">Opens %1$s</string>
+    <string name="ai_button_tips">The AI button sits beside the bottom bar on the Unread list. A tap shows AI Gist and Triage; holding it opens the one chosen here straight away.</string>
     <plurals name="triage_left">
         <item quantity="one">%d left</item>
         <item quantity="other">%d left</item>
@@ -406,7 +410,7 @@
     <string name="hint_show_again">Show hints again</string>
     <string name="hint_reset_done">The hints will show again</string>
     <string name="hint_got_it">Got it</string>
-    <string name="hint_unread_triage">swipes through these one card at a time; AI gist sums up the newest.</string>
+    <string name="hint_unread_ai_button">opens Triage, which goes through these one card at a time, and AI Gist, which sums up the newest. Hold it to open one of them straight away.</string>
     <string name="hint_reading_ai_bold">Tap ✨</string>
     <string name="hint_reading_ai">for this article\'s key points. Hold it for the AI\'s settings.</string>
     <string name="hint_triage_hold_bold">Hold a card</string>

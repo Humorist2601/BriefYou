@@ -105,10 +105,6 @@
     <string name="always_expand">Her zaman genişlet</string>
     <string name="top">Üst</string>
     <string name="fill_selected_icon">Geçerli filtre simgesini doldur</string>
-    <string name="filter_bar">Filtre çubuğu</string>
-    <string name="icons">Simgeler</string>
-    <string name="icons_and_labels">Simgeler ve etiketler</string>
-    <string name="icons_and_label_only_selected">Simgeler ve etiket (yalnızca etkin)</string>
     <string name="tips_top_bar_tonal_elevation">Üst çubuk listesi için ton yüksekliği yalnızca kaydırma sırasında kullanılabilir</string>
     <string name="tips_article_list_tonal_elevation">Makale listesi için ton yükseltme yalnızca açık temada mevcuttur</string>
     <string name="tips_group_list_tonal_elevation">Grup listesi için ton yükseltme yalnızca açık temada mevcuttur</string>

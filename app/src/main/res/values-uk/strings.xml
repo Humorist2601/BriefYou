@@ -184,10 +184,6 @@
     <string name="top">Вверх</string>
     <string name="top_bar">Верхня панель</string>
     <string name="fill_selected_icon">Заповнити іконку поточного фільтра</string>
-    <string name="filter_bar">Панель фільтрів</string>
-    <string name="icons">Іконки</string>
-    <string name="icons_and_labels">Іконки та заголовки</string>
-    <string name="icons_and_label_only_selected">Іконки та мітки (тільки активні)</string>
     <string name="tips_article_list_tonal_elevation">Підвищення тону для списку статей доступне лише у світлій темі</string>
     <string name="share">Поділитися</string>
     <string name="touch_to_play_video">Натисніть, щоб відтворити відео</string>

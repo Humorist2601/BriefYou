@@ -90,10 +90,6 @@
     <string name="always_expand">Vedno razširjeno</string>
     <string name="mark_as_read_button_position">Položaj gumba \"Označi kot prebrano\"</string>
     <string name="top">Zgoraj</string>
-    <string name="filter_bar">Filtrirna vrstica</string>
-    <string name="icons">Ikone</string>
-    <string name="icons_and_labels">Ikone in oznake</string>
-    <string name="icons_and_label_only_selected">Ikone in oznake (samo izbrane)</string>
     <string name="tips_top_bar_tonal_elevation">To povišanje barvnih tonov je na voljo samo med drsenjem.</string>
     <string name="tips_article_list_tonal_elevation">To povišanje barvnih tonov je na voljo samo v svetli temi.</string>
     <string name="tips_group_list_tonal_elevation">To povišanje barvnih tonov je na voljo samo v svetli temi.</string>

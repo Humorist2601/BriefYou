@@ -1,6 +1,5 @@
 package me.ash.reader.ui.page.settings.color.flow
 
-import kotlin.math.roundToInt // Brief You: the number sheet
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,9 +26,6 @@ fun FlowPageStylePage(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val filterBarStyle = LocalFlowFilterBarStyle.current
-    val filterBarPadding = LocalFlowFilterBarPadding.current
-    val filterBarTonalElevation = LocalFlowFilterBarTonalElevation.current
     val topBarTonalElevation = LocalFlowTopBarTonalElevation.current
     val articleListFeedIcon = LocalFlowArticleListFeedIcon.current
     val articleListFeedName = LocalFlowArticleListFeedName.current
@@ -40,24 +36,21 @@ fun FlowPageStylePage(
     val articleListTonalElevation = LocalFlowArticleListTonalElevation.current
     val articleListReadIndicator = LocalFlowArticleListReadIndicator.current
     val sortUnreadArticles = LocalSortUnreadArticles.current
+    val aiLongPress = me.ash.reader.brief.ui.AiLongPress.get(context) // Brief You
 
     val settings = LocalSettings.current
     val pullToSwitchFeed = settings.pullToSwitchFeed
 
     val scope = rememberCoroutineScope()
 
-    var filterBarStyleDialogVisible by remember { mutableStateOf(false) }
-    var filterBarPaddingDialogVisible by remember { mutableStateOf(false) }
-    var filterBarTonalElevationDialogVisible by remember { mutableStateOf(false) }
     var topBarTonalElevationDialogVisible by remember { mutableStateOf(false) }
+    var aiLongPressDialogVisible by remember { mutableStateOf(false) } // Brief You
     var articleListTonalElevationDialogVisible by remember { mutableStateOf(false) }
     var articleListReadIndicatorDialogVisible by remember { mutableStateOf(false) }
     var showArticleListDescDialog by remember { mutableStateOf(false) }
     var showPullToLoadDialog by remember { mutableStateOf(false) }
 
     var showSortUnreadArticlesDialog by remember { mutableStateOf(false) }
-
-    var filterBarPaddingValue: Int? by remember { mutableStateOf(filterBarPadding) }
 
     RYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
@@ -93,10 +86,6 @@ fun FlowPageStylePage(
                         FlowPagePreview(
                             topBarTonalElevation = topBarTonalElevation,
                             articleListTonalElevation = articleListTonalElevation,
-                            filterBarStyle = filterBarStyle.value,
-                            filterBarFilled = true,
-                            filterBarPadding = filterBarPadding.dp,
-                            filterBarTonalElevation = filterBarTonalElevation.value.dp,
                         )
                     }
                     Spacer(modifier = Modifier.height(24.dp))
@@ -222,36 +211,21 @@ fun FlowPageStylePage(
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
-                // Filter Bar
+                // Brief You: the AI button beside the bottom bar (Read You's filter bar settings are
+                // gone: Brief You's bar has one look).
                 item {
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
-                        text = stringResource(R.string.filter_bar),
+                        text = stringResource(R.string.ai_button),
                     )
-                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
+                    me.ash.reader.brief.ui.SettingGroup {
                     SettingItem(
-                        title = stringResource(R.string.style),
-                        desc = filterBarStyle.toDesc(context),
-                        onClick = {
-                            filterBarStyleDialogVisible = true
-                        },
+                        title = stringResource(R.string.ai_button_long_press),
+                        desc = stringResource(R.string.ai_button_opens, aiLongPress.label()),
+                        onClick = { aiLongPressDialogVisible = true },
                     ) {}
-                    SettingItem(
-                        title = stringResource(R.string.horizontal_padding),
-                        desc = "${filterBarPadding}dp",
-                        onClick = {
-                            filterBarPaddingValue = filterBarPadding
-                            filterBarPaddingDialogVisible = true
-                        },
-                    ) {}
-                    SettingItem(
-                        title = stringResource(R.string.tonal_elevation),
-                        desc = "${filterBarTonalElevation.value}dp",
-                        onClick = {
-                            filterBarTonalElevationDialogVisible = true
-                        },
-                    ) {}
-                    } // Brief You
+                    }
+                    Tips(text = stringResource(R.string.ai_button_tips))
                 }
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
@@ -262,45 +236,18 @@ fun FlowPageStylePage(
     )
 
     RadioDialog(
-        visible = filterBarStyleDialogVisible,
-        title = stringResource(R.string.style),
-        options = FlowFilterBarStylePreference.values.map {
+        visible = aiLongPressDialogVisible,
+        title = stringResource(R.string.ai_button_long_press),
+        options = me.ash.reader.brief.ui.AiLongPress.entries.map {
             RadioDialogOption(
-                text = it.toDesc(context),
-                selected = it == filterBarStyle,
+                text = it.label(),
+                selected = it == aiLongPress,
             ) {
-                it.put(context, scope)
+                me.ash.reader.brief.ui.AiLongPress.set(context, it)
             }
         }
     ) {
-        filterBarStyleDialogVisible = false
-    }
-
-    // Brief You: number settings are a slider sheet (NumberSheet)
-    if (filterBarPaddingDialogVisible) me.ash.reader.brief.ui.NumberSheet(
-        title = stringResource(R.string.horizontal_padding),
-        value = filterBarPadding.toFloat(),
-        range = 0f..120f,
-        step = 4f,
-        default = FlowFilterBarPaddingPreference.default.toFloat(),
-        suffix = "dp",
-        onSave = { FlowFilterBarPaddingPreference.put(context, scope, it.roundToInt()) },
-        onDismiss = { filterBarPaddingDialogVisible = false },
-    )
-
-    RadioDialog(
-        visible = filterBarTonalElevationDialogVisible,
-        title = stringResource(R.string.tonal_elevation),
-        options = FlowFilterBarTonalElevationPreference.values.map {
-            RadioDialogOption(
-                text = it.toDesc(context),
-                selected = it == filterBarTonalElevation,
-            ) {
-                it.put(context, scope)
-            }
-        }
-    ) {
-        filterBarTonalElevationDialogVisible = false
+        aiLongPressDialogVisible = false
     }
 
     RadioDialog(

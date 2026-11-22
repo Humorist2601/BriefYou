@@ -64,9 +64,6 @@
     <string name="feed_names">שמות ההיזנים</string>
     <string name="article_list">רשימת כתבות</string>
     <string name="always_expand">להרחיב תמיד</string>
-    <string name="icons">סמלים</string>
-    <string name="icons_and_labels">סמלים ותוויות</string>
-    <string name="icons_and_label_only_selected">סמלים ותוויות (פעילים בלבד)</string>
     <string name="share">שיתוף</string>
     <string name="touch_to_play_video">הסרטון יתנגן בנגיעה</string>
     <string name="text">טקסט</string>
@@ -263,7 +260,6 @@
     <string name="export_as_protobuf_file">ייצוא כקובץ protobuf</string>
     <string name="only_android_8.1_plus">Android 8.1+‎ בלבד</string>
     <string name="fill_selected_icon">מילוי סמל המסנן הנוכחי</string>
-    <string name="filter_bar">סרגל סינון</string>
     <string name="fever_desc">השימוש הופסק. לא מומלץ.</string>
     <string name="unexpected_error_title">אללי! משהו השתבש…</string>
     <string name="exclude">החרגה</string>

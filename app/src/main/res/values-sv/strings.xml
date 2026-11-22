@@ -140,9 +140,6 @@
     <string name="top">Överst</string>
     <string name="top_bar">Översta menyrad</string>
     <string name="fill_selected_icon">Fyll aktuell filterikon</string>
-    <string name="icons">Ikoner</string>
-    <string name="icons_and_labels">Ikoner och etiketter</string>
-    <string name="icons_and_label_only_selected">Ikoner och etiketter (endast aktiva)</string>
     <string name="tips_top_bar_tonal_elevation">Denna förhöjda ton är enbart tillgänglig vid rullning</string>
     <string name="tips_group_list_tonal_elevation">Denna förhöjda ton för grupplistan är enbart tillgänglig i ljust tema</string>
     <string name="share">Dela</string>
@@ -192,7 +189,6 @@
     <string name="group_list">Grupplista</string>
     <string name="article_list">Artikellista</string>
     <string name="mark_as_read_button_position">\"Markera som läst\" knapplats</string>
-    <string name="filter_bar">Filtreringsmeny</string>
     <string name="tips_article_list_tonal_elevation">Denna förhöjda ton för artikellistan är enbart tillgänglig i ljust tema</string>
     <string name="align_end">Slutjustera</string>
     <string name="images">Bilder</string>

@@ -135,12 +135,9 @@
     <string name="tips_and_support_desc">இது பற்றி, விரி எழுவாய் உரிமங்கள்</string>
     <string name="wallpaper_colors">முகப்போவிய நிறங்கள்</string>
     <string name="rate_limit">கோரிக்கை விகிதம் வரையறுக்கப்பட்டது</string>
-    <string name="icons">வடிவுருக்கள்</string>
-    <string name="icons_and_labels">வடிவுருக்கள் மற்றும் பொறிப்புகள்</string>
     <string name="letter_spacing">எழுத்து இடைவிடல்</string>
     <string name="text_desc">எழுத்துரு அளவு, எழுத்து இடைவிடல், செவ்வணப்பு</string>
     <string name="external_fonts">வெளிப்புற எழுத்துருக்கள்</string>
-    <string name="icons_and_label_only_selected">வடிவுருக்கள் மற்றும் பொறிப்பு (செயநிலையிலுள்ளவை மட்டும்)</string>
     <string name="auto_hide_toolbars">கருவிபட்டைகளை தானாக மறை</string>
     <string name="for_1_month">1 திங்கள்</string>
     <string name="align_start">செவ்வணப்பு துவக்கம்</string>
@@ -262,7 +259,6 @@
     <string name="top">மேல்</string>
     <string name="top_bar">மேல் பட்டை</string>
     <string name="fill_selected_icon">தற்போதைய வடிகட்டி வடிவுருவை நிரப்பு</string>
-    <string name="filter_bar">வடிகட்டி பட்டை</string>
     <string name="tips_top_bar_tonal_elevation">மேற்பட்டை பட்டியலுக்கான தொனி உயர்வு, உருட்டும் போது மட்டுமே கிடைக்கும்</string>
     <string name="tips_group_list_tonal_elevation">குழு பட்டியலுக்கான தொனி உயர்வு, வெளிர் திணையில் மட்டுமே கிடைக்கும்</string>
     <string name="touch_to_play_video">காணொளியை இயக்க தட்டு</string>

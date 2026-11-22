@@ -27,17 +27,11 @@ fun Preferences.toSettings(): Settings {
         basicFonts = BasicFontsPreference.fromPreferences(this),
 
         // Feeds page
-        feedsFilterBarStyle = FeedsFilterBarStylePreference.fromPreferences(this),
-        feedsFilterBarPadding = FeedsFilterBarPaddingPreference.fromPreferences(this),
-        feedsFilterBarTonalElevation = FeedsFilterBarTonalElevationPreference.fromPreferences(this),
         feedsTopBarTonalElevation = FeedsTopBarTonalElevationPreference.fromPreferences(this),
         feedsGroupListExpand = FeedsGroupListExpandPreference.fromPreferences(this),
         feedsGroupListTonalElevation = FeedsGroupListTonalElevationPreference.fromPreferences(this),
 
         // Flow page
-        flowFilterBarStyle = FlowFilterBarStylePreference.fromPreferences(this),
-        flowFilterBarPadding = FlowFilterBarPaddingPreference.fromPreferences(this),
-        flowFilterBarTonalElevation = FlowFilterBarTonalElevationPreference.fromPreferences(this),
         flowTopBarTonalElevation = FlowTopBarTonalElevationPreference.fromPreferences(this),
         flowArticleListFeedIcon = FlowArticleListFeedIconPreference.fromPreferences(this),
         flowArticleListFeedName = FlowArticleListFeedNamePreference.fromPreferences(this),

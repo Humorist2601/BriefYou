@@ -49,7 +49,7 @@ enum class HintPlacement { Above, InsideBottom }
 object BriefHints {
     const val TRIAGE_HOLD = "triage_hold"
     const val READING_AI = "reading_ai"
-    const val UNREAD_TRIAGE = "unread_triage"
+    const val UNREAD_AI_BUTTON = "unread_ai_button"
 
     /** The hint on screen now, so two never show at once. */
     internal var showing by mutableStateOf<String?>(null)

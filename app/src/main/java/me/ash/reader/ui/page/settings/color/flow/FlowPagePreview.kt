@@ -20,7 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.ash.reader.R
@@ -43,10 +44,6 @@ import java.util.*
 fun FlowPagePreview(
     topBarTonalElevation: FlowTopBarTonalElevationPreference,
     articleListTonalElevation: FlowArticleListTonalElevationPreference,
-    filterBarStyle: Int,
-    filterBarFilled: Boolean,
-    filterBarPadding: Dp,
-    filterBarTonalElevation: Dp,
 ) {
     var filter by remember { mutableStateOf(Filter.Unread) }
 
@@ -115,11 +112,8 @@ fun FlowPagePreview(
 
         Spacer(modifier = Modifier.height(12.dp))
         BriefFilterBar( // Brief You: the preview shows Brief You's bar
+            modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp),
             filter = filter,
-            filterBarStyle = filterBarStyle,
-            filterBarFilled = filterBarFilled,
-            filterBarPadding = filterBarPadding,
-            filterBarTonalElevation = filterBarTonalElevation,
         ) {
             filter = it
         }

@@ -148,7 +148,6 @@
     <string name="group_list">Списък със групи</string>
     <string name="always_expand">Винаги разширявай</string>
     <string name="top">Горе</string>
-    <string name="icons_and_labels">Икони и етикети</string>
     <string name="line_spacing">Разстояние между редовете</string>
     <string name="general">Общи</string>
     <string name="use_app_theme">Използвай тема на приложението</string>
@@ -169,11 +168,8 @@
     <string name="feed_favicons">Икони на фаворити на емисии</string>
     <string name="feed_names">Имена на емисии</string>
     <string name="article_list">Списък със статии</string>
-    <string name="filter_bar">Филтърен панел</string>
-    <string name="icons">Икони</string>
     <string name="mark_as_read_button_position">Позиция на бутона „Маркирай като прочетено“</string>
     <string name="fill_selected_icon">Икона за запълване на текущия филтър</string>
-    <string name="icons_and_label_only_selected">Икони и етикет (само активни)</string>
     <string name="share">Сподели</string>
     <string name="touch_to_play_video">Докосни, за да изпълните видеоклип</string>
     <string name="images">Изображения</string>

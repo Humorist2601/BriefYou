@@ -165,10 +165,6 @@
     <string name="mark_as_read_button_position">Posizione del pulsante \"Segna come letto\"</string>
     <string name="top_bar">Barra superiore</string>
     <string name="fill_selected_icon">Riempi l\'attuale icona del filtro</string>
-    <string name="filter_bar">Barra dei filtri</string>
-    <string name="icons">Icone</string>
-    <string name="icons_and_labels">Icone ed etichette</string>
-    <string name="icons_and_label_only_selected">Icone ed etichette (solo attive)</string>
     <string name="tips_top_bar_tonal_elevation">L\'elevazione tonale è disponibile solo durante lo scorrimento</string>
     <string name="tips_article_list_tonal_elevation">L\'elevazione tonale è disponibile solo con il tema chiaro</string>
     <string name="tips_group_list_tonal_elevation">L\'elevazione tonale per il gruppo è disponibile solo con il tema chiaro</string>

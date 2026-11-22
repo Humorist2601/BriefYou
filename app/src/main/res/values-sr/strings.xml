@@ -4,7 +4,6 @@
     <string name="browse_tos_tips">Погледајте <i><u>Услове коришћења и Политику приватности</u></i></string>
     <string name="three_days">3д</string>
     <string name="primary_color">Примарне боје</string>
-    <string name="icons_and_labels">Иконице и ознаке</string>
     <string name="wallpaper_colors">Боје позадине</string>
     <string name="add_to_group">Додај у групу</string>
     <string name="article_date">Време објављивања чланка</string>
@@ -24,7 +23,6 @@
     <string name="custom_tabs">Присили прилагођене картице</string>
     <string name="only_on_wifi">Само на Wi-Fi</string>
     <string name="password">Лозинка</string>
-    <string name="icons_and_label_only_selected">Иконице и ознака (само активно)</string>
     <string name="every_3_hours">Сваких 3 сата</string>
     <string name="feed_or_site_url">Фид или URL адреса сајта</string>
     <string name="welcome">Добро дошли</string>
@@ -114,7 +112,6 @@
     <string name="align_start">Поравнај почетак</string>
     <string name="keep_archived_articles">Чување архивираних чланака</string>
     <string name="selected">Изабрано</string>
-    <string name="icons">Иконице</string>
     <string name="every_1_day">Сваки дан</string>
     <plurals name="unread_desc">
         <item quantity="one">%1$d непрочитани предмет</item>
@@ -215,7 +212,6 @@
     <string name="accounts_tips">Можете да промените налог додиром на име налога на страници фида</string>
     <string name="already_subscribed">Већ сте претплаћени</string>
     <string name="empty">Празно</string>
-    <string name="filter_bar">Трака филтера</string>
     <string name="expand_more">Прошири</string>
     <string name="allow">Дозволи</string>
     <string name="auto_customtabs">Аутоматски (преферирање прилагођених картица)</string>

@@ -22,7 +22,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
 import me.ash.reader.R
 import me.ash.reader.domain.model.feed.Feed
@@ -42,10 +43,6 @@ import me.ash.reader.ui.page.home.feeds.GroupWithFeedsContainer
 fun FeedsPagePreview(
     topBarTonalElevation: FeedsTopBarTonalElevationPreference,
     groupListExpand: FeedsGroupListExpandPreference,
-    filterBarStyle: Int,
-    filterBarFilled: Boolean,
-    filterBarPadding: Dp,
-    filterBarTonalElevation: Dp,
 ) {
     var filter by remember { mutableStateOf(Filter.Unread) }
 
@@ -95,11 +92,8 @@ fun FeedsPagePreview(
         }
         Spacer(modifier = Modifier.height(12.dp))
         BriefFilterBar( // Brief You: the preview shows Brief You's bar
+            modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp),
             filter = filter,
-            filterBarStyle = filterBarStyle,
-            filterBarFilled = filterBarFilled,
-            filterBarPadding = filterBarPadding,
-            filterBarTonalElevation = filterBarTonalElevation,
         ) {
             filter = it
         }

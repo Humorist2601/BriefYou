@@ -140,17 +140,11 @@ sealed interface PreferencesKey {
         const val basicFonts = "basicFonts"
 
         // Feeds page
-        const val feedsFilterBarStyle = "feedsFilterBarStyle"
-        const val feedsFilterBarPadding = "feedsFilterBarPadding"
-        const val feedsFilterBarTonalElevation = "feedsFilterBarTonalElevation"
         const val feedsTopBarTonalElevation = "feedsTopBarTonalElevation"
         const val feedsGroupListExpand = "feedsGroupListExpand"
         const val feedsGroupListTonalElevation = "feedsGroupListTonalElevation"
 
         // Flow page
-        const val flowFilterBarStyle = "flowFilterBarStyle"
-        const val flowFilterBarPadding = "flowFilterBarPadding"
-        const val flowFilterBarTonalElevation = "flowFilterBarTonalElevation"
         const val flowTopBarTonalElevation = "flowTopBarTonalElevation"
         const val flowArticleListFeedIcon = "flowArticleListFeedIcon"
         const val flowArticleListFeedName = "flowArticleListFeedName"
@@ -222,16 +216,10 @@ sealed interface PreferencesKey {
                 BooleanKey(amoledDarkTheme),
                 IntKey(basicFonts),
                 // Feeds page
-                IntKey(feedsFilterBarStyle),
-                IntKey(feedsFilterBarPadding),
-                IntKey(feedsFilterBarTonalElevation),
                 IntKey(feedsTopBarTonalElevation),
                 BooleanKey(feedsGroupListExpand),
                 IntKey(feedsGroupListTonalElevation),
                 // Flow page
-                IntKey(flowFilterBarStyle),
-                IntKey(flowFilterBarPadding),
-                IntKey(flowFilterBarTonalElevation),
                 IntKey(flowTopBarTonalElevation),
                 BooleanKey(flowArticleListFeedIcon),
                 BooleanKey(flowArticleListFeedName),
@@ -308,17 +296,11 @@ data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
         const val basicFonts = "basicFonts"
 
         // Feeds page
-        const val feedsFilterBarStyle = "feedsFilterBarStyle"
-        const val feedsFilterBarPadding = "feedsFilterBarPadding"
-        const val feedsFilterBarTonalElevation = "feedsFilterBarTonalElevation"
         const val feedsTopBarTonalElevation = "feedsTopBarTonalElevation"
         const val feedsGroupListExpand = "feedsGroupListExpand"
         const val feedsGroupListTonalElevation = "feedsGroupListTonalElevation"
 
         // Flow page
-        const val flowFilterBarStyle = "flowFilterBarStyle"
-        const val flowFilterBarPadding = "flowFilterBarPadding"
-        const val flowFilterBarTonalElevation = "flowFilterBarTonalElevation"
         const val flowTopBarTonalElevation = "flowTopBarTonalElevation"
         const val flowArticleListFeedIcon = "flowArticleListFeedIcon"
         const val flowArticleListFeedName = "flowArticleListFeedName"
@@ -401,12 +383,6 @@ data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
                     DataStoreKey(booleanPreferencesKey(amoledDarkTheme), Boolean::class.java),
                 basicFonts to DataStoreKey(intPreferencesKey(basicFonts), Int::class.java),
                 // Feeds page
-                feedsFilterBarStyle to
-                    DataStoreKey(intPreferencesKey(feedsFilterBarStyle), Int::class.java),
-                feedsFilterBarPadding to
-                    DataStoreKey(intPreferencesKey(feedsFilterBarPadding), Int::class.java),
-                feedsFilterBarTonalElevation to
-                    DataStoreKey(intPreferencesKey(feedsFilterBarTonalElevation), Int::class.java),
                 feedsTopBarTonalElevation to
                     DataStoreKey(intPreferencesKey(feedsTopBarTonalElevation), Int::class.java),
                 feedsGroupListExpand to
@@ -414,12 +390,6 @@ data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
                 feedsGroupListTonalElevation to
                     DataStoreKey(intPreferencesKey(feedsGroupListTonalElevation), Int::class.java),
                 // Flow page
-                flowFilterBarStyle to
-                    DataStoreKey(intPreferencesKey(flowFilterBarStyle), Int::class.java),
-                flowFilterBarPadding to
-                    DataStoreKey(intPreferencesKey(flowFilterBarPadding), Int::class.java),
-                flowFilterBarTonalElevation to
-                    DataStoreKey(intPreferencesKey(flowFilterBarTonalElevation), Int::class.java),
                 flowTopBarTonalElevation to
                     DataStoreKey(intPreferencesKey(flowTopBarTonalElevation), Int::class.java),
                 flowArticleListFeedIcon to

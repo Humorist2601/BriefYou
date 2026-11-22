@@ -272,10 +272,6 @@
     <string name="mark_as_read_button_position">\"Irakurrita bezala markatu\" botoiaren posizioa</string>
     <string name="top_bar">Goiko barra</string>
     <string name="fill_selected_icon">Hautatutako ikonoa bete</string>
-    <string name="filter_bar">Iragazki barra</string>
-    <string name="icons">Ikonoak</string>
-    <string name="icons_and_labels">Ikonoak eta etiketak</string>
-    <string name="icons_and_label_only_selected">Ikonoak eta etiketak (hautatutakoa soilik)</string>
     <string name="tips_top_bar_tonal_elevation">Tonuaren goratze hau desplazamendu bertikalean dago eskuragarri soilik.</string>
     <string name="tips_article_list_tonal_elevation">Tonuaren goratze hau itxura argian dago eskuragarri soilik.</string>
     <string name="tips_group_list_tonal_elevation">Tonuaren goratze hau itxura argian dago eskuragarri soilik.</string>

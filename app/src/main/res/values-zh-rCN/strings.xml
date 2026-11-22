@@ -160,10 +160,6 @@
     <string name="mark_as_read_button_position">“标记为已读”按钮的位置</string>
     <string name="top_bar">标题栏</string>
     <string name="fill_selected_icon">填充当前筛选器图标</string>
-    <string name="filter_bar">过滤栏</string>
-    <string name="icons">图标</string>
-    <string name="icons_and_labels">图标和标签</string>
-    <string name="icons_and_label_only_selected">图标和标签（仅活跃）</string>
     <string name="tips_top_bar_tonal_elevation">标题栏列表的色调海拔仅在滚动时可用</string>
     <string name="tips_article_list_tonal_elevation">文章列表的色调海拔仅在亮色主题时可用</string>
     <string name="tips_group_list_tonal_elevation">分组列表的色调海拔仅在亮色主题时可用</string>

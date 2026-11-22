@@ -120,10 +120,7 @@
     <string name="group_list">ليستة الگروپ</string>
     <string name="mark_as_read_button_position">موقع كبسة «علّم إنو قريته»</string>
     <string name="top_bar">المينو اللي بال أعلى</string>
-    <string name="filter_bar">مينو الفلتر</string>
-    <string name="icons">أيكونات</string>
     <string name="fill_selected_icon">عبي أيكونة الفلتر الحالية</string>
-    <string name="icons_and_label_only_selected">الأيكونات وال عناوين (بس اللي مفعلة)</string>
     <string name="share">شار</string>
     <string name="touch_to_play_video">كبوس ت تفتح ڤيديو</string>
     <string name="text">نَص</string>
@@ -225,7 +222,6 @@
     <string name="update_link">https://api.github.com/repos/ReadYouApp/ReadYou/releases/latest</string>
     <string name="always_expand">دايمًا كبر</string>
     <string name="top">الأعلى</string>
-    <string name="icons_and_labels">الأيكونات وال عناوين</string>
     <string name="use_app_theme">ستعمل نوع اللون تبع الآپ</string>
     <string name="subhead">عنوان فرعي</string>
     <string name="advanced">متقدم</string>

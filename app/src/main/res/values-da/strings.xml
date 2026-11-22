@@ -164,9 +164,6 @@
     <string name="group_list">Gruppe liste</string>
     <string name="always_expand">Altid udvidet</string>
     <string name="services">Tjenester</string>
-    <string name="icons">Ikoner</string>
-    <string name="icons_and_labels">Ikoner og etiketter</string>
-    <string name="icons_and_label_only_selected">Ikoner og etiketter (kun aktive)</string>
     <string name="touch_to_play_video">Tryk for at afspille en video</string>
     <string name="text">Tekst</string>
     <string name="letter_spacing">Bogstavafstand</string>
@@ -249,7 +246,6 @@
     <string name="server_url">URL-adresse til server</string>
     <string name="username">Brugernavn</string>
     <string name="connection">Forbindelse</string>
-    <string name="filter_bar">Filtermenu</string>
     <string name="initial_open_app">App når der klikkes på et link</string>
     <string name="open_link_specific_browser_not_selected">Ingen</string>
     <string name="auto_customtabs">Auto (Foretræk CustomTabs)</string>

@@ -170,10 +170,7 @@
     <string name="always_expand">Laienda alati</string>
     <string name="top">Üleval</string>
     <string name="mark_as_read_button_position">„Märgi loetuks“ nupu asukoht</string>
-    <string name="icons">Ikoonid</string>
-    <string name="filter_bar">Filtririba</string>
     <string name="share">Jaga</string>
-    <string name="icons_and_label_only_selected">Ikoonid ja silt (vaid aktiivne)</string>
     <string name="text">Tekst</string>
     <string name="every_2_hours">Iga 2 tunni järel</string>
     <string name="every_3_hours">Iga 3 tunni järel</string>
@@ -188,7 +185,6 @@
     <string name="all_deny_open_in_browser_toast">Kõikide „%1$s“ grupi artiklite avamine vaikimisi veebibrauseris on keelatud</string>
     <string name="group_list">Gruppide loend</string>
     <string name="top_bar">Ülemine tööriistariba</string>
-    <string name="icons_and_labels">Ikoonid ja sildid</string>
     <string name="touch_to_play_video">Video esitamiseks puuduta</string>
     <string name="general">Üldist</string>
     <string name="auto_hide_toolbars">Peida tööriistaribad automaatselt</string>

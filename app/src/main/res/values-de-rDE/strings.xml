@@ -162,10 +162,6 @@
     <string name="mark_as_read_button_position">„Als gelesen markieren“-Schaltfläche</string>
     <string name="top_bar">Kopfleiste</string>
     <string name="fill_selected_icon">Aktuelles Filtersymbol füllen</string>
-    <string name="filter_bar">Filterleiste</string>
-    <string name="icons">Symbole</string>
-    <string name="icons_and_labels">Symbole und Beschriftungen</string>
-    <string name="icons_and_label_only_selected">Symbole und Beschriftungen (nur aktive)</string>
     <string name="tips_top_bar_tonal_elevation">Das farbliche Hervorheben der Kopfleiste ist nur beim Scrollen verfügbar</string>
     <string name="tips_article_list_tonal_elevation">Das farbliche Hervorheben der Artikelliste ist nur für das helle Design verfügbar</string>
     <string name="tips_group_list_tonal_elevation">Das farbliche Hervorheben der Gruppenliste ist nur für das helle Design verfügbar</string>

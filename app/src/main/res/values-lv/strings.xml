@@ -43,8 +43,6 @@
     <string name="preview_feed_name">Reddit</string>
     <string name="value">vērtība</string>
     <string name="top_bar">Augšējā josla</string>
-    <string name="filter_bar">Filtrēšanas joslas panelis</string>
-    <string name="icons">Ikonas</string>
     <string name="videos">Video</string>
     <string name="center_text">Centrēt tekstu</string>
     <string name="every_30_minutes">Ik pēc 30 minūtēm</string>

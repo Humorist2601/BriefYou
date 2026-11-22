@@ -165,10 +165,6 @@
     <string name="mark_as_read_button_position">Pozice tlačítka „Označit jako přečtené“</string>
     <string name="top_bar">Vrchní lišta</string>
     <string name="fill_selected_icon">Vyplnit aktuální ikonu filtru</string>
-    <string name="filter_bar">Lišta s filtry</string>
-    <string name="icons">Ikony</string>
-    <string name="icons_and_labels">Ikony a štítky</string>
-    <string name="icons_and_label_only_selected">Ikony a štítek (pouze aktivní)</string>
     <string name="tips_top_bar_tonal_elevation">Zvýšení tónu seznamu horní lišty je k dispozici pouze při posouvání</string>
     <string name="tips_article_list_tonal_elevation">Zvýšení tónu seznamu článků je dostupné pouze ve světlém režimu</string>
     <string name="tips_group_list_tonal_elevation">Zvýšení tónu seznamu skupin je dostupné pouze ve světlém režimu</string>

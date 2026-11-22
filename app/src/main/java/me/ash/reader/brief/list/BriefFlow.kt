@@ -3,7 +3,6 @@ package me.ash.reader.brief.list
 import me.ash.reader.domain.data.DiffMapHolder
 import me.ash.reader.brief.app.BriefShortcuts
 import me.ash.reader.brief.stats.ReadingStats
-import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -13,14 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import me.ash.reader.R
@@ -36,13 +30,15 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.ui.unit.Dp
-import me.ash.reader.infrastructure.preference.FlowFilterBarStylePreference
+import me.ash.reader.brief.ui.AiActions
+import me.ash.reader.brief.ui.BottomBarHeight
+import me.ash.reader.brief.ui.FILTER_BAR_TOP_PADDING
 import me.ash.reader.brief.ui.FloatingBarGap
 import me.ash.reader.ui.page.adaptive.ArticleListReaderViewModel
 
 /*
  * Brief You's additions to Read You's article list (FlowPage), kept here so Read You's file only
- * needs a few one-line calls: the AI gist / Triage button, Triage, the gist sheet and the inbox
+ * needs a few one-line calls: what the AI button opens, Triage, the gist sheet and the inbox
  * zero celebration.
  */
 
@@ -59,29 +55,8 @@ class BriefFlowState internal constructor(private val triage: MutableState<Boole
             triage.value = value
         }
 
-    /**
-     * The AI gist / Triage button is hidden by your finger. Like the reading page's bar, only two
-     * things move it, so it can never pop in and out: dragging towards the end of the list hides
-     * it, dragging back shows it; and a new list (another feed, group or filter) shows it, once.
-     * It doesn't look at the list's scroll position: while one feed slides into the next, the two
-     * lists briefly share it, which made the button show, hide and show again.
-     */
-    internal var fabHiddenByFinger by mutableStateOf(false)
-
     /** The inbox zero celebration is showing. */
     internal var celebrate by mutableStateOf(false)
-
-    /** Put on the list (Modifier.nestedScroll) so dragging it can hide and show the button. */
-    val listScroll: NestedScrollConnection =
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (source == NestedScrollSource.UserInput) {
-                    if (available.y < -1f) fabHiddenByFinger = true
-                    else if (available.y > 1f) fabHiddenByFinger = false
-                }
-                return Offset.Zero
-            }
-        }
 
     /**
      * "Mark all as read" from swiping up on the Unread list, then the inbox zero celebration, but
@@ -98,34 +73,32 @@ class BriefFlowState internal constructor(private val triage: MutableState<Boole
 @Composable
 fun rememberBriefFlowState(filterUiState: FilterState): BriefFlowState {
     val triage = rememberSaveable { mutableStateOf(false) }
-    val state = remember { BriefFlowState(triage) }
-    LaunchedEffect(filterUiState.copy(searchContent = null)) { state.fabHiddenByFinger = false }
-    return state
+    return remember { BriefFlowState(triage) }
 }
 
-/** The AI gist / Triage button, for the scaffold's floating action button slot. */
+/**
+ * What the AI button beside the bottom bar opens (AI Gist and Triage), or null when it doesn't
+ * show: only in Unread, and not while searching.
+ */
 @Composable
-fun BriefFlowFab(
+fun briefAiActions(
     state: BriefFlowState,
-    viewModel: ArticleListReaderViewModel,
     filterUiState: FilterState,
     searching: Boolean,
     briefViewModel: BriefListViewModel = hiltViewModel(),
-) {
-    FlowActionsFab(
-        // [FloatingBarGap] above the bottom bar instead of the standard 16 dp above its 8 dp top
-        // padding.
-        modifier = Modifier.offset(y = 16.dp + 8.dp - FloatingBarGap),
-        // Only in Unread, and not while searching.
-        visible = filterUiState.filter.isUnread() && !searching && !state.fabHiddenByFinger,
-        onGist = { state.showGist = true },
-        onTriage = {
-            // A new run each time the button is pressed.
-            briefViewModel.triageSession = null
-            briefViewModel.triageResume = false
-            state.showTriage = true
-        },
-    )
+): AiActions? {
+    if (!filterUiState.filter.isUnread() || searching) return null
+    return remember(state, briefViewModel) {
+        AiActions(
+            onGist = { state.showGist = true },
+            onTriage = {
+                // A new run each time.
+                briefViewModel.triageSession = null
+                briefViewModel.triageResume = false
+                state.showTriage = true
+            },
+        )
+    }
 }
 
 /**
@@ -284,13 +257,8 @@ fun BriefFlowOverlays(
     }
 }
 
-/**
- * The pull-to-load hint's distance from the bottom: at the same height as the AI gist / Triage
- * button, [FloatingBarGap] above the filter bar.
- */
-fun briefPullToLoadPadding(filterBarStyle: Int): Dp =
-    (if (filterBarStyle == FlowFilterBarStylePreference.Icon.value) 76.dp else 88.dp) +
-        FloatingBarGap
+/** The pull-to-load hint's distance from the bottom: [FloatingBarGap] above the bottom bar. */
+val briefPullToLoadPadding: Dp = BottomBarHeight + FILTER_BAR_TOP_PADDING + FloatingBarGap
 
 /** The pull-to-load hint stays above the navigation bar. */
 val briefPullToLoadInsets: WindowInsets

@@ -165,10 +165,6 @@
     <string name="mark_as_read_button_position">Position du bouton « Marquer comme lu »</string>
     <string name="top_bar">Barre supérieure</string>
     <string name="fill_selected_icon">Remplir l’icône de filtre actuel</string>
-    <string name="filter_bar">Barre de filtre</string>
-    <string name="icons">Icônes</string>
-    <string name="icons_and_labels">Icônes et étiquettes</string>
-    <string name="icons_and_label_only_selected">Icônes et étiquettes (sélectionné uniquement)</string>
     <string name="tips_top_bar_tonal_elevation">L’intensité de la liste de la barre supérieure n’est disponible que lors du défilement</string>
     <string name="tips_article_list_tonal_elevation">L’intensité de la liste d’articles est uniquement disponible pour le thème clair</string>
     <string name="tips_group_list_tonal_elevation">L’intensité de la liste des groupes est uniquement disponible pour le thème clair</string>

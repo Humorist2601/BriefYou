@@ -22,17 +22,11 @@ data class Settings(
     val basicFonts: BasicFontsPreference = BasicFontsPreference.default,
 
     // Feeds page
-    val feedsFilterBarStyle: FeedsFilterBarStylePreference = FeedsFilterBarStylePreference.default,
-    val feedsFilterBarPadding: Int = FeedsFilterBarPaddingPreference.default,
-    val feedsFilterBarTonalElevation: FeedsFilterBarTonalElevationPreference = FeedsFilterBarTonalElevationPreference.default,
     val feedsTopBarTonalElevation: FeedsTopBarTonalElevationPreference = FeedsTopBarTonalElevationPreference.default,
     val feedsGroupListExpand: FeedsGroupListExpandPreference = FeedsGroupListExpandPreference.default,
     val feedsGroupListTonalElevation: FeedsGroupListTonalElevationPreference = FeedsGroupListTonalElevationPreference.default,
 
     // Flow page
-    val flowFilterBarStyle: FlowFilterBarStylePreference = FlowFilterBarStylePreference.default,
-    val flowFilterBarPadding: Int = FlowFilterBarPaddingPreference.default,
-    val flowFilterBarTonalElevation: FlowFilterBarTonalElevationPreference = FlowFilterBarTonalElevationPreference.default,
     val flowTopBarTonalElevation: FlowTopBarTonalElevationPreference = FlowTopBarTonalElevationPreference.default,
     val flowArticleListFeedIcon: FlowArticleListFeedIconPreference = FlowArticleListFeedIconPreference.default,
     val flowArticleListFeedName: FlowArticleListFeedNamePreference = FlowArticleListFeedNamePreference.default,

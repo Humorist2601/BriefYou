@@ -159,10 +159,6 @@
     <string name="mark_as_read_button_position">「標為已讀」按鈕的位置</string>
     <string name="top_bar">標題列</string>
     <string name="fill_selected_icon">填滿已選擇的圖示</string>
-    <string name="filter_bar">篩選列</string>
-    <string name="icons">圖示</string>
-    <string name="icons_and_labels">圖示和文字</string>
-    <string name="icons_and_label_only_selected">圖示和文字 (僅已選擇)</string>
     <string name="tips_top_bar_tonal_elevation">標題列的色調海拔僅適用於捲動時</string>
     <string name="tips_article_list_tonal_elevation">文章清單的色調海拔僅適用於淺色主題</string>
     <string name="tips_group_list_tonal_elevation">群組清單的色調海拔僅適用於淺色主題</string>

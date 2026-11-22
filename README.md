@@ -45,7 +45,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Translate: the translate button in the reading page's top bar translates the article with your AI model, into your phone's language. Each paragraph replaces its original as soon as it is written, the ones still waiting are dimmed, and a wavy bar counts the paragraphs. Tap again to flip between the original and the translation; hold it to pick another language. Links and bold or italic words are kept where the model keeps their tags; if it breaks them, that paragraph is plain text. The page is patched in place paragraph by paragraph, so it doesn't reload or flicker. It is slower than an online translator, and it may make mistakes.
 - Summaries open in a sheet at 70% of the screen. Each key point slides in as a card as it's written, and "Why it matters" gets its own accent card.
 - Regenerate, Ask and Read are three connected buttons at the bottom of the sheet.
-- Gists: tap **AI gist** in the floating button at the bottom of an *Unread* list. One tap marks all of them as read.
+- Gists: tap the **AI button** beside the bottom bar of an *Unread* list and pick **AI Gist**. One tap marks all of them as read.
 - Ask slides up a box for questions. Answers are short; the model may add general knowledge, and says when it does.
 
 </details>
@@ -127,7 +127,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 <details>
 <summary>More details</summary>
 
-- Open it with **Triage** in the floating button at the bottom of an *Unread* list. Undo takes back your last choice.
+- Open it with the **AI button** beside the bottom bar of an *Unread* list (tap, then **Triage**; or just hold the button). Undo takes back your last choice.
 - Summary: the card sinks a little and its border glows in Google's AI colours while the 3 key points are written. Tap the card to switch between the summary and the article's description.
 - The run bar has one piece per group, sized by its cards and filled as far as you got. When a group is done you see a ring with how much of your unread is cleared ("3 of 4 groups clear"), what's left and the next group, which starts by itself after a countdown while auto-advance is on.
 - *All caught up* only when nothing is unread anywhere, including cards you skipped or left behind, with the run's read, saved and skipped totals (skipped = swiped down; cards left behind by jumping aren't skipped).
@@ -198,7 +198,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 - Tiles and cards (Filters, Reading stats, the sort tiles and the recaps) squeeze and spring back when pressed, like Triage's buttons.
 - One card style everywhere: the feeds page shows groups as one joined list with icon tiles (a folder, or a Material icon, emoji or image you pick in the group's options) and compact feed rows, article lists count each day's articles in a header that gets a hairline while it's pinned, and every settings page groups its rows into joined cards. Empty lists say so (*Nothing starred yet*, *All caught up*).
 - *Add a feed* is a floating dialog in the same design. The options you get by holding a feed or group are the app's bottom sheets: icon and name on top (a pencil changes a feed's address), its settings as three tiles, groups as one sideways row of chips, and Clear / Unsubscribe as two buttons.
-- The bottom bar (Unread / Starred / All) is frosted glass: the list scrolls on underneath it and shows through, strongly blurred (Android 12 and newer).
+- The bottom bar is a frosted glass toolbar (Starred / Unread / All; the chosen one shows its name in an accent pill): the list scrolls on underneath it and shows through, strongly blurred (Android 12 and newer). On *Unread*, the AI button sits beside it: a tap opens AI Gist and Triage, holding it opens the one chosen in *Settings → Flow page* straight away.
 - Every other sheet looks the same: a title with a muted line under it, a divider, and its choices as one joined group with the chosen one filled and ticked. That includes every setting with a few choices (they used to be dialogs), the reading *Text* sheet (a live preview in your font, the sizes as one joined group, font and alignment as joined buttons, each font name in its own font), *Translate to* (each language in its own name), and the number and speed sheets (the value large between − and +, and quick picks for speed).
 - Predictive back uses a gentler dim on the screen behind, so it never flashes dark.
 - Wide headings use Google Sans Flex at its widest; long names shrink or wrap to fit.

@@ -1,6 +1,5 @@
 package me.ash.reader.ui.page.settings.color.feeds
 
-import kotlin.math.roundToInt // Brief You: the number sheet
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,22 +26,14 @@ fun FeedsPageStylePage(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val filterBarStyle = LocalFeedsFilterBarStyle.current
-    val filterBarPadding = LocalFeedsFilterBarPadding.current
-    val filterBarTonalElevation = LocalFeedsFilterBarTonalElevation.current
     val topBarTonalElevation = LocalFeedsTopBarTonalElevation.current
     val groupListExpand = LocalFeedsGroupListExpand.current
     val groupListTonalElevation = LocalFeedsGroupListTonalElevation.current
 
     val scope = rememberCoroutineScope()
 
-    var filterBarStyleDialogVisible by remember { mutableStateOf(false) }
-    var filterBarPaddingDialogVisible by remember { mutableStateOf(false) }
-    var filterBarTonalElevationDialogVisible by remember { mutableStateOf(false) }
     var topBarTonalElevationDialogVisible by remember { mutableStateOf(false) }
     var groupListTonalElevationDialogVisible by remember { mutableStateOf(false) }
-
-    var filterBarPaddingValue: Int? by remember { mutableStateOf(filterBarPadding) }
 
     RYScaffold(
         containerColor = MaterialTheme.colorScheme.surface onLight MaterialTheme.colorScheme.inverseOnSurface,
@@ -78,10 +69,6 @@ fun FeedsPageStylePage(
                         FeedsPagePreview(
                             topBarTonalElevation = topBarTonalElevation,
                             groupListExpand = groupListExpand,
-                            filterBarStyle = filterBarStyle.value,
-                            filterBarFilled = true,
-                            filterBarPadding = filterBarPadding.dp,
-                            filterBarTonalElevation = filterBarTonalElevation.value.dp,
                         )
                     }
                     Spacer(modifier = Modifier.height(24.dp))
@@ -135,85 +122,13 @@ fun FeedsPageStylePage(
                     Spacer(modifier = Modifier.height(24.dp))*/
                 }
 
-                // Filter Bar
                 item {
-                    Subtitle(
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        text = stringResource(R.string.filter_bar),
-                    )
-                    me.ash.reader.brief.ui.SettingGroup { // Brief You: the section as one joined card
-                    SettingItem(
-                        title = stringResource(R.string.style),
-                        desc = filterBarStyle.toDesc(context),
-                        onClick = {
-                            filterBarStyleDialogVisible = true
-                        },
-                    ) {}
-                    SettingItem(
-                        title = stringResource(R.string.horizontal_padding),
-                        desc = "${filterBarPadding}dp",
-                        onClick = {
-                            filterBarPaddingValue = filterBarPadding
-                            filterBarPaddingDialogVisible = true
-                        },
-                    ) {}
-                    SettingItem(
-                        title = stringResource(R.string.tonal_elevation),
-                        desc = "${filterBarTonalElevation.value}dp",
-                        onClick = {
-                            filterBarTonalElevationDialogVisible = true
-                        },
-                    ) {}
-                    } // Brief You
-                }
-                item {
+                    Spacer(modifier = Modifier.height(24.dp))
                     Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                 }
             }
         }
     )
-
-    RadioDialog(
-        visible = filterBarStyleDialogVisible,
-        title = stringResource(R.string.style),
-        options = FeedsFilterBarStylePreference.values.map {
-            RadioDialogOption(
-                text = it.toDesc(context),
-                selected = filterBarStyle == it,
-            ) {
-                it.put(context, scope)
-            }
-        }
-    ) {
-        filterBarStyleDialogVisible = false
-    }
-
-    // Brief You: number settings are a slider sheet (NumberSheet)
-    if (filterBarPaddingDialogVisible) me.ash.reader.brief.ui.NumberSheet(
-        title = stringResource(R.string.horizontal_padding),
-        value = filterBarPadding.toFloat(),
-        range = 0f..120f,
-        step = 4f,
-        default = FeedsFilterBarPaddingPreference.default.toFloat(),
-        suffix = "dp",
-        onSave = { FeedsFilterBarPaddingPreference.put(context, scope, it.roundToInt()) },
-        onDismiss = { filterBarPaddingDialogVisible = false },
-    )
-
-    RadioDialog(
-        visible = filterBarTonalElevationDialogVisible,
-        title = stringResource(R.string.tonal_elevation),
-        options = FeedsFilterBarTonalElevationPreference.values.map {
-            RadioDialogOption(
-                text = it.toDesc(context),
-                selected = it == filterBarTonalElevation,
-            ) {
-                it.put(context, scope)
-            }
-        }
-    ) {
-        filterBarTonalElevationDialogVisible = false
-    }
 
     RadioDialog(
         visible = topBarTonalElevationDialogVisible,

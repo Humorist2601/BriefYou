@@ -183,10 +183,6 @@
     <string name="top_bar">Horný panel</string>
     <string name="always_expand">Vždy rozbaliť</string>
     <string name="fill_selected_icon">Vyplniť ikonu aktuálneho filtra</string>
-    <string name="filter_bar">Panel filtra</string>
-    <string name="icons">Ikony</string>
-    <string name="icons_and_labels">Ikony a označenia</string>
-    <string name="icons_and_label_only_selected">Ikony a označenia (len aktívne)</string>
     <string name="tips_article_list_tonal_elevation">Zvýraznenie tónovania pre zoznam článkov je k dispozícii len v svetlej téme</string>
     <string name="share">Zdieľať</string>
     <string name="touch_to_play_video">Klepnutím prehráte video</string>

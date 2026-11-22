@@ -118,8 +118,6 @@
     <string name="always_expand">Ĉiam etendi</string>
     <string name="top">Supre</string>
     <string name="mark_as_read_button_position">«Marki kiel legitan» butona pozicio</string>
-    <string name="icons">Ikonoj</string>
-    <string name="icons_and_label_only_selected">Ikonoj kaj etikedoj (nur elektita)</string>
     <string name="tips_article_list_tonal_elevation">Intenseco de la artikola listo nur disponeblas por malhela haŭto</string>
     <string name="touch_to_play_video">Tuŝeti por ludi videon</string>
     <string name="text">Teksto</string>
@@ -225,8 +223,6 @@
     <string name="article_list">Artikola listo</string>
     <string name="top_bar">Supra breto</string>
     <string name="fill_selected_icon">Plenigi nunan filtrilan ikonon</string>
-    <string name="filter_bar">Filtrila breto</string>
-    <string name="icons_and_labels">Ikonoj kaj etikedoj</string>
     <string name="tips_top_bar_tonal_elevation">La intenseco de la listo de supra breto disponeblas nur dum rulumado</string>
     <string name="tips_group_list_tonal_elevation">Intenseco de la grupa listo nur disponeblas por malhela haŭto</string>
     <string name="share">Kunhavigo</string>

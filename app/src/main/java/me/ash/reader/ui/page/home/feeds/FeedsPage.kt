@@ -75,9 +75,6 @@ import androidx.work.WorkInfo
 import kotlin.collections.set
 import kotlinx.coroutines.launch
 import me.ash.reader.R
-import me.ash.reader.infrastructure.preference.LocalFeedsFilterBarPadding
-import me.ash.reader.infrastructure.preference.LocalFeedsFilterBarStyle
-import me.ash.reader.infrastructure.preference.LocalFeedsFilterBarTonalElevation
 import me.ash.reader.infrastructure.preference.LocalFeedsGroupListExpand
 import me.ash.reader.infrastructure.preference.LocalFeedsGroupListTonalElevation
 import me.ash.reader.infrastructure.preference.LocalFeedsTopBarTonalElevation
@@ -124,9 +121,6 @@ fun FeedsPage(
     val topBarTonalElevation = LocalFeedsTopBarTonalElevation.current
     val groupListTonalElevation = LocalFeedsGroupListTonalElevation.current
     val groupListExpand = LocalFeedsGroupListExpand.current
-    val filterBarStyle = LocalFeedsFilterBarStyle.current
-    val filterBarPadding = LocalFeedsFilterBarPadding.current
-    val filterBarTonalElevation = LocalFeedsFilterBarTonalElevation.current
 
     val accounts = accountViewModel.accounts.collectAsStateValue(initial = emptyList())
 
@@ -371,18 +365,7 @@ fun FeedsPage(
             // Brief You: one bar for the whole app; it steps aside for the option drawers.
             SharedFilterBarSlot(
                 enabled = !groupDrawerState.isVisible && !feedDrawerState.isVisible,
-                modifier =
-                    with(sharedTransitionScope) {
-                        Modifier.sharedElement(
-                            sharedContentState = rememberSharedContentState("filterBar"),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                        )
-                    },
                 filter = filterState.filter,
-                filterBarStyle = filterBarStyle.value,
-                filterBarFilled = true,
-                filterBarPadding = filterBarPadding.dp,
-                filterBarTonalElevation = filterBarTonalElevation.value.dp,
             ) {
                 me.ash.reader.brief.perf.PerfLog.action("Feeds: switch filter (tap)") // Brief You: Nightly stutter log
                 feedsViewModel.changeFilter(filterState.copy(filter = it))

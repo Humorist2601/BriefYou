@@ -94,9 +94,6 @@
     <string name="basic_colors">Colores basic</string>
     <string name="primary_color_hint">Como #666666 o 666666</string>
     <string name="initial_filter">Filtro initial</string>
-    <string name="icons">Icones</string>
-    <string name="icons_and_labels">Icones e etiquettas</string>
-    <string name="icons_and_label_only_selected">Icones e etiquettas (solmente active)</string>
     <string name="text">Texto</string>
     <string name="general">General</string>
     <string name="auto_hide_toolbars">Celar automaticamente le barras de instrumentos</string>

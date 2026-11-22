@@ -164,10 +164,6 @@
     <string name="mark_as_read_button_position">Posição do botão \"Marcar como lido\"</string>
     <string name="top_bar">Barra superior</string>
     <string name="fill_selected_icon">Preencher o ícone selecionado</string>
-    <string name="filter_bar">Barra de filtros</string>
-    <string name="icons">Ícones</string>
-    <string name="icons_and_label_only_selected">Ícones e rótulos (apenas ativos)</string>
-    <string name="icons_and_labels">Ícones e rótulos</string>
     <string name="tips_top_bar_tonal_elevation">A elevação tonal da lista da barra superior só está disponível durante a rolagem da página</string>
     <string name="tips_article_list_tonal_elevation">Elevação tonal está disponível apenas no tema claro</string>
     <string name="tips_group_list_tonal_elevation">Elevação tonal está disponível apenas no tema claro</string>

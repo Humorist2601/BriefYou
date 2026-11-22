@@ -31,7 +31,6 @@
     <string name="article_list">Artikkelliste</string>
     <string name="group_list">Gruppeliste</string>
     <string name="fill_selected_icon">Fyll inn valgt ikon</string>
-    <string name="icons">Ikoner</string>
     <plurals name="all_desc">
         <item quantity="one">%1$d arkivert element</item>
         <item quantity="other">%1$d arkiverte elementer</item>
@@ -77,7 +76,6 @@
     <string name="primary_color">Primærfarge</string>
     <string name="skip_this_version">Hopp over denne versjonen</string>
     <string name="top_bar">Toppfelt</string>
-    <string name="icons_and_labels">Ikoner og etiketter</string>
     <string name="searching">Søker …</string>
     <string name="already_subscribed">Allerede abonnert</string>
     <string name="expand_less">Krymp</string>
@@ -205,8 +203,6 @@
     <string name="check_failure">Kunne ikke lete etter nye versjoner</string>
     <string name="download_failure">Kunne ikke laste ned ny versjon</string>
     <string name="article_date">Publiseringstidspunkt</string>
-    <string name="filter_bar">Filtreringsfelt</string>
-    <string name="icons_and_label_only_selected">Ikoner og etikett (kun valgte)</string>
     <string name="tips_top_bar_tonal_elevation">Denne fargelysstyrken er kun tilgjengelig under rulling.</string>
     <string name="horizontal_padding">Vannrett marg</string>
     <string name="preview_article_desc">«Tosken» er åttende og siste bok i serien «Mysterienes herre», skrevet av Sepiablekksprut Som Liker Å Dykke.</string>

@@ -146,9 +146,6 @@
     <string name="group_list">لیست گروه</string>
     <string name="top">بالا</string>
     <string name="top_bar">نوار بالا</string>
-    <string name="icons">آیکون ها</string>
-    <string name="icons_and_labels">آیکون ها و برچسب ها</string>
-    <string name="icons_and_label_only_selected">علامت ها و برچسب ها (فقط فعال ها)</string>
     <string name="tips_top_bar_tonal_elevation">ارتفاع تونال فقط هنگام پیمایش در دسترس است</string>
     <string name="letter_spacing">فاصله بین حروف</string>
     <string name="line_spacing">فاصله بین حروف</string>
@@ -185,7 +182,6 @@
     <string name="share">اشتراک گذاری</string>
     <string name="always_expand">همیشه گسترده شود</string>
     <string name="fill_selected_icon">آیکون فیلتر فعلی را پر کنید</string>
-    <string name="filter_bar">نوار فیلتر</string>
     <string name="mark_as_read_button_position">موقعیت دکمه علامت گذاری به عنوان خوانده شده</string>
     <string name="tips_group_list_tonal_elevation">ارتفاع تونال فقط در زمینهٔ روشن موجود است</string>
     <string name="use_app_theme">از تم برنامه استفاده کنید</string>

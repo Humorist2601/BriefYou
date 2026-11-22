@@ -168,10 +168,6 @@
     <string name="mark_as_read_button_position">Pozycja przycisku „Oznacz jako przeczytane”</string>
     <string name="top_bar">Pasek górny</string>
     <string name="fill_selected_icon">Wypełnij ikonę obecnego filtra</string>
-    <string name="filter_bar">Pasek filtrów</string>
-    <string name="icons">Ikony</string>
-    <string name="icons_and_labels">Ikony z tekstem</string>
-    <string name="icons_and_label_only_selected">Ikony z tekstem (tylko aktywne)</string>
     <string name="tips_top_bar_tonal_elevation">Odcień górnego paska jest dostępny tylko podczas przewijania</string>
     <string name="tips_article_list_tonal_elevation">Odcień listy artykułów jest dostępny tylko w jasnym motywie</string>
     <string name="tips_group_list_tonal_elevation">Odcień listy grup jest dostępny tylko w jasnym motywie</string>

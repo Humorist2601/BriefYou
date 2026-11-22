@@ -136,8 +136,6 @@
     <string name="article_images">Artikel beelden</string>
     <string name="article_list">Lijst met artikelen</string>
     <string name="top_bar">Bovenste balk</string>
-    <string name="filter_bar">Filterbalk</string>
-    <string name="icons">pictogrammen</string>
     <string name="tips_top_bar_tonal_elevation">Toonhoogte voor de bovenste balklijst is alleen beschikbaar bij scrollen</string>
     <string name="article_desc">Artikel beschrijvingen</string>
     <string name="feed_favicons">Feed favicons</string>
@@ -201,8 +199,6 @@
     <string name="group_list">Groepslijst</string>
     <string name="always_expand">Altijd uitbreiden</string>
     <string name="top">Bovenkant</string>
-    <string name="icons_and_labels">Pictogrammen en labels</string>
-    <string name="icons_and_label_only_selected">Pictogrammen en label (alleen actief)</string>
     <string name="tips_article_list_tonal_elevation">Toonverhoging voor de artikellijst is alleen beschikbaar in het lichte thema</string>
     <string name="tips_group_list_tonal_elevation">Tonal elevation for the group list is only available in the light theme</string>
     <string name="share">Delen</string>

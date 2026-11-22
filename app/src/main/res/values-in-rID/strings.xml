@@ -159,10 +159,6 @@
     <string name="mark_as_read_button_position">Posisi tombol\" Tandai sebagai telah dibaca\"</string>
     <string name="top_bar">Bilah atas</string>
     <string name="fill_selected_icon">Isi ikon saringan saat ini</string>
-    <string name="filter_bar">Bilah saringan</string>
-    <string name="icons">Ikon</string>
-    <string name="icons_and_labels">Ikon dan Label</string>
-    <string name="icons_and_label_only_selected">Ikon dan label (hanya yang aktif)</string>
     <string name="tips_top_bar_tonal_elevation">Perubahan nada warna untuk daftar bilah atas hanya tersedia saat menggulir</string>
     <string name="tips_article_list_tonal_elevation">Perubahan nada warna untuk daftar artikel hanya tersedia dalam tema terang</string>
     <string name="tips_group_list_tonal_elevation">Perubahan nada warna untuk daftar grup hanya tersedia dalam tema terang</string>

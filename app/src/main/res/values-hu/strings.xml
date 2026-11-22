@@ -90,10 +90,6 @@
     <string name="mark_as_read_button_position">A „Megjelölés olvasottként” gomb helyzete</string>
     <string name="top_bar">Felső sáv</string>
     <string name="fill_selected_icon">Jelenlegi szűrőikon kitöltése</string>
-    <string name="filter_bar">Szűrősáv</string>
-    <string name="icons">Ikonok</string>
-    <string name="icons_and_labels">Ikonok és címkék</string>
-    <string name="icons_and_label_only_selected">Ikonok és címkék (csak aktívak)</string>
     <string name="tips_top_bar_tonal_elevation">A tónusos emelkedés csak görgetéskor érhető el a felső sáv listájánál</string>
     <string name="add_accounts">Fiókok hozzáadása</string>
     <string name="add_accounts_desc">Helyi, szolgáltatói, saját üzemeltetésű</string>

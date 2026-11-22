@@ -30,12 +30,26 @@ import androidx.compose.runtime.rememberUpdatedState
 import me.ash.reader.brief.ui.LocalBackStack
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.Dp
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import me.ash.reader.domain.model.general.Filter
 
 /*
- * The Unread / Starred / All bar of Feeds and the article list, drawn once for the whole app.
+ * The bottom bar of Feeds and the article list, drawn once for the whole app: the Starred /
+ * Unread / All toolbar and, on the Unread list, the AI button (AI Gist and Triage) beside it.
  *
  * It sits above every screen, so no screen animation can move it: going between Feeds and the
  * article list (tap, back button or back gesture) the screens move under it while it stays
@@ -47,9 +61,8 @@ import me.ash.reader.domain.model.general.Filter
 /** What a screen wants the bar to show and do. */
 data class FilterBarSpec(
     val filter: Filter,
-    val style: Int,
-    val padding: Dp,
-    val tonalElevation: Dp,
+    /** The AI button beside the toolbar (AI Gist and Triage), or null for none. */
+    val ai: AiActions? = null,
     /** False while the screen doesn't show the bar (for example while an article is open). */
     val enabled: Boolean = true,
     val onClick: (Filter) -> Unit,
@@ -88,16 +101,16 @@ fun ProvideFilterBar(spec: FilterBarSpec) {
 
 /** The height the bar takes at the bottom of a screen, for that screen's own layout. */
 @Composable
-fun FilterBarSpace(style: Int) {
+fun FilterBarSpace() {
     // The "now playing" pill sits above the bar: the screen keeps room for it too, so the list
-    // and the AI gist / Triage button move up above it.
+    // and the pull-up hint move up above it.
     val pill by androidx.compose.animation.core.animateDpAsState(
         if (rememberNowPlayingShown()) NOW_PLAYING_PILL_HEIGHT + FloatingBarGap else 0.dp,
         label = "now playing space",
     )
     Column(modifier = Modifier.fillMaxWidth()) {
         Spacer(modifier = Modifier.height(pill))
-        Spacer(modifier = Modifier.height(filterBarContainerHeight(style) + FILTER_BAR_TOP_PADDING))
+        Spacer(modifier = Modifier.height(BottomBarHeight + FILTER_BAR_TOP_PADDING))
         Spacer(modifier = Modifier.windowInsetsBottomHeight(NavigationBarDefaults.windowInsets))
     }
 }
@@ -124,34 +137,95 @@ fun SharedFilterBar(
 
     val spatial = MaterialTheme.motionScheme.defaultSpatialSpec<androidx.compose.ui.unit.IntOffset>()
     val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
-    AnimatedVisibility(
-        visible = visible,
-        modifier = modifier,
-        enter = slideInVertically(spatial) { it } + fadeIn(effects),
-        exit = slideOutVertically(spatial) { it } + fadeOut(effects),
-    ) {
-        val s = shown ?: return@AnimatedVisibility
-        Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-            // Slides up from behind the bar, and back down behind it when closed. The gap under it
-            // matches the one above it (to the AI gist / Triage button): the bar's own top padding
-            // makes up the rest.
-            AnimatedVisibility(
-                visible = rememberNowPlayingShown(),
-                enter = slideInVertically(spatial) { it } + fadeIn(effects),
-                exit = slideOutVertically(spatial) { it } + fadeOut(effects),
-            ) {
-                me.ash.reader.brief.player.NowPlayingPill(
-                    modifier = Modifier.padding(bottom = FloatingBarGap - FILTER_BAR_TOP_PADDING).height(NOW_PLAYING_PILL_HEIGHT)
-                )
-            }
-            BriefFilterBar(
-                filter = s.filter,
-                filterBarStyle = s.style,
-                filterBarFilled = true,
-                filterBarPadding = s.padding,
-                filterBarTonalElevation = s.tonalElevation,
-                filterOnClick = { s.onClick(it) },
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // The AI button's menu. It closes when the button goes (another screen or filter), with the
+    // back button, or with a tap anywhere else (on the dimmed screen behind it).
+    val ai = if (visible) shown?.ai else null
+    var menuOpen by remember { androidx.compose.runtime.mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(ai == null) { if (ai == null) menuOpen = false }
+    androidx.activity.compose.BackHandler(enabled = menuOpen) { menuOpen = false }
+    val scrim by androidx.compose.animation.core.animateFloatAsState(
+        if (menuOpen) 1f else 0f,
+        effects,
+        label = "ai menu scrim",
+    )
+
+    Box(modifier = modifier.fillMaxSize()) {
+        if (scrim > 0f) {
+            Box(
+                modifier =
+                    Modifier.fillMaxSize()
+                        .graphicsLayer { alpha = scrim }
+                        .background(Color.Black.copy(alpha = 0.32f))
+                        .pointerInput(Unit) { detectTapGestures { menuOpen = false } }
             )
+        }
+        AnimatedVisibility(
+            visible = visible,
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+            enter = slideInVertically(spatial) { it } + fadeIn(effects),
+            exit = slideOutVertically(spatial) { it } + fadeOut(effects),
+        ) {
+            val s = shown ?: return@AnimatedVisibility
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // Slides up from behind the bar, and back down behind it when closed. The gap
+                // under it matches the one above it (to the top of the screen's list space).
+                AnimatedVisibility(
+                    visible = rememberNowPlayingShown(),
+                    enter = slideInVertically(spatial) { it } + fadeIn(effects),
+                    exit = slideOutVertically(spatial) { it } + fadeOut(effects),
+                ) {
+                    me.ash.reader.brief.player.NowPlayingPill(
+                        modifier = Modifier.padding(bottom = FloatingBarGap - FILTER_BAR_TOP_PADDING).height(NOW_PLAYING_PILL_HEIGHT)
+                    )
+                }
+                // The toolbar is in the middle; with the AI button it moves to the left and the
+                // button takes the right.
+                val bias by androidx.compose.animation.core.animateFloatAsState(
+                    if (s.ai != null) -1f else 0f,
+                    MaterialTheme.motionScheme.defaultSpatialSpec(),
+                    label = "toolbar place",
+                )
+                Box(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .windowInsetsPadding(NavigationBarDefaults.windowInsets)
+                            .padding(start = 16.dp, end = 16.dp, top = FILTER_BAR_TOP_PADDING)
+                            // Always the bar's height: the AI button's open menu reaches up out of
+                            // it, so nothing above (the "now playing" pill) moves.
+                            .height(BottomBarHeight)
+                ) {
+                    BriefFilterBar(
+                        modifier = Modifier.align(androidx.compose.ui.BiasAlignment(bias, 1f)),
+                        filter = s.filter,
+                        filterOnClick = {
+                            menuOpen = false
+                            s.onClick(it)
+                        },
+                    )
+                    // Kept while it shrinks away, so it has something to show.
+                    val lastAi = remember { arrayOfNulls<AiActions>(1) }
+                    if (s.ai != null) lastAi[0] = s.ai
+                    AnimatedVisibility(
+                        visible = s.ai != null,
+                        modifier = Modifier.align(Alignment.BottomEnd),
+                        enter = scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()),
+                        exit = scaleOut(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
+                    ) {
+                        val actions = s.ai ?: lastAi[0] ?: return@AnimatedVisibility
+                        BriefAiButton(
+                            actions = actions,
+                            expanded = menuOpen,
+                            onExpandedChange = { menuOpen = it },
+                            longPress = AiLongPress.get(context),
+                            modifier =
+                                Modifier.wrapContentSize(Alignment.BottomEnd, unbounded = true)
+                                    .offset(x = AiButtonMenuMargin, y = AiButtonMenuMargin),
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -193,31 +267,17 @@ internal fun rememberNowPlayingShown(): Boolean {
 internal val FILTER_BAR_TOP_PADDING = 8.dp
 
 /**
- * A drop-in for Read You's [FilterBar] on the screens that have the bar (same arguments, so the
- * call in Read You's code barely changes): keeps the bar's space on the screen and hands the rest
- * to the shared bar. [modifier] is accepted for compatibility and not used (the shared bar never
- * moves with a screen). [enabled] false hides the bar, for example under Triage.
+ * Put by a screen that has the bar (Feeds and the article list) where the bar is: keeps the bar's
+ * space on the screen and tells the shared bar what to show. [enabled] false hides the bar, for
+ * example under Triage; [ai] adds the AI button (the Unread list).
  */
 @Composable
 fun SharedFilterBarSlot(
-    @Suppress("UNUSED_PARAMETER") modifier: Modifier = Modifier,
     filter: Filter,
-    filterBarStyle: Int,
-    @Suppress("UNUSED_PARAMETER") filterBarFilled: Boolean,
-    filterBarPadding: Dp,
-    filterBarTonalElevation: Dp,
     enabled: Boolean = true,
+    ai: AiActions? = null,
     filterOnClick: (Filter) -> Unit = {},
 ) {
-    FilterBarSpace(filterBarStyle)
-    ProvideFilterBar(
-        FilterBarSpec(
-            filter = filter,
-            style = filterBarStyle,
-            padding = filterBarPadding,
-            tonalElevation = filterBarTonalElevation,
-            enabled = enabled,
-            onClick = filterOnClick,
-        )
-    )
+    FilterBarSpace()
+    ProvideFilterBar(FilterBarSpec(filter = filter, ai = ai, enabled = enabled, onClick = filterOnClick))
 }

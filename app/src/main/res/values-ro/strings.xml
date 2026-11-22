@@ -4,7 +4,6 @@
     <string name="browse_tos_tips">Răsfoiți <i><u>Termenii și condițiile și Politica de confidențialitate</u></i></string>
     <string name="three_days">3z</string>
     <string name="primary_color">Culoare primară</string>
-    <string name="icons_and_labels">Pictograme și etichete</string>
     <string name="wallpaper_colors">Culori de fundal</string>
     <string name="add_to_group">Adaugă în grup</string>
     <string name="article_date">Timpul publicării articolului</string>
@@ -24,7 +23,6 @@
     <string name="custom_tabs">Forțează CustomTabs</string>
     <string name="only_on_wifi">Sincronizează doar prin Wi-Fi</string>
     <string name="password">Parolă</string>
-    <string name="icons_and_label_only_selected">Pictograme și etichetă (numai active)</string>
     <string name="every_3_hours">La fiecare 3 ore</string>
     <string name="feed_or_site_url">URL-ul feedului sau al siteului</string>
     <string name="welcome">Bun venit</string>
@@ -114,7 +112,6 @@
     <string name="align_start">Aliniază la stânga</string>
     <string name="keep_archived_articles">Păstrează articolele arhivate</string>
     <string name="selected">Selectat</string>
-    <string name="icons">Pictograme</string>
     <string name="every_1_day">În fiecare zi</string>
     <plurals name="unread_desc">
         <item quantity="one">%1$d articol necitit</item>
@@ -215,7 +212,6 @@
     <string name="accounts_tips">Poți atinge numele contului de pe pagina de flux pentru a-l comuta</string>
     <string name="already_subscribed">Deja abonat</string>
     <string name="empty">Gol</string>
-    <string name="filter_bar">Bara de filtru</string>
     <string name="expand_more">Extinde</string>
     <string name="allow">Acceptă</string>
     <string name="auto_customtabs">Auto (Preferă CustomTabs)</string>

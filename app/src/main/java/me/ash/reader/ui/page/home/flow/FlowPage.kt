@@ -1,7 +1,7 @@
 package me.ash.reader.ui.page.home.flow
 
 // Brief You
-import me.ash.reader.brief.list.BriefFlowFab
+import me.ash.reader.brief.list.briefAiActions
 import me.ash.reader.brief.list.BriefFlowOverlays
 import me.ash.reader.brief.list.briefPullToLoadInsets
 import me.ash.reader.brief.list.briefPullToLoadPadding
@@ -47,7 +47,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
@@ -90,9 +89,6 @@ import me.ash.reader.domain.model.article.ArticleWithFeed
 import me.ash.reader.infrastructure.preference.LocalFlowArticleListDateStickyHeader
 import me.ash.reader.infrastructure.preference.LocalFlowArticleListFeedIcon
 import me.ash.reader.infrastructure.preference.LocalFlowArticleListTonalElevation
-import me.ash.reader.infrastructure.preference.LocalFlowFilterBarPadding
-import me.ash.reader.infrastructure.preference.LocalFlowFilterBarStyle
-import me.ash.reader.infrastructure.preference.LocalFlowFilterBarTonalElevation
 import me.ash.reader.infrastructure.preference.LocalFlowTopBarTonalElevation
 import me.ash.reader.infrastructure.preference.LocalMarkAsReadOnScroll
 import me.ash.reader.infrastructure.preference.LocalOpenLink
@@ -141,9 +137,6 @@ fun FlowPage(
     val articleListFeedIcon = LocalFlowArticleListFeedIcon.current
     val articleListDateStickyHeader = LocalFlowArticleListDateStickyHeader.current
     val topBarTonalElevation = LocalFlowTopBarTonalElevation.current
-    val filterBarStyle = LocalFlowFilterBarStyle.current
-    val filterBarPadding = LocalFlowFilterBarPadding.current
-    val filterBarTonalElevation = LocalFlowFilterBarTonalElevation.current
     val sharedContent = LocalSharedContent.current
     val markAsReadOnScroll = LocalMarkAsReadOnScroll.current.value
     val context = LocalContext.current
@@ -725,8 +718,7 @@ fun FlowPage(
                     Box(modifier = Modifier.fillMaxSize()) {
                         LazyColumn(
                             modifier =
-                                Modifier.nestedScroll(brief.listScroll) // Brief You
-                                    .pullToLoad(
+                                Modifier.pullToLoad(
                                         state = pullToLoadState,
                                         enabled = true,
                                         contentOffsetY = { fraction ->
@@ -779,25 +771,14 @@ fun FlowPage(
                     }
                 }
             },
-            floatingActionButton = { BriefFlowFab(brief, viewModel, filterUiState, onSearch) }, // Brief You
-            floatingActionButtonPosition = FabPosition.Center,
             bottomBar = {
                 // Brief You: one bar for the whole app (it stays in place between screens); hidden
                 // under Triage.
                 SharedFilterBarSlot(
                     enabled = showFilterBar && !brief.showTriage,
-                    modifier =
-                        with(sharedTransitionScope) {
-                            Modifier.sharedElement(
-                                sharedContentState = rememberSharedContentState("filterBar"),
-                                animatedVisibilityScope = animatedVisibilityScope,
-                            )
-                        },
                     filter = filterUiState.filter,
-                    filterBarStyle = filterBarStyle.value,
-                    filterBarFilled = true,
-                    filterBarPadding = filterBarPadding.dp,
-                    filterBarTonalElevation = filterBarTonalElevation.value.dp,
+                    // The AI button (AI Gist and Triage), in Unread.
+                    ai = briefAiActions(brief, filterUiState, onSearch),
                 ) {
                     if (filterUiState.filter != it) {
                         me.ash.reader.brief.perf.PerfLog.action("List: switch filter") // Brief You: Nightly stutter log
@@ -817,7 +798,7 @@ fun FlowPage(
             PullToLoadIndicator(
                 state = it,
                 loadAction = currentLoadAction,
-                bottomPadding = briefPullToLoadPadding(filterBarStyle.value), // Brief You
+                bottomPadding = briefPullToLoadPadding, // Brief You
                 modifier =
                     Modifier.windowInsetsPadding(briefPullToLoadInsets) // Brief You
                         .windowInsetsPadding(
