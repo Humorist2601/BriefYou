@@ -1,12 +1,12 @@
 package me.ash.reader.domain.model.general
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Subject
-import androidx.compose.material.icons.outlined.FiberManualRecord
-import androidx.compose.material.icons.rounded.FiberManualRecord
+import androidx.compose.material.icons.outlined.AllInbox
+import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.rounded.AllInbox
+import androidx.compose.material.icons.rounded.Inbox
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarOutline
-import androidx.compose.material.icons.rounded.Subject
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -61,13 +61,14 @@ class Filter private constructor(
         )
         val Unread = Filter(
             index = 1,
-            iconOutline = Icons.Outlined.FiberManualRecord,
-            iconFilled = Icons.Rounded.FiberManualRecord,
+            // Brief You: Unread is the inbox, All the stacked inboxes
+            iconOutline = Icons.Outlined.Inbox,
+            iconFilled = Icons.Rounded.Inbox,
         )
         val All = Filter(
             index = 2,
-            iconOutline = Icons.AutoMirrored.Rounded.Subject,
-            iconFilled = Icons.AutoMirrored.Rounded.Subject,
+            iconOutline = Icons.Outlined.AllInbox,
+            iconFilled = Icons.Rounded.AllInbox,
         )
         val values = listOf(Starred, Unread, All)
     }
