@@ -54,7 +54,6 @@ import com.ay.briefyou.ui.page.settings.color.reading.ReadingTextPage
 import com.ay.briefyou.ui.page.settings.color.reading.ReadingTitlePage
 import com.ay.briefyou.ui.page.settings.color.reading.ReadingVideoPage
 import com.ay.briefyou.ui.page.settings.interaction.InteractionPage
-import com.ay.briefyou.ui.page.settings.languages.LanguagesPage
 import com.ay.briefyou.ui.page.settings.tips.LicenseListPage
 import com.ay.briefyou.ui.page.settings.tips.TipsAndSupportPage
 import com.ay.briefyou.ui.page.settings.troubleshooting.TroubleshootingPage
@@ -206,7 +205,6 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                                 navigateToAccounts = { backStack.add(Route.Accounts) },
                                 navigateToColorAndStyle = { backStack.add(Route.ColorAndStyle) },
                                 navigateToInteraction = { backStack.add(Route.Interaction) },
-                                navigateToLanguages = { backStack.add(Route.Languages) },
                                 navigateToAiModel = { backStack.add(Route.AiModel) }, // Brief You
                                 navigateToFilters = { backStack.add(Route.Filters) }, // Brief You
                                 navigateToTroubleshooting = {
@@ -288,7 +286,6 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     Route.ReadingPageImage -> NavEntry(key) { ReadingImagePage(onBack = onBack) }
                     Route.ReadingPageVideo -> NavEntry(key) { ReadingVideoPage(onBack = onBack) }
                     Route.Interaction -> NavEntry(key) { InteractionPage(onBack = onBack) }
-                    Route.Languages -> NavEntry(key) { LanguagesPage(onBack = onBack) }
                     Route.AiModel -> NavEntry(key) { AiSettingsPage(onBack = onBack) } // Brief You
                     Route.Filters -> NavEntry(key) { FiltersPage(onBack = onBack) } // Brief You
                     Route.ReadingStats -> NavEntry(key) { com.ay.briefyou.brief.stats.ReadingStatsPage(onBack = onBack) } // Brief You

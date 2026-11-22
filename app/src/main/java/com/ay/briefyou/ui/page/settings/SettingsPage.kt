@@ -53,7 +53,6 @@ fun SettingsPage(
     navigateToAccounts: () -> Unit,
     navigateToColorAndStyle: () -> Unit,
     navigateToInteraction: () -> Unit,
-    navigateToLanguages: () -> Unit,
     navigateToAiModel: () -> Unit, // Brief You
     navigateToFilters: () -> Unit,
     navigateToTroubleshooting: () -> Unit,

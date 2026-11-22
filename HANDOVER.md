@@ -506,6 +506,13 @@ Work from this list; tick items off here as they are done.
     set it up again. The Read You cleanup (19) is the next Nightly. Check after installing over the
     previous build: icon, widgets, sync, settings, articles, auto backup. Delete the stubs, the alias
     and the keep rule at the 1.0.0 restart (22).
+    *Cleanup, first pass (on `deps-b`, not yet built):* removed `BestIconFinder`, `LanguagesPage` (its route
+    and the `navigateToLanguages` parameter too), `LocalSecurityKey`, `FeedWithGroup`, `RemoteCallException`,
+    `AnimatedText`, `CanBeDisabledIconButton`, `CurlyCornerShape`, `ViewPager`,
+    `ClickableTextWithInlineContent`, `NavGraphBuilderExt`, `RoundedPolygonShape`, `ScrollToPositionFab`,
+    `Harmonies`, and Read You's 51 translation folders (`values-xx`; the APK is English only).
+    Found by listing top-level names that nothing else mentions (Hilt modules excluded). A second
+    pass is needed for what the first leaves unused (strings, helpers only they used).
 18. **Leave the GitHub fork network** (the owner, through GitHub Support), whenever convenient.
 19. **Remove unused Read You code** over time (the Languages page, old drawers, BestIconFinder…),
     each piece checked to be unused. **The owner's decision: together
