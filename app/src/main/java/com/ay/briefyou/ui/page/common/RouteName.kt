@@ -21,15 +21,11 @@ object RouteName {
     // Color & Style
     const val COLOR_AND_STYLE = "color_and_style"
     const val DARK_THEME = "dark_theme"
-    const val FEEDS_PAGE_STYLE = "feeds_page_style"
-    const val FLOW_PAGE_STYLE = "flow_page_style"
     const val READING_PAGE_STYLE = "reading_page_style"
     const val READING_BOLD_CHARACTERS = "reading_bold_characters"
     const val READING_DARK_THEME = "reading_dark_theme"
     const val READING_PAGE_TITLE = "reading_page_title"
     const val READING_PAGE_TEXT = "reading_page_text"
-    const val READING_PAGE_IMAGE = "reading_page_image"
-    const val READING_PAGE_VIDEO = "reading_page_video"
 
     // Interaction
     const val INTERACTION = "interaction"

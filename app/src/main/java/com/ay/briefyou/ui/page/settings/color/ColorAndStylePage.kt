@@ -88,8 +88,7 @@ import com.ay.briefyou.ui.theme.palette.safeHexToColor
 fun ColorAndStylePage(
     onBack: () -> Unit,
     navigateToDarkTheme: () -> Unit,
-    navigateToFeedsPageStyle: () -> Unit,
-    navigateToFlowPageStyle: () -> Unit,
+    navigateToListsStyle: () -> Unit,
     navigateToReadingPageStyle: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -219,12 +218,8 @@ fun ColorAndStylePage(
                     )
                     com.ay.briefyou.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
-                        title = stringResource(R.string.feeds_page),
-                        onClick = navigateToFeedsPageStyle,
-                    ) {}
-                    SettingItem(
-                        title = stringResource(R.string.flow_page),
-                        onClick = navigateToFlowPageStyle,
+                        title = stringResource(R.string.lists_page),
+                        onClick = navigateToListsStyle,
                     ) {}
                     SettingItem(
                         title = stringResource(R.string.reading_page),

@@ -45,14 +45,12 @@ import com.ay.briefyou.ui.page.settings.accounts.AccountsPage
 import com.ay.briefyou.ui.page.settings.accounts.AddAccountsPage
 import com.ay.briefyou.ui.page.settings.color.ColorAndStylePage
 import com.ay.briefyou.ui.page.settings.color.DarkThemePage
-import com.ay.briefyou.ui.page.settings.color.feeds.FeedsPageStylePage
-import com.ay.briefyou.ui.page.settings.color.flow.FlowPageStylePage
+import com.ay.briefyou.ui.page.settings.color.lists.ListsStylePage
 import com.ay.briefyou.ui.page.settings.color.reading.BoldCharactersPage
-import com.ay.briefyou.ui.page.settings.color.reading.ReadingImagePage
+import com.ay.briefyou.ui.page.settings.color.reading.ReadingMediaPage
 import com.ay.briefyou.ui.page.settings.color.reading.ReadingStylePage
 import com.ay.briefyou.ui.page.settings.color.reading.ReadingTextPage
 import com.ay.briefyou.ui.page.settings.color.reading.ReadingTitlePage
-import com.ay.briefyou.ui.page.settings.color.reading.ReadingVideoPage
 import com.ay.briefyou.ui.page.settings.interaction.InteractionPage
 import com.ay.briefyou.ui.page.settings.tips.LicenseListPage
 import com.ay.briefyou.ui.page.settings.tips.TipsAndSupportPage
@@ -248,16 +246,14 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                             ColorAndStylePage(
                                 onBack = onBack,
                                 navigateToDarkTheme = { backStack.add(Route.DarkTheme) },
-                                navigateToFeedsPageStyle = { backStack.add(Route.FeedsPageStyle) },
-                                navigateToFlowPageStyle = { backStack.add(Route.FlowPageStyle) },
+                                navigateToListsStyle = { backStack.add(Route.ListsStyle) },
                                 navigateToReadingPageStyle = {
                                     backStack.add(Route.ReadingPageStyle)
                                 },
                             )
                         }
                     Route.DarkTheme -> NavEntry(key) { DarkThemePage(onBack = onBack) }
-                    Route.FeedsPageStyle -> NavEntry(key) { FeedsPageStylePage(onBack = onBack) }
-                    Route.FlowPageStyle -> NavEntry(key) { FlowPageStylePage(onBack = onBack) }
+                    Route.ListsStyle -> NavEntry(key) { ListsStylePage(onBack = onBack) }
                     Route.ReadingPageStyle ->
                         NavEntry(key) {
                             ReadingStylePage(
@@ -271,11 +267,8 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                                 navigateToReadingPageText = {
                                     backStack.add(Route.ReadingPageText)
                                 },
-                                navigateToReadingPageImage = {
-                                    backStack.add(Route.ReadingPageImage)
-                                },
-                                navigateToReadingPageVideo = {
-                                    backStack.add(Route.ReadingPageVideo)
+                                navigateToReadingPageMedia = {
+                                    backStack.add(Route.ReadingPageMedia)
                                 },
                             )
                         }
@@ -283,8 +276,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                         NavEntry(key) { BoldCharactersPage(onBack = onBack) }
                     Route.ReadingPageTitle -> NavEntry(key) { ReadingTitlePage(onBack = onBack) }
                     Route.ReadingPageText -> NavEntry(key) { ReadingTextPage(onBack = onBack) }
-                    Route.ReadingPageImage -> NavEntry(key) { ReadingImagePage(onBack = onBack) }
-                    Route.ReadingPageVideo -> NavEntry(key) { ReadingVideoPage(onBack = onBack) }
+                    Route.ReadingPageMedia -> NavEntry(key) { ReadingMediaPage(onBack = onBack) }
                     Route.Interaction -> NavEntry(key) { InteractionPage(onBack = onBack) }
                     Route.AiModel -> NavEntry(key) { AiSettingsPage(onBack = onBack) } // Brief You
                     Route.Filters -> NavEntry(key) { FiltersPage(onBack = onBack) } // Brief You

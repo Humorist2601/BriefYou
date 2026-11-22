@@ -94,6 +94,22 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
     val cardPrompt = viewModel.cardPrompt.collectAsStateValue()
     var editing by rememberSaveable { mutableStateOf<PromptKind?>(null) }
     var downloadAsk by rememberSaveable { mutableStateOf(false) }
+    var aiButtonDialogVisible by rememberSaveable { mutableStateOf(false) }
+    var aiLongPress by remember { mutableStateOf(com.ay.briefyou.brief.ui.AiLongPress.get(context)) }
+    com.ay.briefyou.ui.component.base.RadioDialog(
+        visible = aiButtonDialogVisible,
+        title = stringResource(R.string.ai_button_long_press),
+        options = com.ay.briefyou.brief.ui.AiLongPress.entries.map {
+            com.ay.briefyou.ui.component.base.RadioDialogOption(
+                text = it.label(),
+                selected = it == aiLongPress,
+            ) {
+                com.ay.briefyou.brief.ui.AiLongPress.set(context, it)
+                aiLongPress = it
+            }
+        },
+        onDismissRequest = { aiButtonDialogVisible = false },
+    )
     if (downloadAsk) {
         DownloadDialog(
             onDownload = {
@@ -178,6 +194,21 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
                             onClick = { editing = PromptKind.Card },
                         )
                     }
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+                item {
+                    Subtitle(
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        text = stringResource(R.string.ai_button),
+                    )
+                    com.ay.briefyou.brief.ui.SettingGroup {
+                        com.ay.briefyou.ui.page.settings.SettingItem(
+                            title = stringResource(R.string.ai_button_long_press),
+                            desc = stringResource(R.string.ai_button_opens, aiLongPress.label()),
+                            onClick = { aiButtonDialogVisible = true },
+                        ) {}
+                    }
+                    com.ay.briefyou.ui.component.base.Tips(text = stringResource(R.string.ai_button_tips))
                     Spacer(modifier = Modifier.height(20.dp))
                 }
                 item {

@@ -90,11 +90,9 @@ import com.ay.briefyou.ui.component.menu.AnimatedDropdownMenu
 import com.ay.briefyou.ui.component.swipe.SwipeAction
 import com.ay.briefyou.ui.component.swipe.SwipeableActionsBox
 import com.ay.briefyou.ui.ext.requiresBidi
-import com.ay.briefyou.ui.ext.surfaceColorAtElevation
-import com.ay.briefyou.ui.page.settings.color.flow.generateArticleWithFeedPreview
+import com.ay.briefyou.ui.page.settings.color.lists.generateArticleWithFeedPreview
 import com.ay.briefyou.ui.theme.Shape20
 import com.ay.briefyou.brief.ui.applyTextDirection // Brief You
-import com.ay.briefyou.ui.theme.palette.onDark
 
 private const val TAG = "ArticleItem"
 
@@ -352,7 +350,6 @@ private const val SwipeActionDelay = 300L
 fun SwipeableArticleItem(
     articleWithFeed: ArticleWithFeed,
     isUnread: Boolean = articleWithFeed.article.isUnread,
-    articleListTonalElevation: Int = 0,
     onClick: (ArticleWithFeed) -> Unit = {},
     isSwipeEnabled: () -> Boolean = { false },
     isMenuEnabled: Boolean = true,
@@ -401,9 +398,7 @@ fun SwipeableArticleItem(
                         }
                     }
                     .background(
-                        MaterialTheme.colorScheme.surfaceColorAtElevation(
-                            articleListTonalElevation.dp
-                        ) onDark MaterialTheme.colorScheme.surface
+                        MaterialTheme.colorScheme.surface
                     )
                     .wrapContentSize()
         ) {

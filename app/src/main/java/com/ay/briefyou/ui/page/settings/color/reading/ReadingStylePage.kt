@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Segment
 import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.rounded.Title
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -43,12 +42,8 @@ import com.ay.briefyou.infrastructure.preference.LocalPullToSwitchArticle
 import com.ay.briefyou.infrastructure.preference.LocalReadingAutoHideToolbar
 import com.ay.briefyou.infrastructure.preference.LocalReadingBoldCharacters
 import com.ay.briefyou.infrastructure.preference.LocalReadingFonts
-import com.ay.briefyou.infrastructure.preference.LocalReadingPageTonalElevation
-import com.ay.briefyou.infrastructure.preference.LocalReadingRenderer
 import com.ay.briefyou.infrastructure.preference.LocalReadingTheme
 import com.ay.briefyou.infrastructure.preference.ReadingFontsPreference
-import com.ay.briefyou.infrastructure.preference.ReadingPageTonalElevationPreference
-import com.ay.briefyou.infrastructure.preference.ReadingRendererPreference
 import com.ay.briefyou.infrastructure.preference.ReadingThemePreference
 import com.ay.briefyou.infrastructure.preference.not
 import com.ay.briefyou.ui.component.ReadingThemePrev
@@ -71,22 +66,16 @@ fun ReadingStylePage(
     navigateToReadingBoldCharacters: () -> Unit,
     navigateToReadingPageTitle: () -> Unit,
     navigateToReadingPageText: () -> Unit,
-    navigateToReadingPageImage: () -> Unit,
-    navigateToReadingPageVideo: () -> Unit,
+    navigateToReadingPageMedia: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     val readingTheme = LocalReadingTheme.current
-    val tonalElevation = LocalReadingPageTonalElevation.current
     val fonts = LocalReadingFonts.current
     val autoHideToolbar = LocalReadingAutoHideToolbar.current
-    val pullToSwitchArticle = LocalPullToSwitchArticle.current
-    val renderer = LocalReadingRenderer.current
     val boldCharacters = LocalReadingBoldCharacters.current
 
-    var tonalElevationDialogVisible by remember { mutableStateOf(false) }
-    var rendererDialogVisible by remember { mutableStateOf(false) }
     var fontsDialogVisible by remember { mutableStateOf(false) }
 
     val launcher =
@@ -163,25 +152,12 @@ fun ReadingStylePage(
                     )
                     com.ay.briefyou.brief.ui.SettingGroup { // Brief You: the section as one joined card
                     SettingItem(
-                        title = stringResource(R.string.content_renderer),
-                        desc = renderer.toDesc(context),
-                        onClick = { rendererDialogVisible = true },
-                    ) {}
-                    SettingItem(
                         title = stringResource(R.string.bold_characters),
-                        separatedActions = renderer == ReadingRendererPreference.WebView,
-                        enabled = renderer == ReadingRendererPreference.WebView,
-                        desc = if (renderer == ReadingRendererPreference.WebView) null
-                        else stringResource(R.string.only_available_on_webview),
+                        separatedActions = true,
                         onClick = navigateToReadingBoldCharacters,
                     ) {
-                        if (renderer == ReadingRendererPreference.WebView) {
-                            RYSwitch(
-                                enable = renderer == ReadingRendererPreference.WebView,
-                                activated = boldCharacters.value,
-                            ) {
-                                (!boldCharacters).put(context, scope)
-                            }
+                        RYSwitch(activated = boldCharacters.value) {
+                            (!boldCharacters).put(context, scope)
                         }
                     }
                     SettingItem(
@@ -202,26 +178,6 @@ fun ReadingStylePage(
                     com.ay.briefyou.brief.reading.NewsletterSettingItem() // Brief You
                     // Brief You: "Rearrange buttons" is hidden until it works
 
-                    SettingItem(
-                        title = stringResource(id = R.string.pull_to_switch_article),
-                        onClick = { pullToSwitchArticle.toggle(context, scope) }) {
-                        RYSwitch(activated = pullToSwitchArticle.value, onClick = {
-                            pullToSwitchArticle.toggle(context, scope)
-                        })
-                    }
-                    } // Brief You
-                    Subtitle(
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        text = stringResource(R.string.toolbars)
-                    )
-                    com.ay.briefyou.brief.ui.SettingGroup { // Brief You: the section as one joined card
-                    SettingItem(
-                        title = stringResource(R.string.tonal_elevation),
-                        desc = "${tonalElevation.value}dp",
-                        onClick = {
-                            tonalElevationDialogVisible = true
-                        },
-                    ) {}
                     } // Brief You
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -247,16 +203,10 @@ fun ReadingStylePage(
                         onClick = navigateToReadingPageText,
                     ) {}
                     SettingItem(
-                        title = stringResource(R.string.images),
-                        desc = stringResource(R.string.images_desc),
+                        title = stringResource(R.string.images_and_videos),
+                        desc = stringResource(R.string.images_and_videos_desc),
                         icon = Icons.Outlined.Image,
-                        onClick = navigateToReadingPageImage,
-                    ) {}
-                    SettingItem(
-                        title = stringResource(R.string.videos),
-                        desc = stringResource(R.string.videos_desc),
-                        icon = Icons.Outlined.Movie,
-                        onClick = navigateToReadingPageVideo, // Brief You: the Videos page works now
+                        onClick = navigateToReadingPageMedia,
                     ) {}
                     } // Brief You
                 }
@@ -268,36 +218,6 @@ fun ReadingStylePage(
             }
         }
     )
-
-    RadioDialog(
-        visible = tonalElevationDialogVisible,
-        title = stringResource(R.string.tonal_elevation),
-        options = ReadingPageTonalElevationPreference.values.map {
-            RadioDialogOption(
-                text = it.toDesc(context),
-                selected = it == tonalElevation,
-            ) {
-                it.put(context, scope)
-            }
-        }
-    ) {
-        tonalElevationDialogVisible = false
-    }
-
-    RadioDialog(
-        visible = rendererDialogVisible,
-        title = stringResource(R.string.content_renderer),
-        options = ReadingRendererPreference.values.map {
-            RadioDialogOption(
-                text = it.toDesc(context),
-                selected = it == renderer,
-            ) {
-                it.put(context, scope)
-            }
-        }
-    ) {
-        rendererDialogVisible = false
-    }
 
     RadioDialog(
         visible = fontsDialogVisible,

@@ -58,9 +58,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.ay.briefyou.R
-import com.ay.briefyou.infrastructure.preference.LocalReadingPageTonalElevation
 import com.ay.briefyou.infrastructure.preference.LocalSharedContent
-import com.ay.briefyou.infrastructure.preference.ReadingPageTonalElevationPreference
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
 import com.ay.briefyou.ui.page.adaptive.NavigationAction
 
@@ -91,13 +89,10 @@ fun BriefTopBar(
 ) {
     val context = LocalContext.current
     val sharedContent = LocalSharedContent.current
-    val isOutlined =
-        LocalReadingPageTonalElevation.current == ReadingPageTonalElevationPreference.Outlined
-
     val containerColor by
         animateColorAsState(
             with(MaterialTheme.colorScheme) {
-                if (isOutlined || !isScrolled) surface else surfaceContainer
+                surface
             },
             label = "",
             animationSpec = spring(stiffness = Spring.StiffnessMediumLow),

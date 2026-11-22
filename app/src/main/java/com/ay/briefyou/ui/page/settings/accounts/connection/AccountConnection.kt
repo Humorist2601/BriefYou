@@ -27,8 +27,6 @@ fun LazyItemScope.AccountConnection(
         AccountType.Fever.id -> FeverConnection(account)
         AccountType.GoogleReader.id -> GoogleReaderConnection(account)
         AccountType.FreshRSS.id -> FreshRSSConnection(account)
-        AccountType.Feedly.id -> {}
-        AccountType.Inoreader.id -> {}
     }
     if (account.type.id != AccountType.Local.id) {
         Spacer(modifier = Modifier.height(24.dp))

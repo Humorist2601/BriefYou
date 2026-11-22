@@ -143,12 +143,9 @@
     <string name="off">Off</string>
     <string name="other">Other</string>
     <string name="amoled_dark_theme">Black dark theme</string>
-    <string name="tonal_elevation">Tonal elevation</string>
     <string name="reading_fonts">Reading fonts</string>
     <string name="basic_fonts">Basic fonts</string>
     <string name="google_sans" translatable="false">Google Sans Flex</string>
-    <string name="feeds_page">Feeds page</string>
-    <string name="flow_page">Flow page</string>
     <string name="reading_page">Reading page</string>
     <string name="open_source_licenses">Open source licenses</string>
     <string name="github_link" translatable="false">https://github.com/Humorist2601/BriefYou</string>
@@ -181,14 +178,13 @@
     <string name="article_date_sticky_header">Sticky publication date header</string>
     <string name="article_list">Article list</string>
     <string name="group_list">Group list</string>
+    <string name="feeds_page">Feeds page</string>
+    <string name="flow_page">Flow page</string>
     <string name="always_expand">Always expand</string>
     <string name="top">Top</string>
     <string name="mark_as_read_button_position">\"Mark as read\" button position</string>
     <string name="top_bar">Top bar</string>
     <string name="fill_selected_icon">Fill current filter icon</string>
-    <string name="tips_top_bar_tonal_elevation">Tonal elevation for the top bar list is only available when scrolling</string>
-    <string name="tips_article_list_tonal_elevation">Tonal elevation for the article list is only available in the light theme</string>
-    <string name="tips_group_list_tonal_elevation">Tonal elevation for the group list is only available in the light theme</string>
     <string name="share">Share</string>
     <string name="touch_to_play_video">Tap to play a video</string>
     <string name="text">Text</string>
@@ -216,8 +212,6 @@
     <string name="dark_reading_theme">Dark reading theme</string>
     <string name="title_desc">Bold, upper case, alignment</string>
     <string name="text_desc">Font size, letter spacing, alignment</string>
-    <string name="images_desc">Rounded corners, horizontal padding</string>
-    <string name="videos_desc">Rounded corners, horizontal padding</string>
     <string name="maximize">Maximize</string>
     <string name="every_15_minutes">Every 15 minutes</string>
     <string name="every_30_minutes">Every 30 minutes</string>
@@ -239,12 +233,7 @@
     <string name="fever" translatable="false">Fever</string>
     <string name="google_reader" translatable="false">Google Reader</string>
     <string name="fresh_rss" translatable="false">FreshRSS</string>
-    <string name="feedly" translatable="false">Feedly</string>
-    <string name="inoreader" translatable="false">Inoreader</string>
     <string name="local_desc">On this device</string>
-    <string name="services">Services</string>
-    <string name="feedly_desc" translatable="false">feedly.com</string>
-    <string name="inoreader_desc" translatable="false">inoreader.com</string>
     <string name="self_hosted">Self-hosted</string>
     <string name="fresh_rss_desc" translatable="false">freshrss.org</string>
     <string name="google_reader_desc" translatable="false">Google Reader API</string>
@@ -260,7 +249,6 @@
     <string name="only_on_wifi">Only on Wi-Fi</string>
     <string name="only_when_charging">Only when charging</string>
     <string name="keep_archived_articles">Keep archived articles</string>
-    <string name="block_list">Block list</string>
     <string name="export_as_opml">Export as OPML</string>
     <string name="clear_all_articles">Clear all articles</string>
     <string name="delete_account">Delete account</string>
@@ -324,22 +312,12 @@
     <string name="troubleshooting_desc">Bug report, app preferences</string>
     <string name="bug_report">Bug report</string>
     <string name="issue_tracer_url" translatable="false">https://github.com/Humorist2601/BriefYou/issues</string>
-    <string name="app_preferences">App preferences</string>
     <string name="import_from_protobuf_file">Import from protobuf file</string>
     <string name="export_as_protobuf_file">Export as protobuf file</string>
-    <string name="invalid_protobuf_file_warning">This file may not be a valid protobuf file. Importing it could potentially corrupt the app and result in the loss of current preferences. Are you sure you want to proceed?</string>
-    <string name="import_from_json">Import from JSON</string>
-    <string name="export_as_json">Export as JSON</string>
-    <string name="invalid_json_file_warning">This file may not be a valid JSON file. Importing it could potentially corrupt the app and result in the loss of current preferences. Are you sure you want to proceed?</string>
-    <string name="webview" translatable="false">WebView</string>
-    <string name="native_component">Native component</string>
-    <string name="content_renderer">Content renderer</string>
     <string name="read_aloud">Read aloud</string>
-    <string name="only_available_on_webview">Only available when using the WebView content renderer</string>
     <string name="about">About</string>
     <string name="mark_as_read_on_scroll">Mark as read on scroll</string>
     <string name="hide_empty_groups">Hide empty groups</string>
-    <string name="toolbars">Toolbars</string>
     <string name="sort_unread_articles">Sort unread articles</string>
     <string name="latest">Latest</string>
     <string name="earliest">Earliest</string>

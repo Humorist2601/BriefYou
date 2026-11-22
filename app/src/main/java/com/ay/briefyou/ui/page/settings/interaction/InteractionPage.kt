@@ -25,7 +25,6 @@ import com.ay.briefyou.infrastructure.preference.InitialFilterPreference
 import com.ay.briefyou.infrastructure.preference.InitialPagePreference
 import com.ay.briefyou.infrastructure.preference.LocalArticleListSwipeEndAction
 import com.ay.briefyou.infrastructure.preference.LocalArticleListSwipeStartAction
-import com.ay.briefyou.infrastructure.preference.LocalHideEmptyGroups
 import com.ay.briefyou.infrastructure.preference.LocalInitialFilter
 import com.ay.briefyou.infrastructure.preference.LocalInitialPage
 import com.ay.briefyou.infrastructure.preference.LocalMarkAsReadOnScroll
@@ -62,7 +61,6 @@ fun InteractionPage(
     val swipeToStartAction = LocalArticleListSwipeStartAction.current
     val swipeToEndAction = LocalArticleListSwipeEndAction.current
     val markAsReadOnScroll = LocalMarkAsReadOnScroll.current
-    val hideEmptyGroups = LocalHideEmptyGroups.current
     val sortUnreadArticles = LocalSortUnreadArticles.current
     val pullToSwitchArticle = LocalPullToSwitchArticle.current
     val openLink = LocalOpenLink.current
@@ -121,24 +119,6 @@ fun InteractionPage(
                             initialFilterDialogVisible = true
                         },
                     ) {}
-                    } // Brief You
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Subtitle(
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        text = stringResource(R.string.feeds_page),
-                    )
-                    com.ay.briefyou.brief.ui.SettingGroup { // Brief You: the section as one joined card
-                    SettingItem(
-                        title = stringResource(R.string.hide_empty_groups),
-                        onClick = {
-                            hideEmptyGroups.toggle(context, scope)
-                        },
-                    ) {
-                        RYSwitch(activated = hideEmptyGroups.value) {
-                            hideEmptyGroups.toggle(context, scope)
-                        }
-                    }
                     } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
 

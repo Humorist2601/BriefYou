@@ -11,14 +11,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue // Brief You
-import com.ay.briefyou.ui.ext.surfaceColorAtElevation
-import com.ay.briefyou.ui.theme.palette.onDark
 
 @Composable
 fun StickyHeader(
     dateString: String,
     isShowFeedIcon: Boolean,
-    articleListTonalElevation: Int,
     dayCount: com.ay.briefyou.brief.list.DayCount? = null, // Brief You: "3 articles" on the right
     line: Boolean = false, // Brief You: articles are passing under the pinned day
 ) {
@@ -27,8 +24,8 @@ fun StickyHeader(
     androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxWidth()) { // Brief You
     // Brief You: once articles pass under it, the pinned day takes the top bar's colour (the
     // lifted one when the bar has tonal elevation), so the two read as one block.
-    val listColor = MaterialTheme.colorScheme.surfaceColorAtElevation(articleListTonalElevation.dp) onDark MaterialTheme.colorScheme.surface // Brief You
-    val barColor = with(MaterialTheme.colorScheme) { if (com.ay.briefyou.infrastructure.preference.LocalFlowTopBarTonalElevation.current.value > 0) surfaceContainer else surface } // Brief You
+    val listColor = MaterialTheme.colorScheme.surface // Brief You
+    val barColor = MaterialTheme.colorScheme.surface // Brief You
     val headerColor by androidx.compose.animation.animateColorAsState(if (line) barColor else listColor, label = "dayColor") // Brief You
     Row(
         modifier = Modifier

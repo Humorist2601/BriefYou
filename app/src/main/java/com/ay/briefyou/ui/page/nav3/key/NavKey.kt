@@ -36,9 +36,8 @@ sealed interface Route : NavKey {
 
     @Serializable data object DarkTheme : Route
 
-    @Serializable data object FeedsPageStyle : Route
+    @Serializable data object ListsStyle : Route
 
-    @Serializable data object FlowPageStyle : Route
 
     @Serializable data object ReadingPageStyle : Route
 
@@ -48,9 +47,7 @@ sealed interface Route : NavKey {
 
     @Serializable data object ReadingPageText : Route
 
-    @Serializable data object ReadingPageImage : Route
-
-    @Serializable data object ReadingPageVideo : Route
+    @Serializable data object ReadingPageMedia : Route
 
     // Interaction
     @Serializable data object Interaction : Route

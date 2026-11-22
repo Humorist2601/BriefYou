@@ -66,29 +66,6 @@ fun AddAccountsPage(
                     } // Brief You
                     Spacer(modifier = Modifier.height(24.dp))
                 }
-/*                item {
-                    Subtitle(
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        text = stringResource(R.string.services),
-                    )
-                    com.ay.briefyou.brief.ui.SettingGroup { // Brief You: the section as one joined card
-                    SettingItem(
-                        enabled = false,
-                        title = stringResource(R.string.feedly),
-                        desc = stringResource(R.string.feedly_desc),
-                        iconPainter = painterResource(id = R.drawable.ic_feedly),
-                        onClick = {},
-                    ) {}
-                    SettingItem(
-                        enabled = false,
-                        title = stringResource(R.string.inoreader),
-                        desc = stringResource(R.string.inoreader_desc),
-                        iconPainter = painterResource(id = R.drawable.ic_inoreader),
-                        onClick = {},
-                    ) {}
-                    } // Brief You
-                    Spacer(modifier = Modifier.height(24.dp))
-                }*/
                 item {
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),

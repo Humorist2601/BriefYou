@@ -27,12 +27,9 @@ fun Preferences.toSettings(): Settings {
         basicFonts = BasicFontsPreference.fromPreferences(this),
 
         // Feeds page
-        feedsTopBarTonalElevation = FeedsTopBarTonalElevationPreference.fromPreferences(this),
         feedsGroupListExpand = FeedsGroupListExpandPreference.fromPreferences(this),
-        feedsGroupListTonalElevation = FeedsGroupListTonalElevationPreference.fromPreferences(this),
 
         // Flow page
-        flowTopBarTonalElevation = FlowTopBarTonalElevationPreference.fromPreferences(this),
         flowArticleListFeedIcon = FlowArticleListFeedIconPreference.fromPreferences(this),
         flowArticleListFeedName = FlowArticleListFeedNamePreference.fromPreferences(this),
         flowArticleListImage = FlowArticleListImagePreference.fromPreferences(this),
@@ -42,14 +39,11 @@ fun Preferences.toSettings(): Settings {
             this
         ),
         flowArticleListReadIndicator = FlowArticleReadIndicatorPreference.fromPreferences(this),
-        flowArticleListTonalElevation = FlowArticleListTonalElevationPreference.fromPreferences(this),
         flowSortUnreadArticles = SortUnreadArticlesPreference.fromPreferences(this),
 
         // Reading page
-        readingRenderer = ReadingRendererPreference.fromPreferences(this),
         readingBoldCharacters = ReadingBoldCharactersPreference.fromPreferences(this),
         readingTheme = ReadingThemePreference.fromPreferences(this),
-        readingPageTonalElevation = ReadingPageTonalElevationPreference.fromPreferences(this),
         readingAutoHideToolbar = ReadingAutoHideToolbarPreference.fromPreferences(this),
         readingTextFontSize = ReadingTextFontSizePreference.fromPreferences(this),
         readingTextLineHeight = ReadingTextLineHeightPreference.fromPreferences(this),

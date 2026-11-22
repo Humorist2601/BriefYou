@@ -153,9 +153,6 @@ class TranslationState {
             showingState = value
         }
 
-    /** The page to show: the web view takes the stable one (it is patched in place), the native reader the latest. */
-    fun htmlFor(webView: Boolean): String? = if (webView) shownHtml else html
-
     val progress: Float
         get() = if (total <= 0) 0f else done.toFloat() / total
 

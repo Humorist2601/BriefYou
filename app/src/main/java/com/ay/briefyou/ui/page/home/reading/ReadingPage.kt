@@ -280,7 +280,7 @@ fun ReadingPage(
                                                     enabled = isPullToSwitchArticleEnabled,
                                                 ),
                                             contentPadding = paddings,
-                                            content = (if (brief.translation.showing) brief.translation.htmlFor(com.ay.briefyou.infrastructure.preference.LocalReadingRenderer.current == com.ay.briefyou.infrastructure.preference.ReadingRendererPreference.WebView) else null) ?: content.text ?: "", // Brief You: the translation
+                                            content = (if (brief.translation.showing) brief.translation.shownHtml else null) ?: content.text ?: "", // Brief You: the translation
                                             feedName = feedName,
                                             title = ((if (brief.translation.showing) brief.translation.title else null) ?: title).toString(), // Brief You
                                             author = author,
@@ -288,7 +288,6 @@ fun ReadingPage(
                                             publishedDate = publishedDate,
                                             isLoading = content is ReaderState.Loading,
                                             scrollState = scrollState,
-                                            listState = listState,
                                             onImageClick = { imgUrl, altText ->
                                                 currentImageData = ImageData(imgUrl, altText)
                                                 showFullScreenImageViewer = true

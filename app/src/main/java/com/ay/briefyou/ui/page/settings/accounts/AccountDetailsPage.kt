@@ -49,7 +49,6 @@ import androidx.compose.ui.unit.dp
 import java.util.Date
 import com.ay.briefyou.R
 import com.ay.briefyou.infrastructure.preference.KeepArchivedPreference
-import com.ay.briefyou.infrastructure.preference.SyncBlockListPreference
 import com.ay.briefyou.infrastructure.preference.SyncIntervalPreference
 import com.ay.briefyou.infrastructure.preference.not
 import com.ay.briefyou.ui.component.base.DisplayText
@@ -66,7 +65,6 @@ import com.ay.briefyou.ui.ext.DateFormat
 import com.ay.briefyou.ui.ext.MimeType
 import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.ext.getCurrentVersion
-import com.ay.briefyou.ui.ext.showToast
 import com.ay.briefyou.ui.ext.showToastLong
 import com.ay.briefyou.ui.ext.toString
 import com.ay.briefyou.ui.page.settings.SettingItem
@@ -87,14 +85,6 @@ fun AccountDetailsPage(
 
     var nameValue by remember { mutableStateOf(selectedAccount?.name) }
     var nameDialogVisible by remember { mutableStateOf(false) }
-    var blockListValue by remember {
-        mutableStateOf(
-            SyncBlockListPreference.toString(
-                selectedAccount?.syncBlockList ?: SyncBlockListPreference.default
-            )
-        )
-    }
-    var blockListDialogVisible by remember { mutableStateOf(false) }
     var syncIntervalDialogVisible by remember { mutableStateOf(false) }
     var keepArchivedDialogVisible by remember { mutableStateOf(false) }
     var exportOPMLModeDialogVisible by remember { mutableStateOf(false) }
@@ -235,10 +225,6 @@ fun AccountDetailsPage(
                         onClick = { keepArchivedDialogVisible = true },
                     ) {}
                     } // Brief You
-                    // SettingItem(
-                    //     title = stringResource(R.string.block_list),
-                    //     onClick = { blockListDialogVisible = true },
-                    // ) {}
                     Tips(
                         text =
                             stringResource(R.string.synchronous_tips) +
@@ -328,22 +314,6 @@ fun AccountDetailsPage(
     ) {
         keepArchivedDialogVisible = false
     }
-
-    TextFieldDialog(
-        visible = blockListDialogVisible,
-        title = stringResource(R.string.block_list),
-        value = blockListValue,
-        singleLine = false,
-        onValueChange = { blockListValue = it },
-        onDismissRequest = { blockListDialogVisible = false },
-        onConfirm = {
-            selectedAccount?.id?.let {
-                SyncBlockListPreference.put(it, viewModel, selectedAccount.syncBlockList)
-                blockListDialogVisible = false
-                context.showToast(selectedAccount.syncBlockList.toString())
-            }
-        },
-    )
 
     RYDialog(
         visible = uiState.clearDialogVisible,

@@ -88,8 +88,6 @@ import com.ay.briefyou.domain.model.article.ArticleFlowItem
 import com.ay.briefyou.domain.model.article.ArticleWithFeed
 import com.ay.briefyou.infrastructure.preference.LocalFlowArticleListDateStickyHeader
 import com.ay.briefyou.infrastructure.preference.LocalFlowArticleListFeedIcon
-import com.ay.briefyou.infrastructure.preference.LocalFlowArticleListTonalElevation
-import com.ay.briefyou.infrastructure.preference.LocalFlowTopBarTonalElevation
 import com.ay.briefyou.infrastructure.preference.LocalMarkAsReadOnScroll
 import com.ay.briefyou.infrastructure.preference.LocalOpenLink
 import com.ay.briefyou.infrastructure.preference.LocalOpenLinkSpecificBrowser
@@ -133,10 +131,8 @@ fun FlowPage(
     navigateToArticle: (String, Int) -> Unit,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
-    val articleListTonalElevation = LocalFlowArticleListTonalElevation.current
     val articleListFeedIcon = LocalFlowArticleListFeedIcon.current
     val articleListDateStickyHeader = LocalFlowArticleListDateStickyHeader.current
-    val topBarTonalElevation = LocalFlowTopBarTonalElevation.current
     val sharedContent = LocalSharedContent.current
     val markAsReadOnScroll = LocalMarkAsReadOnScroll.current.value
     val context = LocalContext.current
@@ -167,9 +163,7 @@ fun FlowPage(
         } // Brief You
     } // Brief You
 
-    val isTopBarElevated = topBarTonalElevation.value > 0
-    val scrolledTopBarContainerColor =
-        with(MaterialTheme.colorScheme) { if (isTopBarElevated) surfaceContainer else surface }
+    val scrolledTopBarContainerColor = MaterialTheme.colorScheme.surface
 
     val titleText =
         when {
@@ -359,7 +353,6 @@ fun FlowPage(
 
     Box(modifier = Modifier.fillMaxSize()) {
         RYScaffold(
-            containerTonalElevation = articleListTonalElevation.value.dp,
             topBar = {
                 MaterialTheme(
                     colorScheme = MaterialTheme.colorScheme,
@@ -748,7 +741,6 @@ fun FlowPage(
                                 diffMap = viewModel.diffMapHolder.diffMap,
                                 isShowFeedIcon = articleListFeedIcon.value,
                                 isShowStickyHeader = articleListDateStickyHeader.value,
-                                articleListTonalElevation = articleListTonalElevation.value,
                                 isSwipeEnabled = swipeEnabled, // Brief You: made once (see onArticleClick)
                                 listState = listState, // Brief You: the pinned day's line
                                 onClick = onArticleClick, // Brief You: made once

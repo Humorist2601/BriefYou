@@ -81,27 +81,21 @@ class SettingsProvider @Inject constructor(
             LocalBasicFonts provides settings.basicFonts,
 
             // Feeds page
-            LocalFeedsTopBarTonalElevation provides settings.feedsTopBarTonalElevation,
             LocalFeedsGroupListExpand provides settings.feedsGroupListExpand,
-            LocalFeedsGroupListTonalElevation provides settings.feedsGroupListTonalElevation,
 
             // Flow page
-            LocalFlowTopBarTonalElevation provides settings.flowTopBarTonalElevation,
             LocalFlowArticleListFeedIcon provides settings.flowArticleListFeedIcon,
             LocalFlowArticleListFeedName provides settings.flowArticleListFeedName,
             LocalFlowArticleListImage provides settings.flowArticleListImage,
             LocalFlowArticleListDesc provides settings.flowArticleListDesc,
             LocalFlowArticleListTime provides settings.flowArticleListTime,
             LocalFlowArticleListDateStickyHeader provides settings.flowArticleListDateStickyHeader,
-            LocalFlowArticleListTonalElevation provides settings.flowArticleListTonalElevation,
             LocalFlowArticleListReadIndicator provides settings.flowArticleListReadIndicator,
             LocalSortUnreadArticles provides settings.flowSortUnreadArticles,
 
             // Reading page
-            LocalReadingRenderer provides settings.readingRenderer,
             LocalReadingBoldCharacters provides settings.readingBoldCharacters,
             LocalReadingTheme provides settings.readingTheme,
-            LocalReadingPageTonalElevation provides settings.readingPageTonalElevation,
             LocalReadingAutoHideToolbar provides settings.readingAutoHideToolbar,
             LocalReadingTextFontSize provides settings.readingTextFontSize,
             LocalReadingTextLineHeight provides settings.readingTextLineHeight,

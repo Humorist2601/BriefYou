@@ -21,7 +21,6 @@ fun LazyListScope.ArticleList(
     diffMap: Map<String, Diff>,
     isShowFeedIcon: Boolean,
     isShowStickyHeader: Boolean,
-    articleListTonalElevation: Int,
     isSwipeEnabled: () -> Boolean = { false },
     isMenuEnabled: Boolean = true,
     onClick: (ArticleWithFeed, Int) -> Unit = { _, _ -> },
@@ -50,7 +49,6 @@ fun LazyListScope.ArticleList(
                     SwipeableArticleItem(
                         articleWithFeed = articleWithFeed, // Brief You
                         isUnread = diffMap[article.id]?.isUnread ?: article.isUnread,
-                        articleListTonalElevation = articleListTonalElevation,
                         onClick = { onClick(it, index) },
                         isSwipeEnabled = isSwipeEnabled,
                         isMenuEnabled = isMenuEnabled,
@@ -69,7 +67,7 @@ fun LazyListScope.ArticleList(
                     if (item.showSpacer) {
                         Spacer(modifier = Modifier.height(32.dp))
                     }
-                    StickyHeader(item.date, isShowFeedIcon, articleListTonalElevation, com.ay.briefyou.brief.list.dayCount(pagingItems, index)) // Brief You: with the day's count
+                    StickyHeader(item.date, isShowFeedIcon, com.ay.briefyou.brief.list.dayCount(pagingItems, index)) // Brief You: with the day's count
                 }
 
                 else -> {}
@@ -85,7 +83,6 @@ fun LazyListScope.ArticleList(
                         SwipeableArticleItem(
                             articleWithFeed = articleWithFeed, // Brief You
                             isUnread = diffMap[article.id]?.isUnread ?: article.isUnread,
-                            articleListTonalElevation = articleListTonalElevation,
                             onClick = { onClick(it, index) },
                             isSwipeEnabled = isSwipeEnabled,
                             isMenuEnabled = isMenuEnabled,
@@ -107,7 +104,7 @@ fun LazyListScope.ArticleList(
                     }
                     stickyHeader(key = key(item), contentType = contentType(item)) {
                         val under = com.ay.briefyou.brief.list.rememberScrolledUnder(listState, key(item)) // Brief You: articles passing under it
-                        StickyHeader(item.date, isShowFeedIcon, articleListTonalElevation, com.ay.briefyou.brief.list.dayCount(pagingItems, index), line = under) // Brief You: with the day's count, and a line while articles pass under it
+                        StickyHeader(item.date, isShowFeedIcon, com.ay.briefyou.brief.list.dayCount(pagingItems, index), line = under) // Brief You: with the day's count, and a line while articles pass under it
                     }
                 }
 

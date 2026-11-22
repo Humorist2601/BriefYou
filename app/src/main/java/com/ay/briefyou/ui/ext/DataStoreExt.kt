@@ -140,26 +140,20 @@ sealed interface PreferencesKey {
         const val basicFonts = "basicFonts"
 
         // Feeds page
-        const val feedsTopBarTonalElevation = "feedsTopBarTonalElevation"
         const val feedsGroupListExpand = "feedsGroupListExpand"
-        const val feedsGroupListTonalElevation = "feedsGroupListTonalElevation"
 
         // Flow page
-        const val flowTopBarTonalElevation = "flowTopBarTonalElevation"
         const val flowArticleListFeedIcon = "flowArticleListFeedIcon"
         const val flowArticleListFeedName = "flowArticleListFeedName"
         const val flowArticleListImage = "flowArticleListImage"
         const val flowArticleListDesc = "flowArticleListDescription"
         const val flowArticleListTime = "flowArticleListTime"
         const val flowArticleListDateStickyHeader = "flowArticleListDateStickyHeader"
-        const val flowArticleListTonalElevation = "flowArticleListTonalElevation"
         const val flowArticleListReadIndicator = "flowArticleListReadStatusIndicator"
         const val flowSortUnreadArticles = "flowArticleListSortUnreadArticles"
 
         // Reading page
-        const val readingRenderer = "readingRender"
         const val readingBoldCharacters = "readingBoldCharacters"
-        const val readingPageTonalElevation = "readingPageTonalElevation"
         const val readingTextFontSize = "readingTextFontSize"
         const val readingTextLineHeight = "readingTextLineHeight"
         const val readingTextLetterSpacing = "readingTextLetterSpacing"
@@ -216,24 +210,18 @@ sealed interface PreferencesKey {
                 BooleanKey(amoledDarkTheme),
                 IntKey(basicFonts),
                 // Feeds page
-                IntKey(feedsTopBarTonalElevation),
                 BooleanKey(feedsGroupListExpand),
-                IntKey(feedsGroupListTonalElevation),
                 // Flow page
-                IntKey(flowTopBarTonalElevation),
                 BooleanKey(flowArticleListFeedIcon),
                 BooleanKey(flowArticleListFeedName),
                 BooleanKey(flowArticleListImage),
                 BooleanKey(flowArticleListDesc),
                 BooleanKey(flowArticleListTime),
                 BooleanKey(flowArticleListDateStickyHeader),
-                IntKey(flowArticleListTonalElevation),
                 IntKey(flowArticleListReadIndicator),
                 BooleanKey(flowSortUnreadArticles),
                 // Reading page
-                IntKey(readingRenderer),
                 BooleanKey(readingBoldCharacters),
-                IntKey(readingPageTonalElevation),
                 IntKey(readingTextFontSize),
                 FloatKey(readingTextLineHeight),
                 FloatKey(readingTextLetterSpacing),
@@ -296,26 +284,20 @@ data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
         const val basicFonts = "basicFonts"
 
         // Feeds page
-        const val feedsTopBarTonalElevation = "feedsTopBarTonalElevation"
         const val feedsGroupListExpand = "feedsGroupListExpand"
-        const val feedsGroupListTonalElevation = "feedsGroupListTonalElevation"
 
         // Flow page
-        const val flowTopBarTonalElevation = "flowTopBarTonalElevation"
         const val flowArticleListFeedIcon = "flowArticleListFeedIcon"
         const val flowArticleListFeedName = "flowArticleListFeedName"
         const val flowArticleListImage = "flowArticleListImage"
         const val flowArticleListDesc = "flowArticleListDescription"
         const val flowArticleListTime = "flowArticleListTime"
         const val flowArticleListDateStickyHeader = "flowArticleListDateStickyHeader"
-        const val flowArticleListTonalElevation = "flowArticleListTonalElevation"
         const val flowArticleListReadIndicator = "flowArticleListReadStatusIndicator"
         const val flowSortUnreadArticles = "flowArticleListSortUnreadArticles"
 
         // Reading page
-        const val readingRenderer = "readingRender"
         const val readingBoldCharacters = "readingBoldCharacters"
-        const val readingPageTonalElevation = "readingPageTonalElevation"
         const val readingTextFontSize = "readingTextFontSize"
         const val readingTextLineHeight = "readingTextLineHeight"
         const val readingTextLetterSpacing = "readingTextLetterSpacing"
@@ -383,15 +365,9 @@ data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
                     DataStoreKey(booleanPreferencesKey(amoledDarkTheme), Boolean::class.java),
                 basicFonts to DataStoreKey(intPreferencesKey(basicFonts), Int::class.java),
                 // Feeds page
-                feedsTopBarTonalElevation to
-                    DataStoreKey(intPreferencesKey(feedsTopBarTonalElevation), Int::class.java),
                 feedsGroupListExpand to
                     DataStoreKey(booleanPreferencesKey(feedsGroupListExpand), Boolean::class.java),
-                feedsGroupListTonalElevation to
-                    DataStoreKey(intPreferencesKey(feedsGroupListTonalElevation), Int::class.java),
                 // Flow page
-                flowTopBarTonalElevation to
-                    DataStoreKey(intPreferencesKey(flowTopBarTonalElevation), Int::class.java),
                 flowArticleListFeedIcon to
                     DataStoreKey(
                         booleanPreferencesKey(flowArticleListFeedIcon),
@@ -413,8 +389,6 @@ data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
                         booleanPreferencesKey(flowArticleListDateStickyHeader),
                         Boolean::class.java,
                     ),
-                flowArticleListTonalElevation to
-                    DataStoreKey(intPreferencesKey(flowArticleListTonalElevation), Int::class.java),
                 flowArticleListReadIndicator to
                     DataStoreKey(intPreferencesKey(flowArticleListReadIndicator), Int::class.java),
                 flowSortUnreadArticles to
@@ -423,12 +397,8 @@ data class DataStoreKey<T>(val key: Preferences.Key<T>, val type: Class<T>) {
                         Boolean::class.java,
                     ),
                 // Reading page
-                readingRenderer to
-                    DataStoreKey(intPreferencesKey(readingRenderer), Int::class.java),
                 readingBoldCharacters to
                     DataStoreKey(booleanPreferencesKey(readingBoldCharacters), Boolean::class.java),
-                readingPageTonalElevation to
-                    DataStoreKey(intPreferencesKey(readingPageTonalElevation), Int::class.java),
                 readingTextFontSize to
                     DataStoreKey(intPreferencesKey(readingTextFontSize), Int::class.java),
                 readingTextLineHeight to

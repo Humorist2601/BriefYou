@@ -78,8 +78,6 @@ import kotlin.collections.set
 import kotlinx.coroutines.launch
 import com.ay.briefyou.R
 import com.ay.briefyou.infrastructure.preference.LocalFeedsGroupListExpand
-import com.ay.briefyou.infrastructure.preference.LocalFeedsGroupListTonalElevation
-import com.ay.briefyou.infrastructure.preference.LocalFeedsTopBarTonalElevation
 import com.ay.briefyou.infrastructure.preference.LocalNewVersionNumber
 import com.ay.briefyou.infrastructure.preference.LocalSkipVersionNumber
 import com.ay.briefyou.ui.component.base.DisplayText
@@ -90,7 +88,6 @@ import com.ay.briefyou.ui.ext.collectAsStateValue
 import com.ay.briefyou.ui.ext.currentAccountId
 import com.ay.briefyou.ui.ext.findActivity
 import com.ay.briefyou.ui.ext.getCurrentVersion
-import com.ay.briefyou.ui.ext.surfaceColorAtElevation
 import com.ay.briefyou.ui.page.common.RouteName
 import com.ay.briefyou.ui.page.home.feeds.accounts.AccountsTab
 import com.ay.briefyou.ui.page.home.feeds.drawer.feed.FeedOptionDrawer
@@ -120,8 +117,6 @@ fun FeedsPage(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
-    val topBarTonalElevation = LocalFeedsTopBarTonalElevation.current
-    val groupListTonalElevation = LocalFeedsGroupListTonalElevation.current
     val groupListExpand = LocalFeedsGroupListExpand.current
 
     val accounts = accountViewModel.accounts.collectAsStateValue(initial = emptyList())
@@ -195,8 +190,6 @@ fun FeedsPage(
     BackHandler(Build.VERSION.SDK_INT < Build.VERSION_CODES.S) { context.findActivity()?.moveTaskToBack(false) }
 
     RYScaffold(
-        topBarTonalElevation = topBarTonalElevation.value.dp,
-        //        containerTonalElevation = groupListTonalElevation.value.dp,
         topBar = {
             TopAppBar(
                 modifier =
@@ -236,10 +229,7 @@ fun FeedsPage(
                 },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
-                        containerColor =
-                            MaterialTheme.colorScheme.surfaceColorAtElevation(
-                                topBarTonalElevation.value.dp
-                            )
+                        containerColor = MaterialTheme.colorScheme.surface
                     ),
             )
         },

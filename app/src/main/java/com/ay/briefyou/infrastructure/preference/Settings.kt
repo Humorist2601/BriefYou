@@ -22,27 +22,21 @@ data class Settings(
     val basicFonts: BasicFontsPreference = BasicFontsPreference.default,
 
     // Feeds page
-    val feedsTopBarTonalElevation: FeedsTopBarTonalElevationPreference = FeedsTopBarTonalElevationPreference.default,
     val feedsGroupListExpand: FeedsGroupListExpandPreference = FeedsGroupListExpandPreference.default,
-    val feedsGroupListTonalElevation: FeedsGroupListTonalElevationPreference = FeedsGroupListTonalElevationPreference.default,
 
     // Flow page
-    val flowTopBarTonalElevation: FlowTopBarTonalElevationPreference = FlowTopBarTonalElevationPreference.default,
     val flowArticleListFeedIcon: FlowArticleListFeedIconPreference = FlowArticleListFeedIconPreference.default,
     val flowArticleListFeedName: FlowArticleListFeedNamePreference = FlowArticleListFeedNamePreference.default,
     val flowArticleListImage: FlowArticleListImagePreference = FlowArticleListImagePreference.default,
     val flowArticleListDesc: FlowArticleListDescPreference = FlowArticleListDescPreference.default,
     val flowArticleListTime: FlowArticleListTimePreference = FlowArticleListTimePreference.default,
     val flowArticleListDateStickyHeader: FlowArticleListDateStickyHeaderPreference = FlowArticleListDateStickyHeaderPreference.default,
-    val flowArticleListTonalElevation: FlowArticleListTonalElevationPreference = FlowArticleListTonalElevationPreference.default,
     val flowArticleListReadIndicator: FlowArticleReadIndicatorPreference = FlowArticleReadIndicatorPreference.default,
     val flowSortUnreadArticles: SortUnreadArticlesPreference = SortUnreadArticlesPreference.default,
 
     // Reading page
-    val readingRenderer: ReadingRendererPreference = ReadingRendererPreference.default,
     val readingBoldCharacters: ReadingBoldCharactersPreference = ReadingBoldCharactersPreference.default,
     val readingTheme: ReadingThemePreference = ReadingThemePreference.default,
-    val readingPageTonalElevation: ReadingPageTonalElevationPreference = ReadingPageTonalElevationPreference.default,
     val readingAutoHideToolbar: ReadingAutoHideToolbarPreference = ReadingAutoHideToolbarPreference.default,
     val readingTextFontSize: Int = ReadingTextFontSizePreference.default,
     val readingTextLineHeight: Float = ReadingTextLineHeightPreference.default,

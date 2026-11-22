@@ -33,7 +33,6 @@ import com.ay.briefyou.infrastructure.preference.LocalReadingSubheadAlign
 import com.ay.briefyou.infrastructure.preference.LocalReadingVideoHorizontalPadding
 import com.ay.briefyou.infrastructure.preference.LocalReadingVideoMaximize
 import com.ay.briefyou.infrastructure.preference.LocalReadingVideoRoundedCorners
-import com.ay.briefyou.infrastructure.preference.LocalReadingPageTonalElevation
 import com.ay.briefyou.infrastructure.preference.LocalReadingSubheadBold
 import com.ay.briefyou.infrastructure.preference.LocalReadingSubheadUpperCase
 import com.ay.briefyou.infrastructure.preference.LocalReadingTextAlign
@@ -60,11 +59,9 @@ fun RYWebView(
     val context = LocalContext.current
     // Opens links the way chosen in the settings ("open links in").
     val uriHandler = LocalUriHandler.current
-    val tonalElevation = LocalReadingPageTonalElevation.current
     // On the reading page: the picture's colours straight away, not the fading ones.
     val colorScheme = LocalWebViewColorScheme.current ?: MaterialTheme.colorScheme
-    val backgroundColor =
-        colorScheme.surfaceColorAtElevation(tonalElevation.value.dp).toArgb()
+    val backgroundColor = colorScheme.surface.toArgb()
     // Selected text: the accent colour, see-through over the page, like text selection in the
     // rest of the app (the handles take the accent colour from the theme, see themes.xml).
     val selectionTextColor = colorScheme.onSurface.toArgb()
@@ -95,7 +92,7 @@ fun RYWebView(
     val videoMaximize: Boolean = LocalReadingVideoMaximize.current
     val codeTextColor: Int = colorScheme.tertiary.toArgb()
     val codeBgColor: Int =
-        colorScheme.surfaceColorAtElevation((tonalElevation.value + 6).dp).toArgb()
+        colorScheme.surfaceColorAtElevation(6.dp).toArgb()
     val boldCharacters = LocalReadingBoldCharacters.current
 
     val fontPath =

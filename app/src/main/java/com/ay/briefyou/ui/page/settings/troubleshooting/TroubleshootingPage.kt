@@ -1,11 +1,6 @@
 package com.ay.briefyou.ui.page.settings.troubleshooting
 
 import android.content.ClipData
-import android.content.Context
-import android.net.Uri
-import androidx.activity.compose.ManagedActivityResultLauncher
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -21,22 +16,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.ReportGmailerrorred
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.ClipEntry
@@ -58,16 +48,10 @@ import com.ay.briefyou.infrastructure.preference.OpenLinkPreference
 import com.ay.briefyou.ui.component.base.Banner
 import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.component.base.FeedbackIconButton
-import com.ay.briefyou.ui.component.base.RYDialog
 import com.ay.briefyou.ui.component.base.RYScaffold
 import com.ay.briefyou.ui.component.base.Subtitle
-import com.ay.briefyou.ui.ext.DateFormat
-import com.ay.briefyou.ui.ext.MimeType
 import com.ay.briefyou.ui.ext.collectAsStateValue
-import com.ay.briefyou.ui.ext.getCurrentVersion
 import com.ay.briefyou.ui.ext.openURL
-import com.ay.briefyou.ui.ext.toString
-import com.ay.briefyou.ui.page.settings.SettingItem
 import com.ay.briefyou.ui.theme.palette.onLight
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -76,34 +60,9 @@ fun TroubleshootingPage(onBack: () -> Unit, viewModel: TroubleshootingViewModel 
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
-    val uiState = viewModel.troubleshootingUiState.collectAsStateValue()
-    var byteArray by remember { mutableStateOf(ByteArray(0)) }
-
     val syncLogList = remember { mutableStateListOf<Log>() }
 
     LaunchedEffect(viewModel) { viewModel.getSyncLogs().let { syncLogList.addAll(it) } }
-
-    val exportLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(MimeType.JSON)) {
-            result ->
-            viewModel.exportPreferencesAsJSON(context) { byteArray ->
-                result?.let { uri ->
-                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                        outputStream.write(byteArray)
-                    }
-                }
-            }
-        }
-
-    val importLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
-            it?.let { uri ->
-                context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                    byteArray = inputStream.readBytes()
-                    viewModel.tryImport(context, byteArray)
-                }
-            }
-        }
 
     val onetimeWorkerInfos =
         viewModel.workManager
@@ -149,24 +108,7 @@ fun TroubleshootingPage(onBack: () -> Unit, viewModel: TroubleshootingViewModel 
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 item {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Subtitle(
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        text = stringResource(R.string.app_preferences),
-                    )
-                    com.ay.briefyou.brief.ui.SettingGroup { // Brief You: the section as one joined card
-                    SettingItem(
-                        title = stringResource(R.string.import_from_json),
-                        onClick = { importLauncher.launch(arrayOf(MimeType.ANY)) },
-                    ) {}
-                    SettingItem(
-                        title = stringResource(R.string.export_as_json),
-                        onClick = { preferenceFileLauncher(context, exportLauncher) },
-                    ) {}
-                    } // Brief You
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-                item {
+                    Spacer(modifier = Modifier.height(8.dp))
                     Subtitle(modifier = Modifier.padding(horizontal = 24.dp), text = "Worker infos")
                 }
                 items(onetimeWorkerInfos) {
@@ -215,46 +157,6 @@ fun TroubleshootingPage(onBack: () -> Unit, viewModel: TroubleshootingViewModel 
             }
         },
     )
-
-    RYDialog(
-        visible = uiState.warningDialogVisible,
-        onDismissRequest = { viewModel.hideWarningDialog() },
-        icon = {
-            Icon(
-                imageVector = Icons.Outlined.ReportGmailerrorred,
-                contentDescription = stringResource(R.string.import_from_json),
-            )
-        },
-        title = { Text(text = stringResource(R.string.import_from_json)) },
-        text = { Text(text = stringResource(R.string.invalid_json_file_warning)) },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    viewModel.hideWarningDialog()
-                    viewModel.importPreferencesFromJSON(context, byteArray)
-                }
-            ) {
-                Text(text = stringResource(R.string.confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = { viewModel.hideWarningDialog() }) {
-                Text(text = stringResource(R.string.cancel))
-            }
-        },
-    )
-}
-
-private fun preferenceFileLauncher(
-    context: Context,
-    launcher: ManagedActivityResultLauncher<String, Uri?>,
-) {
-    launcher.launch(
-        "Read-You-" +
-            "${context.getCurrentVersion()}-settings-" +
-            "${Date().toString(DateFormat.YYYY_MM_DD_DASH_HH_MM_SS_DASH)}.json"
-    )
-}
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
