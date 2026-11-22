@@ -146,11 +146,12 @@ internal fun BriefAiButton(
                                 },
                             ),
                 ) {
+                    val spatial = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+                    val effects = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
                     AnimatedContent(
                         targetState = expanded,
                         transitionSpec = {
-                            (scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()))
-                                .togetherWith(scaleOut(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()))
+                            (scaleIn(spatial) + fadeIn(effects)).togetherWith(scaleOut(spatial) + fadeOut(effects))
                         },
                         label = "ai button icon",
                     ) { open ->

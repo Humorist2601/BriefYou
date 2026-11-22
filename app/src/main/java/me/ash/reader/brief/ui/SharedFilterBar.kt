@@ -207,7 +207,8 @@ fun SharedFilterBar(
                     // Kept while it shrinks away, so it has something to show.
                     val lastAi = remember { arrayOfNulls<AiActions>(1) }
                     if (s.ai != null) lastAi[0] = s.ai
-                    AnimatedVisibility(
+                    // (Not the Column's own AnimatedVisibility: this one is inside a Box.)
+                    androidx.compose.animation.AnimatedVisibility(
                         visible = s.ai != null,
                         modifier = Modifier.align(Alignment.BottomEnd),
                         enter = scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()),
