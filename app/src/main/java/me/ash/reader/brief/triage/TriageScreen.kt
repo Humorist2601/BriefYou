@@ -57,6 +57,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -1086,7 +1087,7 @@ private fun TriageContent(
                             }
                         }
                         if (current != null) {
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(2.dp))
                             // Lined up with the button, which sits a little lower.
                             TriageLeftCount(left = total - index, total = total, modifier = Modifier.padding(top = 4.dp))
                         }
@@ -2563,10 +2564,13 @@ private fun TriagePlacesSheet(
         // Brief You: with many rows the sheet nearly fills the screen anyway, so it gets that height from the
         // start. (Sized by its rows, it opened about 50 dp too low and then rose as it settled.)
         val screenDp = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp
-        val tall = places.size * 56 + 230 > screenDp * 0.8f
+        // The tallest it gets is the AI sheet's height (70% of the screen). Below that it is as tall
+        // as what it shows: opening a group's feeds makes it grow with them, closing shrinks it back.
+        val maxSheet = (screenDp * 0.7f).dp
+        val tall = places.size * 56 + 230 > screenDp * 0.7f
         Column(
             modifier =
-                Modifier.then(if (tall) Modifier.fillMaxHeight(0.9f) else Modifier)
+                Modifier.then(if (tall) Modifier.height(maxSheet) else Modifier.heightIn(max = maxSheet))
                     .padding(horizontal = 24.dp)
                     .padding(bottom = 16.dp)
         ) {
@@ -2594,11 +2598,9 @@ private fun TriagePlacesSheet(
                     else places.filter { g -> feedsByGroup[g.id].orEmpty().any { it.id == currentFeedId } }.map { it.id }.toSet()
                 )
             }
-            // Brief You: the sheet sits on the bottom, so a list that grew with a group's feeds pushed the
-            // heading up (and back down once the sheet was full). The list keeps the height it has
-            // collapsed; a group's feeds open inside it and it scrolls to them, so nothing else moves.
+            // Brief You: the sheet grows as a group's feeds open (up to the AI sheet's height, then the
+            // list scrolls to them) and shrinks back when they close.
             val density = LocalDensity.current
-            var collapsedPx by remember(places.size) { mutableStateOf<Int?>(null) }
             val listState = androidx.compose.foundation.lazy.rememberLazyListState()
             // Opening a group makes its feeds slide in below it. If they would end below the visible
             // part of the list, the list follows them as they grow, only as far as needed (and never
@@ -2639,13 +2641,7 @@ private fun TriagePlacesSheet(
                 modifier =
                     Modifier.nestedScroll(keepSheetStill).then(
                     if (tall) Modifier.fillMaxWidth().weight(1f)
-                    else
-                        Modifier.fillMaxWidth()
-                            .onSizeChanged { if (openGroups.isEmpty()) collapsedPx = it.height }
-                            .then(
-                                collapsedPx?.let { Modifier.height(with(density) { it.toDp() }) }
-                                    ?: Modifier.weight(1f, fill = false)
-                            )),
+                    else Modifier.fillMaxWidth().weight(1f, fill = false)),
                 verticalArrangement = Arrangement.spacedBy(me.ash.reader.brief.ui.Group.Gap),
             ) {
                 itemsIndexed(places, key = { _, it -> it.id }) { index, place ->

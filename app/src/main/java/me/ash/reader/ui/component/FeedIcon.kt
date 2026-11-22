@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -54,8 +55,11 @@ fun FeedIcon(
         // On a circle in the feed's name colour (taken from the emoji itself), like the website
         // icons and the Material icons are round.
         val accent = me.ash.reader.brief.feeds.rememberFeedAccent(iconUrl) ?: MaterialTheme.colorScheme.primary
+        // A soft tint of the colour (not a strong one): the emoji's own colours are what the
+        // circle is taken from, so a strong circle swallowed the emoji.
+        val base = MaterialTheme.colorScheme.surfaceContainerHighest
         Box(
-            modifier = modifier.size(size).clip(CircleShape).background(accent.copy(alpha = 0.65f)),
+            modifier = modifier.size(size).clip(CircleShape).background(accent.copy(alpha = 0.3f).compositeOver(base)),
             contentAlignment = Alignment.Center,
         ) {
             Text(

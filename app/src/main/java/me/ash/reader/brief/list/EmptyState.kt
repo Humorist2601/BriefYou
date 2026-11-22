@@ -2,6 +2,7 @@ package me.ash.reader.brief.list
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -23,11 +24,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,7 +33,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
-import kotlinx.coroutines.delay
 import me.ash.reader.R
 import me.ash.reader.domain.model.article.ArticleFlowItem
 import me.ash.reader.domain.model.general.Filter
@@ -52,15 +47,8 @@ fun EmptyListState(pagingItems: LazyPagingItems<ArticleFlowItem>?, filter: Filte
     val empty =
         pagingItems != null && !searching && pagingItems.itemCount == 0 &&
             pagingItems.loadState.refresh is LoadState.NotLoading
-    // A moment's wait, so it doesn't flash while a list is still loading.
-    var show by remember { mutableStateOf(false) }
-    LaunchedEffect(empty) {
-        show = false
-        if (empty) {
-            delay(500)
-            show = true
-        }
-    }
+    // Shown at once: a list still loading is not "empty" (the check above), so no wait is needed.
+    val show = empty
     val (icon, title, text) =
         when {
             filter.isStarred() -> Triple(Icons.Rounded.StarOutline, R.string.empty_starred_title, R.string.empty_starred_text)
@@ -69,7 +57,7 @@ fun EmptyListState(pagingItems: LazyPagingItems<ArticleFlowItem>?, filter: Filte
         }
     AnimatedVisibility(
         visible = show,
-        enter = fadeIn() + scaleIn(initialScale = 0.9f),
+        enter = fadeIn(tween(150)) + scaleIn(tween(150), initialScale = 0.9f),
         modifier = Modifier.fillMaxSize(),
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
