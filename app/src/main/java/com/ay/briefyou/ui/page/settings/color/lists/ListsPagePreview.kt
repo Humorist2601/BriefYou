@@ -1,57 +1,25 @@
 package com.ay.briefyou.ui.page.settings.color.lists
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Sort
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.outlined.FilterAlt
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ay.briefyou.R
-import com.ay.briefyou.brief.ui.BottomBarHeight
-import com.ay.briefyou.brief.ui.BriefFilterBar
-import com.ay.briefyou.brief.ui.bannerContainer
 import com.ay.briefyou.brief.ui.Group
-import com.ay.briefyou.brief.ui.TonalCircleButton
-import com.ay.briefyou.brief.ui.TopBarAction
-import com.ay.briefyou.brief.ui.TopBarButtonGroup
 import com.ay.briefyou.brief.ui.groupShape
 import com.ay.briefyou.domain.model.article.Article
 import com.ay.briefyou.domain.model.article.ArticleWithFeed
 import com.ay.briefyou.domain.model.feed.Feed
-import com.ay.briefyou.domain.model.general.Filter
 import com.ay.briefyou.domain.model.group.Group as FeedGroup
-import com.ay.briefyou.ui.component.base.DisplayText
 import com.ay.briefyou.ui.ext.formatAsString
 import com.ay.briefyou.ui.page.home.feeds.FeedItem
-import com.ay.briefyou.ui.page.home.feeds.FeedsBanner
 import com.ay.briefyou.ui.page.home.feeds.GroupItem
 import com.ay.briefyou.ui.page.home.feeds.GroupWithFeedsContainer
 import com.ay.briefyou.ui.page.home.flow.ArticleItem
@@ -63,39 +31,20 @@ import java.util.Date
  */
 @Composable
 fun ListsPagePreview(groupListExpand: Boolean) {
-    var filter by remember { mutableStateOf(Filter.Unread) }
     val article = generateArticleWithFeedPreview()
 
+    // Compact: a group (with its feed when expanded) and two article rows, which is what the
+    // switches below change.
     Column(
         modifier = Modifier
             .animateContentSize()
-            .padding(vertical = 12.dp)
+            .padding(vertical = 8.dp)
     ) {
-        // The Feeds page: the round Settings button and the joined actions.
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TonalCircleButton(Icons.Outlined.Settings, stringResource(R.string.settings)) {}
-            TopBarButtonGroup(
-                listOf(
-                    TopBarAction(Icons.AutoMirrored.Outlined.Sort, stringResource(R.string.sort_title)) {},
-                    TopBarAction(Icons.Outlined.FilterAlt, stringResource(R.string.filters_settings)) {},
-                    TopBarAction(Icons.Rounded.Add, stringResource(R.string.subscribe)) {},
-                )
-            )
-        }
-        FeedsBanner(filter = Filter.Unread, desc = pluralStringResource(R.plurals.unread_desc, 3, 3))
-        Spacer(Modifier.height(4.dp))
         GroupWithFeedsContainer(shape = groupShape(0, 1), top = Group.Gap) {
             GroupItem(isExpanded = { groupListExpand }, group = generateGroupPreview(), count = 3)
             FeedItem(feed = generateFeedPreview(), isLastItem = { true }, isExpanded = { groupListExpand })
         }
-
-        // The Articles list: the large heading and the rows.
-        Spacer(Modifier.height(20.dp))
-        DisplayText(text = stringResource(R.string.unread), desc = "")
+        Spacer(Modifier.height(8.dp))
         // The first is unread with a picture; the second is read (dimmed by the read indicator
         // switch below) and not starred, since the default indicator leaves starred ones as they are.
         ArticleItem(
@@ -116,29 +65,6 @@ fun ListsPagePreview(groupListExpand: Boolean) {
             isStarred = false,
             isUnread = false,
         )
-
-        // The bottom bar with the AI button beside it.
-        Spacer(Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            BriefFilterBar(filter = filter) { filter = it }
-            // The same button as the real one: a rounded square in the Unread card's colour.
-            val aiColor = bannerContainer()
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(BottomBarHeight).clip(RoundedCornerShape(20.dp)).background(aiColor),
-            ) {
-                Icon(
-                    Icons.Rounded.AutoAwesome,
-                    contentDescription = stringResource(R.string.ai_button),
-                    tint = MaterialTheme.colorScheme.contentColorFor(aiColor),
-                    modifier = Modifier.size(26.dp),
-                )
-            }
-        }
     }
 }
 

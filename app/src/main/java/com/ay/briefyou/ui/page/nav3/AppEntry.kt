@@ -13,6 +13,8 @@ import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -138,8 +140,12 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                         NavEntry(key) {
                             val key = rememberSaveable(saver = Route.Reading.Saver) { key }
 
+                            // Brief You: once only; coming back from the reading style pages, the article
+                            // is already open (opening it again restarted the pane).
+                            var opened by rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
                             LaunchedEffect(key) {
-                                if (key.articleId != null) {
+                                if (key.articleId != null && !opened) {
+                                    opened = true
                                     delay(50L)
                                     navigator.navigateTo(
                                         ListDetailPaneScaffoldRole.Detail,
@@ -150,6 +156,13 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
 
                             val viewModel = hiltViewModel<ArticleListReaderViewModel>()
 
+                            // Brief You: the article's page is loaded once the screen has slid in.
+                            val animatedScope = LocalNavAnimatedContentScope.current
+                            androidx.compose.runtime.CompositionLocalProvider(
+                                com.ay.briefyou.brief.webview.LocalScreenSettled provides {
+                                    animatedScope.transition.currentState == animatedScope.transition.targetState
+                                }
+                            ) {
                             ArticleListReaderPage(
                                 scaffoldDirective = scaffoldDirective,
                                 navigator = navigator,
@@ -157,9 +170,13 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                                 animatedVisibilityScope = LocalNavAnimatedContentScope.current,
                                 viewModel = viewModel,
                                 onBack = onBack,
-                                onNavigateToStylePage = { backStack.add(Route.ReadingPageStyle) },
+                                onNavigateToStylePage = {
+                                    com.ay.briefyou.brief.perf.PerfLog.action("Article to Reading style", windowMs = 3_000) // Nightly stutter log
+                                    backStack.add(Route.ReadingPageStyle)
+                                },
                                 onNavigateToAiSettings = { backStack.add(Route.AiModel) }, // Brief You
                             )
+                            }
                         }
                     }
                     //                    is Route.Reading -> {
@@ -257,7 +274,10 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     Route.ReadingPageStyle ->
                         NavEntry(key) {
                             ReadingStylePage(
-                                onBack = onBack,
+                                onBack = {
+                                    com.ay.briefyou.brief.perf.PerfLog.action("Reading style back to the article", windowMs = 3_000) // Nightly stutter log
+                                    onBack()
+                                },
                                 navigateToReadingBoldCharacters = {
                                     backStack.add(Route.ReadingBoldCharacters)
                                 },

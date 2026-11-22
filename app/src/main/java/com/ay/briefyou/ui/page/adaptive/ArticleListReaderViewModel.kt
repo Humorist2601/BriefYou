@@ -359,12 +359,27 @@ constructor(
         }
     }
 
+    /**
+     * Brief You: the reading page's own state (scroll progress, translation, the episode card),
+     * kept here so it survives the article screen being closed while the reading style pages are
+     * open. [briefReadingArticleId] is the article it belongs to.
+     */
+    internal val briefReading = com.ay.briefyou.brief.reading.BriefReadingState()
+    internal var briefReadingArticleId: String? = null
+
     fun initData(articleId: String, listIndex: Int? = null) {
         if (openedEarly != null) { // Brief You
             val early = openedEarly // Brief You
             openedEarly = null // Brief You
             if (early == articleId) return // Brief You: already started on the tap (openNow)
         } // Brief You
+        // Brief You: coming back to the article screen (from the reading style pages, which close it
+        // while they are open) the article is still here: reading it again and tidying its text
+        // again, while the screen slides in, was wasted work (and a full text still loading would
+        // start over).
+        _readerState.value.let {
+            if (it.articleId == articleId && it.content !is ReaderState.Loading && it.content !is ReaderState.Error) return
+        }
         load(articleId, listIndex) // Brief You
     }
 

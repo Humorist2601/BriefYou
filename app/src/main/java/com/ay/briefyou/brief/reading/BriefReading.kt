@@ -156,7 +156,9 @@ fun rememberBriefReadingState(
     viewModel: ArticleListReaderViewModel,
     readerState: ReaderState,
 ): BriefReadingState {
-    val state = remember { BriefReadingState() }
+    // Kept in the view model: coming back from the reading style pages (which close this screen)
+    // the progress, translation and episode card are still there.
+    val state = viewModel.briefReading
     val articleId = readerState.articleId
     // Brief You: read aloud carries on after the article is closed (the now playing pill and the
     // notification control it; swiping the pill stops it).
@@ -166,13 +168,20 @@ fun rememberBriefReadingState(
         if (made != null && made != readerState.content.text) state.translation.reset()
     }
     LaunchedEffect(articleId) {
-        state.progress = 0f
-        state.translation.reset() // a new article starts in its own language
+        if (viewModel.briefReadingArticleId != articleId) {
+            // A different article starts unscrolled, in its own language.
+            viewModel.briefReadingArticleId = articleId
+            state.progress = 0f
+            state.translation.reset()
+            state.extras = null
+        } else if (state.translation.status == com.ay.briefyou.brief.ai.TranslationState.Status.Running) {
+            // The same article after the screen was closed mid-translation: that run is gone.
+            state.translation.reset()
+        }
     }
     // The article's podcast episode, video and comments link (see ArticleMedia).
     LaunchedEffect(articleId) {
-        state.extras = null
-        if (articleId == null) return@LaunchedEffect
+        if (articleId == null || state.extras != null) return@LaunchedEffect
         val picture =
             kotlinx.coroutines.withTimeoutOrNull(2_000) {
                 viewModel.readingUiState.first { it.articleWithFeed?.article?.id == articleId }

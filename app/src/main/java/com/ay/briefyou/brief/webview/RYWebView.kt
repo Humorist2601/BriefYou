@@ -172,6 +172,7 @@ fun RYWebView(
         }
         // What the web view currently shows: its content, styles and script (kept apart, so a
         // redraw doesn't join the whole article into a new string just to compare it).
+        val screenSettled = com.ay.briefyou.brief.webview.LocalScreenSettled.current
         val shown = remember { arrayOfNulls<String>(3) }
         // The styles wanted now, and whether the page loaded last is ready for them to be swapped in.
         val wantedCss = remember { arrayOfNulls<String>(1) }
@@ -269,6 +270,9 @@ fun RYWebView(
                 wantedCss[0] = css
                 // A style change while the page is still loading is swapped in once it is ready
                 // (it reloaded the whole page, which then started over).
+                // Not while the screen is still sliding in (see LocalScreenSettled); this runs again
+                // when it has settled.
+                if (pageChanged && !screenSettled()) return@AndroidView
                 if (pageChanged) {
                     pageIsReady[0] = false
                     com.ay.briefyou.brief.perf.PerfLog.note("page load starts (${content.length / 1000} k characters${if (shown[0] != null) ", a reload" else ""})") // Nightly stutter log
