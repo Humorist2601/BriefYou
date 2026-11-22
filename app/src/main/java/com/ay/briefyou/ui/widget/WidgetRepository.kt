@@ -147,7 +147,8 @@ constructor(
                 .execute(
                     ImageRequest.Builder(context)
                         .data(link)
-                        .size(width = Dimension.Pixels(600), height = Dimension.Undefined)
+                        // Android 17 caps a widget picture's memory: at most 600 x 600.
+                        .size(width = Dimension.Pixels(600), height = Dimension.Pixels(600))
                         .build()
                 )
                 .image // Brief You: Coil 3

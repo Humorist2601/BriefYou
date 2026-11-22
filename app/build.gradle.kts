@@ -37,7 +37,7 @@ android {
     defaultConfig {
         applicationId = "com.ay.briefyou"
         minSdk = 26
-        targetSdk = 36 // Brief You: Android 16 (see HANDOVER for why not 37 yet)
+        targetSdk = 37 // Brief You: Android 17
         versionCode = 47
         versionName = "0.16.2"
 

@@ -23,7 +23,7 @@
 
 Brief You is a calm, private RSS reader with AI that runs **entirely on your phone**: articles and questions never leave it. It supports Material You design, Reeder-style reading, FreshRSS, Miniflux, Fever, the Google Reader API and more, and installs as its own app (app ID `com.ay.briefyou`); move your feeds over with OPML.
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots-dark.png"><img alt="Brief You screenshots: feeds, reading, a podcast, a video, Triage, AI gist, Filters and Reading stats" src=".github/assets/screenshots.png" width="80%"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots-dark.png"><img alt="Brief You screenshots: feeds, reading, a podcast, a video, Triage, AI gist, Filters and Reading stats" src=".github/assets/screenshots.png" width="100%"></picture></p>
 
 ## What Brief You adds
 
@@ -187,6 +187,7 @@ Brief You is a calm, private RSS reader with AI that runs **entirely on your pho
 - The group arrows (the one on each group and the open-all button on the Feeds page, and in Triage's groups sheet) turn over or fade into each other when a group opens or closes.
 - Expressive loading and pull-to-refresh. Back buttons and Triage's close button are the same tonal circle. In Feeds and Settings, the big title moves into the top bar as you scroll.
 - Reading fonts: Google Sans Flex, Literata, system, or your own.
+- Built for Android 17 (API 37): if a FreshRSS/Miniflux server or a feed is on your home network (an address like 192.168.x.x or a .local name), Brief You asks once for the new *local network* permission, so syncing keeps working. Plain http addresses still work.
 - English only: translations are left out, which with slimmer fonts and a compressed AI library makes the download about 15 MB smaller.
 - An emoji chosen as a feed's icon sits on a round background in the feed's name colour (taken from the emoji), like the other icons.
 - A pale or grey feed icon gets a steady colour of its own. Icons are cached and loaded at the size they're shown; a site without an icon is searched again once a week.

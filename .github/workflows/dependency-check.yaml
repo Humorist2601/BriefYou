@@ -1,0 +1,29 @@
+name: "Dependency check"
+
+# Checks an automatic update pull request (Dependabot): the app still compiles with it. Compiles
+# only, so it needs no signing key (Dependabot's runs can't read the repository's secrets) and
+# publishes nothing.
+on:
+    pull_request:
+        branches:
+            - main
+        paths-ignore:
+            - "**.md"
+            - ".github/assets/**"
+            - ".github/readme/**"
+
+jobs:
+    compile:
+        if: github.actor == 'dependabot[bot]'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-java@v6
+              with:
+                  distribution: temurin
+                  java-version: 17
+            - uses: gradle/actions/setup-gradle@v6
+            - name: Compile
+              run: ./gradlew compileGithubNightlyKotlin --stacktrace

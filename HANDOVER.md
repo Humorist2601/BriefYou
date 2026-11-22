@@ -465,7 +465,7 @@ Work from this list; tick items off here as they are done.
    and predictive back were already in place; on tablets, the video's forced landscape is ignored).
    Not 37 yet: Android 17 makes a self-hosted server on the local network (FreshRSS at home) need
    the new `ACCESS_LOCAL_NETWORK` runtime permission, and caps widget updates' memory.
-3. **Step 8 (optional):** Dependabot or Renovate for small automatic update pull requests.
+3. ~~**Step 8 (optional):** Dependabot or Renovate for small automatic update pull requests.~~ **Done on `deps-b` (not yet built):** `.github/dependabot.yml` (monthly, gradle + GitHub Actions, no major versions, grouped) and `dependency-check.yaml` (only compiles, no signing). Dependabot's branches are ignored by `test.yaml` (a Nightly from one would replace the Nightly being tried), and Dependabot runs cannot read Actions secrets. The file only takes effect once it is on `main`. A suggested update merged into `main` makes a release: try it first in a test branch.
 
 **Tidy-up**
 4. Run `clean.yaml` (dry run first): the merged `deps-a` branch, old releases and runs.
@@ -523,7 +523,7 @@ Work from this list; tick items off here as they are done.
     each piece checked to be unused. **The owner's decision: together
     with the package rename (17) remove everything of Read You that is no longer required**, so the
     rename touches as little dead code as possible; each piece still checked to be unused.
-20. **targetSdk 37 (Android 17), optional, later:** a self-hosted server on the home network needs
+20. **targetSdk 37 (Android 17): done on `deps-b` (not yet built).** Changes: `targetSdk = 37`; `ACCESS_LOCAL_NETWORK` declared and asked once (`brief/app/LocalNetwork.kt`, `AccountService.usesLocalNetwork`, `MainActivity`) only when an account server or feed is on a private address; `usesCleartextTraffic` replaced by `res/xml/network_security_config.xml` (http stays allowed); the card widget's picture capped at 600 x 600 (widget memory limit). Checked and fine: no reflection on MessageQueue or static final fields, no background activity launch modes, no content-capture calls, no orientation locks in the manifest (video fullscreen rotation is ignored on tablets). To test on Android 17: a FreshRSS/feed on a 192.168.x address, the permission prompt, sync, widgets, read aloud with the screen off. *Old note:* a self-hosted server on the home network needs
     the new `ACCESS_LOCAL_NETWORK` permission; widget updates get a memory cap.
 
 21. **Fix Read You's Kotlin warnings** (466 in 0.16.2.148): 270 from Read You's deprecated

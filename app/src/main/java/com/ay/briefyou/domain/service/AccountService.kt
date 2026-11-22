@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.runBlocking
 import com.ay.briefyou.R
+import com.ay.briefyou.brief.app.LocalNetwork
 import com.ay.briefyou.domain.model.account.Account
 import com.ay.briefyou.domain.model.account.AccountType
 import com.ay.briefyou.domain.model.group.Group
@@ -68,6 +69,13 @@ constructor(
     fun getCurrentAccountId(): Int = runBlocking {
         currentAccountIdFlow.first { it != null } as Int
     }
+
+    /** Whether an account's server, or one of its feeds, is on the home network (Android 17 asks first). */
+    suspend fun usesLocalNetwork(): Boolean =
+        accountDao.queryAll().any { account ->
+            LocalNetwork.isLocalAddress(LocalNetwork.serverUrl(account)) ||
+                account.id?.let { id -> feedDao.queryAll(id).any { LocalNetwork.isLocalAddress(it.url) } } == true
+        }
 
     suspend fun isNoAccount(): Boolean = accountDao.queryAll().isEmpty()
 

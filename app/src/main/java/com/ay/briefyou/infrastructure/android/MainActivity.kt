@@ -4,6 +4,8 @@ package com.ay.briefyou.infrastructure.android
 import com.ay.briefyou.brief.app.BriefActivity
 import com.ay.briefyou.brief.app.BriefRoot
 import android.Manifest
+import androidx.lifecycle.lifecycleScope
+import com.ay.briefyou.brief.app.LocalNetwork
 import android.content.Intent
 import android.database.CursorWindow
 import android.os.Build
@@ -98,6 +100,24 @@ class MainActivity : AppCompatActivity() {
                 !NotificationManagerCompat.from(this).areNotificationsEnabled()
         ) {
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        // Android 17: reaching a server or feed on the home network needs the user's say-so. Asked
+        // once, and only when an account or feed is on a local address.
+        val localNetworkLauncher =
+            this.registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+        val askedPrefs = getSharedPreferences("brief_migration", MODE_PRIVATE)
+        if (
+            LocalNetwork.isAsked &&
+                !LocalNetwork.isGranted(this) &&
+                !askedPrefs.getBoolean("local_network_asked", false)
+        ) {
+            lifecycleScope.launch {
+                if (accountService.usesLocalNetwork()) {
+                    askedPrefs.edit().putBoolean("local_network_asked", true).apply()
+                    localNetworkLauncher.launch(LocalNetwork.PERMISSION)
+                }
+            }
         }
 
         setContent {
