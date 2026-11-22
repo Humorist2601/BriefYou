@@ -110,7 +110,7 @@ fun FilterBarSpace() {
     )
     Column(modifier = Modifier.fillMaxWidth()) {
         Spacer(modifier = Modifier.height(pill))
-        Spacer(modifier = Modifier.height(BottomBarHeight + FILTER_BAR_TOP_PADDING))
+        Spacer(modifier = Modifier.height(BottomBarHeight + FILTER_BAR_TOP_PADDING + BarScreenOffset))
         Spacer(modifier = Modifier.windowInsetsBottomHeight(NavigationBarDefaults.windowInsets))
     }
 }
@@ -200,7 +200,7 @@ fun SharedFilterBar(
                     modifier =
                         Modifier.fillMaxWidth()
                             .windowInsetsPadding(NavigationBarDefaults.windowInsets)
-                            .padding(start = 16.dp, end = 16.dp, top = FILTER_BAR_TOP_PADDING)
+                            .padding(start = 16.dp, end = 16.dp, top = FILTER_BAR_TOP_PADDING, bottom = BarScreenOffset)
                             // Always the bar's height: the AI button's open menu reaches up out of
                             // it, so nothing above (the "now playing" pill) moves.
                             .height(BottomBarHeight)

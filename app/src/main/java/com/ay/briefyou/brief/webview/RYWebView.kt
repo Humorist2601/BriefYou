@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.layout.layout
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.Modifier
@@ -260,7 +261,13 @@ fun RYWebView(
         val cover = MaterialTheme.colorScheme.surface
         androidx.compose.foundation.layout.Box(modifier = modifier, propagateMinConstraints = true) {
         AndroidView(
-            modifier = Modifier,
+            // A page can report a height no layout can hold (one article made 706,221 px, and
+            // Compose crashed: its limit is about 262,000 px at this width); it is cut at 200,000.
+            modifier =
+                Modifier.layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    layout(placeable.width, placeable.height.coerceAtMost(MaxPageHeightPx)) { placeable.place(0, 0) }
+                },
             factory = { webView },
             // Freed after the closing animation, so closing the article doesn't stutter.
             onRelease = { WebViewPool.release(it) },
@@ -317,6 +324,9 @@ fun RYWebView(
         }
     }
 }
+
+/** The tallest an article page is laid out (pixels); see the web view's layout. */
+private const val MaxPageHeightPx = 200_000
 
 /** Nightly stutter log: when the page's fonts start and finish loading, and its first frame. */
 private const val PERF_SCRIPT = """

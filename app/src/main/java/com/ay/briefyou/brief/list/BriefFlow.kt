@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.Dp
 import com.ay.briefyou.brief.ui.AiActions
 import com.ay.briefyou.brief.ui.BottomBarHeight
 import com.ay.briefyou.brief.ui.FILTER_BAR_TOP_PADDING
+import com.ay.briefyou.brief.ui.BarScreenOffset
 import com.ay.briefyou.brief.ui.FloatingBarGap
 import com.ay.briefyou.ui.page.adaptive.ArticleListReaderViewModel
 
@@ -258,7 +259,7 @@ fun BriefFlowOverlays(
 }
 
 /** The pull-to-load hint's distance from the bottom: [FloatingBarGap] above the bottom bar. */
-val briefPullToLoadPadding: Dp = BottomBarHeight + FILTER_BAR_TOP_PADDING + FloatingBarGap
+val briefPullToLoadPadding: Dp = BottomBarHeight + FILTER_BAR_TOP_PADDING + BarScreenOffset + FloatingBarGap
 
 /** The pull-to-load hint stays above the navigation bar. */
 val briefPullToLoadInsets: WindowInsets

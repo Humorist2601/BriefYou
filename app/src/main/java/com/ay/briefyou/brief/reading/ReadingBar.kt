@@ -94,7 +94,7 @@ fun BottomBar(
     ) {
         AnimatedVisibility(
             visible = isShow,
-            modifier = Modifier.navigationBarsPadding().padding(bottom = FloatingBarGap),
+            modifier = Modifier.navigationBarsPadding().padding(bottom = com.ay.briefyou.brief.ui.BarScreenOffset),
             enter =
                 scaleIn(
                     transformOrigin = PillOrigin,

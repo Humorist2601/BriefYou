@@ -109,6 +109,7 @@ inline fun GroupWithFeedsContainer(
     modifier: Modifier = Modifier,
     shape: androidx.compose.ui.graphics.Shape = Shape32, // Brief You: its place in the joined list
     top: androidx.compose.ui.unit.Dp = 16.dp, // Brief You: the gap above it
+    color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surfaceContainerLow, // Brief You
     content: @Composable () -> Unit,
 ) {
     Column(
@@ -116,7 +117,7 @@ inline fun GroupWithFeedsContainer(
             .padding(top = top) // Brief You
             .padding(horizontal = 16.dp)
             .clip(shape) // Brief You
-            .background(MaterialTheme.colorScheme.surfaceContainerLow),
+            .background(color),
         content = { content() }
     )
 }

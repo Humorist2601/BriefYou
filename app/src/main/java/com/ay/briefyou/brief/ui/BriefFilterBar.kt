@@ -50,6 +50,14 @@ val BottomBarHeight = 64.dp
 val FloatingBarGap = 12.dp
 
 /**
+ * How far the floating bottom bars (the filter bar and the reading page's pill) float above the
+ * system's navigation bar area: Material's distance of a floating toolbar from the screen's edge
+ * (FloatingToolbarDefaults.ScreenOffset, 16 dp). The filter bar sat right on that area (0 dp), so it
+ * looked too low next to the gesture handle.
+ */
+val BarScreenOffset = 16.dp
+
+/**
  * The Starred / Unread / All toolbar: a solid tonal pill like Material's floating toolbar. The chosen
  * filter is a filled accent pill with its name; the others are just icons.
  */

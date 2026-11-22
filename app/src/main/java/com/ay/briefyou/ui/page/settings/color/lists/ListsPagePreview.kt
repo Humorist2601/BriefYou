@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
@@ -40,7 +41,9 @@ fun ListsPagePreview(groupListExpand: Boolean) {
             .animateContentSize()
             .padding(vertical = 8.dp)
     ) {
-        GroupWithFeedsContainer(shape = groupShape(0, 1), top = Group.Gap) {
+        // In the preview's own card, which is the same tone as a group's card, so the group (and its feed
+        // when expanded) would vanish into it: a tone up.
+        GroupWithFeedsContainer(shape = groupShape(0, 1), top = Group.Gap, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
             GroupItem(isExpanded = { groupListExpand }, group = generateGroupPreview(), count = 3)
             FeedItem(feed = generateFeedPreview(), isLastItem = { true }, isExpanded = { groupListExpand })
         }
