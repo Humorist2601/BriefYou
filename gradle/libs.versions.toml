@@ -1,6 +1,6 @@
 [versions]
 # Android Gradle Plugin
-androidGradlePlugin = "9.5.1" # Brief You: dependency step A (built-in Kotlin)
+androidGradlePlugin = "9.5.2" # Brief You: dependency step A (built-in Kotlin)
 
 # Kotlin
 kotlin = "2.4.21" # Brief You
@@ -40,9 +40,9 @@ hilt = "1.3.0"
 androidSVG = "1.4"
 junit = "4.13.2"
 junitExt = "1.1.5"
-mockitoCore = "5.11.0"
-mockitoJUnitJupiter = "5.11.0"
-mockitoKotlin = "5.2.1"
+mockitoCore = "5.24.0"
+mockitoJUnitJupiter = "5.24.0"
+mockitoKotlin = "5.4.0"
 okhttp = "5.5.1" # Brief You
 opmlParser = "3.1.0"
 readability4j = "1.0.8"
