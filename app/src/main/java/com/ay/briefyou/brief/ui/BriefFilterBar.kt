@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -128,17 +127,15 @@ private fun FilterButton(item: Filter, selected: Boolean, onClick: () -> Unit) {
 
 /**
  * The bottom bar's surface, like Material's floating toolbar: a solid tonal container
- * (`surfaceContainer`) with a soft shadow and a thin outline (`outlineVariant`), so it stays
- * visible over list cards of the same tone.
+ * (`surfaceContainerHighest`, one tone above the list cards (`surfaceContainerHigh`)) with a soft shadow, and no outline.
  */
 @Composable
 internal fun Modifier.glass(shape: Shape): Modifier {
-    val container = MaterialTheme.colorScheme.surfaceContainer
+    val container = MaterialTheme.colorScheme.surfaceContainerHighest
     return this
         .barShadow(shape)
         .clip(shape)
         .background(container)
-        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
 }
 
 /**

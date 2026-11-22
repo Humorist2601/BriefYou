@@ -196,7 +196,7 @@ private fun Segment(
             // A barely-there tone, so the buttons don't pull the eye; an action that is on
             // (searching, marking as read) gets the soft accent tone.
             if (action.selected) MaterialTheme.colorScheme.secondaryContainer
-            else MaterialTheme.colorScheme.surfaceContainer,
+            else MaterialTheme.colorScheme.surfaceContainerHighest,
             effects,
             label = "container",
         )

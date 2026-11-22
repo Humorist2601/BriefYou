@@ -1,3 +1,5 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package com.ay.briefyou.ui.ext
 
 import android.content.Context
