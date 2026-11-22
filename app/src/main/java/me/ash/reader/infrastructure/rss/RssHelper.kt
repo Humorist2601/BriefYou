@@ -206,6 +206,9 @@ constructor(
         preDate: Date = Date(),
     ): Article {
         val desc = syndEntry.description?.value
+        // Brief You: some feeds (Chandra's) give the item link and files as paths with no domain;
+        // they are completed with the feed's own address.
+        val itemLink = FeedContent.absoluteUrl(syndEntry.link, feed.url) ?: syndEntry.link
         val content =
             syndEntry.contents
                 .takeIf { it.isNotEmpty() }
@@ -230,17 +233,17 @@ constructor(
             title = syndEntry.title.decodeHTML() ?: feed.name,
             author = syndEntry.author,
             rawDescription = content ?: desc ?: "",
-            shortDescription = Readability.parseToText(desc ?: content, syndEntry.link).take(280),
+            shortDescription = Readability.parseToText(desc ?: content, itemLink).take(280),
             //            fullContent = content,
             img = // Brief You
                 FeedContent.listImage(
                     findThumbnail(syndEntry) ?: findThumbnail(content ?: desc),
-                    syndEntry.link,
+                    itemLink,
                 ),
-            link = syndEntry.link ?: "",
+            link = itemLink ?: "",
             updateAt = preDate,
         ).let { me.ash.reader.brief.reading.EmailContent.adjust(it) } // Brief You: newsletters read as feeds
-            .also { me.ash.reader.brief.media.ArticleMedia.found(listOf(me.ash.reader.brief.media.FeedMedia.fromSyndEntry(it.id, syndEntry))) } // Brief You: its episode, video and comments
+            .also { me.ash.reader.brief.media.ArticleMedia.found(listOf(me.ash.reader.brief.media.FeedMedia.fromSyndEntry(it.id, syndEntry, itemLink))) } // Brief You: its episode, video and comments
     }
 
     fun findThumbnail(syndEntry: SyndEntry): String? {

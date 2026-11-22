@@ -14,7 +14,7 @@ import com.rometools.rome.feed.synd.SyndEntry
  */
 object FeedMedia {
 
-    fun fromSyndEntry(articleId: String, entry: SyndEntry): ArticleExtras {
+    fun fromSyndEntry(articleId: String, entry: SyndEntry, itemLink: String? = null): ArticleExtras {
         var url: String? = null
         var kind: String? = null
         var type: String? = null
@@ -57,7 +57,7 @@ object FeedMedia {
             entry.comments?.takeIf { it.isNotBlank() }
                 ?: entry.links.orEmpty().firstOrNull { it.rel == "replies" && (it.type == null || it.type.contains("html")) }?.href
 
-        val link = entry.link
+        val link = itemLink ?: entry.link // complete (see RssHelper), the base for relative addresses
         return ArticleExtras(
             articleId = articleId,
             // Web addresses only: a feed can't point the player or the notification at files on the phone.

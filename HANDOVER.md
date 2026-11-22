@@ -285,6 +285,8 @@ them with an output folder, the Material Symbols rounded SVG folder (npm
 
 ## 6. Pitfalls already hit (save yourself the time)
 
+- **Feeds with paths instead of addresses** (Chandra's video podcast: item link and enclosure are `/resources/podcasts/...`): `RssHelper.buildArticleFromSyndEntry` completes the item link with the feed's own address (`itemLink`), and `FeedMedia.fromSyndEntry` uses that as the base; before, the media address stayed relative, `WebUrl.of` dropped it and the item showed no video. Already stored articles keep their old data: remove and re-add the feed to test. The same feed types its files `video/x-m4v]` (stray bracket): still read as video by the `video/` prefix.
+
 - **"Plugin … was not found" on `main` (0.16.2.38):** a download hiccup during a release build got
   "not found" saved in `main`'s Gradle cache, and re-running believed it. The build step now
   retries once with `--refresh-dependencies` when a dependency couldn't be resolved. A new commit
