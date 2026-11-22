@@ -92,7 +92,7 @@ Brief You is a fork of [Read You](https://github.com/ReadYouApp/ReadYou). It kee
 
 - The notification shows the title, play/pause, Stop, speed and a progress bar you can drag.
 - Long press: speech settings before reading, the speed slider while reading, stop while paused.
-- Closing the article (or the AI sheet, for a summary) stops it; leaving the app keeps it going.
+- Closing the article keeps an article's read aloud going: the now-playing pill (the feed's icon, tap to open the article, swipe it away to stop) and the notification control it. Closing the AI sheet stops a summary's reading.
 - Each read aloud button controls only its own reading: the article's or the summary's.
 
 </details>

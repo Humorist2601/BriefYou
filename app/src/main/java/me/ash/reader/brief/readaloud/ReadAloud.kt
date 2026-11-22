@@ -82,6 +82,12 @@ class TextToSpeechManager @Inject constructor(
      */
     @Volatile var color: Int? = null
 
+    /** The feed of what is being read (its name and icon), for the now playing pill. */
+    @Volatile var feedName: String? = null
+        private set
+    @Volatile var feedIcon: String? = null
+        private set
+
     private val prefs = context.getSharedPreferences("read_aloud", Context.MODE_PRIVATE)
 
     /** Reading speed, 0.8× to 2× in steps of 0.2; the last one used is kept. */
@@ -155,8 +161,12 @@ class TextToSpeechManager @Inject constructor(
         title: String? = null,
         key: String? = null,
         color: Int? = null,
+        feedName: String? = null,
+        feedIcon: String? = null,
     ) {
         this.color = color
+        this.feedName = feedName
+        this.feedIcon = feedIcon
         coroutineScope.launch {
             val plainText = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString()
             read(plainText.split("\n"), title, key)
@@ -166,6 +176,8 @@ class TextToSpeechManager @Inject constructor(
     /** Reads plain text aloud; each line is a part. */
     fun readPlainText(text: String, title: String? = null, color: Int? = null, key: String? = null) {
         this.color = color
+        this.feedName = null
+        this.feedIcon = null
         coroutineScope.launch { read(text.split("\n"), title, key) }
     }
 

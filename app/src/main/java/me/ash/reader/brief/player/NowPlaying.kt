@@ -207,6 +207,8 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                     title = stringResource(R.string.player_reading_aloud, tts.title.orEmpty()),
                     line = stringResource(R.string.read_aloud),
                     artwork = null,
+                    feedName = tts?.feedName,
+                    feedIcon = tts?.feedIcon,
                     progress = ttsState.readProgress(),
                     playing = ttsState is TextToSpeechManager.State.Reading,
                 )
@@ -219,7 +221,7 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
 
     // Tinted by the episode's cover (the same picture colour and scheme as the reading page); read
     // aloud, a video without a picture or a cover still being worked out keeps the app's colours.
-    val scheme = rememberCoverScheme(if (c.episode) c.artwork else null, if (c.episode) c.feedIcon else null)
+    val scheme = rememberCoverScheme(if (c.episode) c.artwork else null, c.feedIcon)
     val transition = updateTransition(c.playing, label = "now playing")
     // Soft tint in both states (playing a little stronger); the ring and the play button carry the
     // stronger colours.
@@ -290,7 +292,12 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
         }
     }
     Surface(
-        onClick = { if (c.episode && live != null) sheet = true },
+        onClick = {
+            if (live == null) return@Surface
+            // Episodes and videos open the player sheet; read aloud opens the article it reads.
+            if (c.episode) sheet = true
+            else runCatching { PlayerIntents.open(context, PlayerIntents.articleOf(tts?.sourceKey), readAloud = true).send() }
+        },
         modifier = Modifier.fillMaxSize().offset { IntOffset(dragX.value.toInt(), 0) },
         shape = CircleShape,
         color = container,
@@ -311,7 +318,10 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                     strokeWidth = 3.dp,
                 )
                 if (c.episode) {
-                    Artwork(c.artwork, Modifier.size(37.dp), CircleShape, c.feedName, c.feedIcon, c.video)
+                    Artwork(c.artwork, Modifier.size(37.dp), CircleShape, c.feedName, c.feedIcon, c.video, fillIcon = true)
+                } else if (c.feedName != null || c.feedIcon != null) {
+                    // Read aloud: the feed's icon (its first letter when it has none), full circle.
+                    me.ash.reader.ui.component.FeedIcon(feedName = c.feedName, iconUrl = c.feedIcon, size = 37.dp)
                 } else {
                     Box(
                         Modifier.size(37.dp).clip(CircleShape).background(scheme.secondaryContainer),

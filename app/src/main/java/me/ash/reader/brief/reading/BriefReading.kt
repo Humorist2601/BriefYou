@@ -2,16 +2,12 @@ package me.ash.reader.brief.reading
 
 import kotlinx.coroutines.flow.first
 import me.ash.reader.brief.stats.ReadingStats
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -151,25 +147,18 @@ class BriefReadingState internal constructor() {
 }
 
 /**
- * Brief You's state for the article being read. Closing the article (going back, or opening
- * another one) stops it being read aloud; not when the screen is only being rebuilt (rotation,
- * theme change), and not when you leave the app. A new article starts unscrolled.
+ * Brief You's state for the article being read. Read aloud carries on when the article is closed
+ * (the now playing pill and the notification stop it). A new article starts unscrolled.
  */
 @Composable
 fun rememberBriefReadingState(
     viewModel: ArticleListReaderViewModel,
     readerState: ReaderState,
 ): BriefReadingState {
-    val context = LocalContext.current
     val state = remember { BriefReadingState() }
-    val tts = viewModel.textToSpeechManager
     val articleId = readerState.articleId
-    DisposableEffect(articleId) {
-        onDispose {
-            val changing = context.findActivity()?.isChangingConfigurations == true
-            if (!changing && articleId != null && tts.sourceKey == articleId) tts.stop()
-        }
-    }
+    // Brief You: read aloud carries on after the article is closed (the now playing pill and the
+    // notification control it; swiping the pill stops it).
     // Full content on or off changes the text under a translation: start over from the original.
     LaunchedEffect(readerState.content.text) {
         val made = state.translation.source
@@ -305,7 +294,11 @@ fun BriefReadingBar(
     val pageAccent = (LocalWebViewColorScheme.current ?: MaterialTheme.colorScheme).primary.toArgb()
     val startReadAloud: () -> Unit = {
         readerState.content.text?.let { html ->
-            tts.readHtml(html, readerState.title, readerState.articleId, pageAccent)
+            tts.readHtml(
+                html, readerState.title, readerState.articleId, pageAccent,
+                feedName = readerState.feedName.takeIf { it.isNotBlank() },
+                feedIcon = readingUiState.articleWithFeed?.feed?.icon,
+            )
         }
     }
     BottomBar(
@@ -418,15 +411,6 @@ fun BriefReadingSheets(
             },
         )
     }
-}
-
-private fun Context.findActivity(): Activity? {
-    var c: Context? = this
-    while (c is ContextWrapper) {
-        if (c is Activity) return c
-        c = c.baseContext
-    }
-    return null
 }
 
 /**

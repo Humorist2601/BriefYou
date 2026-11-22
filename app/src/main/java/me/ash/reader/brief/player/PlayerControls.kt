@@ -187,13 +187,14 @@ internal fun Artwork(
     feedName: String? = null,
     feedIcon: String? = null,
     video: Boolean = false,
+    fillIcon: Boolean = false, // the feed icon fills the circle, as in the lists (the pill)
 ) {
     androidx.compose.foundation.layout.BoxWithConstraints(
         modifier = modifier.clip(shape).background(MaterialTheme.colorScheme.secondaryContainer),
         contentAlignment = Alignment.Center,
     ) {
         if (feedIcon != null) {
-            me.ash.reader.ui.component.FeedIcon(feedName = feedName, iconUrl = feedIcon, size = minOf(minOf(maxWidth, maxHeight) * 0.6f, 96.dp))
+            me.ash.reader.ui.component.FeedIcon(feedName = feedName, iconUrl = feedIcon, size = if (fillIcon) minOf(maxWidth, maxHeight) else minOf(minOf(maxWidth, maxHeight) * 0.6f, 96.dp))
         } else {
             Icon(
                 if (video) Icons.Outlined.Movie else Icons.Outlined.Mic,
