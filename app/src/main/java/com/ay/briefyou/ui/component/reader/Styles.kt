@@ -45,7 +45,6 @@ val MediumContentWidth = 600.dp
 val ExpandedContentWidth = 768.dp
 
 val LocalTextContentWidth = compositionLocalOf { MediumContentWidth }
-val LocalImageContentWidth = compositionLocalOf { MediumContentWidth }
 
 @Stable
 @Composable

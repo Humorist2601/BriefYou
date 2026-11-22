@@ -38,9 +38,3 @@ fun Info() {
         }
     }
 }
-
-@Preview
-@Composable
-fun Prev() {
-    Tab(selected = true, onClick = { /*TODO*/ })
-}

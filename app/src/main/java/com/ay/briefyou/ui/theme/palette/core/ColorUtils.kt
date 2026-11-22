@@ -46,27 +46,3 @@ fun Color.toRgb(): Rgb {
         colorSpace = LocalRgbColorSpace.current
     )
 }
-
-@Composable
-fun animateZcamLchAsState(
-    targetValue: ZcamLch,
-    animationSpec: AnimationSpec<ZcamLch> = spring(),
-    finishedListener: ((ZcamLch) -> Unit)? = null,
-): State<ZcamLch> {
-    val converter = remember {
-        TwoWayConverter<ZcamLch, AnimationVector3D>(
-            convertToVector = {
-                AnimationVector3D(it.L.toFloat(), it.C.toFloat(), it.h.toFloat())
-            },
-            convertFromVector = {
-                ZcamLch(L = it.v1.toDouble(), C = it.v2.toDouble(), h = it.v3.toDouble())
-            }
-        )
-    }
-    return animateValueAsState(
-        targetValue,
-        converter,
-        animationSpec,
-        finishedListener = finishedListener
-    )
-}

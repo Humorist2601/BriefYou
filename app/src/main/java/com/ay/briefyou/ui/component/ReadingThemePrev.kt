@@ -133,36 +133,3 @@ fun ReadingThemePrev(
         Spacer(modifier = Modifier.height(14.dp))
     }
 }
-
-@Preview
-@Composable
-private fun ReadingThemePreview() {
-    ReadingThemePrev(
-        selected = ReadingThemePreference.MaterialYou,
-        theme = ReadingThemePreference.MaterialYou,
-    )
-}
-
-@Preview
-@Composable
-private fun ReederThemePreview() {
-    ReadingThemePrev(
-        theme = ReadingThemePreference.Reeder,
-    )
-}
-
-@Preview
-@Composable
-private fun PaperPreview() {
-    ReadingThemePrev(
-        theme = ReadingThemePreference.Paper,
-    )
-}
-
-@Preview
-@Composable
-private fun CustomPreview() {
-    ReadingThemePrev(
-        theme = ReadingThemePreference.Custom,
-    )
-}

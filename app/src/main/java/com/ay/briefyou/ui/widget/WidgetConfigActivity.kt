@@ -307,31 +307,3 @@ fun SingleChoiceItem(
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Preview
-@Composable
-private fun Preview() {
-    Surface {
-        Column {
-            var selected by remember { mutableStateOf(Theme.SansSerif) }
-            Subtitle("Theme")
-            ThemePicker(
-                modifier = Modifier.fillMaxWidth(),
-                selected = selected,
-                onClick = { selected = it },
-            )
-            Subtitle("Data source")
-            SingleChoiceItem(
-                selected = false,
-                title = "Brief You",
-                description = "Account",
-                onClick = {},
-            )
-            SingleChoiceItem(
-                selected = true,
-                title = "Android",
-                description = "Group",
-                onClick = {},
-            )
-        }
-    }
-}

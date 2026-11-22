@@ -110,12 +110,3 @@ fun BYSelectionChip(
         },
     )
 }
-
-@Preview
-@Composable
-private fun BYSelectionChipPreview() {
-    Column {
-        var selected by remember { mutableStateOf(false) }
-        BYSelectionChip(content = "Test", selected = selected, onClick = { selected = !selected })
-    }
-}

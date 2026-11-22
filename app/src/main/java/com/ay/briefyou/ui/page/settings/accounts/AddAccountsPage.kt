@@ -112,9 +112,3 @@ fun AddAccountsPage(
     AddGoogleReaderAccountDialog(onBack, navigateToAccountDetails)
     AddFreshRSSAccountDialog(onBack, navigateToAccountDetails)
 }
-
-@Preview
-@Composable
-fun AddAccountsPreview() {
-    AddAccountsPage(onBack = {}, navigateToAccountDetails = {})
-}

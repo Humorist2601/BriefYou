@@ -92,13 +92,3 @@ fun AccountsPage(
         }
     )
 }
-
-@Preview
-@Composable
-fun AccountsPreview() {
-    AccountsPage(
-        onBack = {},
-        navigateToAddAccount = {},
-        navigateToAccountDetails = {}
-    )
-}

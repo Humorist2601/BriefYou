@@ -128,9 +128,3 @@ private fun FontIcon(modifier: Modifier, size: Dp, feedName: String) {
         )
     }
 }
-
-@Preview
-@Composable
-fun FeedIconPrev() {
-    FeedIcon(feedName = stringResource(R.string.preview_feed_name), iconUrl = null)
-}

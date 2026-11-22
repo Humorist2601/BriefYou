@@ -132,26 +132,3 @@ fun FeedItem(
             })
     }
 }
-
-@Preview
-@Composable
-private fun Preview() {
-    MaterialTheme {
-        Surface {
-            FeedItemImpl(
-                feed = Feed(
-                    id = "1",
-                    name = "Awesome Feed",
-                    icon = null,
-                    important = 5,
-                    url = "https://example.com",
-                    groupId = "1",
-                    accountId = 1,
-                    isNotification = false,
-                    isFullContent = false,
-                ),
-            )
-        }
-    }
-
-}

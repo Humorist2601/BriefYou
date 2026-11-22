@@ -164,25 +164,6 @@ fun TtsProgressIndicator(progress: (() -> Float), modifier: Modifier = Modifier)
     )
 }
 
-@Preview
-@Composable
-private fun Preview() {
-    Column {
-        TtsProgressIndicator({ .5f })
-//        TtsButton(onClick = {}, state = TextToSpeechManager.State.Idle)
-//        TtsButton(onClick = {}, state = TextToSpeechManager.State.Reading(200, 400))
-        var state: TextToSpeechManager.State by remember { mutableStateOf(TextToSpeechManager.State.Idle) }
-        TtsButton(onClick = {
-            state = if (state == TextToSpeechManager.State.Idle) {
-                TextToSpeechManager.State.Reading(200, 400)
-            } else {
-                TextToSpeechManager.State.Idle
-            }
-        }, state = state)
-    }
-
-}
-
 private fun TextToSpeechManager.State.isActive() =
     this is TextToSpeechManager.State.Reading || this is TextToSpeechManager.State.Paused
 

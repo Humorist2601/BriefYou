@@ -112,21 +112,6 @@ class CrashReportActivity : AppCompatActivity() {
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
-@Preview(apiLevel = 33)
-fun CrashReportPage(
-    text: String = "Version: 0.9.11\n" +
-            "Model: Google Pixel 6 Pro\n" + "System: Android 13 (API 33)\n\n" +
-            "Stack trace: \n" +
-            "\nFATAL EXCEPTION: main\n" +
-            "Process: com.ay.briefyou, PID: 29184\n" +
-            "java.lang.IllegalArgumentException: performMeasureAndLayout called during measure layout\n" +
-            "\tat androidx.compose.ui.node.MeasureAndLayoutDelegate.measureAndLayout(MeasureAndLayoutDelegate.kt:133)\n" +
-            "\tat androidx.compose.ui.platform.AndroidComposeView.measureAndLayout(AndroidComposeView.android.kt:34)\n" +
-            "\tat androidx.compose.ui.platform.AndroidComposeView.dispatchDraw(AndroidComposeView.android.kt:15)\n" +
-            "\tat android.view.View.draw(View.java:24193)\n" +
-            "\tat android.view.View.updateDisplayListIfDirty(View.java:23056)\n" +
-            "\tat android.view.ViewGroup.recreateChildDisplayList(ViewGroup.java:4550)\n",
-    onClick: () -> Unit = {}
 ) {
 
     Scaffold(

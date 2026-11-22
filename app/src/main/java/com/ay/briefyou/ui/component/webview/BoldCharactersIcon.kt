@@ -54,12 +54,3 @@ fun BoldCharactersIcon(
         Text(string)
     }
 }
-
-@Preview(backgroundColor = 0xFFFFFF)
-@Composable
-private fun BoldCharactersIconPreview() {
-    Column {
-        BoldCharactersIcon()
-        BoldCharactersIcon(activated = true)
-    }
-}
