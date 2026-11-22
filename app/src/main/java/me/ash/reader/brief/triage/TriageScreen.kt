@@ -62,6 +62,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.systemBarsIgnoringVisibility
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -762,10 +764,12 @@ private fun TriageContent(
     val scope = rememberCoroutineScope()
     var loadingNext by remember { mutableStateOf(false) }
     // Going to the next group or feed: the "All caught up" screen floats up and away, then the new
-    // stack of cards swipes up from the bottom of the screen (on a lively Material 3 Expressive spring).
+    // stack of cards swipes up from the bottom of the screen (on a spring that settles without overshoot).
     val doneExit = remember { Animatable(0f) }
     val stackRise = remember { Animatable(0f) }
-    val riseSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    // A spring that settles without overshoot: the lively default slid the stack a little past its
+    // place and back, which looked like a jump at the end.
+    val riseSpec = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 380f)
 
     // Auto-advance: the delay is remembered between sessions; changing it is a long-press on the
     // play button.
@@ -1002,7 +1006,15 @@ private fun TriageContent(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 16.dp)) {
+    // The bars' space is kept even while a bar is hidden for a moment: pulling the notification
+    // shade hides the navigation bar, and with plain systemBarsPadding the whole screen dropped
+    // by the bar's height for a frame or two when it came back.
+    Column(
+        modifier =
+            Modifier.fillMaxSize()
+                .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.systemBarsIgnoringVisibility)
+                .padding(horizontal = 16.dp)
+    ) {
         // Top bar: close, title and counter, the buttons. 12dp wider on each side than the cards,
         // so the buttons sit exactly where the other screens' top-bar buttons do (12dp from the
         // screen edges, like a top app bar's 4dp inset plus the buttons' own 8dp).

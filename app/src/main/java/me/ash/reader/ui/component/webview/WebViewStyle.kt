@@ -141,6 +141,23 @@ span {
     text-align: var(--text-align) !important;
 }
 
+/* Brief You: long addresses and words wrap instead of running past the screen (only paragraphs did) */
+li,
+a,
+blockquote,
+td,
+th,
+dd,
+dt,
+figcaption {
+    overflow-wrap: anywhere !important;
+    max-width: 100% !important;
+}
+
+li > p {
+    margin: 0.2em 0 !important;
+}
+
 /* Strong  */
 strong,
 b {
