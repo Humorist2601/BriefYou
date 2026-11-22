@@ -85,6 +85,18 @@ class ReadAloudService : MediaSessionService() {
                                     session.isAutoCompanionController(controller)
                             if (!allowed) return MediaSession.ConnectionResult.reject()
                             return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
+                                // Read aloud is one article: no previous or next, so Android leaves
+                                // those slots empty and the progress bar runs edge to edge.
+                                .setAvailablePlayerCommands(
+                                    MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS.buildUpon()
+                                        .removeAll(
+                                            Player.COMMAND_SEEK_TO_PREVIOUS,
+                                            Player.COMMAND_SEEK_TO_NEXT,
+                                            Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+                                            Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+                                        )
+                                        .build()
+                                )
                                 .setAvailableSessionCommands(
                                     MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
                                         .add(SessionCommand(ACTION_SPEED, Bundle.EMPTY))
