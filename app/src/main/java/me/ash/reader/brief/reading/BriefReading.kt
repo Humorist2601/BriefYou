@@ -95,6 +95,20 @@ fun BriefReadingTheme(viewModel: ArticleListReaderViewModel, content: @Composabl
         if (pictureUrl == null || instant) return@LaunchedEffect
         seed = FeedAccent.pictureColor(context, pictureUrl)?.let { Color(it) }
     }
+    // The picture colours of the next and the previous article, worked out while this one is read:
+    // a swipe or "Up next" then opens with them at once. (Only a row press did this before, so an
+    // article reached by swiping got its colours late, and its text, handed to the web view
+    // before that, kept the app's colours while the bars faded into the picture's.)
+    val neighbours = hiltViewModel<BriefListViewModel>()
+    val nextId = readerState.nextArticle?.articleId
+    val previousId = readerState.previousArticle?.articleId
+    LaunchedEffect(nextId, previousId) {
+        for (id in listOfNotNull(nextId, previousId)) {
+            val found = neighbours.previewArticle(id)?.article ?: continue
+            val url = FeedContent.listImage(found.img, found.link)?.takeIf { it.isNotBlank() } ?: continue
+            if (!FeedAccent.knownPictureColor(url).first) FeedAccent.pictureColor(context, url)
+        }
+    }
     val isDark = LocalDarkTheme.current.isDarkTheme()
     val isAmoled = isDark && LocalAmoledDarkTheme.current.value
     val pictureSeed = seed
