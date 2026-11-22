@@ -26,7 +26,6 @@
     <string name="ai_summary_regenerate">Regenerate</string>
     <string name="ai_summary_retry">Try again</string>
     <string name="ai_read_aloud">Read</string>
-    <string name="ai_stop_reading">Stop</string>
 
     <!-- Reading page (experiments) -->
     <string name="reading_time_left">%1$d min left</string>

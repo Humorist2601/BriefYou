@@ -42,7 +42,7 @@ import com.ay.briefyou.R
 /**
  * Read aloud in the system's media notification and controls, like a music app: the title, a
  * progress bar with the time (follows the words being spoken; drag it to jump), play/pause, and
- * Speed and Stop on the right, also on the lock screen and in Quick Settings. A media session
+ * Speed and Stop on the right, the same as the podcast player's, also on the lock screen and in Quick Settings. A media session
  * service like the podcast player's, so Android shows both the same way. It keeps reading going when you leave the
  * article or the app, and goes away when reading stops or finishes.
  */
@@ -135,10 +135,12 @@ class ReadAloudService : MediaSessionService() {
         }
         ensureChannel(this)
         updateSession(tts.state, force = true)
-        // Only to start in time; Media3 replaces it with the media notification straight away.
-        startInForeground(placeholder())
         if (!started) {
             started = true
+            // Only the first start, to be in time: Media3 replaces it with the media notification
+            // straight away, and starts this service again itself; a placeholder then would cover
+            // the media notification.
+            startInForeground(placeholder())
             scope.launch {
                 tts.stateFlow.collect { state ->
                     when (state) {
@@ -257,7 +259,7 @@ class ReadAloudService : MediaSessionService() {
             return artworkBytes
         }
 
-    /** Speed (the speed as a number, see SpeedIcons) and Stop, beside play/pause. */
+    /** The same Speed (as a number) and Stop buttons as the podcast player's, on the right. */
     private fun buttons(): ImmutableList<CommandButton> =
         ImmutableList.of(
             CommandButton.Builder(CommandButton.ICON_UNDEFINED)
@@ -266,9 +268,8 @@ class ReadAloudService : MediaSessionService() {
                 .setSessionCommand(SessionCommand(ACTION_SPEED, Bundle.EMPTY))
                 .setSlots(CommandButton.SLOT_OVERFLOW)
                 .build(),
-            CommandButton.Builder(CommandButton.ICON_UNDEFINED)
-                .setCustomIconResId(R.drawable.ic_read_aloud_stop)
-                .setDisplayName(getString(R.string.ai_stop_reading))
+            CommandButton.Builder(CommandButton.ICON_STOP)
+                .setDisplayName(getString(R.string.player_stop))
                 .setSessionCommand(SessionCommand(ACTION_STOP, Bundle.EMPTY))
                 .setSlots(CommandButton.SLOT_OVERFLOW)
                 .build(),
