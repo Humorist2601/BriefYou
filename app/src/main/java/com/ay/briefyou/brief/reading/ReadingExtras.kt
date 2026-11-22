@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -35,6 +36,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -220,16 +222,17 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
     val families = remember(fonts) { fonts.map { runCatching { it.asFontFamily(context) }.getOrNull() } }
     val family = families.getOrNull(fonts.indexOf(font))
 
+    val sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState(),
+        sheetState = sheetState,
     ) {
         Column(
             modifier =
                 Modifier.fillMaxWidth()
-                    // Always the height of the AI and Triage sheets (70% of the screen), so it doesn't change
-                    // size with its content; what doesn't fit scrolls.
-                    .height((androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.7f).dp)
+                    // Always the full height, so the sheet doesn't change size with its content (and
+                    // doesn't jump while a slider or the font changes the preview above it).
+                    .fillMaxHeight()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp)
                     .navigationBarsPadding()
@@ -358,7 +361,9 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
 
             Spacer(Modifier.height(16.dp))
             FilledTonalButton(
-                onClick = onAllSettings,
+                // The sheet slides away first, then the page opens: both at once (the sheet's many
+                // sliders and the style page's list being built) made the opening stutter.
+                onClick = { scope.launch { sheetState.hide() }.invokeOnCompletion { onAllSettings() } },
                 shapes = ButtonDefaults.shapes(),
                 modifier = Modifier.fillMaxWidth().height(52.dp),
             ) {

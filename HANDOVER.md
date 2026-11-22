@@ -46,6 +46,9 @@ These are the owner's standing preferences. A new assistant should follow them.
    ones; remake it whenever the screenshots change.
 4. **Watch every build to the end.** After a push, follow the GitHub Actions run until it
    finishes; read failures, fix them, push again, and report the result (and the release name).
+   **"Commit and build"** from the owner means all of it, every time: commit, push once, watch the build to
+   the end, send the APK (check its name has the new commit hash), and list everything the owner should
+   test on it.
 5. **Plain language** in replies: what changed and what the owner will notice, not jargon.
 6. **Commit messages:** a short title, then bullet points of what changed for the user. Commits
    have been authored as `Claude <noreply@anthropic.com>` (owner's choice); keep or change that

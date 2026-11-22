@@ -52,8 +52,8 @@ fun NavEntry(
  * You's shared axis, which faded the old screen out completely before the new one came in, through
  * the empty background (a dark flash). [forward] is true for opening a screen.
  */
-fun backPreviewTransition(running: () -> Boolean, forward: Boolean = false): ContentTransform? =
-    if (running()) backPreviewPopTransform() else screenSwitch(forward)
+fun backPreviewTransition(running: () -> Boolean, forward: Boolean = false, readingPage: Boolean = false): ContentTransform? =
+    if (running()) backPreviewPopTransform() else screenSwitch(forward, readingPage)
 
 /**
  * Around the app's navigation: the back preview's controller and picture, the filter bar of

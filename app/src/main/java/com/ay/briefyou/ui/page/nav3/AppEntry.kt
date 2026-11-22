@@ -92,7 +92,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
             transitionSpec = {
-                backPreviewTransition(backPreviewRunning, forward = true) ?: // Brief You
+                backPreviewTransition(backPreviewRunning, forward = true, readingPage = backStack.getOrNull(backStack.lastIndex - 1) is Route.Reading) ?: // Brief You: the article screen being left
                 materialSharedAxisXIn(
                     initialOffsetX = { (it * INITIAL_OFFSET_FACTOR).toInt() }
                 ) togetherWith
@@ -101,7 +101,7 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                     )
             },
             popTransitionSpec = {
-                backPreviewTransition(backPreviewRunning) ?: // Brief You
+                backPreviewTransition(backPreviewRunning, readingPage = backStack.lastOrNull() is Route.Reading) ?: // Brief You: the article screen coming back
                 materialSharedAxisXIn(
                     initialOffsetX = { -(it * INITIAL_OFFSET_FACTOR).toInt() }
                 ) togetherWith

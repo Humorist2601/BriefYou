@@ -257,6 +257,12 @@ fun RYWebView(
         // web view: a see-through web view is drawn into an extra layer every frame, which on long
         // pages with pictures made 90-260 ms frames.
         val cover = MaterialTheme.colorScheme.surface
+        // Whether the article is English (for hyphenation) is worked out off the main thread, and
+        // the page is handed to the web view once it is known (a few milliseconds).
+        val english by
+            androidx.compose.runtime.produceState<Pair<String, Boolean>?>(null, content) {
+                value = content to kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { ReadingText.looksEnglish(content) }
+            }
         androidx.compose.foundation.layout.Box(modifier = modifier, propagateMinConstraints = true) {
         AndroidView(
             modifier = Modifier,
@@ -269,6 +275,8 @@ fun RYWebView(
                 wantedCss[0] = css
                 // A style change while the page is still loading is swapped in once it is ready
                 // (it reloaded the whole page, which then started over).
+                val englishNow = english?.takeIf { it.first == content }?.second
+                if (pageChanged && englishNow == null) return@AndroidView // runs again when it is known
                 if (pageChanged) {
                     pageIsReady[0] = false
                     com.ay.briefyou.brief.perf.PerfLog.note("page load starts (${content.length / 1000} k characters${if (shown[0] != null) ", a reload" else ""})") // Nightly stutter log
@@ -283,7 +291,7 @@ fun RYWebView(
                             content,
                             script,
                             // Lets justified English text be hyphenated (see ReadingText).
-                            english = ReadingText.looksEnglish(content),
+                            english = englishNow ?: false,
                         ),
                         "text/HTML",
                         "UTF-8",

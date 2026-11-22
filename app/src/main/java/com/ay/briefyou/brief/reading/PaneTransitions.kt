@@ -81,10 +81,19 @@ fun <Role : PaneScaffoldRole> PaneScaffoldMotionDataProvider<Role>.briefExitTran
  * the same overlap, so it never passes through the empty background either. [forward] slides the
  * new screen in from the right; going back, from the left.
  */
-fun screenSwitch(forward: Boolean): ContentTransform {
+fun screenSwitch(forward: Boolean, readingPage: Boolean = false): ContentTransform {
     val sign = if (forward) 1 else -1
-    return enter { sign * (it * OFFSET_FACTOR).toInt() } togetherWith
-        exit { -sign * (it * OFFSET_FACTOR).toInt() }
+    // The article's web view is never faded: a see-through web view is drawn into an extra layer
+    // on every frame, and on a long page that made the switch to and from the reading style pages
+    // stutter. Going forward it is the screen leaving (the new screen covers it once it has faded
+    // in); going back it is the screen coming in (it slides over the one leaving, which fades).
+    val entering =
+        if (readingPage && !forward) slideInHorizontally(tween(DURATION, easing = Emphasized)) { sign * (it * OFFSET_FACTOR).toInt() }
+        else enter { sign * (it * OFFSET_FACTOR).toInt() }
+    val leaving =
+        if (readingPage && forward) slideOutHorizontally(tween(DURATION, easing = Emphasized)) { -sign * (it * OFFSET_FACTOR).toInt() }
+        else exit { -sign * (it * OFFSET_FACTOR).toInt() }
+    return entering togetherWith leaving
 }
 
 /** Slides in, and is fully there halfway through. */
