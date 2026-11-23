@@ -180,7 +180,7 @@ fun SummarySheet(
     // The same side padding as the reading page, so the summary lines up with the article text.
     val horizontalPadding = LocalReadingTextHorizontalPadding.current.dp.coerceAtLeast(16.dp)
 
-    ModalBottomSheet(onDismissRequest = onDismissRequest, sheetState = sheetState) {
+    ModalBottomSheet(shape = com.ay.briefyou.brief.ui.SheetShape, onDismissRequest = onDismissRequest, sheetState = sheetState) {
         Column(
             modifier =
                 Modifier.fillMaxWidth()

@@ -28,7 +28,7 @@ class Choice(val text: String, val selected: Boolean, val style: TextStyle? = nu
 fun ChoiceSheet(title: String, hint: String?, choices: List<Choice>, onDismiss: () -> Unit) {
     val state = com.ay.briefyou.brief.ui.rememberFullSheetState()
     val scope = rememberCoroutineScope()
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = state) {
+    ModalBottomSheet(shape = com.ay.briefyou.brief.ui.SheetShape, onDismissRequest = onDismiss, sheetState = state) {
         Column(modifier = Modifier.padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp)) {
             SheetTitle(title, hint)
             Column(

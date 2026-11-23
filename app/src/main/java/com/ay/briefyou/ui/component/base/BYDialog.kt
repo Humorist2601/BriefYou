@@ -16,6 +16,7 @@ fun BYDialog(
     text: @Composable (() -> Unit)? = null,
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable (() -> Unit)? = null,
+    danger: Boolean = false, // Brief You: a dialog that deletes or clears something
 ) {
     if (visible) {
         // Brief You: drawn in the app's window, so text cursor handles sit under the cursor.
@@ -28,6 +29,7 @@ fun BYDialog(
             text = text,
             confirmButton = confirmButton,
             dismissButton = dismissButton,
+            danger = danger,
         )
     }
 }

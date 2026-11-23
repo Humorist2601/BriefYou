@@ -2,6 +2,8 @@
 
 package com.ay.briefyou.brief.stats
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import com.ay.briefyou.infrastructure.preference.isOn
 import com.ay.briefyou.brief.ui.rememberPressFeel
 import androidx.compose.animation.animateColorAsState
@@ -413,7 +415,7 @@ fun ReadingStatsPage(onBack: () -> Unit) {
         title = { Text(stringResource(R.string.stats_reset)) },
         text = { Text(stringResource(R.string.stats_reset_confirm)) },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 onClick = {
                     ReadingStats.reset(context)
                     confirmReset = false

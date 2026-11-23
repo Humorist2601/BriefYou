@@ -1,5 +1,7 @@
 package com.ay.briefyou.ui.page.home.feeds.drawer.feed
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material3.Icon
@@ -27,6 +29,7 @@ fun DeleteFeedDialog(
     val toastString = stringResource(R.string.delete_toast, feedName)
 
     BYDialog(
+        danger = true, // Brief You: red icon and button
         visible = feedOptionUiState.deleteDialogVisible,
         onDismissRequest = {
             feedOptionViewModel.hideDeleteDialog()
@@ -44,7 +47,7 @@ fun DeleteFeedDialog(
             Text(text = stringResource(R.string.unsubscribe_tips, feedName))
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 onClick = {
                     feedOptionViewModel.delete {
                         feedOptionViewModel.hideDeleteDialog()

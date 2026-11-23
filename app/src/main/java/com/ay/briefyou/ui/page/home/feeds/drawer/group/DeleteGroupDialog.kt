@@ -1,5 +1,7 @@
 package com.ay.briefyou.ui.page.home.feeds.drawer.group
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material3.Icon
@@ -27,6 +29,7 @@ fun DeleteGroupDialog(
     val toastString = stringResource(R.string.delete_toast, groupName)
 
     BYDialog(
+        danger = true, // Brief You: red icon and button
         visible = groupOptionUiState.deleteDialogVisible,
         onDismissRequest = {
             groupOptionViewModel.hideDeleteDialog()
@@ -44,7 +47,7 @@ fun DeleteGroupDialog(
             Text(text = stringResource(R.string.delete_group_tips, groupName))
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 onClick = {
                     val deletedId = groupOptionUiState.group?.id // Brief You
                     groupOptionViewModel.delete {

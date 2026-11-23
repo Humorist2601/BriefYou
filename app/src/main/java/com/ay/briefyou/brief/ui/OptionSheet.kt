@@ -85,6 +85,7 @@ fun OptionSheet(switch: SheetSwitch, content: @Composable ColumnScope.() -> Unit
     ModalBottomSheet(
         onDismissRequest = { switch.gone() },
         sheetState = state,
+        shape = SheetShape,
         contentWindowInsets = { androidx.compose.foundation.layout.WindowInsets.navigationBars },
     ) {
         Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp), content = content)
@@ -115,19 +116,18 @@ fun SheetHeader(
             subtitle?.invoke()
         }
     }
-    Spacer(Modifier.height(14.dp))
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    Spacer(Modifier.height(14.dp))
+    Spacer(Modifier.height(18.dp))
 }
 
-/** A small heading over a part of a sheet ("Reading", "Move to group"). */
+/** A small heading over a part of a sheet ("Reading", "Move to group"), in the accent colour. */
 @Composable
 fun SheetSection(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.padding(bottom = 10.dp),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.padding(start = 4.dp, bottom = 8.dp),
     )
 }
 
@@ -203,26 +203,27 @@ fun SheetActions(
     second: Pair<String, () -> Unit>?,
     dangerSecond: Boolean = true,
 ) {
+    // Round tonal buttons; the second one in the soft red when it deletes.
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        androidx.compose.material3.OutlinedButton(
-            shapes = androidx.compose.material3.ButtonDefaults.shapes(),
+        androidx.compose.material3.FilledTonalButton(
             onClick = first.second,
-            modifier = Modifier.weight(1f),
+            shape = androidx.compose.foundation.shape.CircleShape,
+            modifier = Modifier.weight(1f).height(48.dp),
         ) {
             Text(first.first, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (second != null) {
-            val red = MaterialTheme.colorScheme.error
-            androidx.compose.material3.OutlinedButton(
-                shapes = androidx.compose.material3.ButtonDefaults.shapes(),
+            androidx.compose.material3.FilledTonalButton(
                 onClick = second.second,
-                modifier = Modifier.weight(1f),
+                shape = androidx.compose.foundation.shape.CircleShape,
+                modifier = Modifier.weight(1f).height(48.dp),
                 colors =
-                    if (dangerSecond) androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = red)
-                    else androidx.compose.material3.ButtonDefaults.outlinedButtonColors(),
-                border =
-                    if (dangerSecond) androidx.compose.foundation.BorderStroke(1.dp, red.copy(alpha = 0.5f))
-                    else androidx.compose.material3.ButtonDefaults.outlinedButtonBorder(enabled = true),
+                    if (dangerSecond) {
+                        androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    } else androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(),
             ) {
                 Text(second.first, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }

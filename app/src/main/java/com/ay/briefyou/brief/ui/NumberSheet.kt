@@ -80,6 +80,7 @@ fun NumberSheet(
     LaunchedEffect(typing) { if (typing) focus.requestFocus() }
 
     ModalBottomSheet(
+        shape = com.ay.briefyou.brief.ui.SheetShape,
         onDismissRequest = onDismiss,
         sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState(),
     ) {

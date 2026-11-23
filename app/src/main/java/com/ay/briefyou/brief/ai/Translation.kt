@@ -543,7 +543,7 @@ fun TranslateLanguageSheet(controller: TranslateController, onDismiss: () -> Uni
     val sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState()
     val scope = rememberCoroutineScope()
     val others = remember(phone) { TranslationPrefs.LANGUAGES.filter { it != phone } }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(shape = com.ay.briefyou.brief.ui.SheetShape, onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
             com.ay.briefyou.brief.ui.SheetTitle(
                 stringResource(R.string.translate_to),

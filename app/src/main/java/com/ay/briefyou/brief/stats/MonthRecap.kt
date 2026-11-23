@@ -732,6 +732,7 @@ fun PastMonths(data: ReadingStatsData, modifier: Modifier = Modifier) {
     val chosen = past.firstOrNull { it.month.toString() == open }
     if (chosen != null || (open == "year" && lastYear != null)) {
         ModalBottomSheet(
+        shape = com.ay.briefyou.brief.ui.SheetShape,
             onDismissRequest = { open = null },
             sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState(),
         ) {

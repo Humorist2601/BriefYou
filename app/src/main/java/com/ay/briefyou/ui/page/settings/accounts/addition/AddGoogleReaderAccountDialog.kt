@@ -2,6 +2,8 @@
 
 package com.ay.briefyou.ui.page.settings.accounts.addition
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -135,7 +137,7 @@ fun AddGoogleReaderAccountDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 enabled =
                     !accountUiState.isLoading &&
                         googleReaderServerUrl.isNotBlank() &&

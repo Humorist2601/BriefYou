@@ -1,5 +1,7 @@
 package com.ay.briefyou.brief.feeds
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import com.ay.briefyou.brief.ui.InWindowAlertDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -232,7 +234,7 @@ fun FeedIconDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.ai_settings_cancel)) }
+            DialogConfirmButton(onClick = onDismiss) { Text(stringResource(R.string.ai_settings_cancel)) }
         },
     )
 }

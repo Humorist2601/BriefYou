@@ -1,5 +1,7 @@
 package com.ay.briefyou.ui.component.base
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import com.ay.briefyou.brief.ui.InWindowAlertDialog // Brief You
 
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -71,7 +73,7 @@ fun TextFieldDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 enabled = value.isNotBlank(),
                 onClick = {
                     focusManager.clearFocus()
@@ -135,7 +137,7 @@ fun TextFieldDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 enabled = textFieldState.text.isNotBlank(),
                 onClick = {
                     focusManager.clearFocus()
@@ -197,7 +199,7 @@ fun TextFieldDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 enabled = textFieldState.text.isNotBlank(),
                 onClick = {
                     focusManager.clearFocus()

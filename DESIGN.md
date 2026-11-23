@@ -103,3 +103,27 @@ Not wanted (the owner found them too much): reading-time, streak, recap and tren
 ## 8. Credit
 
 The floating bottom pill's movement (`NavPill.kt`) and the card gradient idea come from Trainable (GPL-3.0); keep their credit comments.
+
+## 9. The rest of the app: what is left to redesign
+
+Home is done. Everything below is still to do, on the branch `screens/home`, one surface at a time. The merge to `main`
+is the **last step**, after the whole design is done and the owner says so. Do not merge earlier.
+
+**Order (agreed as a suggestion; the owner picks each next one):**
+
+1. **Shared sheet and dialog building blocks** (`brief/ui`: `OptionSheet`, `ChoiceSheet`, `NumberSheet`, `SpeedSheet`, `SheetParts`,
+   `InWindowSheet`, `InWindowDialog`; `ui/component/base`: `BYDialog`, `RadioDialog`, `TextFieldDialog`, `BottomDrawer`).
+   Restyle these once and about 23 sheets and 55 dialogs follow.
+2. **Article list** (`ui/page/home/flow`, `brief/list`): list, day headers, Read all bar, search, pull to sync / load. It is where the hero card leads.
+3. **Reading page** (`brief/reading`): header, top bar, reading bar, images, extras.
+4. **Settings pages** (about 20 routes under `ui/page/settings` plus Filters, Notifications, Reading stats, AI model): reuse the joined group cards.
+5. **Triage** (`brief/triage`): has its own style; the owner decides how much to change.
+6. **Startup and first run** (splash, restore backup, AI check, tour, hints).
+7. **Player** (now-playing pill and card, controls, video), **recaps** (month and year), **Newspaper** share page.
+
+**Surfaces to ask about first** (partly outside the app's own UI): the two home-screen **widgets** (`ui/widget`) and the digest
+**notification**. They can only follow the design in wording, colour and icon.
+
+**For every surface:** list its real states (empty, loading, error, offline), mock it in light and dark, show it, build it on the
+Nightly, get a screenshot back, fix differences, add the README note. Dialogs and sheets are designed as one family first
+(item 1), then checked on each screen that uses them.

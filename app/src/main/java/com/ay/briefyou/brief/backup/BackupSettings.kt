@@ -1,5 +1,7 @@
 package com.ay.briefyou.brief.backup
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
@@ -152,7 +154,7 @@ fun BackupSettingItems(accountId: Int, viewModel: BackupViewModel = hiltViewMode
         title = { Text(text = stringResource(R.string.restore_from_backup)) },
         text = { Text(text = stringResource(R.string.restore_confirm_text)) },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 onClick = {
                     val bytes = pendingRestore
                     pendingRestore = null

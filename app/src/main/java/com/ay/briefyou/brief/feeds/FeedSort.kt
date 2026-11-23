@@ -117,6 +117,7 @@ fun FeedSortSheet(
 ) {
     if (!visible) return
     ModalBottomSheet(
+        shape = com.ay.briefyou.brief.ui.SheetShape,
         onDismissRequest = onDismiss,
         sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState(),
     ) {

@@ -2,6 +2,8 @@
 
 package com.ay.briefyou.brief.ai
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import com.ay.briefyou.infrastructure.preference.isOn
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.BorderStroke
@@ -318,7 +320,7 @@ private fun PromptDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 onClick = {
                     onSave(if (text.trim() == default) null else text.trim())
                     onDismiss()

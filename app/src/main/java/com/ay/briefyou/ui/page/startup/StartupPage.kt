@@ -1,5 +1,7 @@
 package com.ay.briefyou.ui.page.startup
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -124,7 +126,7 @@ fun StartupPage(
             }
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 onClick = {
                     onNavigateToFeeds()
                     scope.launch { context.dataStore.put(DataStoreKey.isFirstLaunch, false) }

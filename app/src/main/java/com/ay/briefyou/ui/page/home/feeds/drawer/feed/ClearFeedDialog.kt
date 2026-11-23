@@ -1,5 +1,7 @@
 package com.ay.briefyou.ui.page.home.feeds.drawer.feed
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material3.Icon
@@ -27,6 +29,7 @@ fun ClearFeedDialog(
     val toastString = stringResource(R.string.clear_articles_in_feed_toast, feedName)
 
     BYDialog(
+        danger = true, // Brief You: red icon and button
         visible = feedOptionUiState.clearDialogVisible,
         onDismissRequest = {
             feedOptionViewModel.hideClearDialog()
@@ -44,7 +47,7 @@ fun ClearFeedDialog(
             Text(text = stringResource(R.string.clear_articles_feed_tips, feedName))
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 onClick = {
                     feedOptionViewModel.clearFeed {
                         feedOptionViewModel.hideClearDialog()

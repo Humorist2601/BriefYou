@@ -1,5 +1,7 @@
 package com.ay.briefyou.ui.page.home.feeds.drawer.group
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material3.Icon
@@ -53,7 +55,7 @@ fun AllMoveToGroupDialog(
             )
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 onClick = {
                     groupOptionViewModel.allMoveToGroup {
                         groupOptionViewModel.hideAllMoveToGroupDialog()

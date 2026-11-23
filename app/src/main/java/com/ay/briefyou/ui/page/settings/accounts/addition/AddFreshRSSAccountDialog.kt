@@ -2,6 +2,8 @@
 
 package com.ay.briefyou.ui.page.settings.accounts.addition
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import android.app.Activity
 import android.security.KeyChain
 import androidx.compose.foundation.clickable
@@ -147,7 +149,7 @@ fun AddFreshRSSAccountDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 enabled = !accountUiState.isLoading
                         && freshRSSServerUrl.isNotBlank()
                         && freshRSSUsername.isNotEmpty()

@@ -224,6 +224,7 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
 
     val sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState()
     ModalBottomSheet(
+        shape = com.ay.briefyou.brief.ui.SheetShape,
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {

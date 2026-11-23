@@ -145,7 +145,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
     LaunchedEffect(VideoWindow.inPip) { if (VideoWindow.inPip) onDismiss() }
     val haptic = LocalHapticFeedback.current
     val s by BriefPlayer.state.collectAsState()
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState()) {
+    ModalBottomSheet(shape = com.ay.briefyou.brief.ui.SheetShape, onDismissRequest = onDismiss, sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState()) {
         // The app's sheet design: title, divider, then the choices.
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp),

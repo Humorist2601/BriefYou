@@ -392,6 +392,7 @@ fun NewspaperHost(maker: NewspaperMaker) {
     val run = maker.run ?: return
     if (!run.visible) return
     ModalBottomSheet(
+        shape = com.ay.briefyou.brief.ui.SheetShape,
         onDismissRequest = maker::cancel,
         sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState(),
     ) {

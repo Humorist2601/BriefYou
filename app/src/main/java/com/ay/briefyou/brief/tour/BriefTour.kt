@@ -1,5 +1,7 @@
 package com.ay.briefyou.brief.tour
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import com.ay.briefyou.brief.ui.groupShape
 import com.ay.briefyou.brief.ui.Group
 import androidx.compose.animation.core.Animatable
@@ -397,7 +399,7 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = { termsVisible = false }) { Text(text = stringResource(R.string.tour_close)) }
+            DialogConfirmButton(onClick = { termsVisible = false }) { Text(text = stringResource(R.string.tour_close)) }
         },
     )
 }

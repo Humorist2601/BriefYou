@@ -1,5 +1,7 @@
 package com.ay.briefyou.ui.page.settings.accounts
 
+import com.ay.briefyou.brief.ui.DialogConfirmButton
+
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.ManagedActivityResultLauncher
@@ -327,7 +329,7 @@ fun AccountDetailsPage(
         title = { Text(text = stringResource(R.string.clear_all_articles)) },
         text = { Text(text = stringResource(R.string.clear_all_articles_tips)) },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 onClick = {
                     selectedAccount?.let {
                         viewModel.clear(it) {
@@ -361,7 +363,7 @@ fun AccountDetailsPage(
         title = { Text(text = stringResource(R.string.delete_account)) },
         text = { Text(text = stringResource(R.string.delete_account_tips)) },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 onClick = {
                     selectedAccount?.id?.let {
                         viewModel.delete(it) {
@@ -435,7 +437,7 @@ fun AccountDetailsPage(
             }
         },
         confirmButton = {
-            TextButton(
+            DialogConfirmButton(
                 onClick = {
                     exportOPMLModeDialogVisible = false
                     subscriptionOPMLFileLauncher(context, launcher)

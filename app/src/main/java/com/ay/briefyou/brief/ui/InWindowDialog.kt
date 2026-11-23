@@ -24,10 +24,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
@@ -115,6 +119,8 @@ fun InWindowAlertDialog(
     title: @Composable (() -> Unit)? = null,
     text: @Composable (() -> Unit)? = null,
     properties: DialogProperties = DialogProperties(),
+    /** A dialog that deletes or clears something: red icon, red main button (see [DialogConfirmButton]). */
+    danger: Boolean = false,
 ) {
     // Every dialog gets a window of its own that covers the screen and doesn't move for the
     // keyboard; the dialog moves above the keyboard inside it, so the cursor's handle stays under
@@ -147,6 +153,7 @@ fun InWindowAlertDialog(
             title = title,
             text = text,
             properties = properties,
+            danger = danger,
         )
     }
 }
@@ -162,7 +169,8 @@ private fun DialogScaffold(
     title: @Composable (() -> Unit)?,
     text: @Composable (() -> Unit)?,
     properties: DialogProperties,
-) {
+    danger: Boolean,
+) = DangerDialog(danger) {
     // Predictive back: while you swipe back, the dialog shrinks a little and drifts toward the
     // edge you swipe from, and the scrim lightens; let go and it fades away and closes, change
     // your mind and it settles back.
@@ -219,19 +227,27 @@ private fun DialogScaffold(
                             }
                             // Taps on the dialog itself don't reach the scrim.
                             .pointerInput(Unit) { detectTapGestures { } },
-                    shape = AlertDialogDefaults.shape,
-                    color = AlertDialogDefaults.containerColor,
-                    tonalElevation = AlertDialogDefaults.TonalElevation,
+                    // The Banner corner and the card colour, as Home's hero and groups.
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(Corner.Banner),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    tonalElevation = 0.dp,
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
                         icon?.let {
+                            // The icon on a cookie at the left, red for a dialog that deletes.
+                            val scheme = MaterialTheme.colorScheme
                             CompositionLocalProvider(
-                                LocalContentColor provides AlertDialogDefaults.iconContentColor
+                                LocalContentColor provides
+                                    (if (danger) scheme.onErrorContainer else scheme.onPrimaryContainer)
                             ) {
                                 Box(
                                     modifier =
                                         Modifier.padding(bottom = 16.dp)
-                                            .align(Alignment.CenterHorizontally)
+                                            .align(Alignment.Start)
+                                            .size(52.dp)
+                                            .clip(MaterialShapes.Cookie9Sided.toShape())
+                                            .background(if (danger) scheme.errorContainer else scheme.primaryContainer),
+                                    contentAlignment = Alignment.Center,
                                 ) {
                                     it()
                                 }
@@ -241,15 +257,10 @@ private fun DialogScaffold(
                             CompositionLocalProvider(
                                 LocalContentColor provides AlertDialogDefaults.titleContentColor
                             ) {
-                                ProvideTextStyle(MaterialTheme.typography.headlineSmall) {
-                                    Box(
-                                        modifier =
-                                            Modifier.padding(bottom = 16.dp)
-                                                .align(
-                                                    if (icon == null) Alignment.Start
-                                                    else Alignment.CenterHorizontally
-                                                )
-                                    ) {
+                                ProvideTextStyle(
+                                    MaterialTheme.typography.headlineSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                                ) {
+                                    Box(modifier = Modifier.padding(bottom = 12.dp).align(Alignment.Start)) {
                                         it()
                                     }
                                 }
