@@ -10,6 +10,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import com.ay.briefyou.ui.component.base.DisplayText
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.translate
 import com.ay.briefyou.brief.feeds.BriefFeedSortSheet
 import com.ay.briefyou.brief.feeds.BriefFeedsPages
 import com.ay.briefyou.brief.feeds.rememberBriefFeedsPager
@@ -213,7 +214,7 @@ fun FeedsPage(
                     Modifier.drawBehind {
                         // Brief You: the page fades in under the bar, like the list under the bottom bar.
                         // Moved down first: a brush is laid out from the drawing's own origin.
-                        androidx.compose.ui.graphics.drawscope.translate(top = size.height) {
+                        translate(top = size.height) {
                             drawRect(
                                 brush = com.ay.briefyou.brief.ui.edgeFadeBrush(surfaceColor, solidAtBottom = false),
                                 size = androidx.compose.ui.geometry.Size(size.width, 28.dp.toPx()),

@@ -110,7 +110,7 @@ class FeedsViewModel @Inject constructor(
     val oldestUnread: StateFlow<Long?> =
         accountFlow
             .filterNotNull()
-            .flatMapLatest { articleDao.queryOldestUnreadDate(it.id) }
+            .flatMapLatest { articleDao.queryOldestUnreadDate(it.id ?: -1) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val newSince = MutableStateFlow(0L)
@@ -123,7 +123,7 @@ class FeedsViewModel @Inject constructor(
     val newSinceOpen: StateFlow<Int> =
         accountFlow
             .filterNotNull()
-            .combine(newSince) { account, since -> account.id to since }
+            .combine(newSince) { account, since -> (account.id ?: -1) to since }
             .flatMapLatest { (id, since) -> if (since <= 0L) kotlinx.coroutines.flow.flowOf(0) else articleDao.countUnreadSince(id, since) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
