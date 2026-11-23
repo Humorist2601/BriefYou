@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -357,8 +356,8 @@ private fun HeroSentence(text: String, name: String?, ink: Color) {
  */
 @Composable
 private fun FaintCookies(modifier: Modifier = Modifier) {
-    val gem = remember { MaterialShapes.Gem.toPath() }
-    val sunny = remember { MaterialShapes.Sunny.toPath() }
+    val gem = MaterialShapes.Gem.toPath() // composable: it remembers its own path
+    val sunny = MaterialShapes.Sunny.toPath()
     val transition = rememberInfiniteTransition(label = "hero background")
     val gemTurn by transition.animateFloat(0f, 360f, infiniteRepeatable(tween(15_000, easing = LinearEasing)), label = "gem")
     val sunnyTurn by transition.animateFloat(0f, 360f, infiniteRepeatable(tween(20_000, easing = LinearEasing)), label = "sunny")
