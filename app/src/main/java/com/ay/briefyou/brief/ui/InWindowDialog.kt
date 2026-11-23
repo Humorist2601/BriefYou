@@ -158,7 +158,7 @@ fun InWindowAlertDialog(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun DialogScaffold(
     onDismissRequest: () -> Unit,
