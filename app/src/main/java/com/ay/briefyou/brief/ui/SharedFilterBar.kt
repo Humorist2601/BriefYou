@@ -176,14 +176,8 @@ fun SharedFilterBar(
             val navBar = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             Box(
                 Modifier.fillMaxWidth()
-                    .height(BottomBarHeight + BarScreenOffset + navBar + 40.dp)
-                    .background(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            0f to Color.Transparent,
-                            0.72f to surface,
-                            1f to surface,
-                        )
-                    )
+                    .height(BottomBarHeight + BarScreenOffset + navBar + 14.dp)
+                    .background(edgeFadeBrush(surface, solidAtBottom = true))
             )
         }
         AnimatedVisibility(

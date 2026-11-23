@@ -6,7 +6,6 @@ import android.view.HapticFeedbackConstants
 import android.view.SoundEffectConstants
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.draw.alpha
@@ -52,8 +51,6 @@ data class TopBarAction(
     val enabled: Boolean = true,
     /** A long press (Triage's Auto-advance: choose the delay). */
     val onLongClick: (() -> Unit)? = null,
-    /** A small red dot on the button's top corner (Settings: an update is available). */
-    val showBadge: Boolean = false,
     val onClick: () -> Unit,
 )
 
@@ -118,8 +115,6 @@ fun TopBarButtonGroup(
     leadingCorner: Dp? = null,
     /** Each button's width, instead of the usual 48dp (Triage's Undo narrowing into a circle). */
     buttonWidth: Dp = ButtonWidth,
-    /** Each button's height, instead of the usual 40dp (Home's buttons are 44 square). */
-    buttonHeight: Dp = ButtonHeight,
     /** Tells whether one of the buttons is pressed (Triage: its neighbour squeezes to make room). */
     onPressedChange: (Boolean) -> Unit = {},
     /** How much a single button widens when pressed, when something is joined next to it. */
@@ -167,7 +162,7 @@ fun TopBarButtonGroup(
                 action = action,
                 interaction = interactions[index],
                 width = width,
-                height = buttonHeight,
+                height = ButtonHeight,
                 leadingCorner =
                     androidx.compose.ui.unit.lerp(
                         if (index == 0) leadingCorner ?: OuterCorner else InnerCorner,
@@ -252,14 +247,6 @@ private fun Segment(
                 contentDescription = action.description,
                 modifier = Modifier.size(22.dp).alpha(if (action.enabled) 1f else 0.38f),
             )
-            if (action.showBadge) {
-                Box(
-                    Modifier.align(Alignment.TopEnd)
-                        .padding(top = 7.dp, end = 7.dp)
-                        .size(8.dp)
-                        .background(MaterialTheme.colorScheme.error, androidx.compose.foundation.shape.CircleShape)
-                )
-            }
         }
     }
 }

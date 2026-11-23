@@ -9,10 +9,16 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import android.view.SoundEffectConstants
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.material3.toPath
-import androidx.compose.foundation.Canvas
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.runtime.State
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -82,7 +89,7 @@ import java.util.Date
  * The hero card at the top of the Home screen: a greeting and when the account last synced, then
  * the count in a cookie with a short sentence beside it. It has the press feel of the app's other
  * openers (squeeze, tighter corners, the cookie turns one bump). Only the faint cookies behind it
- * move (the same Gem and Sunny turning as Trainable's membership card); the main cookie keeps still.
+ * move (a clover, a pill and a rounded square turning slowly); the main cookie keeps still.
  */
 @Composable
 fun HomeHero(
@@ -94,6 +101,16 @@ fun HomeHero(
     updatedAt: Date?,
     hasFeeds: Boolean?,
     loading: Boolean,
+    newCount: Int,
+    oldestDays: Int?,
+    topFeed: String?,
+    syncing: Boolean,
+    progressDone: Int,
+    progressTotal: Int,
+    problem: com.ay.briefyou.brief.app.SyncStatus.Problem,
+    online: Boolean,
+    onRetry: () -> Unit,
+    onSignIn: () -> Unit,
     onClick: () -> Unit,
     onAddFeed: () -> Unit,
     modifier: Modifier = Modifier,
@@ -122,61 +139,93 @@ fun HomeHero(
 
     val groups = pluralStringResource(R.plurals.hero_groups, groupCount, groupCount)
     val feedsText = pluralStringResource(R.plurals.hero_feeds, feedCount, feedCount)
-    val name: String?
-    val sentence: String
+    val newMode = !noFeeds && !loading && filter.isUnread() && count > 0 && newCount > 0
+    val shownCount = if (newMode) newCount else count
+    val baseName: String?
+    val baseSentence: String
     val big: String
     val cookieIcon: ImageVector?
     when {
         noFeeds -> {
             big = stringResource(R.string.hero_add_feed)
-            sentence = stringResource(R.string.hero_add_feed_desc)
+            baseSentence = stringResource(R.string.hero_add_feed_desc)
             cookieIcon = Icons.Outlined.Add
-            name = null
+            baseName = null
         }
         loading -> {
             big = stringResource(R.string.hero_counting)
-            sentence = ""
+            baseSentence = ""
             cookieIcon = null
-            name = null
+            baseName = null
         }
         filter == Filter.All -> {
             big = stringResource(R.string.hero_articles)
-            sentence = stringResource(R.string.hero_from, feedsText)
+            baseSentence = stringResource(R.string.hero_from, feedsText)
             cookieIcon = null
-            name = null
+            baseName = null
         }
         count == 0 && filter.isStarred() -> {
             big = stringResource(R.string.hero_no_stars)
-            sentence = stringResource(R.string.hero_no_stars_desc)
+            baseSentence = stringResource(R.string.hero_no_stars_desc)
             cookieIcon = Icons.Outlined.Star
-            name = null
+            baseName = null
         }
         count == 0 -> {
             big = stringResource(R.string.hero_caught_up)
-            sentence = stringResource(R.string.hero_caught_up_desc)
+            baseSentence = stringResource(R.string.hero_caught_up_desc)
             cookieIcon = Icons.Outlined.DoneAll
-            name = null
+            baseName = null
         }
         filter.isStarred() -> {
             big = stringResource(R.string.hero_starred)
-            sentence = stringResource(R.string.hero_in, groups)
+            baseSentence = stringResource(R.string.hero_in, groups)
             cookieIcon = null
-            name = null
+            baseName = null
+        }
+        newMode -> {
+            big = stringResource(R.string.hero_new)
+            baseSentence = stringResource(R.string.hero_new_desc)
+            cookieIcon = null
+            baseName = null
+        }
+        filter.isUnread() && oldestDays != null && oldestDays >= 30 -> {
+            big = stringResource(R.string.hero_unread)
+            baseSentence = pluralStringResource(R.plurals.hero_oldest_days, oldestDays, oldestDays)
+            cookieIcon = null
+            baseName = null
+        }
+        groupCount < 2 && topFeed != null && feedCount > 1 -> {
+            big = stringResource(R.string.hero_unread)
+            baseSentence = stringResource(R.string.hero_mostly_from, topFeed)
+            cookieIcon = null
+            baseName = topFeed
         }
         groupCount >= 2 && topGroup != null -> {
             big = stringResource(R.string.hero_unread)
-            sentence = stringResource(R.string.hero_across, groups, topGroup)
+            baseSentence = stringResource(R.string.hero_across, groups, topGroup)
             cookieIcon = null
-            name = topGroup
+            baseName = topGroup
         }
         else -> {
             big = stringResource(R.string.hero_unread)
-            sentence = stringResource(R.string.hero_in, topGroup ?: groups)
+            baseSentence = stringResource(R.string.hero_in, topGroup ?: groups)
             cookieIcon = null
-            name = topGroup
+            baseName = topGroup
         }
     }
-    val number = remember(count) { NumberFormat.getIntegerInstance().format(count) }
+    // A running sync or a problem with the last one says so in the sentence and the chip.
+    val statusSentence: String? =
+        when {
+            noFeeds || loading -> null
+            syncing -> stringResource(R.string.hero_syncing_desc)
+            problem == com.ay.briefyou.brief.app.SyncStatus.Problem.SignIn -> stringResource(R.string.hero_signin_desc)
+            !online -> stringResource(R.string.hero_offline_desc)
+            problem == com.ay.briefyou.brief.app.SyncStatus.Problem.Failed -> stringResource(R.string.hero_failed_desc)
+            else -> null
+        }
+    val sentence = statusSentence ?: baseSentence
+    val name = if (statusSentence != null) null else baseName
+    val number = remember(shownCount) { NumberFormat.getIntegerInstance().format(shownCount) }
 
     // When the account last synced: a quiet chip, greyed with a "synced" word when it is old.
     val age = updatedAt?.let { ((System.currentTimeMillis() - it.time) / 60_000L).coerceAtLeast(0L) }
@@ -191,7 +240,24 @@ fun HomeHero(
     // Old = more than two sync intervals late (at least an hour); on manual sync it is never old.
     val interval = com.ay.briefyou.infrastructure.preference.LocalSyncInterval.current.value
     val stale = age != null && interval > 0L && age >= maxOf(60L, 2 * interval)
-    val chipText = if (agoText == null || noFeeds || loading) null else if (stale) stringResource(R.string.hero_synced_ago, agoText) else agoText
+    val signInProblem = problem == com.ay.briefyou.brief.app.SyncStatus.Problem.SignIn
+    val chip: HeroChip? =
+        when {
+            noFeeds || loading -> null
+            syncing ->
+                HeroChip(
+                    if (progressTotal > 0) stringResource(R.string.hero_chip_progress, progressDone, progressTotal) else stringResource(R.string.hero_chip_syncing),
+                    Icons.Outlined.Sync,
+                    null,
+                )
+            signInProblem -> HeroChip(stringResource(R.string.hero_chip_signin), Icons.Outlined.Key, onSignIn)
+            !online -> HeroChip(stringResource(R.string.hero_chip_offline), Icons.Outlined.CloudOff, null)
+            problem == com.ay.briefyou.brief.app.SyncStatus.Problem.Failed ->
+                HeroChip(stringResource(R.string.hero_chip_failed), Icons.Outlined.ErrorOutline, onRetry)
+            agoText == null -> null
+            stale -> HeroChip(stringResource(R.string.hero_synced_ago, agoText), Icons.Outlined.CloudOff, null)
+            else -> HeroChip(agoText, Icons.Outlined.Sync, null)
+        }
 
     Surface(
         modifier = with(press) { modifier.padding(horizontal = 16.dp).squeeze().fillMaxWidth() },
@@ -207,6 +273,16 @@ fun HomeHero(
         androidx.compose.runtime.CompositionLocalProvider(LocalPressFeel provides press) {
             Box(Modifier.background(Brush.linearGradient(listOf(container, gradientEnd)))) {
                 FaintCookies(Modifier.matchParentSize())
+                if (syncing && progressTotal > 0) {
+                    // How far the sync is: a thin bar along the bottom edge.
+                    Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(4.dp).background(ink.copy(alpha = 0.13f)))
+                    Box(
+                        Modifier.align(Alignment.BottomStart)
+                            .fillMaxWidth((progressDone.toFloat() / progressTotal).coerceIn(0f, 1f))
+                            .height(4.dp)
+                            .background(ink)
+                    )
+                }
                 Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 16.dp)) {
                     Row(
                         Modifier.fillMaxWidth().height(28.dp),
@@ -222,14 +298,18 @@ fun HomeHero(
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
-                        if (chipText != null) {
+                        if (chip != null) {
                             Row(
-                                Modifier.clip(CircleShape).background(ink.copy(alpha = 0.12f)).height(28.dp).padding(start = 8.dp, end = 11.dp),
+                                Modifier.clip(CircleShape)
+                                    .background(ink.copy(alpha = 0.12f))
+                                    .then(if (chip.action != null) Modifier.clickable { chip.action.invoke() } else Modifier)
+                                    .height(28.dp)
+                                    .padding(start = 8.dp, end = 11.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                             ) {
-                                Icon(if (stale) Icons.Outlined.CloudOff else Icons.Outlined.Sync, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Text(chipText, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 1)
+                                Icon(chip.icon, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Text(chip.text, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 1)
                             }
                         }
                     }
@@ -250,24 +330,20 @@ fun HomeHero(
                                 Icon(cookieIcon, contentDescription = null, tint = container, modifier = Modifier.size(44.dp))
                             } else {
                                 val text = if (loading) "…" else number
-                                val size = when {
-                                    loading -> 40.sp
-                                    text.length <= 1 -> 46.sp
-                                    text.length == 2 -> 40.sp
-                                    text.length == 3 -> 30.sp
-                                    text.length <= 5 -> 22.sp
-                                    else -> 19.sp
-                                }
-                                Text(
+                                val top = when { loading -> 40.sp; text.length <= 1 -> 46.sp; text.length == 2 -> 40.sp; else -> 34.sp }
+                                // Fits inside the cookie's round middle, however many digits.
+                                androidx.compose.foundation.text.BasicText(
                                     text = text,
-                                    color = container,
+                                    modifier = Modifier.width(cookieSize * 0.62f),
+                                    color = { container },
                                     maxLines = 1,
+                                    softWrap = false,
                                     style = MaterialTheme.typography.displaySmall.copy(
-                                        fontFamily = GoogleSansWideFontFamily,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = size,
-                                        letterSpacing = (-1).sp,
+                                        fontWeight = FontWeight.Bold, // the app's normal font, plain bold
+                                        letterSpacing = (-0.5).sp,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     ),
+                                    autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 12.sp, maxFontSize = top),
                                 )
                             }
                         }
@@ -350,34 +426,51 @@ private fun HeroSentence(text: String, name: String?, ink: Color) {
 }
 
 /**
- * The card's background, as on Trainable's gym membership card (GPL-3.0, https://github.com/Emanuel5014/Trainable):
- * a big Gem turning once every 15 s with its centre on the top right corner, and a Sunny turning once
- * every 20 s near the bottom left, both very faint.
+ * The card's background: three faint Material shapes (a clover top right, a pill bottom left and a
+ * rounded square between) turning slowly at their own speeds. Each shape is drawn once and only its
+ * layer turns, so the animation costs the main thread nothing (rebuilding paths on every frame
+ * kept sheets from opening smoothly).
  */
 @Composable
 private fun FaintCookies(modifier: Modifier = Modifier) {
-    val gem = MaterialShapes.Gem.toPath() // composable: it remembers its own path
-    val sunny = MaterialShapes.Sunny.toPath()
+    val clover = MaterialShapes.Clover4Leaf.toPath()
+    val pill = MaterialShapes.Pill.toPath()
+    val square = MaterialShapes.Square.toPath()
     val transition = rememberInfiniteTransition(label = "hero background")
-    val gemTurn by transition.animateFloat(0f, 360f, infiniteRepeatable(tween(15_000, easing = LinearEasing)), label = "gem")
-    val sunnyTurn by transition.animateFloat(0f, 360f, infiniteRepeatable(tween(20_000, easing = LinearEasing)), label = "sunny")
+    val cloverTurn = transition.animateFloat(0f, 360f, infiniteRepeatable(tween(36_000, easing = LinearEasing)), label = "clover")
+    val pillTurn = transition.animateFloat(360f, 0f, infiniteRepeatable(tween(28_000, easing = LinearEasing)), label = "pill")
+    val squareTurn = transition.animateFloat(0f, 360f, infiniteRepeatable(tween(44_000, easing = LinearEasing)), label = "square")
     val dark = com.ay.briefyou.infrastructure.preference.LocalDarkTheme.current.isDarkTheme()
-    val gemColor = Color.White.copy(alpha = if (dark) 0.1f else 0.3f) // lighter than the card, so it needs more on a light card
-    val sunnyColor = Color.Black.copy(alpha = 0.05f)
-    Canvas(modifier) {
-        fun place(base: Path, scale: Float, degrees: Float, x: Float, y: Float): Path =
-            Path().apply {
-                addPath(base)
-                transform(Matrix().apply { scale(scale, scale) })
-                val c = getBounds().center
-                transform(Matrix().apply {
-                    translate(c.x, c.y)
-                    rotateZ(degrees)
-                    translate(-c.x, -c.y)
-                })
-                translate(Offset(x - c.x, y - c.y))
-            }
-        drawPath(place(gem, size.width * 0.6f, gemTurn, size.width, 0f), gemColor)
-        drawPath(place(sunny, size.width * 0.5f, sunnyTurn, size.width * 0.06f, size.height * 0.88f), sunnyColor)
+    val light = Color.White.copy(alpha = if (dark) 0.11f else 0.34f) // lighter than the card, so it needs more on a light card
+    val shade = Color.Black.copy(alpha = if (dark) 0.12f else 0.08f)
+    Box(modifier) {
+        TurningShape(clover, 0.5f, 0.92f, 0.19f, cloverTurn, light)
+        TurningShape(pill, 0.34f, 0.22f, 1f, pillTurn, shade)
+        TurningShape(square, 0.19f, 0.65f, 0.97f, squareTurn, light)
     }
 }
+
+/** [base] at [widthFraction] of the card's width, centred on ([cx], [cy]) (fractions of the card), turning about that centre. */
+@Composable
+private fun TurningShape(base: Path, widthFraction: Float, cx: Float, cy: Float, turn: State<Float>, color: Color) {
+    Box(
+        Modifier.fillMaxSize()
+            .graphicsLayer {
+                transformOrigin = TransformOrigin(cx, cy)
+                rotationZ = turn.value
+            }
+            .drawWithCache {
+                val side = size.width * widthFraction
+                val path =
+                    Path().apply {
+                        addPath(base)
+                        transform(Matrix().apply { scale(side, side) })
+                        val c = getBounds().center
+                        translate(Offset(cx * size.width - c.x, cy * size.height - c.y))
+                    }
+                onDrawBehind { drawPath(path, color) }
+            }
+    )
+}
+
+private class HeroChip(val text: String, val icon: ImageVector, val action: (() -> Unit)?)

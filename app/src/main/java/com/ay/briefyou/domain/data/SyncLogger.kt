@@ -35,6 +35,7 @@ constructor(
      * @param throwable The exception to log.
      */
     suspend fun log(throwable: Throwable) {
+        com.ay.briefyou.brief.app.SyncStatus.noteError(throwable) // Brief You: the hero card says why
         withContext(Dispatchers.IO) {
             try {
                 if (!logDir.exists()) {

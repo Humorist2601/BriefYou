@@ -964,4 +964,12 @@ interface ArticleDao {
 
         return articles.filterNot { existingArticles.containsKey(it.link) }.also { insertList(it) }
     }
+
+    /** Brief You: when the oldest unread article of an account was published (null when none). */
+    @Query("SELECT MIN(date) FROM article WHERE accountId = :accountId AND isUnread = 1")
+    fun queryOldestUnreadDate(accountId: Int): kotlinx.coroutines.flow.Flow<Long?>
+
+    /** Brief You: unread articles published after [since] (milliseconds): "new since you last opened". */
+    @Query("SELECT COUNT(*) FROM article WHERE accountId = :accountId AND isUnread = 1 AND date > :since")
+    fun countUnreadSince(accountId: Int, since: Long): kotlinx.coroutines.flow.Flow<Int>
 }

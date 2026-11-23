@@ -614,4 +614,20 @@
         <item quantity="one">%1$d feed</item>
         <item quantity="other">%1$d feeds</item>
     </plurals>
+    <string name="hero_new">new</string>
+    <string name="hero_new_desc">since you last opened</string>
+    <string name="hero_syncing_desc">syncing your feeds…</string>
+    <string name="hero_chip_syncing">syncing</string>
+    <string name="hero_chip_progress">%1$d of %2$d</string>
+    <string name="hero_failed_desc">last sync failed, showing saved articles</string>
+    <string name="hero_chip_failed">failed · retry</string>
+    <string name="hero_offline_desc">showing saved articles</string>
+    <string name="hero_chip_offline">offline</string>
+    <string name="hero_signin_desc">sign in again to keep syncing</string>
+    <string name="hero_chip_signin">sign in</string>
+    <string name="hero_mostly_from">mostly from %1$s</string>
+    <plurals name="hero_oldest_days">
+        <item quantity="one">oldest is %1$d day old</item>
+        <item quantity="other">oldest is %1$d days old</item>
+    </plurals>
 </resources>

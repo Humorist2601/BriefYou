@@ -103,7 +103,7 @@ inline fun GroupWithFeedsContainer(
     modifier: Modifier = Modifier,
     shape: androidx.compose.ui.graphics.Shape = Shape32, // Brief You: its place in the joined list
     top: androidx.compose.ui.unit.Dp = 16.dp, // Brief You: the gap above it
-    color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surfaceContainerLow, // Brief You
+    color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surfaceContainerHigh, // Brief You: the same colour as the group's own row, so the open group is one card
     content: @Composable () -> Unit,
 ) {
     Column(

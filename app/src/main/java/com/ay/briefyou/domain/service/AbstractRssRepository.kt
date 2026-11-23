@@ -365,6 +365,10 @@ abstract class AbstractRssRepository(
         }
         deleteArticles(feed = feed, includeStarred = true)
         feedDao.delete(feed)
+        // Brief You: its saved icon goes too, unless another feed uses the same address.
+        feed.icon?.takeIf { it.isNotBlank() && feedDao.countByIcon(it) == 0 }?.let {
+            com.ay.briefyou.brief.feeds.FeedIconLoader.forget(it)
+        }
     }
 
     suspend fun deleteArticles(

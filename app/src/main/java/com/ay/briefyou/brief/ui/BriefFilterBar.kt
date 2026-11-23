@@ -11,6 +11,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.LaunchedEffect
@@ -115,6 +116,12 @@ fun BriefFilterBar(
     val currentSelected by rememberUpdatedState(selected)
     val currentOnClick by rememberUpdatedState(filterOnClick)
     var dragging by remember { mutableStateOf(false) }
+    // A filter chosen on the bar (a tap, or a drag let go) moves the pill from where it is, by itself;
+    // the pages then slide to it. Only a swipe of the pages themselves drives the pill.
+    var chosenOnBar by remember { mutableStateOf(false) }
+    val pagerDragged = pagerState?.let { it.interactionSource.collectIsDraggedAsState().value } ?: false
+    LaunchedEffect(pagerDragged) { if (pagerDragged) chosenOnBar = false }
+    LaunchedEffect(pagerState?.isScrollInProgress) { if (pagerState?.isScrollInProgress == false) chosenOnBar = false }
     var dragPosition by remember { mutableFloatStateOf(selected.toFloat()) }
     val settle = remember { Animatable(selected.toFloat()) }
     LaunchedEffect(selected) {
@@ -127,7 +134,7 @@ fun BriefFilterBar(
     fun position(): Float =
         when {
             dragging -> dragPosition
-            pagerState != null && pagerState.isScrollInProgress ->
+            pagerState != null && pagerState.isScrollInProgress && !chosenOnBar ->
                 (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, (count - 1).toFloat())
             else -> settle.value
         }
@@ -201,7 +208,10 @@ fun BriefFilterBar(
                                 )
                             }
                         }
-                        if (finished && target != current) currentOnClick(items[target])
+                        if (finished && target != current) {
+                            chosenOnBar = true
+                            currentOnClick(items[target])
+                        }
                     }
                 },
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -220,6 +230,7 @@ fun BriefFilterBar(
                     },
             ) {
                 view.playSoundEffect(SoundEffectConstants.CLICK)
+                chosenOnBar = true
                 filterOnClick(item)
             }
         }

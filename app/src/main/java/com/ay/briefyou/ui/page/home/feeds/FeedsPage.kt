@@ -3,6 +3,13 @@ package com.ay.briefyou.ui.page.home.feeds
 // Brief You
 import android.os.Build
 import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.outlined.FilterAlt
+import com.ay.briefyou.brief.ui.CollapsedTitle
+import com.ay.briefyou.brief.ui.TonalCircleButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import com.ay.briefyou.ui.component.base.DisplayText
+import androidx.compose.ui.draw.drawBehind
 import com.ay.briefyou.brief.feeds.BriefFeedSortSheet
 import com.ay.briefyou.brief.feeds.BriefFeedsPages
 import com.ay.briefyou.brief.feeds.rememberBriefFeedsPager
@@ -15,10 +22,8 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.clickable
-import com.ay.briefyou.ui.interaction.alphaIndicationClickable
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +57,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -107,6 +114,7 @@ fun FeedsPage(
     navigationToFlow: () -> Unit,
     navigateToAccountList: () -> Unit,
     navigateToAccountDetail: (Int) -> Unit,
+    navigateToFilters: () -> Unit = {}, // Brief You
 ) {
     var accountTabVisible by remember { mutableStateOf(false) }
     var sortSheetVisible by remember { mutableStateOf(false) } // Brief You
@@ -138,6 +146,16 @@ fun FeedsPage(
 
     val owner = LocalLifecycleOwner.current
 
+    // Brief You: what the hero card says besides the count.
+    val syncStatus by com.ay.briefyou.brief.app.SyncStatus.state.collectAsState()
+    val online = com.ay.briefyou.brief.feeds.rememberOnline()
+    val lastSeen = remember { com.ay.briefyou.brief.feeds.HeroSignals.lastSeen(context) }
+    LaunchedEffect(lastSeen) {
+        if (lastSeen == 0L) com.ay.briefyou.brief.feeds.HeroSignals.markSeen(context) else feedsViewModel.setNewSince(lastSeen)
+    }
+    val oldestUnread by feedsViewModel.oldestUnread.collectAsState()
+    val newSinceOpen by feedsViewModel.newSinceOpen.collectAsState()
+
     var isSyncing by remember { mutableStateOf(false) }
     val syncingState = rememberPullToRefreshState()
     val syncingScope = rememberCoroutineScope()
@@ -156,6 +174,7 @@ fun FeedsPage(
                     Lifecycle.Event.ON_PAUSE -> {
                         feedsViewModel.commitDiffs()
                     }
+                    Lifecycle.Event.ON_STOP -> com.ay.briefyou.brief.feeds.HeroSignals.markSeen(context) // Brief You: "new since you last opened"
 
                     else -> {
                         /* no-op */
@@ -188,76 +207,69 @@ fun FeedsPage(
 
     BYScaffold(
         topBar = {
-            // Brief You: one calm row. The account name (tap: switch account) in the wide font, and
-            // Sort, Add and Settings joined into one pill. Filters are in Settings.
-            Row(
+            val surfaceColor = MaterialTheme.colorScheme.surface
+            TopAppBar(
                 modifier =
-                    Modifier.fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .statusBarsPadding()
-                        .clickable(
-                            onClick = {
-                                scope.launch {
-                                    if (listState.firstVisibleItemIndex != 0) {
-                                        listState.animateScrollToItem(0)
-                                    }
-                                }
-                            },
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() },
-                        )
-                        .padding(start = 18.dp, end = 6.dp, top = 14.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                val titleStyle =
-                    MaterialTheme.typography.headlineSmall.copy(
-                        fontFamily = com.ay.briefyou.brief.ui.GoogleSansWideFontFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 26.sp,
-                    )
-                val titleColor = MaterialTheme.colorScheme.onSurface
-                androidx.compose.foundation.text.BasicText(
-                    modifier =
-                        Modifier.weight(1f).alphaIndicationClickable {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            accountTabVisible = true
-                        },
-                    text = feedsUiState.account?.name ?: "",
-                    style = titleStyle,
-                    color = { titleColor },
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    autoSize =
-                        androidx.compose.foundation.text.TextAutoSize.StepBased(
-                            minFontSize = 18.sp,
-                            maxFontSize = 26.sp,
-                        ),
-                )
-                TopBarButtonGroup(
-                    buildList {
-                        add(TopBarAction(Icons.AutoMirrored.Outlined.Sort, stringResource(R.string.sort_title)) { sortSheetVisible = true })
-                        if (subscribeViewModel.rssService.get().addSubscription) {
-                            add(TopBarAction(Icons.Rounded.Add, stringResource(R.string.subscribe)) { subscribeViewModel.showDrawer() })
+                    Modifier.drawBehind {
+                        // Brief You: the page fades in under the bar, like the list under the bottom bar.
+                        // Moved down first: a brush is laid out from the drawing's own origin.
+                        androidx.compose.ui.graphics.drawscope.translate(top = size.height) {
+                            drawRect(
+                                brush = com.ay.briefyou.brief.ui.edgeFadeBrush(surfaceColor, solidAtBottom = false),
+                                size = androidx.compose.ui.geometry.Size(size.width, 28.dp.toPx()),
+                            )
                         }
-                        add(
-                            TopBarAction(
-                                Icons.Outlined.Settings,
-                                stringResource(R.string.settings),
-                                showBadge = newVersion.whetherNeedUpdate(currentVersion, skipVersion),
-                            ) { navigateToSettings() }
-                        )
-                    },
-                    buttonWidth = 44.dp,
-                    buttonHeight = 44.dp,
-                )
-            }
+                    }.clickable(
+                        onClick = {
+                            scope.launch {
+                                if (listState.firstVisibleItemIndex != 0) {
+                                    listState.animateScrollToItem(0)
+                                }
+                            }
+                        },
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                    ),
+                title = { CollapsedTitle() }, // Brief You: the account name moves up here as you scroll
+                // Brief You: Material 3 Expressive tonal buttons, the actions connected into one
+                // pill, with Sort and Filters added.
+                navigationIcon = {
+                    TonalCircleButton(
+                        icon = Icons.Outlined.Settings,
+                        description = stringResource(R.string.settings),
+                        showBadge = newVersion.whetherNeedUpdate(currentVersion, skipVersion),
+                    ) {
+                        navigateToSettings()
+                    }
+                },
+                actions = {
+                    TopBarButtonGroup( // Brief You
+                        buildList {
+                            add(TopBarAction(Icons.AutoMirrored.Outlined.Sort, stringResource(R.string.sort_title)) { sortSheetVisible = true })
+                            add(TopBarAction(Icons.Outlined.FilterAlt, stringResource(R.string.filters_settings)) { navigateToFilters() })
+                            if (subscribeViewModel.rssService.get().addSubscription) {
+                                add(TopBarAction(Icons.Rounded.Add, stringResource(R.string.subscribe)) { subscribeViewModel.showDrawer() })
+                            }
+                        }
+                    )
+                },
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+            )
         },
         content = {
             // Brief You: swipeable Starred / Unread / All pages; each runs the original list below
             // with its own filter state, groups, count line and list state.
             BriefFeedsPages(feedsPager, feedsViewModel, filterState, state = syncingState, isRefreshing = isSyncing, onRefresh = doSync) { filterState, groupWithFeedList, importantSum, listState ->
                 LazyColumn(modifier = Modifier.fillMaxSize().drawVerticalScrollIndicator(listState), state = listState) {
+                    item {
+                        DisplayText(text = feedsUiState.account?.name ?: "", desc = "") {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            accountTabVisible = true
+                        }
+                    }
                     item {
                         // Brief You: the hero card; the count is exact, summed from the page's own feeds.
                         val heroCount = groupWithFeedList.sumOf { g -> g.feeds.sumOf { it.important } }
@@ -272,6 +284,16 @@ fun FeedsPage(
                             updatedAt = feedsUiState.account?.updateAt,
                             hasFeeds = hasFeeds,
                             loading = importantSum.isEmpty() && hasFeeds != false,
+                            newCount = newSinceOpen,
+                            oldestDays = oldestUnread?.takeIf { it > 0 }?.let { ((System.currentTimeMillis() - it) / 86_400_000L).toInt() },
+                            topFeed = groupWithFeedList.flatMap { it.feeds }.maxByOrNull { it.important }?.takeIf { it.important > 0 }?.name,
+                            syncing = isSyncing,
+                            progressDone = syncStatus.done,
+                            progressTotal = syncStatus.total,
+                            problem = syncStatus.problem,
+                            online = online,
+                            onRetry = doSync,
+                            onSignIn = { feedsUiState.account?.id?.let(navigateToAccountDetail) },
                             onClick = {
                                 feedsViewModel.changeFilter(filterState.copy(group = null, feed = null))
                                 navigationToFlow()

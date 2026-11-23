@@ -63,6 +63,7 @@ class FeedsViewModel @Inject constructor(
     private val filterStateUseCase: FilterStateUseCase,
     private val groupWithFeedsListUseCase: GroupWithFeedsListUseCase,
     private val articlePagingListUseCase: com.ay.briefyou.domain.data.ArticlePagingListUseCase, // Brief You
+    private val articleDao: com.ay.briefyou.domain.repository.ArticleDao, // Brief You: the hero card's extra lines
 ) : ViewModel() {
 
     private val _feedsUiState =
@@ -104,6 +105,27 @@ class FeedsViewModel @Inject constructor(
             .flatMapLatest { rssService.get(it.type.id).pullFeeds() }
             .map<List<com.ay.briefyou.domain.model.group.GroupWithFeed>, Boolean?> { groups -> groups.any { it.feeds.isNotEmpty() } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Brief You: when the oldest unread article was published (milliseconds), for the hero card. */
+    val oldestUnread: StateFlow<Long?> =
+        accountFlow
+            .filterNotNull()
+            .flatMapLatest { articleDao.queryOldestUnreadDate(it.id) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private val newSince = MutableStateFlow(0L)
+
+    /** Brief You: how many unread articles came out after [since] (milliseconds); the hero card's "new since you last opened". */
+    fun setNewSince(since: Long) {
+        newSince.value = since
+    }
+
+    val newSinceOpen: StateFlow<Int> =
+        accountFlow
+            .filterNotNull()
+            .combine(newSince) { account, since -> account.id to since }
+            .flatMapLatest { (id, since) -> if (since <= 0L) kotlinx.coroutines.flow.flowOf(0) else articleDao.countUnreadSince(id, since) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     init {
         viewModelScope.launch {

@@ -76,6 +76,7 @@ constructor(
                     else -> feedDao.queryAll(accountId)
                 }.filterNot { com.ay.briefyou.brief.readlater.ReadLater.isSavedFeed(it) } // Brief You: saved pages aren't fetched
 
+            com.ay.briefyou.brief.app.SyncStatus.total(feedsToSync.size) // Brief You: "17 of 40" on the hero card
             feedsToSync
                 .mapIndexed { _, currentFeed ->
                     async(Dispatchers.IO) {
@@ -102,6 +103,7 @@ constructor(
                                     fetchedFeed.copy(articles = newArticles, feed = currentFeed)
                                 )
                             }
+                            com.ay.briefyou.brief.app.SyncStatus.step()
                         }
                     }
                 }

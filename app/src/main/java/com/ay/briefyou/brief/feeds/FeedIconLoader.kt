@@ -17,6 +17,12 @@ object FeedIconLoader {
     private const val MAX_BYTES = 64L * 1024 * 1024
     @Volatile private var loader: ImageLoader? = null
 
+    /** Removes a saved icon (the key of an icon in Coil's disk cache is its address). Does nothing if the store was never opened. */
+    fun forget(iconUrl: String) {
+        runCatching { loader?.diskCache?.remove(iconUrl) }
+        runCatching { loader?.memoryCache?.remove(coil3.memory.MemoryCache.Key(iconUrl)) }
+    }
+
     fun get(context: Context): ImageLoader =
         loader ?: synchronized(this) {
             loader ?: SingletonImageLoader.get(context.applicationContext).newBuilder()

@@ -209,4 +209,8 @@ interface FeedDao {
         """
     )
     suspend fun queryArchivedArticles(feedId: String): List<ArchivedArticle>
+
+    /** Brief You: how many feeds use this icon address (a deleted feed's saved icon stays while another uses it). */
+    @Query("SELECT COUNT(*) FROM feed WHERE icon = :icon")
+    suspend fun countByIcon(icon: String): Int
 }

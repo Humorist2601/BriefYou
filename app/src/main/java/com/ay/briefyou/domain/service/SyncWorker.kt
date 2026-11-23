@@ -31,10 +31,12 @@ constructor(
         val groupId = data.getString("groupId")
 
         return brief.duringSync { // Brief You: one new-articles notification, once it's all done
+        com.ay.briefyou.brief.app.SyncStatus.started() // Brief You: the hero card follows the sync
         rssService
             .get()
             .sync(accountId = accountId, feedId = feedId, groupId = groupId)
             .also {
+                com.ay.briefyou.brief.app.SyncStatus.finished(it is androidx.work.ListenableWorker.Result.Success)
                 rssService.get().clearKeepArchivedArticles().also { brief.afterSync(accountId, it) }.forEach { // Brief You: filters, icons
                     readerCacheHelper.deleteCacheFor(articleId = it.id)
                 }

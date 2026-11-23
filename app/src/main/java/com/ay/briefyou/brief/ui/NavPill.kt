@@ -91,12 +91,12 @@ internal class NavPillJiggle {
 
     private companion object {
         const val FULL_SPEED = 7f // items per second that give the full deformation
-        const val WIDEN = 0.22f
-        const val FLATTEN = 0.14f
-        const val MIN_AMOUNT = -0.6f
-        const val MAX_AMOUNT = 1.25f
+        const val WIDEN = 0.10f
+        const val FLATTEN = 0.06f
+        const val MIN_AMOUNT = -0.35f
+        const val MAX_AMOUNT = 1.1f
         const val STIFFNESS = 320f
-        const val DAMPING = 12.5f // about 0.35 of critical: two visible wobbles
+        const val DAMPING = 20f // about 0.55 of critical: one small wobble
         const val MAX_STEP_SECONDS = 1f / 30f
         const val REST_AMOUNT = 0.002f
         const val REST_SPEED = 0.02f

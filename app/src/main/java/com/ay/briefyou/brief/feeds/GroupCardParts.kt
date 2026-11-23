@@ -24,16 +24,15 @@ private val StackCircle = 28.dp
 private val StackStep = 18.dp
 
 /**
- * The feeds of a group as overlapping round icons on its card: up to three, from the feeds with the
- * most unread. A group of more than three shows two icons and a "+N" circle, so it is never wider
- * than three circles.
+ * The feeds of a group as overlapping round icons on its card: up to four, from the feeds with the
+ * most unread, and a "+N" circle for the rest.
  */
 @Composable
 fun FeedIconStack(feeds: List<Feed>, ring: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
     if (feeds.isEmpty()) return
     val shown = remember(feeds) { feeds.sortedWith(compareByDescending<Feed> { it.important }.thenBy { it.name }) }
-    val icons = if (shown.size > 3) shown.take(2) else shown
-    val more = if (shown.size > 3) shown.size - 2 else 0
+    val icons = shown.take(4)
+    val more = shown.size - icons.size
     val circles = icons.size + if (more > 0) 1 else 0
     Box(modifier.width(StackCircle + StackStep * (circles - 1)).height(StackCircle)) {
         icons.forEachIndexed { i, feed ->
