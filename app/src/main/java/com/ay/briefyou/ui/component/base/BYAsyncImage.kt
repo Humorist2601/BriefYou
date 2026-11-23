@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.DefaultAlpha
@@ -38,6 +40,8 @@ fun BYAsyncImage(
     contentDescription: String? = null,
     @DrawableRes placeholder: Int? = null,
     @DrawableRes error: Int? = null,
+    imageLoader: coil3.ImageLoader? = null, // Brief You: a loader of its own (the feed icons' store)
+    fallback: (@Composable () -> Unit)? = null, // Brief You: drawn until the picture has loaded (a feed's letter)
 ) {
     val context = LocalContext.current // Brief You
     // Brief You: the request is made once per picture, not again on every recomposition of a row.
@@ -59,13 +63,18 @@ fun BYAsyncImage(
                     }
                     .build()
         } // Brief You
-    val painter = rememberAsyncImagePainter(model = request) // Brief You
-    Image(
-        painter = painter,
-        contentDescription = contentDescription,
-        contentScale = contentScale,
-        modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainer),
-    )
+    val painter = rememberAsyncImagePainter(model = request, imageLoader = imageLoader ?: coil3.SingletonImageLoader.get(context)) // Brief You
+    val loaded by painter.state.collectAsState() // Brief You
+    if (fallback != null && loaded !is coil3.compose.AsyncImagePainter.State.Success) { // Brief You: the letter circle until the icon is there
+        fallback()
+    } else {
+        Image(
+            painter = painter,
+            contentDescription = contentDescription,
+            contentScale = contentScale,
+            modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainer),
+        )
+    }
 
     //    coil.compose.AsyncImage(
     //        modifier = modifier,

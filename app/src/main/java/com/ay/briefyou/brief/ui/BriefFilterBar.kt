@@ -1,8 +1,37 @@
 package com.ay.briefyou.brief.ui
 
 import android.view.SoundEffectConstants
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.horizontalDrag
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -59,23 +88,137 @@ val BarScreenOffset = 16.dp
 
 /**
  * The Starred / Unread / All toolbar: a solid tonal pill like Material's floating toolbar. The chosen
- * filter is a filled accent pill with its name; the others are just icons.
+ * filter is a filled accent pill with its name; the others are just icons. The pill slides (with a
+ * little wobble) when the filter changes, follows the page while you swipe between the pages
+ * ([pagerState]), and can be dragged along the bar with a finger, ticking at each filter. How it
+ * moves is Trainable's floating bar (see NavPill.kt).
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BriefFilterBar(
     modifier: Modifier = Modifier,
     filter: Filter,
+    pagerState: PagerState? = null,
     filterOnClick: (Filter) -> Unit = {},
 ) {
     val view = LocalView.current
+    val items = Filter.values
+    val count = items.size
+    val selected = items.indexOf(filter).coerceAtLeast(0)
+    val banner = bannerContainer()
+
+    // Where each filter's button is in the row: left edge and width, in pixels.
+    val lefts = remember { mutableStateListOf(*FloatArray(count).toTypedArray()) }
+    val widths = remember { mutableStateListOf(*FloatArray(count).toTypedArray()) }
+
+    val scope = rememberCoroutineScope()
+    val currentSelected by rememberUpdatedState(selected)
+    val currentOnClick by rememberUpdatedState(filterOnClick)
+    var dragging by remember { mutableStateOf(false) }
+    var dragPosition by remember { mutableFloatStateOf(selected.toFloat()) }
+    val settle = remember { Animatable(selected.toFloat()) }
+    LaunchedEffect(selected) {
+        settle.animateTo(
+            selected.toFloat(),
+            spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
+        )
+    }
+    // Where the pill is, in filters: under the finger, with the pages while they are swiped, else settling.
+    fun position(): Float =
+        when {
+            dragging -> dragPosition
+            pagerState != null && pagerState.isScrollInProgress ->
+                (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, (count - 1).toFloat())
+            else -> settle.value
+        }
+    val jiggle = rememberNavPillJiggle { position() }
+    val shownIndex = if (dragging) NavPillMath.nearestIndex(dragPosition, count) else selected
+
+    fun centreOf(i: Int) = lefts[i] + widths[i] / 2f
+    fun positionForFinger(x: Float): Float {
+        if (x <= centreOf(0)) return 0f
+        for (i in 0 until count - 1) {
+            val a = centreOf(i)
+            val b = centreOf(i + 1)
+            if (x < b) return i + (x - a) / (b - a).coerceAtLeast(1f)
+        }
+        return (count - 1).toFloat()
+    }
+
     Row(
-        modifier = modifier.glass(CircleShape).height(BottomBarHeight).padding(horizontal = 8.dp).selectableGroup(),
+        modifier =
+            modifier
+                .glass(CircleShape)
+                .height(BottomBarHeight)
+                .padding(horizontal = 8.dp)
+                .selectableGroup()
+                .drawBehind {
+                    // The pill: between the two buttons the position is between, with the wobble.
+                    val p = position().coerceIn(0f, (count - 1).toFloat())
+                    val i0 = p.toInt().coerceIn(0, count - 1)
+                    val i1 = (i0 + 1).coerceAtMost(count - 1)
+                    val f = p - i0
+                    val w = widths[i0] + (widths[i1] - widths[i0]) * f
+                    if (w > 0f) {
+                        val x = lefts[i0] + (lefts[i1] - lefts[i0]) * f
+                        val h = 48.dp.toPx()
+                        val top = (size.height - h) / 2f
+                        scale(jiggle.scaleX, jiggle.scaleY, pivot = Offset(x + w / 2f, size.height / 2f)) {
+                            drawRoundRect(banner, topLeft = Offset(x, top), size = Size(w, h), cornerRadius = CornerRadius(h / 2f))
+                        }
+                    }
+                }
+                .pointerInput(count) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        // A tap is handled by the button itself; only a sideways drag moves the pill.
+                        val start = awaitHorizontalTouchSlopOrCancellation(down.id) { change, _ -> change.consume() }
+                        if (start == null) return@awaitEachGesture
+                        dragging = true
+                        dragPosition = positionForFinger(start.position.x)
+                        var tick = NavPillMath.nearestIndex(dragPosition, count)
+                        val finished =
+                            horizontalDrag(start.id) { change ->
+                                dragPosition = positionForFinger(change.position.x)
+                                change.consume()
+                                val index = NavPillMath.closestIndexWithHysteresis(tick, dragPosition, count)
+                                if (index != tick) {
+                                    tick = index
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                }
+                            }
+                        val target = NavPillMath.nearestIndex(dragPosition, count)
+                        val current = currentSelected
+                        val dropped = dragPosition
+                        // The pill is handed over to the settling spring from where it was dropped.
+                        scope.launch {
+                            settle.snapTo(dropped)
+                            dragging = false
+                            if (!finished || target == current) {
+                                settle.animateTo(
+                                    current.toFloat(),
+                                    spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
+                                )
+                            }
+                        }
+                        if (finished && target != current) currentOnClick(items[target])
+                    }
+                },
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Filter.values.forEach { item ->
-            FilterButton(item = item, selected = filter == item) {
+        items.forEachIndexed { index, item ->
+            FilterButton(
+                item = item,
+                selected = index == shownIndex,
+                banner = banner,
+                nearness = { NavPillMath.proximity(position(), index) },
+                modifier =
+                    Modifier.onGloballyPositioned {
+                        lefts[index] = it.positionInParent().x
+                        widths[index] = it.size.width.toFloat()
+                    },
+            ) {
                 view.playSoundEffect(SoundEffectConstants.CLICK)
                 filterOnClick(item)
             }
@@ -85,20 +228,31 @@ fun BriefFilterBar(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun FilterButton(item: Filter, selected: Boolean, onClick: () -> Unit) {
+private fun FilterButton(
+    item: Filter,
+    selected: Boolean,
+    banner: Color,
+    nearness: () -> Float,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
-    val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Color>()
-    // The chosen filter has the colour of the Feeds page's Unread card (and of the AI button).
-    val banner = bannerContainer()
-    val container by animateColorAsState(if (selected) banner else banner.copy(alpha = 0f), effects, label = "filter")
-    val content by animateColorAsState(if (selected) colors.contentColorFor(banner) else colors.onSurfaceVariant, effects, label = "filter icon")
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(if (pressed) 0.92f else 1f, MaterialTheme.motionScheme.fastSpatialSpec(), label = "filter press")
+    // The icon and name take the pill's colour as it comes near, and go back as it leaves.
+    val content = lerp(colors.onSurfaceVariant, colors.contentColorFor(banner), nearness())
     val name = item.toName()
     Row(
         modifier =
-            Modifier.height(48.dp)
+            modifier
+                .graphicsLayer {
+                    scaleX = pressScale
+                    scaleY = pressScale
+                }
+                .height(48.dp)
                 .clip(CircleShape)
-                .background(container)
-                .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+                .selectable(selected = selected, interactionSource = interaction, indication = null, role = Role.Tab, onClick = onClick)
                 .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -132,7 +132,6 @@ fun AppEntry(backStack: NavBackStack<NavKey>) {
                                 navigateToAccountDetail = {
                                     backStack.add(Route.AccountDetails(it))
                                 },
-                                navigateToFilters = { backStack.add(Route.Filters) }, // Brief You
                             )
                         }
                     }

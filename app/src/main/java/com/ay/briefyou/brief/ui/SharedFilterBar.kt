@@ -36,6 +36,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.wrapContentSize
@@ -69,6 +70,8 @@ data class FilterBarSpec(
     /** False while the screen doesn't show the bar (for example while an article is open). */
     val enabled: Boolean = true,
     val onClick: (Filter) -> Unit,
+    /** The Feeds page's pager, so the bar's pill follows the pages while they are swiped. */
+    val pagerState: androidx.compose.foundation.pager.PagerState? = null,
 )
 
 /** The bar's state: what each screen asked for, by its navigation key. */
@@ -161,6 +164,27 @@ fun SharedFilterBar(
                         .pointerInput(Unit) { detectTapGestures { menuOpen = false } }
             )
         }
+        // The list fades out behind the bar, so its rows never run into the bar's edge.
+        AnimatedVisibility(
+            visible = visible,
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+            enter = fadeIn(effects),
+            exit = fadeOut(effects),
+        ) {
+            val surface = MaterialTheme.colorScheme.surface
+            val navBar = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            Box(
+                Modifier.fillMaxWidth()
+                    .height(BottomBarHeight + BarScreenOffset + navBar + 40.dp)
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.72f to surface,
+                            1f to surface,
+                        )
+                    )
+            )
+        }
         AnimatedVisibility(
             visible = visible,
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
@@ -215,6 +239,7 @@ fun SharedFilterBar(
                                     IntOffset(x.coerceAtLeast(0), 0)
                                 },
                         filter = s.filter,
+                        pagerState = s.pagerState,
                         filterOnClick = {
                             menuOpen = false
                             s.onClick(it)
@@ -326,8 +351,9 @@ fun SharedFilterBarSlot(
     filter: Filter,
     enabled: Boolean = true,
     ai: AiActions? = null,
+    pagerState: androidx.compose.foundation.pager.PagerState? = null,
     filterOnClick: (Filter) -> Unit = {},
 ) {
     FilterBarSpace()
-    ProvideFilterBar(FilterBarSpec(filter = filter, ai = ai, enabled = enabled, onClick = filterOnClick))
+    ProvideFilterBar(FilterBarSpec(filter = filter, ai = ai, enabled = enabled, onClick = filterOnClick, pagerState = pagerState))
 }

@@ -96,6 +96,8 @@ fun FeedIcon(
             data = iconUrl,
             size = coil3.size.Size(px, px), // Brief You
             placeholder = null,
+            imageLoader = com.ay.briefyou.brief.feeds.FeedIconLoader.get(androidx.compose.ui.platform.LocalContext.current), // Brief You: icons are kept in their own store
+            fallback = { FontIcon(Modifier, size, feedName ?: "") }, // Brief You: the letter circle until the icon is there
         )
     }
 }

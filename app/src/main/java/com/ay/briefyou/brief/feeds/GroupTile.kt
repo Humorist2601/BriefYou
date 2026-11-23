@@ -73,3 +73,27 @@ fun CountPill(count: Int, modifier: Modifier = Modifier) {
                 .padding(horizontal = 10.dp, vertical = 3.dp),
     )
 }
+
+/**
+ * A group's icon as a plain symbol before its name on the feeds page (the home screen's group
+ * cards): the chosen Material icon or the folder in [tint], or the chosen emoji or image as it is.
+ */
+@Composable
+fun GroupIconPlain(
+    groupId: String,
+    tint: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+    size: Dp = 18.dp,
+) {
+    val context = LocalContext.current
+    LaunchedEffect(Unit) { GroupIcons.load(context) }
+    val icon = GroupIcons.icons[groupId]
+    val symbol = SymbolIcons.of(icon)
+    if (symbol != null) {
+        Icon(symbol, contentDescription = null, tint = tint, modifier = modifier.size(size))
+    } else if (icon != null) {
+        FeedIcon(feedName = null, iconUrl = icon, size = size, modifier = modifier)
+    } else {
+        Icon(Icons.Outlined.Folder, contentDescription = null, tint = tint, modifier = modifier.size(size))
+    }
+}

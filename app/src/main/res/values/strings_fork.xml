@@ -583,4 +583,35 @@
     <string name="translate_needs_model">Set up the AI model first (Settings → AI model).</string>
     <string name="app_display_name" translatable="false">Brief You</string>
     <string name="about_based_on">Based on Read You, open source under the GPL-3.0 licence</string>
+    <!-- The Home screen's hero card -->
+    <string name="hero_greeting_morning">Good morning</string>
+    <string name="hero_greeting_afternoon">Good afternoon</string>
+    <string name="hero_greeting_evening">Good evening</string>
+    <string name="hero_greeting_night">Good night</string>
+    <string name="hero_unread">unread</string>
+    <string name="hero_starred">starred</string>
+    <string name="hero_articles">articles</string>
+    <string name="hero_caught_up">caught up</string>
+    <string name="hero_caught_up_desc">nothing left to read</string>
+    <string name="hero_no_stars">no stars yet</string>
+    <string name="hero_no_stars_desc">tap the star on an article</string>
+    <string name="hero_counting">counting…</string>
+    <string name="hero_add_feed">add a feed</string>
+    <string name="hero_add_feed_desc">search or paste an address</string>
+    <string name="hero_across">across %1$s, mostly %2$s</string>
+    <string name="hero_in">in %1$s</string>
+    <string name="hero_from">from %1$s</string>
+    <string name="hero_just_now">just now</string>
+    <string name="hero_minutes_ago">%1$dm ago</string>
+    <string name="hero_hours_ago">%1$dh ago</string>
+    <string name="hero_days_ago">%1$dd ago</string>
+    <string name="hero_synced_ago">synced %1$s</string>
+    <plurals name="hero_groups">
+        <item quantity="one">%1$d group</item>
+        <item quantity="other">%1$d groups</item>
+    </plurals>
+    <plurals name="hero_feeds">
+        <item quantity="one">%1$d feed</item>
+        <item quantity="other">%1$d feeds</item>
+    </plurals>
 </resources>
