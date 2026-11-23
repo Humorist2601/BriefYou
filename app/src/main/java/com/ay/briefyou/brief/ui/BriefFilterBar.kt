@@ -230,7 +230,7 @@ fun BriefFilterBar(
                     },
             ) {
                 view.playSoundEffect(SoundEffectConstants.CLICK)
-                chosenOnBar = true
+                if (index != selected) chosenOnBar = true // the page only moves for a different filter
                 filterOnClick(item)
             }
         }

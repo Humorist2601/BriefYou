@@ -6,4 +6,5 @@
     <exclude domain="database" path="." />
     <exclude domain="file" path="models/" />
     <exclude domain="file" path="offline/" />
+    <exclude domain="file" path="feed_icons/" />
 </full-backup-content>

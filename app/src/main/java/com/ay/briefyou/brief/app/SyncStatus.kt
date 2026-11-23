@@ -3,6 +3,7 @@ package com.ay.briefyou.brief.app
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -28,12 +29,12 @@ object SyncStatus {
     }
 
     fun total(count: Int) {
-        mutable.value = mutable.value.copy(done = 0, total = count)
+        mutable.update { it.copy(done = 0, total = count) }
     }
 
     fun step() {
-        val now = mutable.value
-        mutable.value = now.copy(done = (now.done + 1).coerceAtMost(now.total))
+        // Feeds finish on several threads at once, so the count goes up in one atomic step.
+        mutable.update { it.copy(done = (it.done + 1).coerceAtMost(it.total)) }
     }
 
     /** An error the sync logged: a server answering 401/403 means the sign-in no longer works. */

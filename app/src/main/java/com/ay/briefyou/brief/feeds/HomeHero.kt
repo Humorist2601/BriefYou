@@ -15,6 +15,7 @@ import androidx.compose.material3.toPath
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.runtime.State
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,8 +35,8 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.DoneAll
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.outlined.WbCloudy
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.outlined.WbTwilight
@@ -49,6 +50,7 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -98,10 +100,12 @@ fun HomeHero(
     groupCount: Int,
     feedCount: Int,
     topGroup: String?,
+    topShare: Float = 1f, // how much of the count the top group holds (0 to 1)
     updatedAt: Date?,
     hasFeeds: Boolean?,
     loading: Boolean,
     newCount: Int,
+    cameOutToday: Int = 0, // articles published since midnight, for the All page
     oldestDays: Int?,
     topFeed: String?,
     syncing: Boolean,
@@ -112,12 +116,14 @@ fun HomeHero(
     onAddFeed: () -> Unit,
     modifier: Modifier = Modifier,
     animateBackground: Boolean = true, // false while a sheet is opening, so nothing competes with it
+    accountSignsIn: Boolean = true, // false for a phone-only account, which has no sign-in
 ) {
     // Read here, not in the page: a sync reports each feed it finishes, and that must not redraw the whole page.
     val sync by com.ay.briefyou.brief.app.SyncStatus.state.collectAsState()
     val progressDone = sync.done
     val progressTotal = sync.total
-    val problem = sync.problem
+    // A phone-only account has no sign-in: one blocked feed (403) is just a failed sync.
+    val problem = if (!accountSignsIn && sync.problem == com.ay.briefyou.brief.app.SyncStatus.Problem.SignIn) com.ay.briefyou.brief.app.SyncStatus.Problem.Failed else sync.problem
     val view = LocalView.current
     val container = bannerContainer()
     val ink = MaterialTheme.colorScheme.contentColorFor(container)
@@ -132,7 +138,18 @@ fun HomeHero(
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     val noFeeds = hasFeeds == false
-    val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
+    // The time, refreshed each minute while the screen is in front, so "2m ago" and the greeting don't go stale.
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(lifecycle) {
+        lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            while (true) {
+                now = System.currentTimeMillis()
+                kotlinx.coroutines.delay(60_000L)
+            }
+        }
+    }
+    val hour = remember(now / 60_000L) { Calendar.getInstance().apply { timeInMillis = now }.get(Calendar.HOUR_OF_DAY) }
     val (greeting, greetingIcon) =
         when (hour) {
             in 5..11 -> stringResource(R.string.hero_greeting_morning) to Icons.Outlined.WbSunny
@@ -142,7 +159,11 @@ fun HomeHero(
         }
 
     val groups = pluralStringResource(R.plurals.hero_groups, groupCount, groupCount)
-    val feedsText = pluralStringResource(R.plurals.hero_feeds, feedCount, feedCount)
+    // "mostly in X" only when X really holds most of it; otherwise it just has the most.
+    val topLine: String? =
+        topGroup?.let { if (topShare >= 0.4f) stringResource(R.string.hero_across, it) else stringResource(R.string.hero_top_group, it) }
+    // Feeds added but nothing synced yet: the count is not known, not zero.
+    val firstSync = hasFeeds == true && !loading && updatedAt == null && count == 0
     val newMode = !noFeeds && !loading && filter.isUnread() && count > 0 && newCount > 0
     val shownCount = if (newMode) newCount else count
     val baseName: String?
@@ -162,16 +183,22 @@ fun HomeHero(
             cookieIcon = null
             baseName = null
         }
+        firstSync -> {
+            big = stringResource(R.string.hero_first_sync)
+            baseSentence = stringResource(R.string.hero_first_sync_desc)
+            cookieIcon = null
+            baseName = null
+        }
         filter == Filter.All -> {
             big = stringResource(R.string.hero_articles)
-            baseSentence = stringResource(R.string.hero_from, feedsText)
+            baseSentence = if (cameOutToday > 0) stringResource(R.string.hero_today, cameOutToday) else stringResource(R.string.hero_today_none)
             cookieIcon = null
             baseName = null
         }
         count == 0 && filter.isStarred() -> {
             big = stringResource(R.string.hero_no_stars)
             baseSentence = stringResource(R.string.hero_no_stars_desc)
-            cookieIcon = Icons.Outlined.Star
+            cookieIcon = Icons.Rounded.Star
             baseName = null
         }
         count == 0 -> {
@@ -182,9 +209,9 @@ fun HomeHero(
         }
         filter.isStarred() -> {
             big = stringResource(R.string.hero_starred)
-            baseSentence = stringResource(R.string.hero_in, groups)
+            baseSentence = if (groupCount >= 2 && topLine != null) topLine else stringResource(R.string.hero_in, topGroup ?: groups)
             cookieIcon = null
-            baseName = null
+            baseName = topGroup
         }
         newMode -> {
             big = stringResource(R.string.hero_new)
@@ -206,7 +233,7 @@ fun HomeHero(
         }
         groupCount >= 2 && topGroup != null -> {
             big = stringResource(R.string.hero_unread)
-            baseSentence = stringResource(R.string.hero_across, groups, topGroup)
+            baseSentence = topLine ?: stringResource(R.string.hero_across, topGroup)
             cookieIcon = null
             baseName = topGroup
         }
@@ -232,7 +259,7 @@ fun HomeHero(
     val number = remember(shownCount) { NumberFormat.getIntegerInstance().format(shownCount) }
 
     // When the account last synced: a quiet chip, greyed with a "synced" word when it is old.
-    val age = updatedAt?.let { ((System.currentTimeMillis() - it.time) / 60_000L).coerceAtLeast(0L) }
+    val age = updatedAt?.let { ((now - it.time) / 60_000L).coerceAtLeast(0L) }
     val agoText =
         when {
             age == null -> null
@@ -316,7 +343,14 @@ fun HomeHero(
                                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                             ) {
                                 Icon(chip.icon, contentDescription = null, tint = if (chip.error) MaterialTheme.colorScheme.onErrorContainer else LocalContentColor.current, modifier = Modifier.size(14.dp).graphicsLayer { rotationZ = if (syncing) spin else 0f })
-                                Text(chip.text, color = if (chip.error) MaterialTheme.colorScheme.onErrorContainer else Color.Unspecified, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 1)
+                                val chipStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum") // digits all the same width
+                                Box(contentAlignment = Alignment.Center) {
+                                    if (syncing && progressTotal > 0) {
+                                        // The chip keeps the width of its longest text ("40 of 40"), so it doesn't resize as the count goes up.
+                                        Text(stringResource(R.string.hero_chip_progress, progressTotal, progressTotal), color = Color.Transparent, style = chipStyle, maxLines = 1)
+                                    }
+                                    Text(chip.text, color = if (chip.error) MaterialTheme.colorScheme.onErrorContainer else Color.Unspecified, style = chipStyle, maxLines = 1)
+                                }
                             }
                         }
                     }
@@ -336,8 +370,8 @@ fun HomeHero(
                             if (cookieIcon != null) {
                                 Icon(cookieIcon, contentDescription = null, tint = container, modifier = Modifier.size(44.dp))
                             } else {
-                                val text = if (loading) "…" else number
-                                val top = when { loading -> 40.sp; text.length <= 1 -> 46.sp; text.length == 2 -> 40.sp; else -> 34.sp }
+                                val text = if (loading || firstSync) "…" else number
+                                val top = when { loading || firstSync -> 40.sp; text.length <= 1 -> 46.sp; text.length == 2 -> 40.sp; else -> 34.sp }
                                 // Fits inside the cookie's round middle, however many digits.
                                 androidx.compose.foundation.text.BasicText(
                                     text = text,

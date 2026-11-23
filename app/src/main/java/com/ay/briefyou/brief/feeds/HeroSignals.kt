@@ -33,13 +33,13 @@ fun rememberOnline(): Boolean {
     val manager = remember { context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager }
     fun now(): Boolean =
         manager?.let { m ->
-            m.getNetworkCapabilities(m.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+            m.getNetworkCapabilities(m.activeNetwork)?.reaches() == true
         } ?: true
     var online by remember { mutableStateOf(now()) }
     DisposableEffect(manager) {
         val callback =
             object : ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: Network) { online = true }
+                override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) { online = capabilities.reaches() }
                 override fun onLost(network: Network) { online = now() }
             }
         runCatching { manager?.registerDefaultNetworkCallback(callback) }
@@ -47,3 +47,7 @@ fun rememberOnline(): Boolean {
     }
     return online
 }
+
+/** A connection that really reaches the internet (a Wi-Fi without internet does not count). */
+private fun NetworkCapabilities.reaches(): Boolean =
+    hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) && hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)

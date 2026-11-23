@@ -157,6 +157,7 @@ fun FeedsPage(
     }
     val oldestUnread by feedsViewModel.oldestUnread.collectAsState()
     val newSinceOpen by feedsViewModel.newSinceOpen.collectAsState()
+    val cameOutToday by feedsViewModel.cameOutToday.collectAsState()
 
     var isSyncing by remember { mutableStateOf(false) }
     val syncingState = rememberPullToRefreshState()
@@ -177,6 +178,10 @@ fun FeedsPage(
                         feedsViewModel.commitDiffs()
                     }
                     Lifecycle.Event.ON_STOP -> com.ay.briefyou.brief.feeds.HeroSignals.markSeen(context) // Brief You: "new since you last opened"
+                    Lifecycle.Event.ON_START -> { // Brief You: back after being away: new since you last left
+                        feedsViewModel.refreshToday()
+                        com.ay.briefyou.brief.feeds.HeroSignals.lastSeen(context).takeIf { seen -> seen > 0L }?.let(feedsViewModel::setNewSince)
+                    }
 
                     else -> {
                         /* no-op */
@@ -215,10 +220,12 @@ fun FeedsPage(
                     Modifier.drawBehind {
                         // Brief You: the page fades in under the bar, like the list under the bottom bar.
                         // Moved down first: a brush is laid out from the drawing's own origin.
+                        // A rectangle's brush spans the whole bar unless told its height: it is given the fade's own.
+                        val fade = 28.dp.toPx()
                         translate(top = size.height) {
                             drawRect(
-                                brush = com.ay.briefyou.brief.ui.edgeFadeBrush(surfaceColor, solidAtBottom = false),
-                                size = androidx.compose.ui.geometry.Size(size.width, 28.dp.toPx()),
+                                brush = com.ay.briefyou.brief.ui.edgeFadeBrush(surfaceColor, solidAtBottom = false, height = fade),
+                                size = androidx.compose.ui.geometry.Size(size.width, fade),
                             )
                         }
                     }.clickable(
@@ -283,15 +290,18 @@ fun FeedsPage(
                             groupCount = groupWithFeedList.count { g -> g.feeds.any { it.important > 0 } },
                             feedCount = groupWithFeedList.sumOf { it.feeds.size },
                             topGroup = heroTop,
+                            topShare = if (heroCount > 0) (groupWithFeedList.maxOfOrNull { g -> g.feeds.sumOf { it.important } } ?: 0) / heroCount.toFloat() else 1f,
                             updatedAt = feedsUiState.account?.updateAt,
                             hasFeeds = hasFeeds,
                             loading = importantSum.isEmpty() && hasFeeds != false,
                             newCount = newSinceOpen,
+                            cameOutToday = cameOutToday,
                             oldestDays = oldestUnread?.takeIf { it > 0 }?.let { ((System.currentTimeMillis() - it) / 86_400_000L).toInt() },
                             topFeed = groupWithFeedList.flatMap { it.feeds }.maxByOrNull { it.important }?.takeIf { it.important > 0 }?.name,
                             syncing = isSyncing,
                             online = online,
                             onRetry = doSync,
+                            accountSignsIn = feedsUiState.account?.type != com.ay.briefyou.domain.model.account.AccountType.Local,
                             onSignIn = { feedsUiState.account?.id?.let(navigateToAccountDetail) },
                             animateBackground = !sortSheetVisible && !accountTabVisible && !groupDrawerState.isVisible && !feedDrawerState.isVisible,
                             onClick = {

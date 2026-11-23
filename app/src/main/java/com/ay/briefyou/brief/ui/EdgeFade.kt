@@ -12,12 +12,13 @@ private val FadeAlphas = floatArrayOf(0f, 0.04f, 0.15f, 0.35f, 0.6f, 0.82f, 0.95
  * edge. [solidAtBottom]: the bottom bar's fade (solid next to the bar); otherwise the top bar's
  * (solid next to the bar above).
  */
-fun edgeFadeBrush(color: Color, solidAtBottom: Boolean): Brush {
+fun edgeFadeBrush(color: Color, solidAtBottom: Boolean, height: Float = Float.POSITIVE_INFINITY): Brush {
     val n = FadePositions.size
     val stops =
         Array(n) { i ->
             if (solidAtBottom) FadePositions[i] to color.copy(alpha = FadeAlphas[i])
             else (1f - FadePositions[n - 1 - i]) to color.copy(alpha = FadeAlphas[n - 1 - i])
         }
-    return Brush.verticalGradient(colorStops = stops)
+    // [height]: when it is drawn into a shape smaller than its scope (drawRect), the fade must be told how tall it is, or it stops part-way and shows an edge.
+    return Brush.verticalGradient(colorStops = stops, startY = 0f, endY = height)
 }

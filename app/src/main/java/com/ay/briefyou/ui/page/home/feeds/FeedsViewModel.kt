@@ -107,10 +107,11 @@ class FeedsViewModel @Inject constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Brief You: when the oldest unread article was published (milliseconds), for the hero card. */
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
     val oldestUnread: StateFlow<Long?> =
         accountFlow
             .filterNotNull()
-            .flatMapLatest { articleDao.queryOldestUnreadDate(it.id ?: -1) }
+            .flatMapLatest { articleDao.queryOldestUnreadDate(it.id ?: -1).debounce(500) } // the screen follows at most twice a second during a sync
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val newSince = MutableStateFlow(0L)
@@ -120,11 +121,31 @@ class FeedsViewModel @Inject constructor(
         newSince.value = since
     }
 
+    private val todayStart = MutableStateFlow(startOfToday())
+
+    private fun startOfToday(): Long =
+        java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+    /** Brief You: call when Home comes back, so "today" moves on at midnight. */
+    fun refreshToday() {
+        todayStart.value = startOfToday()
+    }
+
+    /** Brief You: how many articles came out since midnight, for the All page's hero card. */
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    val cameOutToday: StateFlow<Int> =
+        accountFlow
+            .filterNotNull()
+            .combine(todayStart) { account, since -> (account.id ?: -1) to since }
+            .flatMapLatest { (id, since) -> articleDao.countSince(id, since).debounce(500) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
     val newSinceOpen: StateFlow<Int> =
         accountFlow
             .filterNotNull()
             .combine(newSince) { account, since -> (account.id ?: -1) to since }
-            .flatMapLatest { (id, since) -> if (since <= 0L) kotlinx.coroutines.flow.flowOf(0) else articleDao.countUnreadSince(id, since) }
+            .flatMapLatest { (id, since) -> if (since <= 0L) kotlinx.coroutines.flow.flowOf(0) else articleDao.countUnreadSince(id, since).debounce(500) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     init {

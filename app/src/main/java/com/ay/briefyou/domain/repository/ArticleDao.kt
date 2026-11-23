@@ -969,6 +969,10 @@ interface ArticleDao {
     @Query("SELECT MIN(date) FROM article WHERE accountId = :accountId AND isUnread = 1")
     fun queryOldestUnreadDate(accountId: Int): kotlinx.coroutines.flow.Flow<Long?>
 
+    /** Brief You: all articles published after [since] (milliseconds): "came out today" on the All page. */
+    @Query("SELECT COUNT(*) FROM article WHERE accountId = :accountId AND date > :since")
+    fun countSince(accountId: Int, since: Long): kotlinx.coroutines.flow.Flow<Int>
+
     /** Brief You: unread articles published after [since] (milliseconds): "new since you last opened". */
     @Query("SELECT COUNT(*) FROM article WHERE accountId = :accountId AND isUnread = 1 AND date > :since")
     fun countUnreadSince(accountId: Int, since: Long): kotlinx.coroutines.flow.Flow<Int>

@@ -598,9 +598,11 @@
     <string name="hero_counting">counting…</string>
     <string name="hero_add_feed">add a feed</string>
     <string name="hero_add_feed_desc">search or paste an address</string>
-    <string name="hero_across">across %1$s, mostly %2$s</string>
     <string name="hero_in">in %1$s</string>
-    <string name="hero_from">from %1$s</string>
+    <string name="hero_across">mostly in %1$s</string>
+    <string name="hero_top_group">%1$s has the most</string>
+    <string name="hero_today">%1$d came out today</string>
+    <string name="hero_today_none">nothing new today</string>
     <string name="hero_just_now">just now</string>
     <string name="hero_minutes_ago">%1$dm ago</string>
     <string name="hero_hours_ago">%1$dh ago</string>
@@ -610,24 +612,18 @@
         <item quantity="one">%1$d group</item>
         <item quantity="other">%1$d groups</item>
     </plurals>
-    <plurals name="hero_feeds">
-        <item quantity="one">%1$d feed</item>
-        <item quantity="other">%1$d feeds</item>
-    </plurals>
     <plurals name="hero_feed_word">
         <item quantity="one">feed</item>
         <item quantity="other">feeds</item>
     </plurals>
-    <plurals name="hero_in_groups">
-        <item quantity="one">in %1$d group</item>
-        <item quantity="other">in %1$d groups</item>
-    </plurals>
+    <string name="hero_first_sync">first sync</string>
+    <string name="hero_first_sync_desc">getting your articles…</string>
     <string name="hero_new">new</string>
     <string name="hero_new_desc">since you last opened</string>
     <string name="hero_syncing_desc">syncing your feeds…</string>
     <string name="hero_chip_syncing">syncing</string>
     <string name="hero_chip_progress">%1$d of %2$d</string>
-    <string name="hero_failed_desc">last sync failed, showing saved articles</string>
+    <string name="hero_failed_desc">sync failed, showing saved</string>
     <string name="hero_chip_failed">failed · retry</string>
     <string name="hero_offline_desc">showing saved articles</string>
     <string name="hero_chip_offline">offline</string>
