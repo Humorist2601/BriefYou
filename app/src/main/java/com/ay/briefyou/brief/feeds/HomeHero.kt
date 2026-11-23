@@ -3,9 +3,6 @@
 package com.ay.briefyou.brief.feeds
 
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import android.view.SoundEffectConstants
 import androidx.compose.foundation.background
@@ -18,6 +15,8 @@ import androidx.compose.material3.toPath
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.runtime.State
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +40,7 @@ import androidx.compose.material.icons.outlined.WbCloudy
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.outlined.WbTwilight
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -89,7 +89,7 @@ import java.util.Date
  * The hero card at the top of the Home screen: a greeting and when the account last synced, then
  * the count in a cookie with a short sentence beside it. It has the press feel of the app's other
  * openers (squeeze, tighter corners, the cookie turns one bump). Only the faint cookies behind it
- * move (a clover, a pill and a rounded square turning slowly); the main cookie keeps still.
+ * move (a 12-sided cookie, a pill and a rounded square turning slowly); the main cookie keeps still.
  */
 @Composable
 fun HomeHero(
@@ -105,16 +105,19 @@ fun HomeHero(
     oldestDays: Int?,
     topFeed: String?,
     syncing: Boolean,
-    progressDone: Int,
-    progressTotal: Int,
-    problem: com.ay.briefyou.brief.app.SyncStatus.Problem,
     online: Boolean,
     onRetry: () -> Unit,
     onSignIn: () -> Unit,
     onClick: () -> Unit,
     onAddFeed: () -> Unit,
     modifier: Modifier = Modifier,
+    animateBackground: Boolean = true, // false while a sheet is opening, so nothing competes with it
 ) {
+    // Read here, not in the page: a sync reports each feed it finishes, and that must not redraw the whole page.
+    val sync by com.ay.briefyou.brief.app.SyncStatus.state.collectAsState()
+    val progressDone = sync.done
+    val progressTotal = sync.total
+    val problem = sync.problem
     val view = LocalView.current
     val container = bannerContainer()
     val ink = MaterialTheme.colorScheme.contentColorFor(container)
@@ -126,6 +129,7 @@ fun HomeHero(
             androidx.compose.ui.graphics.lerp(container, MaterialTheme.colorScheme.primary, 0.22f)
         }
     val press = rememberPressFeel(rest = 32.dp, held = 18.dp, bumps = 9, squeezeTo = 0.98f)
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     val noFeeds = hasFeeds == false
     val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
@@ -250,14 +254,20 @@ fun HomeHero(
                     Icons.Outlined.Sync,
                     null,
                 )
-            signInProblem -> HeroChip(stringResource(R.string.hero_chip_signin), Icons.Outlined.Key, onSignIn)
+            signInProblem -> HeroChip(stringResource(R.string.hero_chip_signin), Icons.Outlined.Key, onSignIn, error = true)
             !online -> HeroChip(stringResource(R.string.hero_chip_offline), Icons.Outlined.CloudOff, null)
             problem == com.ay.briefyou.brief.app.SyncStatus.Problem.Failed ->
-                HeroChip(stringResource(R.string.hero_chip_failed), Icons.Outlined.ErrorOutline, onRetry)
+                HeroChip(stringResource(R.string.hero_chip_failed), Icons.Outlined.ErrorOutline, onRetry, error = true)
             agoText == null -> null
             stale -> HeroChip(stringResource(R.string.hero_synced_ago, agoText), Icons.Outlined.CloudOff, null)
             else -> HeroChip(agoText, Icons.Outlined.Sync, null)
         }
+
+    val fill by androidx.compose.animation.core.animateFloatAsState(
+        if (progressTotal > 0) (progressDone.toFloat() / progressTotal).coerceIn(0f, 1f) else 0f,
+        label = "sync fill",
+    )
+    val spin by rememberTurn(syncing, 1_400, 1f)
 
     Surface(
         modifier = with(press) { modifier.padding(horizontal = 16.dp).squeeze().fillMaxWidth() },
@@ -267,22 +277,13 @@ fun HomeHero(
         interactionSource = press.interaction,
         onClick = {
             view.playSoundEffect(SoundEffectConstants.CLICK)
+            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.ContextClick)
             if (noFeeds) onAddFeed() else onClick()
         },
     ) {
         androidx.compose.runtime.CompositionLocalProvider(LocalPressFeel provides press) {
             Box(Modifier.background(Brush.linearGradient(listOf(container, gradientEnd)))) {
-                FaintCookies(Modifier.matchParentSize())
-                if (syncing && progressTotal > 0) {
-                    // How far the sync is: a thin bar along the bottom edge.
-                    Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(4.dp).background(ink.copy(alpha = 0.13f)))
-                    Box(
-                        Modifier.align(Alignment.BottomStart)
-                            .fillMaxWidth((progressDone.toFloat() / progressTotal).coerceIn(0f, 1f))
-                            .height(4.dp)
-                            .background(ink)
-                    )
-                }
+                FaintCookies(animateBackground, Modifier.matchParentSize())
                 Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 16.dp)) {
                     Row(
                         Modifier.fillMaxWidth().height(28.dp),
@@ -301,15 +302,21 @@ fun HomeHero(
                         if (chip != null) {
                             Row(
                                 Modifier.clip(CircleShape)
-                                    .background(ink.copy(alpha = 0.12f))
+                                    .background(if (chip.error) MaterialTheme.colorScheme.errorContainer else ink.copy(alpha = 0.12f))
+                                    .drawBehind {
+                                        // How far the sync is: the chip fills from the left, like a progress pill.
+                                        if (syncing && progressTotal > 0) {
+                                            drawRect(ink.copy(alpha = 0.32f), size = androidx.compose.ui.geometry.Size(size.width * fill, size.height))
+                                        }
+                                    }
                                     .then(if (chip.action != null) Modifier.clickable { chip.action.invoke() } else Modifier)
                                     .height(28.dp)
                                     .padding(start = 8.dp, end = 11.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                             ) {
-                                Icon(chip.icon, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Text(chip.text, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 1)
+                                Icon(chip.icon, contentDescription = null, tint = if (chip.error) MaterialTheme.colorScheme.onErrorContainer else LocalContentColor.current, modifier = Modifier.size(14.dp).graphicsLayer { rotationZ = if (syncing) spin else 0f })
+                                Text(chip.text, color = if (chip.error) MaterialTheme.colorScheme.onErrorContainer else Color.Unspecified, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 1)
                             }
                         }
                     }
@@ -426,28 +433,43 @@ private fun HeroSentence(text: String, name: String?, ink: Color) {
 }
 
 /**
- * The card's background: three faint Material shapes (a clover top right, a pill bottom left and a
+ * The card's background: three faint Material shapes (a 12-sided cookie top right, a pill bottom left and a
  * rounded square between) turning slowly at their own speeds. Each shape is drawn once and only its
  * layer turns, so the animation costs the main thread nothing (rebuilding paths on every frame
  * kept sheets from opening smoothly).
  */
 @Composable
-private fun FaintCookies(modifier: Modifier = Modifier) {
-    val clover = MaterialShapes.Clover4Leaf.toPath()
+private fun FaintCookies(animate: Boolean, modifier: Modifier = Modifier) {
+    val cookie = MaterialShapes.Cookie12Sided.toPath()
     val pill = MaterialShapes.Pill.toPath()
     val square = MaterialShapes.Square.toPath()
-    val transition = rememberInfiniteTransition(label = "hero background")
-    val cloverTurn = transition.animateFloat(0f, 360f, infiniteRepeatable(tween(36_000, easing = LinearEasing)), label = "clover")
-    val pillTurn = transition.animateFloat(360f, 0f, infiniteRepeatable(tween(28_000, easing = LinearEasing)), label = "pill")
-    val squareTurn = transition.animateFloat(0f, 360f, infiniteRepeatable(tween(44_000, easing = LinearEasing)), label = "square")
+    // Turning only while the screen is in front and nothing is opening over it.
+    val resumed = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+        .currentStateFlow.collectAsState().value.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
+    val running = animate && resumed
+    val cookieTurn = rememberTurn(running, 36_000, 1f)
+    val pillTurn = rememberTurn(running, 28_000, -1f)
+    val squareTurn = rememberTurn(running, 44_000, 1f)
     val dark = com.ay.briefyou.infrastructure.preference.LocalDarkTheme.current.isDarkTheme()
     val light = Color.White.copy(alpha = if (dark) 0.11f else 0.34f) // lighter than the card, so it needs more on a light card
     val shade = Color.Black.copy(alpha = if (dark) 0.12f else 0.08f)
     Box(modifier) {
-        TurningShape(clover, 0.5f, 0.92f, 0.19f, cloverTurn, light)
+        TurningShape(cookie, 0.5f, 0.92f, 0.19f, cookieTurn, light)
         TurningShape(pill, 0.34f, 0.22f, 1f, pillTurn, shade)
         TurningShape(square, 0.19f, 0.65f, 0.97f, squareTurn, light)
     }
+}
+
+/** An angle that keeps turning ([direction] 1 or -1, one turn in [millis]) while [running], and stays where it is when not. */
+@Composable
+private fun rememberTurn(running: Boolean, millis: Int, direction: Float): State<Float> {
+    val angle = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(running) {
+        while (running) {
+            angle.animateTo(angle.value + 360f * direction, tween(millis, easing = LinearEasing))
+        }
+    }
+    return angle.asState()
 }
 
 /** [base] at [widthFraction] of the card's width, centred on ([cx], [cy]) (fractions of the card), turning about that centre. */
@@ -473,4 +495,4 @@ private fun TurningShape(base: Path, widthFraction: Float, cx: Float, cy: Float,
     )
 }
 
-private class HeroChip(val text: String, val icon: ImageVector, val action: (() -> Unit)?)
+private class HeroChip(val text: String, val icon: ImageVector, val action: (() -> Unit)?, val error: Boolean = false)

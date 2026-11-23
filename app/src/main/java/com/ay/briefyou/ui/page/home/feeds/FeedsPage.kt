@@ -52,7 +52,6 @@ import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -75,6 +74,9 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -148,7 +150,6 @@ fun FeedsPage(
     val owner = LocalLifecycleOwner.current
 
     // Brief You: what the hero card says besides the count.
-    val syncStatus by com.ay.briefyou.brief.app.SyncStatus.state.collectAsState()
     val online = com.ay.briefyou.brief.feeds.rememberOnline()
     val lastSeen = remember { com.ay.briefyou.brief.feeds.HeroSignals.lastSeen(context) }
     LaunchedEffect(lastSeen) {
@@ -289,12 +290,10 @@ fun FeedsPage(
                             oldestDays = oldestUnread?.takeIf { it > 0 }?.let { ((System.currentTimeMillis() - it) / 86_400_000L).toInt() },
                             topFeed = groupWithFeedList.flatMap { it.feeds }.maxByOrNull { it.important }?.takeIf { it.important > 0 }?.name,
                             syncing = isSyncing,
-                            progressDone = syncStatus.done,
-                            progressTotal = syncStatus.total,
-                            problem = syncStatus.problem,
                             online = online,
                             onRetry = doSync,
                             onSignIn = { feedsUiState.account?.id?.let(navigateToAccountDetail) },
+                            animateBackground = !sortSheetVisible && !accountTabVisible && !groupDrawerState.isVisible && !feedDrawerState.isVisible,
                             onClick = {
                                 feedsViewModel.changeFilter(filterState.copy(group = null, feed = null))
                                 navigationToFlow()
@@ -305,33 +304,45 @@ fun FeedsPage(
                     item { com.ay.briefyou.brief.stats.HomeRecapTeaser() } // Brief You: last month's recap (first week)
 
                     item {
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 26.dp),
+                                .padding(horizontal = 30.dp), // lined up with the groups' arrow chips
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = stringResource(R.string.feeds),
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.labelLarge,
-                            )
-                            IconButton(
-                                onClick = {
-                                    if (hasGroupVisible) collapseAllGroups() else expandAllGroups()
-                                },
+                            val feedTotal = groupWithFeedList.sumOf { it.feeds.size }
+                            val feedWord = pluralStringResource(R.plurals.hero_feed_word, feedTotal)
+                            val inGroups = pluralStringResource(R.plurals.hero_in_groups, groupWithFeedList.size, groupWithFeedList.size)
+                            Row(verticalAlignment = Alignment.Bottom) { // a big feed count, the rest quietly beside it
+                                Text(
+                                    text = feedTotal.toString(),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                )
+                                Text(
+                                    text = "$feedWord $inGroups",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    modifier = Modifier.padding(start = 6.dp, bottom = 3.dp),
+                                )
+                            }
+                            // The same size and tone as the groups' arrow chips, right above them.
+                            Box(
                                 modifier = Modifier
-                                    .padding(end = 8.dp)
-                                    .size(28.dp),
+                                    .size(width = 40.dp, height = 32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                    .clickable { if (hasGroupVisible) collapseAllGroups() else expandAllGroups() },
+                                contentAlignment = Alignment.Center,
                             ) {
                                 // Brief You: the two icons fade and scale into each other.
                                 val unfolded by androidx.compose.animation.core.animateFloatAsState(
                                     if (hasGroupVisible) 1f else 0f,
                                     label = "open all",
                                 )
-                                Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = Icons.Rounded.UnfoldMore,
                                         contentDescription = null,
@@ -353,7 +364,6 @@ fun FeedsPage(
                                         },
                                     )
                                 }
-                            }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                     }

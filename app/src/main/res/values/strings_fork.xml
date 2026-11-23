@@ -614,6 +614,14 @@
         <item quantity="one">%1$d feed</item>
         <item quantity="other">%1$d feeds</item>
     </plurals>
+    <plurals name="hero_feed_word">
+        <item quantity="one">feed</item>
+        <item quantity="other">feeds</item>
+    </plurals>
+    <plurals name="hero_in_groups">
+        <item quantity="one">in %1$d group</item>
+        <item quantity="other">in %1$d groups</item>
+    </plurals>
     <string name="hero_new">new</string>
     <string name="hero_new_desc">since you last opened</string>
     <string name="hero_syncing_desc">syncing your feeds…</string>
