@@ -29,6 +29,8 @@ in [§9](#9-pending-work-the-baseline).
 
 ## 2. How to work on it (rules the owner set)
 
+> **Design:** the Home screen is the approved design and the basis for everything else. Read [DESIGN.md](DESIGN.md) before designing or changing any screen.
+
 These are the owner's standing preferences. A new assistant should follow them.
 
 1. **Ask before committing.** Every commit, test branches included, needs the owner's OK
