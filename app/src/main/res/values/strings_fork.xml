@@ -616,6 +616,10 @@
         <item quantity="one">feed</item>
         <item quantity="other">feeds</item>
     </plurals>
+    <plurals name="hero_in_groups">
+        <item quantity="one">in %1$d group</item>
+        <item quantity="other">in %1$d groups</item>
+    </plurals>
     <string name="hero_first_sync">first sync</string>
     <string name="hero_first_sync_desc">getting your articles…</string>
     <string name="hero_new">new</string>
