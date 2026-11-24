@@ -2,6 +2,8 @@
 
 package com.ay.briefyou.brief.feeds
 
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -551,8 +553,9 @@ private fun fontScaleOf(density: androidx.compose.ui.unit.Density): Float = dens
 private fun HeroSentence(text: String, name: String?, ink: Color, animate: Boolean = true) {
     // The wavy line drifts sideways, one wave per 1.6 s; only its drawing changes, nothing recomposes.
     val wave = androidx.compose.animation.core.rememberInfiniteTransition(label = "wave").animateFloat(
-        0f, 1f,
-        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(1600, easing = androidx.compose.animation.core.LinearEasing)),
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(1600, easing = androidx.compose.animation.core.LinearEasing)),
         label = "wavePhase",
     )
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -606,7 +609,7 @@ private fun HeroSentence(text: String, name: String?, ink: Color, animate: Boole
                             up = !up
                         }
                     }
-                    androidx.compose.ui.graphics.drawscope.clipRect(from, y - amp * 3, to, y + amp * 3) {
+                    clipRect(from, y - amp * 3, to, y + amp * 3) {
                         drawPath(path, ink.copy(alpha = 0.7f), style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round))
                     }
                 }
