@@ -240,6 +240,7 @@ private fun DialogScaffold(
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
     val navBottom = WindowInsets.navigationBars.getBottom(density)
+    val imeNow = androidx.compose.runtime.rememberUpdatedState(imeBottom)
     var frozenBottom by remember { mutableStateOf<Int?>(null) }
     SideEffect {
         if (exit.closing && frozenBottom == null) frozenBottom = maxOf(imeBottom, navBottom)
@@ -257,7 +258,7 @@ private fun DialogScaffold(
                 launch { leave.animateTo(0f, tween(160)) }
                 launch {
                     kotlinx.coroutines.withTimeoutOrNull(450) {
-                        androidx.compose.runtime.snapshotFlow { WindowInsets.ime.getBottom(density) }
+                        androidx.compose.runtime.snapshotFlow { imeNow.value }
                             .first { it == 0 }
                     }
                 }
