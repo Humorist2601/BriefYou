@@ -111,6 +111,7 @@ Chosen by the owner from mock-ups (A cards, B open rows): **B, no unread dots.**
 - Row: feed name (feed accent) + time, bold title when unread (medium when read), two-line description, 80 dp picture with 16 dp corners. Read rows dim (the user's read-indicator setting).
 - Day label: `StickyHeader`, tracked capitals (labelMedium ExtraBold, 0.12 em, `primary`), no count and no line under the pinned day (articles pass under it; a 28 dp top fade, same as Home, does the rest).
 - Search: the app's normal text field (`BYTextField2`, label chip, `surfaceContainerHighest`) with a close button as its trailing icon.
+- **App-wide rule: side margins are 16 dp** (every screen designed from now on, and older ones as they are reached; the settings pages, dialogs, sheets, Triage and reading screen still use 24 or other values until then).
 - Side margins are 16 dp (rows, day labels, title, search and read-all bars), like Home.
 - Header fade: 28 dp, drawn in the list below the pinned day label and only once the list has moved (never over the search or read-all bars).
 - Swipe: the row lifts into a rounded card (`surfaceContainerHigh`, 24 dp, inset 8 dp); the action waits as a small cookie on a `surfaceContainerHigh` tray; past the threshold the cookie pops with a spring overshoot (`primary`, icon `onPrimary`) and the tray fills with `primaryContainer`. No labels.

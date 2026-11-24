@@ -159,33 +159,42 @@ private fun ActionIconBox(
   )
   val cookieColor by animateColorAsState(if (crossed) scheme.primary else scheme.surfaceContainerHighest, label = "swipeCookieColor")
   val cookieShape = androidx.compose.material3.MaterialShapes.Cookie12Sided.toShape()
-  Row(
+  Box(
     modifier = modifier
       .layout { measurable, constraints ->
         val placeable = measurable.measure(constraints)
         layout(width = placeable.width, height = placeable.height) {
-          // Align icon with the left/right edge of the content being swiped.
+          // Sits right next to the content being swiped (left or right of it).
           val iconOffset = if (action.isOnRightSide) constraints.maxWidth + offset else offset - placeable.width
           placeable.place(x = iconOffset.roundToInt(), y = 0)
         }
       }
-      .drawBehind {
+      .drawWithContent {
+        // Brief You: the tray is the part of the screen the card has uncovered, inset 8 dp from the
+        // screen edge; its inner side meets the card's own inset. The cookie is clipped to it.
         val inset = 8.dp.toPx()
-        // The outer side is inset like the card; the inner side runs under the card's own inset.
-        val left = if (action.isOnRightSide) -inset else inset
-        drawRoundRect(
-          color = backgroundColor,
-          topLeft = androidx.compose.ui.geometry.Offset(left, 0f),
-          size = androidx.compose.ui.geometry.Size(size.width, size.height),
-          cornerRadius = androidx.compose.ui.geometry.CornerRadius(24.dp.toPx()),
-        )
+        val tray =
+          if (action.isOnRightSide) androidx.compose.ui.geometry.Rect(-inset, 0f, -offset - inset, size.height)
+          else androidx.compose.ui.geometry.Rect(size.width - offset + inset, 0f, size.width + inset, size.height)
+        if (tray.width > 0f) {
+          val radius = androidx.compose.ui.geometry.CornerRadius(24.dp.toPx())
+          drawRoundRect(color = backgroundColor, topLeft = tray.topLeft, size = tray.size, cornerRadius = radius)
+          val clip = androidx.compose.ui.graphics.Path().apply {
+            addRoundRect(androidx.compose.ui.geometry.RoundRect(tray, radius))
+          }
+          androidx.compose.ui.graphics.drawscope.clipPath(clip) { this@drawWithContent.drawContent() }
+        }
       },
-    horizontalArrangement = if (action.isOnRightSide) Arrangement.Absolute.Left else Arrangement.Absolute.Right,
-    verticalAlignment = Alignment.CenterVertically,
   ) {
     Box(
       modifier = Modifier
-        .padding(horizontal = 30.dp)
+        .layout { measurable, constraints ->
+          val placeable = measurable.measure(androidx.compose.ui.unit.Constraints())
+          val edge = 30.dp.roundToPx()
+          // The cookie stays where the screen edge is, so it is uncovered as the card moves.
+          val x = if (action.isOnRightSide) (-offset).roundToInt() - edge - placeable.width else constraints.maxWidth - offset.roundToInt() + edge
+          layout(placeable.width, placeable.height) { placeable.place(x = x, y = (constraints.maxHeight - placeable.height) / 2) }
+        }
         .size(44.dp)
         .graphicsLayer { scaleX = cookieScale; scaleY = cookieScale }
         .clip(cookieShape)
