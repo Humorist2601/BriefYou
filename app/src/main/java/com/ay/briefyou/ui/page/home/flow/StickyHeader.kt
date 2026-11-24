@@ -23,7 +23,7 @@ fun StickyHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            modifier = Modifier.padding(start = 24.dp).padding(top = 8.dp, bottom = 4.dp),
+            modifier = Modifier.padding(start = 16.dp).padding(top = 8.dp, bottom = 4.dp),
             text = dateString.uppercase(), // Brief You: tracked capitals, like Home's section labels
             color = MaterialTheme.colorScheme.primary,
             style =

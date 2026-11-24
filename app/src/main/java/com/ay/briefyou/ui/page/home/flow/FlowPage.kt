@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.paging.compose.LazyPagingItems
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.paging.compose.collectAsLazyPagingItems
 import kotlinx.coroutines.delay
@@ -179,6 +180,8 @@ fun FlowPage(
     val scope = rememberCoroutineScope()
     var markAsRead by remember { mutableStateOf(false) }
     var onSearch by rememberSaveable { mutableStateOf(false) }
+    // Brief You: how many articles the search found so far (and whether there are more pages); null when not searching.
+    var searchResults by remember { mutableStateOf<Pair<Int, Boolean>?>(null) }
     val brief = rememberBriefFlowState(filterUiState) // Brief You
     var currentPullToLoadState: PullToLoadState? by remember { mutableStateOf(null) }
     var currentLoadAction: LoadAction? by remember { mutableStateOf(null) }
@@ -371,17 +374,7 @@ fun FlowPage(
                 ) {
                     LargeTopAppBar(
                         modifier =
-                            Modifier.drawBehind {
-                                // Brief You: the page fades in under the bar, like Home (the same
-                                // S-curve, 28 dp). Moved down first: a brush starts at the drawing's origin.
-                                val fade = 28.dp.toPx()
-                                translate(top = size.height) {
-                                    drawRect(
-                                        brush = com.ay.briefyou.brief.ui.edgeFadeBrush(scrolledTopBarContainerColor, solidAtBottom = false, height = fade),
-                                        size = androidx.compose.ui.geometry.Size(size.width, fade),
-                                    )
-                                }
-                            }.clickable(
+                            Modifier.clickable(
                                 onClick = {
                                     scope.launch {
                                         if (listState.firstVisibleItemIndex != 0) {
@@ -404,7 +397,7 @@ fun FlowPage(
                                 BasicText(
                                     modifier =
                                         Modifier.padding(
-                                            start = 8.dp,
+                                            start = 0.dp,
                                             end = 24.dp,
                                         ),
                                     text = titleText,
@@ -450,21 +443,38 @@ fun FlowPage(
                                                 )
                                         }
                                     }
+                                // The same sizes as the feed count above Home's groups (a bold number, a quiet sentence).
+                                // While searching the number rolls to the number of results, like Home's cookie.
+                                val found = searchResults
+                                val shownValue = found?.first ?: listScope?.count ?: 0
+                                val shownNumber =
+                                    if (found != null) java.text.NumberFormat.getIntegerInstance().format(found.first) + if (found.second) "+" else ""
+                                    else countText ?: " "
+                                val shownSentence =
+                                    if (found != null) androidx.compose.ui.res.pluralStringResource(R.plurals.search_results_sub, found.first)
+                                    else sentence ?: " "
                                 androidx.compose.foundation.layout.Row(
-                                    modifier = Modifier.padding(start = 8.dp, top = 6.dp),
-                                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.padding(top = 6.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.Bottom,
                                 ) {
-                                    Text(
-                                        text = countText ?: " ",
-                                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-                                        modifier = Modifier.alignByBaseline(),
+                                    com.ay.briefyou.brief.ui.RollingNumber(
+                                        value = shownValue,
+                                        number = shownNumber,
+                                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"),
+                                        color = MaterialTheme.colorScheme.onSurface,
                                     )
-                                    Text(
-                                        text = sentence ?: " ",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.alignByBaseline(),
-                                    )
+                                    androidx.compose.animation.Crossfade(
+                                        targetState = shownSentence,
+                                        animationSpec = androidx.compose.animation.core.tween(200),
+                                        label = "countSentence",
+                                    ) { text ->
+                                        Text(
+                                            text = text,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(start = 6.dp, bottom = 3.dp),
+                                        )
+                                    }
                                 }
                                 }
                             } else {
@@ -644,6 +654,15 @@ fun FlowPage(
                         shownItems = latestItems
                     }
                     val pagingItems = shownItems.also { pagingItems = it }
+                    val searchTerm = androidx.compose.runtime.rememberUpdatedState(filterState.searchContent)
+                    LaunchedEffect(pagingItems) { // Brief You: the result count under the title while searching
+                        snapshotFlow {
+                            if (searchTerm.value.isNullOrEmpty()) null
+                            else
+                                (0 until pagingItems.itemCount).count { pagingItems.peek(it) is ArticleFlowItem.Article } to
+                                    !pagingItems.loadState.append.endOfPaginationReached
+                        }.collect { searchResults = it }
+                    }
                     // Brief You: the first articles of the list tidied ahead, so the first taps open at once.
                     LaunchedEffect(pagingItems) { // Brief You
                         // The first three articles, skipping the date headings between them. // Brief You
@@ -778,7 +797,30 @@ fun FlowPage(
                             )
                             .also { currentPullToLoadState = it }
 
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    // Brief You: once the list has moved, articles fade out under the pinned day label (the
+                    // same S-curve as Home, 28 dp). It sits in the list, below the search and
+                    // mark-as-read bars and below the day label, so it never dims them.
+                    val topFadeAlpha by androidx.compose.animation.core.animateFloatAsState(
+                        if (listState.canScrollBackward) 1f else 0f,
+                        label = "topFade",
+                    )
+                    val topFadeColor = MaterialTheme.colorScheme.surface
+                    Box(
+                        modifier =
+                            Modifier.fillMaxSize().drawWithContent {
+                                drawContent()
+                                if (topFadeAlpha > 0f) {
+                                    val fade = 28.dp.toPx()
+                                    val start = if (articleListDateStickyHeader.value) 28.dp.toPx() else 0f
+                                    translate(top = start) {
+                                        drawRect(
+                                            brush = com.ay.briefyou.brief.ui.edgeFadeBrush(topFadeColor.copy(alpha = topFadeColor.alpha * topFadeAlpha), solidAtBottom = false, height = fade),
+                                            size = androidx.compose.ui.geometry.Size(size.width, fade),
+                                        )
+                                    }
+                                }
+                            }
+                    ) {
                         LazyColumn(
                             modifier =
                                 Modifier.pullToLoad(

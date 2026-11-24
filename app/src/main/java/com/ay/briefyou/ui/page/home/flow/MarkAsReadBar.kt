@@ -42,7 +42,7 @@ fun MarkAsReadBar(
             stringResource(R.string.mark_read_1_day) to MarkAsReadConditions.OneDay,
             stringResource(R.string.mark_read_everything) to MarkAsReadConditions.All,
         )
-    Column(modifier = Modifier.padding(horizontal = 24.dp).padding(top = 6.dp, bottom = 12.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp).padding(top = 6.dp, bottom = 12.dp)) {
         Text(
             text = stringResource(R.string.mark_read_older_than),
             style = MaterialTheme.typography.labelLarge,

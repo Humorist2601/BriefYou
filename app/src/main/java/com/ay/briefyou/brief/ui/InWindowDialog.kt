@@ -260,8 +260,17 @@ private fun DialogScaffold(
     // glides once to where it will stand with the keyboard up (the keyboard's height as last seen)
     // instead of chasing the keyboard frame by frame, which looked like it jumped.
     var fieldFocused by remember { mutableStateOf(false) }
-    SideEffect { if (imeBottom > KeyboardMemory.px) KeyboardMemory.px = imeBottom }
-    val reserve = if (KeyboardMemory.px > 0) KeyboardMemory.px else with(density) { 300.dp.roundToPx() }
+    // The keyboard's height is kept between launches too: the first dialog after a fresh start used to
+    // guess (300 dp), glide there and then move again when the real keyboard was taller.
+    val prefs = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("brief_keyboard", 0)
+    if (KeyboardMemory.px == 0) KeyboardMemory.px = prefs.getInt("px", 0)
+    SideEffect {
+        if (imeBottom > KeyboardMemory.px) {
+            KeyboardMemory.px = imeBottom
+            prefs.edit().putInt("px", imeBottom).apply()
+        }
+    }
+    val reserve = if (KeyboardMemory.px > 0) KeyboardMemory.px else with(density) { 380.dp.roundToPx() }
     val bottomTarget = if (fieldFocused) maxOf(reserve, imeBottom, navBottom) else maxOf(imeBottom, navBottom)
     val bottomPx by androidx.compose.animation.core.animateIntAsState(
         bottomTarget,

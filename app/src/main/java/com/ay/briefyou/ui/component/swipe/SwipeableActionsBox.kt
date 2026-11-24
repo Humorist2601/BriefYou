@@ -2,6 +2,13 @@ package com.ay.briefyou.ui.component.swipe
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.material3.toShape
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -75,10 +82,29 @@ fun SwipeableActionsBox(
   }
 
   val scope = rememberCoroutineScope()
+  // Brief You: the row lifts into a rounded card while it is dragged (the tone of the app's other
+  // cards, inset 8 dp from the edges), and settles back into an open row when it is let go.
+  val lift by androidx.compose.animation.core.animateFloatAsState(
+    if (kotlin.math.abs(state.offset.value) > 1f) 1f else 0f,
+    androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 500f),
+    label = "swipeLift",
+  )
+  val cardColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh
   Box(
     modifier = Modifier
       .onSizeChanged { state.layoutWidth = it.width }
       .absoluteOffset { IntOffset(x = state.offset.value.roundToInt(), y = 0) }
+      .drawBehind {
+        if (lift > 0f) {
+          val inset = 8.dp.toPx()
+          drawRoundRect(
+            color = cardColor.copy(alpha = lift),
+            topLeft = androidx.compose.ui.geometry.Offset(inset, 0f),
+            size = androidx.compose.ui.geometry.Size(size.width - inset * 2, size.height),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(24.dp.toPx()),
+          )
+        }
+      }
       .drawOverContent { state.ripple.draw(scope = this) }
       .horizontalDraggable(
         enabled = !state.isResettingOnRelease,
@@ -98,6 +124,7 @@ fun SwipeableActionsBox(
       action = action,
       offset = state.offset.value,
       backgroundColor = animatedBackgroundColor,
+      crossed = state.swipedAction != null || state.hasCrossedSwipeThreshold(),
       content = { action.value.icon() }
     )
   }
@@ -112,14 +139,26 @@ fun SwipeableActionsBox(
   }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ActionIconBox(
     action: SwipeActionMeta,
     offset: Float,
     backgroundColor: Color,
+    crossed: Boolean,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
+  // Brief You: the action sits in a cookie that pops with a springy overshoot as the threshold is
+  // crossed, on a rounded tray that fills with the accent container.
+  val scheme = androidx.compose.material3.MaterialTheme.colorScheme
+  val cookieScale by androidx.compose.animation.core.animateFloatAsState(
+    if (crossed) 1f else 0.72f,
+    androidx.compose.animation.core.spring(dampingRatio = 0.4f, stiffness = 420f),
+    label = "swipeCookie",
+  )
+  val cookieColor by animateColorAsState(if (crossed) scheme.primary else scheme.surfaceContainerHighest, label = "swipeCookieColor")
+  val cookieShape = androidx.compose.material3.MaterialShapes.Cookie12Sided.toShape()
   Row(
     modifier = modifier
       .layout { measurable, constraints ->
@@ -130,11 +169,31 @@ private fun ActionIconBox(
           placeable.place(x = iconOffset.roundToInt(), y = 0)
         }
       }
-      .background(color = backgroundColor),
+      .drawBehind {
+        val inset = 8.dp.toPx()
+        // The outer side is inset like the card; the inner side runs under the card's own inset.
+        val left = if (action.isOnRightSide) -inset else inset
+        drawRoundRect(
+          color = backgroundColor,
+          topLeft = androidx.compose.ui.geometry.Offset(left, 0f),
+          size = androidx.compose.ui.geometry.Size(size.width, size.height),
+          cornerRadius = androidx.compose.ui.geometry.CornerRadius(24.dp.toPx()),
+        )
+      },
     horizontalArrangement = if (action.isOnRightSide) Arrangement.Absolute.Left else Arrangement.Absolute.Right,
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    content()
+    Box(
+      modifier = Modifier
+        .padding(horizontal = 30.dp)
+        .size(44.dp)
+        .graphicsLayer { scaleX = cookieScale; scaleY = cookieScale }
+        .clip(cookieShape)
+        .background(cookieColor),
+      contentAlignment = Alignment.Center,
+    ) {
+      content()
+    }
   }
 }
 

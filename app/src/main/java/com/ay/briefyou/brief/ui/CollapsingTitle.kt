@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Alignment
@@ -120,15 +121,15 @@ fun CollapsedTitle() {
 fun CountChip(text: String) {
     Box(
         modifier =
-            Modifier.height(28.dp)
+            Modifier.height(28.dp).widthIn(min = 40.dp)
                 .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             maxLines = 1,
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
     }

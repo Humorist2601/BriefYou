@@ -169,7 +169,7 @@ fun ArticleItem(
     Column(
         modifier =
             modifier
-                .padding(horizontal = 12.dp)
+                .padding(horizontal = 4.dp) // Brief You: 16 dp from the edge in all, like Home
                 .clip(Shape20)
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick)
                 .padding(horizontal = 12.dp, vertical = 12.dp)
@@ -471,7 +471,7 @@ private fun SwipeActionBox(
     val onOpenInBrowser: (ArticleWithFeed) -> Unit = {
         swipeContext.openURL(it.article.link, swipeOpenLink, swipeOpenBrowser)
     }
-    val containerColor = MaterialTheme.colorScheme.tertiaryContainer
+    val containerColor = MaterialTheme.colorScheme.primaryContainer // Brief You: same family as the app's cookies and chips
     // Brief You: the icon sits on the page color until the swipe passes the threshold, then on the accent
     // container: it uses the accent there, and the container's own "on" color (which Material You
     // keeps readable on it, whatever the theme) after.
@@ -519,7 +519,6 @@ private fun SwipeActionBox(
                                 imageVector = it,
                                 contentDescription = null,
                                 tint = swipeIconTint(swipeState), // Brief You
-                                modifier = Modifier.padding(horizontal = 24.dp),
                             )
                         }
                 },
@@ -543,7 +542,6 @@ private fun SwipeActionBox(
                                 imageVector = it,
                                 contentDescription = null,
                                 tint = swipeIconTint(swipeState), // Brief You
-                                modifier = Modifier.padding(horizontal = 24.dp),
                             )
                         }
                 },
@@ -558,7 +556,7 @@ private fun SwipeActionBox(
         state = swipeState, // Brief You
         startActions = listOfNotNull(startAction),
         endActions = listOfNotNull(endAction),
-        backgroundUntilSwipeThreshold = MaterialTheme.colorScheme.surface,
+        backgroundUntilSwipeThreshold = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         content.invoke()
     }
@@ -680,9 +678,9 @@ private fun swipeIconTint(state: SwipeableActionsState): Color {
     val tint by
         animateColorAsState(
             if (state.hasCrossedSwipeThreshold() || state.isResettingOnRelease) {
-                MaterialTheme.colorScheme.onTertiaryContainer
+                MaterialTheme.colorScheme.onPrimary
             } else {
-                MaterialTheme.colorScheme.tertiary
+                MaterialTheme.colorScheme.onSurfaceVariant
             },
             label = "swipeIconTint",
         )

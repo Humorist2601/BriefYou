@@ -50,7 +50,7 @@ fun SearchBar(
         state = state,
         modifier =
             Modifier.background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 16.dp)
                 .padding(top = 6.dp, bottom = 10.dp),
         label = placeholder,
         singleLine = true,

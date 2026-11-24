@@ -439,6 +439,10 @@
         <item quantity="other">%s articles</item>
     </plurals>
     <!-- The line under the list's title: how many, and in how many feeds. -->
+    <plurals name="search_results_sub">
+        <item quantity="one">result</item>
+        <item quantity="other">results</item>
+    </plurals>
     <plurals name="list_sub_unread_feeds">
         <item quantity="one">unread in %1$d feed</item>
         <item quantity="other">unread in %1$d feeds</item>
