@@ -209,4 +209,12 @@ Fields are filled and rounded, everywhere (account dialogs included).
 | Now playing | Own colours | player | none | corner only |
 | Read later activity | Plain | joined list | none | check |
 
-Menus (`AnimatedDropdownMenu`) are not sheets and are still to design.
+### 10.8 Menus (`AnimatedDropdownMenu(bare = true)`)
+
+A menu has no box of its own: it is separate pieces on `surfaceContainerHigh` with a 1 dp shadow, 6 dp apart (`MenuParts.kt`).
+- `MenuStrip`: a 28 dp card of `MenuRoundButton`s (52 dp circles, icon only, 24 dp icon, a content description for each; a long press shows it as a `TransientHint`, the hint bubble's look without "Got it", for 1.8 s). A button that is on
+  (read, starred) is `primaryContainer`, the others `surfaceContainerHighest`.
+- `MenuRow`: its own 20 dp card, icon and text (Mark above / Mark below as read, above and below the strip).
+- Choices of one setting (Triage "Skip after"): one 28 dp card with a `primary` title and 72 x 56 dp chips in a grid; the chosen chip is round (28 dp)
+  and `primaryContainer`, the others 16 dp.
+- Menus: article long-press (above row, strip of Read, Star, Share, Newspaper, below row), Triage "Skip after", image viewer (Save, Share link, Share image).

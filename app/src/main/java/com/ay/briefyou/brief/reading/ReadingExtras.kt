@@ -232,9 +232,9 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
         Column(
             modifier =
                 Modifier.fillMaxWidth()
-                    // Always the full height, so the sheet doesn't change size with its content (and
-                    // doesn't jump while a slider or the font changes the preview above it).
-                    .fillMaxHeight()
+                    // Always 70% of the screen (like the AI sheet), so the sheet doesn't change size with its
+                    // content (and doesn't jump while a slider or the font changes the preview above it).
+                    .height((androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.7f).dp)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp)
                     .navigationBarsPadding()

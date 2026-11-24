@@ -1,5 +1,7 @@
 package com.ay.briefyou.brief.player
 
+import androidx.compose.foundation.verticalScroll
+import com.ay.briefyou.brief.ui.sheetMaxHeight
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColor
@@ -393,7 +395,8 @@ fun NowPlayingSheet(onDismiss: () -> Unit) {
     MaterialTheme(colorScheme = scheme, typography = MaterialTheme.typography, shapes = MaterialTheme.shapes, motionScheme = MaterialTheme.motionScheme) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState()) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp),
+            // At most 70% of the screen; taller content scrolls inside.
+            modifier = Modifier.sheetMaxHeight().verticalScroll(androidx.compose.foundation.rememberScrollState()).fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (now.isVideo) {

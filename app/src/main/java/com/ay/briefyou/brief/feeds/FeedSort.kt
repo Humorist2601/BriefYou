@@ -2,6 +2,7 @@
 
 package com.ay.briefyou.brief.feeds
 
+import com.ay.briefyou.brief.ui.sheetMaxHeight
 import androidx.compose.material3.ripple
 import com.ay.briefyou.brief.ui.rememberPressFeel
 import androidx.compose.animation.AnimatedVisibility
@@ -125,7 +126,7 @@ fun FeedSortSheet(
         ) {
         Column(
             modifier =
-                Modifier.padding(horizontal = 16.dp)
+                Modifier.sheetMaxHeight().padding(horizontal = 16.dp)
                     .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
         ) {

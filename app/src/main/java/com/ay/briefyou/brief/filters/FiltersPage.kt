@@ -1031,15 +1031,6 @@ internal fun FilterLogCard(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                         )
                     }
-                    // The feed this copy came from (the chip names the feed that had it first).
-                    Text(
-                        text = stringResource(R.string.filters_from_feed, entry.feedName) + " · " + timeOf(entry.at), // Brief You: when it was filtered
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(start = 8.dp).weight(1f, fill = false),
-                    )
                 }
             }
             // Undo on a soft round background, like the duplicate copies'.

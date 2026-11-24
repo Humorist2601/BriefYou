@@ -41,6 +41,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Image as ImageIcon
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -307,53 +308,62 @@ fun ReaderImageViewer(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
                         alignToAnchorEnd = true,
+                        bare = true,
                     ) {
-                        DropdownMenuItem(
-                            text = { Text(text = stringResource(id = R.string.save)) },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Rounded.Download,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            },
-                            onClick = {
-                                val isStoragePermissionGranted =
-                                    ContextCompat.checkSelfPermission(
-                                        context,
-                                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                                    ) == PackageManager.PERMISSION_GRANTED
+                        // Brief You: three round buttons: save, share the link, share the picture.
+                        com.ay.briefyou.brief.ui.MenuStrip {
+                            com.ay.briefyou.brief.ui.MenuRoundButton(
+                                icon = Icons.Rounded.Download,
+                                description = stringResource(id = R.string.save),
+                                onClick = {
+                                    val isStoragePermissionGranted =
+                                        ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                        ) == PackageManager.PERMISSION_GRANTED
 
-                                if (Build.VERSION.SDK_INT > 28 || isStoragePermissionGranted) {
-                                    onDownloadImage(imageData.imageUrl)
-                                } else {
-                                    launcher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                                }
-                                expanded = false
-                            },
-                        )
-                        // Brief You: share the picture's link.
-                        DropdownMenuItem(
-                            text = { Text(text = stringResource(id = R.string.share)) },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Rounded.Share,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            },
-                            onClick = {
-                                expanded = false
-                                val send =
-                                    android.content.Intent(android.content.Intent.ACTION_SEND)
-                                        .setType("text/plain")
-                                        .putExtra(android.content.Intent.EXTRA_TEXT, imageData.imageUrl)
-                                context.startActivity(
-                                    android.content.Intent.createChooser(send, null)
-                                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                                )
-                            },
-                        )
+                                    if (Build.VERSION.SDK_INT > 28 || isStoragePermissionGranted) {
+                                        onDownloadImage(imageData.imageUrl)
+                                    } else {
+                                        launcher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                    }
+                                    expanded = false
+                                },
+                            )
+                            com.ay.briefyou.brief.ui.MenuRoundButton(
+                                icon = Icons.Rounded.Share,
+                                description = stringResource(id = R.string.image_share_link),
+                                onClick = {
+                                    expanded = false
+                                    val send =
+                                        android.content.Intent(android.content.Intent.ACTION_SEND)
+                                            .setType("text/plain")
+                                            .putExtra(android.content.Intent.EXTRA_TEXT, imageData.imageUrl)
+                                    context.startActivity(
+                                        android.content.Intent.createChooser(send, null)
+                                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    )
+                                },
+                            )
+                            com.ay.briefyou.brief.ui.MenuRoundButton(
+                                icon = Icons.Outlined.ImageIcon,
+                                description = stringResource(id = R.string.image_share_image),
+                                onClick = {
+                                    expanded = false
+                                    scope.launch {
+                                        val shared =
+                                            shareImageFile(
+                                                context,
+                                                imageData.imageUrl,
+                                                imageData.imageUrl.extractReferer() ?: "",
+                                            )
+                                        if (!shared) {
+                                            context.showToast(context.getString(R.string.image_share_failed))
+                                        }
+                                    }
+                                },
+                            )
+                        }
                     }
                     IconButton(
                         onClick = { expanded = true },

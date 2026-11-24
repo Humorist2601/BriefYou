@@ -111,27 +111,7 @@ fun BriefHint(key: String, text: AnnotatedString, enabled: Boolean = true, place
     val pop = remember(key) { Animatable(0.85f) }
     LaunchedEffect(key) { pop.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow)) }
     val gap = with(androidx.compose.ui.platform.LocalDensity.current) { 10.dp.roundToPx() }
-    val provider =
-        remember(placement, gap) {
-            object : PopupPositionProvider {
-                override fun calculatePosition(
-                    anchorBounds: IntRect,
-                    windowSize: IntSize,
-                    layoutDirection: LayoutDirection,
-                    popupContentSize: IntSize,
-                ): IntOffset {
-                    val x =
-                        (anchorBounds.center.x - popupContentSize.width / 2)
-                            .coerceIn(gap, (windowSize.width - popupContentSize.width - gap).coerceAtLeast(gap))
-                    val y =
-                        when (placement) {
-                            HintPlacement.Above -> anchorBounds.top - popupContentSize.height - gap
-                            HintPlacement.InsideBottom -> anchorBounds.bottom - popupContentSize.height - gap * 2
-                        }.coerceAtLeast(gap)
-                    return IntOffset(x, y)
-                }
-            }
-        }
+    val provider = remember(placement, gap) { hintPositionProvider(placement, gap) }
     Popup(popupPositionProvider = provider, properties = PopupProperties(focusable = false)) {
         Surface(
             // Material's rich tooltip colours: a raised surface in the theme's own tone (dark in
@@ -160,6 +140,63 @@ fun BriefHint(key: String, text: AnnotatedString, enabled: Boolean = true, place
                     Text(stringResource(R.string.hint_got_it))
                 }
             }
+        }
+    }
+}
+
+private fun hintPositionProvider(placement: HintPlacement, gap: Int): PopupPositionProvider =
+    object : PopupPositionProvider {
+        override fun calculatePosition(
+            anchorBounds: IntRect,
+            windowSize: IntSize,
+            layoutDirection: LayoutDirection,
+            popupContentSize: IntSize,
+        ): IntOffset {
+            val x =
+                (anchorBounds.center.x - popupContentSize.width / 2)
+                    .coerceIn(gap, (windowSize.width - popupContentSize.width - gap).coerceAtLeast(gap))
+            val y =
+                when (placement) {
+                    HintPlacement.Above -> anchorBounds.top - popupContentSize.height - gap
+                    HintPlacement.InsideBottom -> anchorBounds.bottom - popupContentSize.height - gap * 2
+                }.coerceAtLeast(gap)
+            return IntOffset(x, y)
+        }
+    }
+
+/**
+ * A short label above what it is placed in, in the look of the hint bubbles but with no "Got it":
+ * it shows for a moment (from a long press on an icon-only button) and goes by itself.
+ */
+@Composable
+fun TransientHint(text: String, onDone: () -> Unit) {
+    LaunchedEffect(text) {
+        delay(1800)
+        onDone()
+    }
+    val pop = remember { Animatable(0.85f) }
+    LaunchedEffect(Unit) { pop.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow)) }
+    val gap = with(androidx.compose.ui.platform.LocalDensity.current) { 10.dp.roundToPx() }
+    val provider = remember(gap) { hintPositionProvider(HintPlacement.Above, gap) }
+    Popup(popupPositionProvider = provider, properties = PopupProperties(focusable = false)) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            tonalElevation = 3.dp,
+            shape = RoundedCornerShape(18.dp),
+            shadowElevation = 6.dp,
+            modifier =
+                Modifier.widthIn(max = 260.dp).graphicsLayer {
+                    scaleX = pop.value
+                    scaleY = pop.value
+                    alpha = ((pop.value - 0.85f) / 0.15f).coerceIn(0f, 1f)
+                },
+        ) {
+            Text(
+                text,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            )
         }
     }
 }

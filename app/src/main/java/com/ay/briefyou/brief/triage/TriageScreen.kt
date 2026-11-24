@@ -2499,48 +2499,60 @@ private fun AutoDelayMenu(
         onDismissRequest = onDismiss,
         // Under the buttons, lined up with their right edge.
         alignToAnchorEnd = true,
+        bare = true,
     ) {
-            Text(
-                text =
-                    stringResource(
-                        when (action) {
-                            TriageAction.Read -> R.string.triage_auto_delay_read
-                            TriageAction.Save -> R.string.triage_auto_delay_save
-                            else -> R.string.triage_auto_delay
-                        }
-                    ),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-            HorizontalDivider()
-            listOf(3, 5, 8, 10, 15, 30).forEach { option ->
-                val selected = option == seconds
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = stringResource(R.string.triage_auto_seconds, option),
-                            color =
-                                if (selected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurface,
-                        )
-                    },
-                    onClick = {
-                        onSeconds(option)
-                        onDismiss()
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = if (selected) Icons.Rounded.Check else Icons.Outlined.Timer,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint =
-                                if (selected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
+        // One card: the title, then the six delays as chips (the chosen one is round and primary).
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shadowElevation = 1.dp,
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text =
+                        stringResource(
+                            when (action) {
+                                TriageAction.Read -> R.string.triage_auto_delay_read
+                                TriageAction.Save -> R.string.triage_auto_delay_save
+                                else -> R.string.triage_auto_delay
+                            }
+                        ),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 10.dp),
                 )
+                listOf(3, 5, 8, 10, 15, 30).chunked(3).forEachIndexed { rowIndex, rowOptions ->
+                    if (rowIndex > 0) Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        rowOptions.forEach { option ->
+                            val selected = option == seconds
+                            Surface(
+                                onClick = {
+                                    onSeconds(option)
+                                    onDismiss()
+                                },
+                                shape = RoundedCornerShape(if (selected) 28.dp else 16.dp),
+                                color =
+                                    if (selected) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surfaceContainerHighest,
+                                contentColor =
+                                    if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.width(72.dp).height(56.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = stringResource(R.string.triage_auto_seconds_short, option),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
+        }
     }
 }
 

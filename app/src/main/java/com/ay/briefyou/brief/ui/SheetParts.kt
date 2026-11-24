@@ -238,6 +238,15 @@ fun IdentityHead(
  * Fades a sheet's scrolling body into the head above and the buttons below while there is more to
  * scroll that way, with the same S-curve as Home's list ([edgeFadeBrush]), never a hard cut.
  */
+/** No sheet is taller than 70% of the screen: what is above that scrolls inside the sheet. */
+@Composable
+fun Modifier.sheetMaxHeight(): Modifier =
+    this.then(
+        Modifier.heightIn(
+            max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.7f).dp
+        )
+    )
+
 @Composable
 fun Modifier.sheetScrollFade(state: ScrollState, height: Dp = 24.dp): Modifier {
     val color = MaterialTheme.colorScheme.surfaceContainerLow

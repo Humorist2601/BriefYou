@@ -97,7 +97,7 @@ fun OptionSheet(
         contentWindowInsets = { androidx.compose.foundation.layout.WindowInsets.navigationBars },
     ) {
         androidx.compose.runtime.CompositionLocalProvider(LocalSheetLabelInset provides 14.dp) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            Column(modifier = Modifier.sheetMaxHeight().padding(horizontal = 16.dp)) {
                 if (head != null) {
                     head()
                     Spacer(Modifier.height(4.dp))

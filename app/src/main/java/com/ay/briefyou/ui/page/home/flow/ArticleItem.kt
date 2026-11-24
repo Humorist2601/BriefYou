@@ -418,6 +418,7 @@ fun SwipeableArticleItem(
                         expanded = isMenuExpanded,
                         onDismissRequest = { isMenuExpanded = false },
                         offset = menuOffset,
+                        bare = true,
                     ) {
                         ArticleItemMenuContent(
                             articleWithFeed = articleWithFeed,
@@ -598,7 +599,6 @@ private fun swipeActionIcon(
 @Composable
 fun ArticleItemMenuContent(
     articleWithFeed: ArticleWithFeed,
-    iconSize: DpSize = DpSize(width = 20.dp, height = 20.dp),
     isStarred: Boolean = false,
     isRead: Boolean = false,
     onToggleStarred: (ArticleWithFeed) -> Unit = {},
@@ -608,100 +608,60 @@ fun ArticleItemMenuContent(
     onShare: ((ArticleWithFeed) -> Unit)? = null,
     onItemClick: (() -> Unit)? = null,
 ) {
-    val starImageVector =
-        remember(isStarred) { if (isStarred) Icons.Outlined.StarOutline else Icons.Rounded.Star }
-
-    val readImageVector =
-        remember(isRead) {
-            if (isRead) Icons.Outlined.FiberManualRecord else Icons.Rounded.FiberManualRecord
-        }
-
-    val starText =
-        stringResource(if (isStarred) R.string.mark_as_unstar else R.string.mark_as_starred)
-
-    val readText = stringResource(if (isRead) R.string.mark_as_unread else R.string.mark_as_read)
-
-    DropdownMenuItem(
-        text = { Text(text = readText) },
-        onClick = {
-            onToggleRead(articleWithFeed)
-            onItemClick?.invoke()
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = readImageVector,
-                contentDescription = null,
-                modifier = Modifier.size(iconSize),
-            )
-        },
-    )
-    DropdownMenuItem(
-        text = { Text(text = starText) },
-        onClick = {
-            onToggleStarred(articleWithFeed)
-            onItemClick?.invoke()
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = starImageVector,
-                contentDescription = null,
-                modifier = Modifier.size(iconSize),
-            )
-        },
-    )
-
-    if (onMarkAboveAsRead != null || onMarkBelowAsRead != null) {
-        HorizontalDivider()
-    }
+    // Brief You: the menu is Mark above as read, a strip of round buttons, Mark below as read.
+    // The strip shows what is on now (read, starred); a tap flips it.
     onMarkAboveAsRead?.let {
-        DropdownMenuItem(
-            text = { Text(text = stringResource(id = R.string.mark_above_as_read)) },
+        com.ay.briefyou.brief.ui.MenuRow(
+            icon = Icons.Rounded.ArrowUpward,
+            text = stringResource(id = R.string.mark_above_as_read),
             onClick = {
                 onMarkAboveAsRead(articleWithFeed)
                 onItemClick?.invoke()
             },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.ArrowUpward,
-                    contentDescription = null,
-                    modifier = Modifier.size(iconSize),
-                )
+        )
+        com.ay.briefyou.brief.ui.MenuGap()
+    }
+    com.ay.briefyou.brief.ui.MenuStrip {
+        com.ay.briefyou.brief.ui.MenuRoundButton(
+            icon = if (isRead) Icons.Rounded.CheckCircleOutline else Icons.Outlined.Circle,
+            description = stringResource(if (isRead) R.string.mark_as_unread else R.string.mark_as_read),
+            selected = isRead,
+            onClick = {
+                onToggleRead(articleWithFeed)
+                onItemClick?.invoke()
             },
         )
+        com.ay.briefyou.brief.ui.MenuRoundButton(
+            icon = if (isStarred) Icons.Rounded.Star else Icons.Outlined.StarOutline,
+            description = stringResource(if (isStarred) R.string.mark_as_unstar else R.string.mark_as_starred),
+            selected = isStarred,
+            onClick = {
+                onToggleStarred(articleWithFeed)
+                onItemClick?.invoke()
+            },
+        )
+        onShare?.let {
+            com.ay.briefyou.brief.ui.MenuRoundButton(
+                icon = Icons.Rounded.Share,
+                description = stringResource(R.string.share),
+                onClick = {
+                    onShare(articleWithFeed)
+                    onItemClick?.invoke()
+                },
+            )
+            com.ay.briefyou.brief.share.NewspaperMenuButton(articleWithFeed, onItemClick)
+        }
     }
     onMarkBelowAsRead?.let {
-        DropdownMenuItem(
-            text = { Text(text = stringResource(id = R.string.mark_below_as_read)) },
+        com.ay.briefyou.brief.ui.MenuGap()
+        com.ay.briefyou.brief.ui.MenuRow(
+            icon = Icons.Rounded.ArrowDownward,
+            text = stringResource(id = R.string.mark_below_as_read),
             onClick = {
                 onMarkBelowAsRead(articleWithFeed)
                 onItemClick?.invoke()
             },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.ArrowDownward,
-                    contentDescription = null,
-                    modifier = Modifier.size(iconSize),
-                )
-            },
         )
-    }
-    onShare?.let {
-        HorizontalDivider()
-        DropdownMenuItem(
-            text = { Text(text = stringResource(id = R.string.share)) },
-            onClick = {
-                onShare(articleWithFeed)
-                onItemClick?.invoke()
-            },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.Share,
-                    contentDescription = null,
-                    modifier = Modifier.size(iconSize),
-                )
-            },
-        )
-        com.ay.briefyou.brief.share.NewspaperMenuItem(articleWithFeed, iconSize, onItemClick) // Brief You
     }
 }
 

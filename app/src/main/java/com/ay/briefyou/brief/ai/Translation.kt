@@ -1,5 +1,6 @@
 package com.ay.briefyou.brief.ai
 
+import com.ay.briefyou.brief.ui.sheetScrollFade
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -566,8 +567,9 @@ fun TranslateLanguageSheet(controller: TranslateController, onDismiss: () -> Uni
             )
             Spacer(Modifier.height(16.dp))
             com.ay.briefyou.brief.ui.SheetSection(stringResource(R.string.translate_other_languages))
+            val listScroll = rememberScrollState()
             Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                modifier = Modifier.weight(1f).sheetScrollFade(listScroll).verticalScroll(listScroll),
                 verticalArrangement = Arrangement.spacedBy(com.ay.briefyou.brief.ui.Group.Gap),
             ) {
                 others.forEachIndexed { i, tag ->

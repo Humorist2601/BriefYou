@@ -470,17 +470,17 @@ private fun PressSheet(run: PressRun, onCancel: () -> Unit, onRetry: () -> Unit)
     }
 }
 
-/** "Share as newspaper" in an article's long-press menu, under Share. */
+/** "Share as newspaper": the last round button of an article's long-press menu strip. */
 @Composable
-fun NewspaperMenuItem(item: ArticleWithFeed, iconSize: DpSize, onItemClick: (() -> Unit)?) {
+fun NewspaperMenuButton(item: ArticleWithFeed, onItemClick: (() -> Unit)?) {
     val maker = LocalNewspaperMaker.current ?: return
-    DropdownMenuItem(
-        text = { Text(text = stringResource(R.string.newspaper_share)) },
+    com.ay.briefyou.brief.ui.MenuRoundButton(
+        icon = Icons.Outlined.Newspaper,
+        description = stringResource(R.string.newspaper_share),
         onClick = {
             maker.make(item)
             onItemClick?.invoke()
         },
-        leadingIcon = { Icon(imageVector = Icons.Outlined.Newspaper, contentDescription = null, modifier = Modifier.size(iconSize)) },
     )
 }
 

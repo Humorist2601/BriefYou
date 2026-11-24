@@ -31,10 +31,11 @@ fun ChoiceSheet(title: String, hint: String?, choices: List<Choice>, onDismiss: 
     val state = com.ay.briefyou.brief.ui.rememberFullSheetState()
     val scope = rememberCoroutineScope()
     ModalBottomSheet(shape = com.ay.briefyou.brief.ui.SheetShape, onDismissRequest = onDismiss, sheetState = state) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp).navigationBarsPadding().padding(bottom = 16.dp)) {
+        Column(modifier = Modifier.sheetMaxHeight().padding(horizontal = 16.dp).navigationBarsPadding().padding(bottom = 16.dp)) {
             SheetTitle(title, hint, icon = Icons.Outlined.Checklist)
+            val scroll = rememberScrollState()
             Column(
-                modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                modifier = Modifier.weight(1f, fill = false).sheetScrollFade(scroll).verticalScroll(scroll),
                 verticalArrangement = Arrangement.spacedBy(Group.Gap),
             ) {
                 choices.forEachIndexed { i, choice ->

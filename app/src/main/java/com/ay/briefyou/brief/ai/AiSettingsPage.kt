@@ -304,7 +304,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
     }
 }
 
-/** A prompt's editor as a tall sheet (about 75% of the screen): the text area, Reset and Save pinned below. */
+/** A prompt's editor as a tall sheet (70% of the screen): the text area, Reset and Save pinned below. */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun PromptDialog(
@@ -317,7 +317,7 @@ private fun PromptDialog(
     var text by remember { mutableStateOf(initial) }
     val state = com.ay.briefyou.brief.ui.rememberFullSheetState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    val height = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.75f).dp
+    val height = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.7f).dp
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = state,

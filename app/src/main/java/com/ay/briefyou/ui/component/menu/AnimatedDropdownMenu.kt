@@ -68,6 +68,8 @@ fun AnimatedDropdownMenu(
     properties: PopupProperties = PopupProperties(focusable = true),
     /** Open under the anchor, lined up with its right edge (for a menu button). */ // Brief You
     alignToAnchorEnd: Boolean = false,
+    /** Brief You: the content draws its own pieces, with no menu surface behind them. */
+    bare: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val expandedState = remember { MutableTransitionState(false) }
@@ -97,6 +99,7 @@ fun AnimatedDropdownMenu(
                 transformOriginState = transformOriginState,
                 scrollState = scrollState,
                 modifier = modifier,
+                bare = bare,
                 content = content,
             )
         }

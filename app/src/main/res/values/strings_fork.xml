@@ -655,4 +655,8 @@
         <item quantity="one">oldest is %1$d day old</item>
         <item quantity="other">oldest is %1$d days old</item>
     </plurals>
+    <string name="triage_auto_seconds_short">%ds</string>
+    <string name="image_share_link">Share link</string>
+    <string name="image_share_image">Share image</string>
+    <string name="image_share_failed">Couldn\'t share the image</string>
 </resources>

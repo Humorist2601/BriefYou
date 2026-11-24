@@ -2,6 +2,7 @@
 
 package com.ay.briefyou.brief.stats
 
+import com.ay.briefyou.brief.ui.sheetMaxHeight
 import com.ay.briefyou.brief.ui.rememberPressFeel
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -737,7 +738,7 @@ fun PastMonths(data: ReadingStatsData, modifier: Modifier = Modifier) {
             sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState(),
         ) {
             // Scrolls: an open card (the year's above all) can be taller than the screen.
-            Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+            Column(Modifier.sheetMaxHeight().verticalScroll(androidx.compose.foundation.rememberScrollState())) {
                 val sheetModifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 24.dp)
                 if (chosen != null) RecapCard(recap = chosen, modifier = sheetModifier)
                 else lastYear?.let { YearRecapCard(recap = it, modifier = sheetModifier) }

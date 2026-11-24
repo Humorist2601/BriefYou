@@ -1,5 +1,7 @@
 package com.ay.briefyou.ui.page.home.feeds.accounts
 
+import com.ay.briefyou.brief.ui.sheetScrollFade
+import com.ay.briefyou.brief.ui.sheetMaxHeight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -67,15 +69,16 @@ fun AccountsTab(
         shape = com.ay.briefyou.brief.ui.SheetShape,
         contentWindowInsets = { androidx.compose.foundation.layout.WindowInsets.navigationBars },
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Column(modifier = Modifier.sheetMaxHeight().padding(horizontal = 16.dp)) {
             com.ay.briefyou.brief.ui.SheetTitle(
                 stringResource(R.string.accounts),
                 stringResource(R.string.accounts_hint),
                 icon = Icons.Outlined.People,
             )
             Spacer(Modifier.height(8.dp))
+            val listScroll = rememberScrollState()
             Column(
-                modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                modifier = Modifier.weight(1f, fill = false).sheetScrollFade(listScroll).verticalScroll(listScroll),
                 verticalArrangement = Arrangement.spacedBy(com.ay.briefyou.brief.ui.Group.Gap),
             ) {
                 accounts.forEachIndexed { i, account ->

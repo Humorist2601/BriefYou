@@ -9,6 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
@@ -244,9 +245,23 @@ private fun DialogScaffold(
         if (exit.closing && frozenBottom == null) frozenBottom = maxOf(imeBottom, navBottom)
         if (!exit.closing) frozenBottom = null
     }
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
     LaunchedEffect(exit.closing) {
         if (exit.closing) {
-            leave.animateTo(0f, tween(160))
+            // Close the keyboard now and only remove the window once it has gone (or after a moment):
+            // taking the window away while the keyboard is still leaving made it flash half-way up.
+            focus.clearFocus()
+            keyboard?.hide()
+            kotlinx.coroutines.coroutineScope {
+                launch { leave.animateTo(0f, tween(160)) }
+                launch {
+                    kotlinx.coroutines.withTimeoutOrNull(450) {
+                        androidx.compose.runtime.snapshotFlow { WindowInsets.ime.getBottom(density) }
+                            .first { it == 0 }
+                    }
+                }
+            }
             exit.onExited()
         } else if (leave.value < 1f) {
             leave.animateTo(1f, tween(120))

@@ -1,5 +1,6 @@
 package com.ay.briefyou.brief.ai
 
+import com.ay.briefyou.brief.ui.sheetScrollFade
 import androidx.compose.material3.toShape
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.ui.focus.focusRequester
@@ -220,6 +221,8 @@ fun SummarySheet(
                         .nestedScroll(KeepScrollInside)
                         // The same scroll thumb as the reading page, also shown while text streams in.
                         .drawVerticalScrollIndicator(scrollState, showWhenContentChanges = true)
+                        // The same edge fade as the other sheets when the points scroll.
+                        .sheetScrollFade(scrollState)
                         .verticalScroll(scrollState)
             ) {
                 when (state) {

@@ -50,6 +50,8 @@ fun StatTile(
     selected: Boolean? = null,
     /** A smaller tile (a sheet's): the icon and number side by side, tighter corners. */
     compact: Boolean = false,
+    /** False: just shows the numbers (no press, no action). */
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
@@ -73,6 +75,7 @@ fun StatTile(
             label = "statTileContent",
         )
     Surface(
+        enabled = enabled,
         onClick = {
             if (selected == false) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
             onClick()

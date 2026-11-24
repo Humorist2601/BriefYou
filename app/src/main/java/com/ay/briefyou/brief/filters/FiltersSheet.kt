@@ -97,17 +97,14 @@ fun FiltersSheet(
                 ) {
                     // The Filters page's own tiles; a tap opens the page.
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        val openAll = {
-                            onDismiss()
-                            onOpenAll()
-                        }
                         StatTile(
                             icon = Icons.Outlined.NotificationsOff,
                             value = mutedCount.toString(),
                             label = pluralStringResource(R.plurals.filters_stat_muted, mutedCount),
                             modifier = Modifier.weight(1f),
                             compact = true,
-                            onClick = openAll,
+                            enabled = false,
+                            onClick = {},
                         )
                         StatTile(
                             icon = Icons.Outlined.ContentCopy,
@@ -115,7 +112,8 @@ fun FiltersSheet(
                             label = pluralStringResource(R.plurals.filters_stat_duplicates, duplicateCount),
                             modifier = Modifier.weight(1f),
                             compact = true,
-                            onClick = openAll,
+                            enabled = false,
+                            onClick = {},
                         )
                         StatTile(
                             icon = Icons.Outlined.Visibility,
@@ -123,7 +121,8 @@ fun FiltersSheet(
                             label = pluralStringResource(R.plurals.filters_stat_watched, watchedCount),
                             modifier = Modifier.weight(1f),
                             compact = true,
-                            onClick = openAll,
+                            enabled = false,
+                            onClick = {},
                         )
                     }
                     Spacer(Modifier.height(18.dp))

@@ -105,6 +105,8 @@ fun DropdownMenuContent(
     scrollState: ScrollState,
     transformOriginState: State<TransformOrigin>,
     modifier: Modifier = Modifier,
+    /** Brief You: no surface of its own; the content draws its own pieces (round buttons, cards). */
+    bare: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     // Menu open/close animation.
@@ -155,13 +157,13 @@ fun DropdownMenuContent(
                 else if (expandedState.targetState) ExpandedAlphaTarget else ClosedAlphaTarget
             transformOrigin = transformOriginState.value
         },
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shadowElevation = ElevationTokens.Level1.dp
+        shape = if (bare) androidx.compose.ui.graphics.RectangleShape else MaterialTheme.shapes.small,
+        color = if (bare) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = if (bare) 0.dp else ElevationTokens.Level1.dp
     ) {
         Column(
             modifier = Modifier
-                .padding(vertical = DropdownMenuVerticalPadding)
+                .padding(vertical = if (bare) 0.dp else DropdownMenuVerticalPadding)
                 .width(IntrinsicSize.Max)
                 .verticalScroll(scrollState), content = content
         )
