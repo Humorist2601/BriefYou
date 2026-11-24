@@ -8,7 +8,6 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -28,12 +27,10 @@ fun CertificateSelector(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    androidx.compose.material3.TextField(
-        colors = com.ay.briefyou.ui.component.base.textFieldColors(),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(com.ay.briefyou.brief.ui.Corner.Small),
+    com.ay.briefyou.ui.component.base.BYReadOnlyField(
         value = value,
-        onValueChange = {},
-        readOnly = true,
+        label = stringResource(R.string.client_certificate),
+        modifier = modifier.fillMaxWidth(),
         trailingIcon = {
             IconButton(onClick = {
                 KeyChain.choosePrivateKeyAlias(
@@ -59,9 +56,5 @@ fun CertificateSelector(
                 )
             }
         },
-        placeholder = {
-            Text(stringResource(R.string.client_certificate))
-        }, modifier = modifier
-            .fillMaxWidth()
     )
 }

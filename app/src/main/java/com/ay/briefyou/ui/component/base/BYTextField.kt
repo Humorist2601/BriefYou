@@ -1,5 +1,29 @@
 package com.ay.briefyou.ui.component.base
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.input.BasicSecureTextField
+import androidx.compose.foundation.text.input.BasicTextField
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.util.lerp
+import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -126,7 +150,6 @@ fun BYTextField2(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BYTextField2(
     state: TextFieldState,
@@ -155,71 +178,177 @@ fun BYTextField2(
         }
     }
 
-    if (isPassword) {
-        var showPassword by remember { mutableStateOf(false) }
+    var showPassword by remember { mutableStateOf(false) }
+    ChipLabelField(
+        state = state,
+        // The hint is the label: faint in the empty field, a chip on its edge once you type.
+        label = label.ifEmpty { placeholder },
+        placeholder = if (label.isEmpty()) "" else placeholder,
+        modifier = modifier,
+        focusRequester = focusRequester,
+        readOnly = readOnly,
+        singleLine = singleLine,
+        isPassword = isPassword,
+        showPassword = showPassword,
+        errorMessage = errorMessage,
+        keyboardOptions = keyboardOptions,
+        onKeyboardAction = onKeyboardAction,
+        trailing = {
+            if (isPassword) {
+                PasswordVisibilityButton(showPassword = showPassword, onValueChange = { showPassword = it })
+            } else if (state.text.isNotEmpty()) {
+                ClearButton(state)
+            } else {
+                PasteButton(state)
+            }
+        },
+    )
+}
 
-        OutlinedSecureTextField(
-            state = state,
-            colors = outlinedFieldColors(),
-            // Brief You: outlined, a rounded rectangle; the label is the faint hint in the box and moves up onto the outline when you type
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-            // The hint is the label: faint in the empty box, on the outline once you type.
-            label =
-                if (label.isEmpty() && placeholder.isEmpty()) null
-                else {
-                    { Text(label.ifEmpty { placeholder }) }
-                },
-            modifier = modifier.focusRequester(focusRequester),
-            trailingIcon = {
-                PasswordVisibilityButton(
-                    showPassword = showPassword,
-                    onValueChange = { showPassword = it },
-                )
-            },
-            textObfuscationMode =
-                if (showPassword) TextObfuscationMode.Visible
-                else TextObfuscationMode.RevealLastTyped,
-            placeholder = if (label.isEmpty()) null else if (placeholder.isEmpty()) null else { { Text(text = placeholder) } },
-            keyboardOptions = keyboardOptions,
-            onKeyboardAction = onKeyboardAction,
-            isError = errorMessage.isNotEmpty(),
-            supportingText =
-                if (errorMessage.isNotEmpty()) {
-                    { Text(errorMessage) }
-                } else null,
-        )
-    } else {
-        OutlinedTextField(
-            state = state,
-            modifier = modifier.focusRequester(focusRequester),
-            colors = outlinedFieldColors(),
-            // Brief You: outlined, a rounded rectangle; the label is the faint hint in the box and moves up onto the outline when you type
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-            // The hint is the label: faint in the empty box, on the outline once you type.
-            label =
-                if (label.isEmpty() && placeholder.isEmpty()) null
-                else {
-                    { Text(label.ifEmpty { placeholder }) }
-                },
-            lineLimits =
-                if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(),
-            trailingIcon = {
-                if (state.text.isNotEmpty()) {
-                    ClearButton(state)
-                } else {
-                    PasteButton(state)
+/**
+ * Brief You's text field (Material 3 Expressive): a tonal rounded box with an outline. The label is
+ * the faint hint in the empty box; when you focus it or type, it rises onto the top edge as a small
+ * chip (purple while focused, red on an error, quiet otherwise). The outline thickens and takes the
+ * accent colour, with springs; an error message sits under the box.
+ */
+@Composable
+private fun ChipLabelField(
+    state: TextFieldState,
+    label: String,
+    placeholder: String,
+    modifier: Modifier,
+    focusRequester: FocusRequester,
+    readOnly: Boolean,
+    singleLine: Boolean,
+    isPassword: Boolean,
+    showPassword: Boolean,
+    errorMessage: String,
+    keyboardOptions: KeyboardOptions,
+    onKeyboardAction: KeyboardActionHandler?,
+    trailing: (@Composable () -> Unit)?,
+) {
+    val scheme = MaterialTheme.colorScheme
+    var focused by remember { mutableStateOf(false) }
+    val error = errorMessage.isNotEmpty()
+    val floated = focused || state.text.isNotEmpty()
+    val rise by animateFloatAsState(
+        if (floated) 1f else 0f,
+        spring(dampingRatio = 0.8f, stiffness = 500f),
+        label = "fieldLabel",
+    )
+    val borderColor by animateColorAsState(
+        when {
+            error -> scheme.error
+            focused -> scheme.primary
+            else -> scheme.outline
+        },
+        label = "fieldBorder",
+    )
+    val borderWidth by animateDpAsState(if (focused || error) 2.5.dp else 1.dp, label = "fieldBorderWidth")
+    val chipBg by animateColorAsState(
+        when {
+            error -> scheme.error
+            focused -> scheme.primary
+            else -> scheme.surfaceContainerHighest
+        },
+        label = "fieldChip",
+    )
+    val chipFg by animateColorAsState(
+        when {
+            error -> scheme.onError
+            focused -> scheme.onPrimary
+            else -> scheme.onSurfaceVariant
+        },
+        label = "fieldChipText",
+    )
+    var boxHeight by remember { mutableIntStateOf(0) }
+    var labelHeight by remember { mutableIntStateOf(0) }
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+    val textStyle = MaterialTheme.typography.bodyLarge.copy(color = scheme.onSurface)
+
+    Column(modifier.padding(top = 8.dp)) {
+        Box(
+            Modifier.fillMaxWidth()
+                .heightIn(min = 60.dp)
+                .onSizeChanged { boxHeight = it.height }
+                .background(scheme.surfaceContainerHighest, shape)
+                .border(borderWidth, borderColor, shape)
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(start = 16.dp, end = if (trailing != null) 4.dp else 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f).padding(vertical = 18.dp)) {
+                    if (placeholder.isNotEmpty() && focused && state.text.isEmpty()) {
+                        Text(placeholder, style = textStyle, color = scheme.onSurfaceVariant.copy(alpha = 0.6f))
+                    }
+                    val fieldModifier =
+                        Modifier.fillMaxWidth().focusRequester(focusRequester).onFocusChanged { focused = it.isFocused }
+                    if (isPassword) {
+                        BasicSecureTextField(
+                            state = state,
+                            modifier = fieldModifier,
+                            readOnly = readOnly,
+                            textStyle = textStyle,
+                            cursorBrush = SolidColor(scheme.primary),
+                            keyboardOptions = keyboardOptions,
+                            onKeyboardAction = onKeyboardAction,
+                            textObfuscationMode =
+                                if (showPassword) TextObfuscationMode.Visible else TextObfuscationMode.RevealLastTyped,
+                        )
+                    } else {
+                        BasicTextField(
+                            state = state,
+                            modifier = fieldModifier,
+                            readOnly = readOnly,
+                            textStyle = textStyle,
+                            cursorBrush = SolidColor(scheme.primary),
+                            keyboardOptions = keyboardOptions,
+                            onKeyboardAction = onKeyboardAction,
+                            lineLimits =
+                                if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(),
+                        )
+                    }
                 }
-            },
-            isError = errorMessage.isNotEmpty(),
-            placeholder = if (label.isEmpty()) null else if (placeholder.isEmpty()) null else { { Text(text = placeholder) } },
-            keyboardOptions = keyboardOptions,
-            onKeyboardAction = onKeyboardAction,
-            readOnly = readOnly,
-            supportingText =
-                if (errorMessage.isNotEmpty()) {
-                    { Text(errorMessage) }
-                } else null,
-        )
+                trailing?.invoke()
+            }
+            // The label: a hint in the box until it rises onto the edge as a chip.
+            Box(
+                Modifier.align(Alignment.TopStart)
+                    .graphicsLayer {
+                        val restY = (boxHeight - labelHeight) / 2f
+                        val upY = -labelHeight * 0.75f / 2f
+                        translationX = lerp(6.dp.toPx(), 14.dp.toPx(), rise)
+                        translationY = lerp(restY, upY, rise)
+                        scaleX = lerp(1f, 0.75f, rise)
+                        scaleY = scaleX
+                        transformOrigin = TransformOrigin(0f, 0f)
+                    }
+                    .onSizeChanged { labelHeight = it.height }
+                    .drawBehind {
+                        drawRoundRect(
+                            chipBg.copy(alpha = chipBg.alpha * rise),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height / 2f),
+                        )
+                    }
+                    .padding(horizontal = 10.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = lerpColor(scheme.onSurfaceVariant, chipFg, rise),
+                    maxLines = 1,
+                )
+            }
+        }
+        if (error) {
+            Text(
+                errorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.error,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+            )
+        }
     }
 }
 
@@ -253,14 +382,32 @@ fun BYOutlinedTextField2(
     )
 }
 
-/** The outlined field's own fill: the colour the filled field had (surfaceContainerHighest), a step off the base it sits on. */
+/** A field that shows a value and is changed by its button (a client certificate), in the same style as the others. */
 @Composable
-private fun outlinedFieldColors(): TextFieldColors =
-    androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-        errorContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+fun BYReadOnlyField(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier,
+    trailingIcon: @Composable (() -> Unit)? = null,
+) {
+    val state = rememberTextFieldState(value)
+    LaunchedEffect(value) { if (state.text.toString() != value) state.setTextAndPlaceCursorAtEnd(value) }
+    ChipLabelField(
+        state = state,
+        label = label,
+        placeholder = "",
+        modifier = modifier,
+        focusRequester = remember { FocusRequester() },
+        readOnly = true,
+        singleLine = true,
+        isPassword = false,
+        showPassword = false,
+        errorMessage = "",
+        keyboardOptions = KeyboardOptions.Default,
+        onKeyboardAction = null,
+        trailing = trailingIcon,
     )
+}
 
 @Composable
 fun textFieldColors(): TextFieldColors =

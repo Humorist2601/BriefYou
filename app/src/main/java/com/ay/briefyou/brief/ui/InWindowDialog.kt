@@ -268,30 +268,37 @@ private fun DialogScaffold(
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     LaunchedEffect(exit.closing) {
         if (exit.closing) {
-            // Close the keyboard now and only remove the window once it has gone (or after a moment):
-            // taking the window away while the keyboard is still leaving made it flash half-way up.
+            // The dialog leaves WITH its keyboard: it stays where it stands, and fades as far as the
+            // keyboard has slid away, so the keyboard is never left on screen alone over the page
+            // (that was the "flash": the dialog faded in 160 ms, the keyboard took longer to go).
+            val startIme = imeNow.value
+            val keyboardUp = startIme > 40
             focus.clearFocus()
             keyboard?.hide()
-            kotlinx.coroutines.coroutineScope {
-                launch { leave.animateTo(0f, tween(160)) }
-                launch {
-                    kotlinx.coroutines.withTimeoutOrNull(450) {
-                        androidx.compose.runtime.snapshotFlow { imeNow.value }
-                            .first { it == 0 }
-                    }
+            if (keyboardUp) {
+                kotlinx.coroutines.withTimeoutOrNull(700) {
+                    androidx.compose.runtime.snapshotFlow { imeNow.value }
+                        .first { v ->
+                            leave.snapTo(minOf(leave.value, (v.toFloat() / startIme).coerceIn(0f, 1f)))
+                            v <= 0
+                        }
                 }
             }
+            leave.animateTo(0f, tween(if (keyboardUp) 90 else 160))
             exit.onExited()
         } else if (leave.value < 1f) {
             leave.animateTo(1f, tween(120))
         }
     }
+    // The dim fades in with the dialog (and out with it, through [leave]).
+    val dimIn = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { dimIn.animateTo(1f, tween(220)) }
     Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = leave.value }) {
         // The scrim, over the whole screen (bars included); tapping it closes the dialog.
         Box(
             modifier =
                 Modifier.fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f * (1f - 0.4f * p)))
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f * dimIn.value * (1f - 0.4f * p)))
                     .pointerInput(properties.dismissOnClickOutside) {
                         detectTapGestures {
                             if (properties.dismissOnClickOutside) onDismissRequest()
