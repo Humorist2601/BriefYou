@@ -130,7 +130,7 @@ fun CookieIcon(
 }
 
 /** How far a [SheetSection] label is inset: 14 dp in the option sheets, whose cards sit 16 dp from the edge. */
-/** The colour of a tile that is off: a dialog (itself `surfaceContainerHigh`) provides `surfaceContainerHighest`. */
+/** The colour of a tile that is off: a dialog (base `surfaceContainerLow`, like a sheet) provides `surfaceContainerHigh`, the same as in a sheet. */
 val LocalQuietColor = compositionLocalOf<Color?> { null }
 
 val LocalSheetLabelInset = compositionLocalOf { 4.dp }
@@ -248,8 +248,12 @@ fun Modifier.sheetMaxHeight(): Modifier =
     )
 
 @Composable
-fun Modifier.sheetScrollFade(state: ScrollState, height: Dp = 24.dp): Modifier {
-    val color = MaterialTheme.colorScheme.surfaceContainerLow
+fun Modifier.sheetScrollFade(
+    state: ScrollState,
+    height: Dp = 24.dp,
+    /** What the list fades into: the sheet's colour, or a dialog's own surface. */
+    color: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+): Modifier {
     return drawWithContent {
         drawContent()
         val h = height.toPx()
@@ -308,7 +312,7 @@ fun ChoiceRow(
     subtitle: String? = null,
     titleStyle: TextStyle? = null,
     leading: (@Composable () -> Unit)? = null,
-    /** The colour of a row that isn't chosen; a dialog (itself `surfaceContainerHigh`) passes `surfaceContainerHighest`. */
+    /** The colour of a row that isn't chosen; a dialog passes the same `surfaceContainerHigh` as a sheet. */
     restColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
 ) {
     val scheme = MaterialTheme.colorScheme

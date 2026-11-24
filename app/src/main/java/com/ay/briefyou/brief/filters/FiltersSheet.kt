@@ -1,5 +1,6 @@
 package com.ay.briefyou.brief.filters
 
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -77,14 +78,13 @@ fun FiltersSheet(
     val startOfDay = remember { java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() }
     val todayAll = remember(log) { log.filter { it.at >= startOfDay }.sortedByDescending { it.at } }
     val watchedToday = WatchedWords.log.filter { it.at >= startOfDay }.sortedByDescending { it.at }
-    // A tile you tap filters the list below it to its kind (tap it again to show them all).
-    var picked by remember { mutableStateOf<FilterTile?>(null) }
-    val today =
-        when (picked) {
+    // The tile that is picked decides what the list below shows: Duplicates first, as on the Filters page.
+    var picked by remember { mutableStateOf(FilterTile.Duplicates) }
+    fun todayFor(kind: FilterTile) =
+        when (kind) {
             FilterTile.Muted -> todayAll.filter { it.reason == FilterReason.MutedKeyword }
             FilterTile.Duplicates -> todayAll.filter { it.reason == FilterReason.Duplicate }
             FilterTile.Watched -> emptyList()
-            null -> todayAll
         }
 
     ModalBottomSheet(
@@ -117,8 +117,8 @@ fun FiltersSheet(
                             label = pluralStringResource(R.plurals.filters_stat_duplicates, duplicateCount),
                             modifier = Modifier.weight(1f),
                             compact = true,
-                            selected = picked?.let { it == FilterTile.Duplicates },
-                            onClick = { picked = if (picked == FilterTile.Duplicates) null else FilterTile.Duplicates },
+                            selected = picked == FilterTile.Duplicates,
+                            onClick = { picked = FilterTile.Duplicates },
                         )
                         StatTile(
                             icon = Icons.Outlined.NotificationsOff,
@@ -126,8 +126,8 @@ fun FiltersSheet(
                             label = pluralStringResource(R.plurals.filters_stat_muted, mutedCount),
                             modifier = Modifier.weight(1f),
                             compact = true,
-                            selected = picked?.let { it == FilterTile.Muted },
-                            onClick = { picked = if (picked == FilterTile.Muted) null else FilterTile.Muted },
+                            selected = picked == FilterTile.Muted,
+                            onClick = { picked = FilterTile.Muted },
                         )
                         StatTile(
                             icon = Icons.Outlined.Visibility,
@@ -135,23 +135,33 @@ fun FiltersSheet(
                             label = pluralStringResource(R.plurals.filters_stat_watched, watchedCount),
                             modifier = Modifier.weight(1f),
                             compact = true,
-                            selected = picked?.let { it == FilterTile.Watched },
-                            onClick = { picked = if (picked == FilterTile.Watched) null else FilterTile.Watched },
+                            selected = picked == FilterTile.Watched,
+                            onClick = { picked = FilterTile.Watched },
                         )
                     }
                     Spacer(Modifier.height(18.dp))
+                    // Switching tile fades the list over and lets the sheet's height follow smoothly.
+                    androidx.compose.animation.AnimatedContent(
+                        targetState = picked,
+                        transitionSpec = {
+                            (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(240, delayMillis = 60)) +
+                                androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(280)) { it / 16 }) togetherWith
+                                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(140))
+                        },
+                        label = "filterList",
+                    ) { kind ->
+                        Column {
+                    val today = todayFor(kind)
                     val kindLabel =
-                        when (picked) {
+                        when (kind) {
                             FilterTile.Muted -> pluralStringResource(R.plurals.filters_stat_muted, mutedCount)
                             FilterTile.Duplicates -> pluralStringResource(R.plurals.filters_stat_duplicates, duplicateCount)
                             FilterTile.Watched -> pluralStringResource(R.plurals.filters_stat_watched, watchedCount)
-                            null -> null
                         }
                     SheetSection(
-                        if (kindLabel == null) stringResource(R.string.filters_today)
-                        else stringResource(R.string.filters_today_kind, kindLabel.replaceFirstChar { it.uppercase() })
+                        stringResource(R.string.filters_today_kind, kindLabel.replaceFirstChar { it.uppercase() })
                     )
-                    if (picked == FilterTile.Watched && watchedToday.isNotEmpty()) {
+                    if (kind == FilterTile.Watched && watchedToday.isNotEmpty()) {
                         val watchedContext = androidx.compose.ui.platform.LocalContext.current
                         watchedToday.forEachIndexed { i, entry ->
                             WatchedLogCard(
@@ -173,7 +183,7 @@ fun FiltersSheet(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
-                                stringResource(if (log.isEmpty() && picked == null) R.string.filters_log_empty else R.string.filters_nothing_today),
+                                stringResource(if (log.isEmpty()) R.string.filters_log_empty else R.string.filters_nothing_today),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(16.dp),
@@ -196,6 +206,8 @@ fun FiltersSheet(
                                 onOpen = { openArticle(entry.articleId) },
                                 onUndo = { viewModel.undo(entry) },
                             )
+                        }
+                    }
                         }
                     }
                     Spacer(Modifier.height(8.dp))

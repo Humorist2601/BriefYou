@@ -34,7 +34,7 @@ import com.ay.briefyou.brief.tour.TransientHint
 
 /**
  * The pieces of the app's menus (DESIGN.md §10): a menu has no box of its own; it is a few cards,
- * a strip of round buttons and rows with a text, each drawn on `surfaceContainerHigh`.
+ * a strip of round buttons and rows with a text, each drawn on `surfaceContainerHighest` with an 8 dp shadow (the same as the Triage skip-after card); the round buttons rest on `surfaceContainerHigh`.
  */
 
 /** A card holding a row of [MenuRoundButton]s, centred. */
@@ -42,8 +42,8 @@ import com.ay.briefyou.brief.tour.TransientHint
 fun MenuStrip(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
     Surface(
         shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shadowElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shadowElevation = 8.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
@@ -54,6 +54,11 @@ fun MenuStrip(modifier: Modifier = Modifier, content: @Composable RowScope.() ->
             content()
         }
     }
+}
+
+/** Which round button's hint is showing: only one at a time. */
+private object ActiveHint {
+    var key by mutableStateOf<Any?>(null)
 }
 
 /**
@@ -70,12 +75,13 @@ fun MenuRoundButton(
 ) {
     val haptic = LocalHapticFeedback.current
     var hint by remember { mutableStateOf(false) }
+    val me = remember { Any() }
     Box(modifier = modifier.size(52.dp)) {
         Surface(
             shape = CircleShape,
             color =
                 if (selected) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceContainerHighest,
+                else MaterialTheme.colorScheme.surfaceContainerHigh,
             contentColor =
                 if (selected) MaterialTheme.colorScheme.onPrimaryContainer
                 else MaterialTheme.colorScheme.onSurface,
@@ -87,6 +93,7 @@ fun MenuRoundButton(
                         onClick = onClick,
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            ActiveHint.key = me // any hint still showing fades away
                             hint = true
                         },
                     ),
@@ -95,7 +102,10 @@ fun MenuRoundButton(
                 Icon(icon, contentDescription = description, modifier = Modifier.size(24.dp))
             }
         }
-        if (hint) TransientHint(description) { hint = false }
+        if (hint) TransientHint(description, active = ActiveHint.key === me) {
+            hint = false
+            if (ActiveHint.key === me) ActiveHint.key = null
+        }
     }
 }
 
@@ -110,8 +120,8 @@ fun MenuRow(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shadowElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shadowElevation = 8.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(

@@ -159,6 +159,8 @@ fun FeedsPage(
     val oldestUnread by feedsViewModel.oldestUnread.collectAsState()
     val newSinceOpen by feedsViewModel.newSinceOpen.collectAsState()
     val cameOutToday by feedsViewModel.cameOutToday.collectAsState()
+    val oldestFeedId by feedsViewModel.oldestFeedId.collectAsState()
+    val cameOutTodayPerFeed by feedsViewModel.cameOutTodayPerFeed.collectAsState()
 
     var isSyncing by remember { mutableStateOf(false) }
     val syncingState = rememberPullToRefreshState()
@@ -299,6 +301,16 @@ fun FeedsPage(
                             cameOutToday = cameOutToday,
                             oldestDays = oldestUnread?.takeIf { it > 0 }?.let { ((System.currentTimeMillis() - it) / 86_400_000L).toInt() },
                             topFeed = groupWithFeedList.flatMap { it.feeds }.maxByOrNull { it.important }?.takeIf { it.important > 0 }?.name,
+                            oldestFeed = oldestFeedId?.let { id -> groupWithFeedList.firstNotNullOfOrNull { g -> g.feeds.firstOrNull { it.id == id }?.name } },
+                            todayTopGroup =
+                                run {
+                                    val perFeed = cameOutTodayPerFeed.associate { it.feedId to it.c }
+                                    groupWithFeedList
+                                        .map { g -> g.group.name to g.feeds.sumOf { perFeed[it.id] ?: 0 } }
+                                        .maxByOrNull { it.second }
+                                        ?.takeIf { it.second > 0 && groupWithFeedList.size >= 2 }
+                                        ?.first
+                                },
                             syncing = isSyncing,
                             online = online,
                             onRetry = doSync,

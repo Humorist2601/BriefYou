@@ -114,6 +114,14 @@ class FeedsViewModel @Inject constructor(
             .flatMapLatest { articleDao.queryOldestUnreadDate(it.id ?: -1).debounce(500) } // the screen follows at most twice a second during a sync
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** Brief You: the feed of the oldest unread article, for the hero card. */
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    val oldestFeedId: StateFlow<String?> =
+        accountFlow
+            .filterNotNull()
+            .flatMapLatest { articleDao.queryOldestUnreadFeedId(it.id ?: -1).debounce(500) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     private val newSince = MutableStateFlow(0L)
 
     /** Brief You: how many unread articles came out after [since] (milliseconds); the hero card's "new since you last opened". */
@@ -139,6 +147,15 @@ class FeedsViewModel @Inject constructor(
             .combine(todayStart) { account, since -> (account.id ?: -1) to since }
             .flatMapLatest { (id, since) -> articleDao.countSince(id, since).debounce(500) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /** Brief You: how many articles came out since midnight in each feed, for "most in …". */
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    val cameOutTodayPerFeed: StateFlow<List<com.ay.briefyou.domain.repository.FeedCountRow>> =
+        accountFlow
+            .filterNotNull()
+            .combine(todayStart) { account, since -> (account.id ?: -1) to since }
+            .flatMapLatest { (id, since) -> articleDao.countSincePerFeed(id, since).debounce(500) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     @OptIn(kotlinx.coroutines.FlowPreview::class)
     val newSinceOpen: StateFlow<Int> =

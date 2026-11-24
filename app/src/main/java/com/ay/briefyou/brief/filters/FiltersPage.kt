@@ -161,8 +161,8 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
 
     var addDialogVisible by rememberSaveable { mutableStateOf(false) }
     var addWatchedVisible by rememberSaveable { mutableStateOf(false) }
-    // The tile that is picked decides what shows below: Duplicates (0), Muted (1, the start) or Watched (2).
-    var tile by rememberSaveable { mutableStateOf(1) }
+    // The tile that is picked decides what shows below: Duplicates (0, the start), Muted (1) or Watched (2).
+    var tile by rememberSaveable { mutableStateOf(0) }
     val tab = if (tile == 2) 0 else 1
     val watched = WatchedWords.words
     val watchedLog = WatchedWords.log
@@ -434,7 +434,8 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                     }
                     item(key = "watched-end") { Spacer(Modifier.height(28.dp)) }
                 }
-                item {
+                item(key = "watched-card") {
+                    androidx.compose.foundation.layout.Column(Modifier.animateItem()) {
                     Spacer(Modifier.height(8.dp))
                     Surface(
                         color = MaterialTheme.colorScheme.secondaryContainer,
@@ -454,8 +455,10 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                     Spacer(Modifier.height(24.dp))
                     Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                 }
+                }
                 } else {
-                if (tile == 1) item {
+                if (tile == 1) item(key = "muted-card") {
+                    androidx.compose.foundation.layout.Column(Modifier.animateItem()) {
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.filters_keywords),
@@ -581,7 +584,9 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         Spacer(Modifier.height(12.dp))
                     }
                 }
-                if (tile == 0) item {
+                }
+                if (tile == 0) item(key = "dup-card") {
+                    androidx.compose.foundation.layout.Column(Modifier.animateItem()) {
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.filters_duplicates),
@@ -618,6 +623,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         }
                     }
                     Spacer(Modifier.height(28.dp))
+                }
                 }
                 item {
                     Row(

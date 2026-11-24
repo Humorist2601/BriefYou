@@ -17,14 +17,13 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.ui.draw.clip
@@ -49,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -201,6 +201,11 @@ fun InWindowAlertDialog(
     }
 }
 
+/** The tallest keyboard seen so far (pixels), so a dialog can make room for it before it is up. */
+private object KeyboardMemory {
+    var px = 0
+}
+
 @OptIn(ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun DialogScaffold(
@@ -241,6 +246,18 @@ private fun DialogScaffold(
     val imeBottom = WindowInsets.ime.getBottom(density)
     val navBottom = WindowInsets.navigationBars.getBottom(density)
     val imeNow = androidx.compose.runtime.rememberUpdatedState(imeBottom)
+    // A dialog with a text field makes room for the keyboard as soon as the field has focus: it
+    // glides once to where it will stand with the keyboard up (the keyboard's height as last seen)
+    // instead of chasing the keyboard frame by frame, which looked like it jumped.
+    var fieldFocused by remember { mutableStateOf(false) }
+    SideEffect { if (imeBottom > KeyboardMemory.px) KeyboardMemory.px = imeBottom }
+    val reserve = if (KeyboardMemory.px > 0) KeyboardMemory.px else with(density) { 300.dp.roundToPx() }
+    val bottomTarget = if (fieldFocused) maxOf(reserve, imeBottom, navBottom) else maxOf(imeBottom, navBottom)
+    val bottomPx by androidx.compose.animation.core.animateIntAsState(
+        bottomTarget,
+        androidx.compose.animation.core.spring(dampingRatio = 0.9f, stiffness = 380f),
+        label = "dialogBottom",
+    )
     var frozenBottom by remember { mutableStateOf<Int?>(null) }
     SideEffect {
         if (exit.closing && frozenBottom == null) frozenBottom = maxOf(imeBottom, navBottom)
@@ -291,7 +308,10 @@ private fun DialogScaffold(
                                 )
                             )
                             .padding(bottom = with(density) { frozen.toDp() })
-                    } ?: Modifier.safeDrawingPadding().imePadding()
+                    } ?: Modifier.windowInsetsPadding(
+                            WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                        )
+                        .padding(bottom = with(density) { bottomPx.toDp() })
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -312,46 +332,53 @@ private fun DialogScaffold(
                                 scaleY = scale
                                 translationX = (if (fromLeft) 1f else -1f) * 8.dp.toPx() * p
                             }
+                            .onFocusChanged { if (it.hasFocus) fieldFocused = true }
                             // Taps on the dialog itself don't reach the scrim.
                             .pointerInput(Unit) { detectTapGestures { } },
                     // The Banner corner and the card colour, as Home's hero and groups.
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(Corner.Banner),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    // The sheet's base (surfaceContainerLow); what sits on it is surfaceContainerHigh, as in a sheet.
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                     tonalElevation = 0.dp,
                 ) {
-                    CompositionLocalProvider(LocalQuietColor provides MaterialTheme.colorScheme.surfaceContainerHighest) {
+                    CompositionLocalProvider(LocalQuietColor provides MaterialTheme.colorScheme.surfaceContainerHigh) {
                     Column(modifier = Modifier.padding(24.dp)) {
-                        if (icon != null && plainIcon) {
-                            Box(modifier = Modifier.padding(bottom = 16.dp).align(Alignment.Start)) { icon() }
-                        } else icon?.let {
-                            // The icon on a cookie at the left, red for a dialog that deletes.
-                            val scheme = MaterialTheme.colorScheme
-                            CompositionLocalProvider(
-                                LocalContentColor provides
-                                    (if (danger) scheme.onErrorContainer else scheme.onPrimaryContainer)
+                        // The icon and the title share one line: the icon on a cookie (red for a dialog that
+                        // deletes), or a picture of its own, then the title beside it.
+                        if (icon != null || title != null) {
+                            Row(
+                                modifier = Modifier.padding(bottom = 16.dp).align(Alignment.Start),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
                             ) {
-                                Box(
-                                    modifier =
-                                        Modifier.padding(bottom = 16.dp)
-                                            .align(Alignment.Start)
-                                            .size(52.dp)
-                                            .clip(MaterialShapes.Cookie9Sided.toShape())
-                                            .background(if (danger) scheme.errorContainer else scheme.primaryContainer),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    it()
+                                if (icon != null && plainIcon) {
+                                    icon()
+                                } else icon?.let {
+                                    val scheme = MaterialTheme.colorScheme
+                                    CompositionLocalProvider(
+                                        LocalContentColor provides
+                                            (if (danger) scheme.onErrorContainer else scheme.onPrimaryContainer)
+                                    ) {
+                                        Box(
+                                            modifier =
+                                                Modifier.size(48.dp)
+                                                    .clip(MaterialShapes.Cookie9Sided.toShape())
+                                                    .background(if (danger) scheme.errorContainer else scheme.primaryContainer),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            it()
+                                        }
+                                    }
                                 }
-                            }
-                        }
-                        title?.let {
-                            CompositionLocalProvider(
-                                LocalContentColor provides AlertDialogDefaults.titleContentColor
-                            ) {
-                                ProvideTextStyle(
-                                    MaterialTheme.typography.headlineSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
-                                ) {
-                                    Box(modifier = Modifier.padding(bottom = 12.dp).align(Alignment.Start)) {
-                                        it()
+                                title?.let {
+                                    CompositionLocalProvider(
+                                        LocalContentColor provides AlertDialogDefaults.titleContentColor
+                                    ) {
+                                        ProvideTextStyle(
+                                            MaterialTheme.typography.headlineSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                                        ) {
+                                            Box(modifier = Modifier.weight(1f, fill = false)) { it() }
+                                        }
                                     }
                                 }
                             }

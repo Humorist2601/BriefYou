@@ -2,7 +2,6 @@
 
 package com.ay.briefyou.brief.feeds
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -108,6 +107,10 @@ fun HomeHero(
     newCount: Int,
     cameOutToday: Int = 0, // articles published since midnight, for the All page
     oldestDays: Int?,
+    /** The feed holding the oldest unread article, so the sentence can say where it is. */
+    oldestFeed: String? = null,
+    /** The group most of today's articles came out in (null when there is no clear place). */
+    todayTopGroup: String? = null,
     topFeed: String?,
     syncing: Boolean,
     online: Boolean,
@@ -192,9 +195,12 @@ fun HomeHero(
         }
         filter == Filter.All -> {
             big = stringResource(R.string.hero_articles)
-            baseSentence = if (cameOutToday > 0) stringResource(R.string.hero_today, cameOutToday) else stringResource(R.string.hero_today_none)
+            baseSentence =
+                if (cameOutToday > 0 && todayTopGroup != null) stringResource(R.string.hero_today_in, cameOutToday, todayTopGroup)
+                else if (cameOutToday > 0) stringResource(R.string.hero_today, cameOutToday)
+                else stringResource(R.string.hero_today_none)
             cookieIcon = null
-            baseName = null
+            baseName = if (cameOutToday > 0) todayTopGroup else null
         }
         count == 0 && filter.isStarred() -> {
             big = stringResource(R.string.hero_no_stars)
@@ -222,9 +228,11 @@ fun HomeHero(
         }
         filter.isUnread() && oldestDays != null && oldestDays >= 30 -> {
             big = stringResource(R.string.hero_unread)
-            baseSentence = pluralStringResource(R.plurals.hero_oldest_days, oldestDays, oldestDays)
+            baseSentence =
+                if (oldestFeed != null) pluralStringResource(R.plurals.hero_oldest_in, oldestDays, oldestDays, oldestFeed)
+                else pluralStringResource(R.plurals.hero_oldest_days, oldestDays, oldestDays)
             cookieIcon = null
-            baseName = null
+            baseName = oldestFeed
         }
         groupCount < 2 && topFeed != null && feedCount > 1 -> {
             big = stringResource(R.string.hero_unread)
@@ -372,7 +380,7 @@ fun HomeHero(
                         ) {
                             if (shownChip != null) {
                             Row(
-                                Modifier.animateContentSize().clip(CircleShape)
+                                Modifier.clip(CircleShape)
                                     .background(chipBg)
                                     .drawBehind {
                                         // How far the sync is: the chip fills from the left, like a progress pill.
@@ -386,14 +394,32 @@ fun HomeHero(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                             ) {
-                                Icon(shownChip.icon, contentDescription = null, tint = chipFg, modifier = Modifier.size(14.dp).graphicsLayer { rotationZ = if (syncing) spin else 0f })
+                                // Icon and text change together: one fades into the next while the pill's width glides.
+                                androidx.compose.animation.AnimatedContent(
+                                    targetState = shownChip.icon to (if (syncing && progressTotal > 0) "" else shownChip.text),
+                                    transitionSpec = {
+                                        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220, delayMillis = 60)) togetherWith
+                                            androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)) using
+                                            androidx.compose.animation.SizeTransform(clip = false) { _, _ ->
+                                                androidx.compose.animation.core.spring(dampingRatio = 0.85f, stiffness = 500f)
+                                            }
+                                    },
+                                    label = "heroChipContent",
+                                ) { (chipIcon, chipWord) ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                ) {
+                                Icon(chipIcon, contentDescription = null, tint = chipFg, modifier = Modifier.size(14.dp).graphicsLayer { rotationZ = if (syncing) spin else 0f })
                                 val chipStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum") // digits all the same width
                                 Box(contentAlignment = Alignment.Center) {
                                     if (syncing && progressTotal > 0) {
                                         // The chip keeps the width of its longest text ("40 of 40"), so it doesn't resize as the count goes up.
                                         Text(stringResource(R.string.hero_chip_progress, progressTotal, progressTotal), color = Color.Transparent, style = chipStyle, maxLines = 1)
                                     }
-                                    Text(shownChip.text, color = chipFg, style = chipStyle, maxLines = 1)
+                                    Text(if (syncing && progressTotal > 0) shownChip.text else chipWord, color = chipFg, style = chipStyle, maxLines = 1)
+                                }
+                                }
                                 }
                             }
                             }

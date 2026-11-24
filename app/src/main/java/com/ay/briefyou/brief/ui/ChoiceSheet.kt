@@ -95,7 +95,9 @@ fun ChoiceDialog(
                     val scroll = rememberScrollState()
                     val maxList = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.5f).dp
                     Column(
-                        modifier = Modifier.heightIn(max = maxList).sheetScrollFade(scroll).verticalScroll(scroll),
+                        modifier = Modifier.heightIn(max = maxList)
+                            .sheetScrollFade(scroll)
+                            .verticalScroll(scroll),
                         verticalArrangement = Arrangement.spacedBy(Group.Gap),
                     ) {
                         choices.forEachIndexed { i, choice ->
@@ -104,7 +106,7 @@ fun ChoiceDialog(
                                 selected = choice.selected,
                                 titleStyle = choice.style,
                                 shape = groupShape(i, choices.size),
-                                restColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHighest,
+                                restColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
                                 onClick = {
                                     choice.onClick()
                                     onDismiss()

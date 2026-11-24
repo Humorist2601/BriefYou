@@ -2505,9 +2505,8 @@ private fun AutoDelayMenu(
         // One card: the title, then the six delays as chips (the chosen one is round and primary).
         Surface(
             shape = RoundedCornerShape(28.dp),
-            // Lighter than the Triage card behind it, with a thin outline and a deeper shadow, so it never blends in.
+            // Lighter than the Triage card behind it, with a deeper shadow (no outline: Material has none), so it never blends in.
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             shadowElevation = 8.dp,
         ) {
             Column(modifier = Modifier.padding(14.dp)) {

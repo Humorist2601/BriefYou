@@ -169,13 +169,18 @@ private fun hintPositionProvider(placement: HintPlacement, gap: Int): PopupPosit
  * it shows for a moment (from a long press on an icon-only button) and fades away by itself.
  */
 @Composable
-fun TransientHint(text: String, onDone: () -> Unit) {
+fun TransientHint(text: String, active: Boolean = true, onDone: () -> Unit) {
     // Pops in, stays a moment, then fades and shrinks away (the same curve as it came in, backwards).
+    // When another hint takes over ([active] false) it fades away at once, so only one shows at a time.
     val pop = remember { Animatable(0.85f) }
-    LaunchedEffect(text) {
-        pop.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow))
-        delay(1400)
-        pop.animateTo(0.85f, androidx.compose.animation.core.tween(260))
+    LaunchedEffect(text, active) {
+        if (active) {
+            pop.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow))
+            delay(1400)
+            pop.animateTo(0.85f, androidx.compose.animation.core.tween(260))
+        } else {
+            pop.animateTo(0.85f, androidx.compose.animation.core.tween(120))
+        }
         onDone()
     }
     val gap = with(androidx.compose.ui.platform.LocalDensity.current) { 10.dp.roundToPx() }

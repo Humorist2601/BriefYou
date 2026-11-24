@@ -969,6 +969,14 @@ interface ArticleDao {
     @Query("SELECT MIN(date) FROM article WHERE accountId = :accountId AND isUnread = 1")
     fun queryOldestUnreadDate(accountId: Int): kotlinx.coroutines.flow.Flow<Long?>
 
+    /** Brief You: the feed of the oldest unread article (null when none), for the hero card's "oldest is in …". */
+    @Query("SELECT feedId FROM article WHERE accountId = :accountId AND isUnread = 1 ORDER BY date ASC LIMIT 1")
+    fun queryOldestUnreadFeedId(accountId: Int): kotlinx.coroutines.flow.Flow<String?>
+
+    /** Brief You: articles published after [since] (milliseconds) per feed, for "most in …" on the All page. */
+    @Query("SELECT feedId, COUNT(*) AS c FROM article WHERE accountId = :accountId AND date > :since GROUP BY feedId")
+    fun countSincePerFeed(accountId: Int, since: Long): kotlinx.coroutines.flow.Flow<List<FeedCountRow>>
+
     /** Brief You: all articles published after [since] (milliseconds): "came out today" on the All page. */
     @Query("SELECT COUNT(*) FROM article WHERE accountId = :accountId AND date > :since")
     fun countSince(accountId: Int, since: Long): kotlinx.coroutines.flow.Flow<Int>
@@ -977,3 +985,6 @@ interface ArticleDao {
     @Query("SELECT COUNT(*) FROM article WHERE accountId = :accountId AND isUnread = 1 AND date > :since")
     fun countUnreadSince(accountId: Int, since: Long): kotlinx.coroutines.flow.Flow<Int>
 }
+
+/** One feed's number of articles (see [ArticleDao.countSincePerFeed]). */
+data class FeedCountRow(val feedId: String, val c: Int)

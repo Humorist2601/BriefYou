@@ -656,6 +656,11 @@
         <item quantity="one">oldest is %1$d day old</item>
         <item quantity="other">oldest is %1$d days old</item>
     </plurals>
+    <plurals name="hero_oldest_in">
+        <item quantity="one">oldest is in %2$s, %1$d day old</item>
+        <item quantity="other">oldest is in %2$s, %1$d days old</item>
+    </plurals>
+    <string name="hero_today_in">%1$d came out today, most in %2$s</string>
     <string name="triage_auto_seconds_short">%ds</string>
     <string name="image_share_link">Share link</string>
     <string name="image_share_image">Share image</string>
