@@ -151,8 +151,7 @@ fun SleepTimerSheet(onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(stringResource(R.string.player_sleep_timer), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-            androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(bottom = 6.dp))
+            com.ay.briefyou.brief.ui.SheetTitle(stringResource(R.string.player_sleep_timer), icon = androidx.compose.material.icons.Icons.Outlined.Bedtime)
             val options =
                 listOf(
                     0 to stringResource(R.string.player_sleep_off),

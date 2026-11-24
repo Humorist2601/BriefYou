@@ -159,6 +159,8 @@ fun BYTextField2(
         SecureTextField(
             state = state,
             colors = textFieldColors(),
+            // Brief You: filled and rounded, as the rest of the design
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(com.ay.briefyou.brief.ui.Corner.Small),
             label =
                 if (label.isEmpty()) null
                 else {
@@ -188,6 +190,8 @@ fun BYTextField2(
             state = state,
             modifier = modifier.focusRequester(focusRequester),
             colors = textFieldColors(),
+            // Brief You: filled and rounded, as the rest of the design
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(com.ay.briefyou.brief.ui.Corner.Small),
             label =
                 if (label.isEmpty()) null
                 else {
@@ -301,8 +305,8 @@ fun BYOutlinedTextField2(
 @Composable
 private fun textFieldColors(): TextFieldColors =
     TextFieldDefaults.colors(
-        unfocusedContainerColor = Color.Transparent,
-        focusedContainerColor = Color.Transparent,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
         unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .7f),
         focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .7f),
     )

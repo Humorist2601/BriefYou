@@ -95,6 +95,7 @@ constructor(
     override val moveSubscription: Boolean = true
     override val deleteSubscription: Boolean = true
     override val updateSubscription: Boolean = true
+    override val updateFeedUrl: Boolean = false // Brief You
 
     private suspend fun getGoogleReaderAPI() =
         GoogleReaderSecurityKey(accountService.getCurrentAccount().securityKey).run {

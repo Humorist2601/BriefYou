@@ -127,3 +127,86 @@ is the **last step**, after the whole design is done and the owner says so. Do n
 **For every surface:** list its real states (empty, loading, error, offline), mock it in light and dark, show it, build it on the
 Nightly, get a screenshot back, fix differences, add the README note. Dialogs and sheets are designed as one family first
 (item 1), then checked on each screen that uses them.
+
+## 10. Sheets: one head, one body, one foot
+
+The language every bottom sheet follows, taken from Home (the hero's cookie, the joined group cards, the Banner corner, primary section
+labels, the edge fades, the press feel). Official Material 3 values were not fetchable (the spec site needs JavaScript), so the container
+values below are the Compose defaults the app already uses. Dialogs are in §10.6.
+
+### 10.1 Sheet or dialog
+
+- **Sheet:** choose something, adjust something, or act on a thing you pressed on (a group, a feed, an article's extras). It applies as you
+  change it and closes by swipe, scrim or back.
+- **Dialog:** confirm a step that deletes or clears, or type one short text. It always opens **above** its sheet. A sheet never opens
+  a sheet, and a dialog never opens a sheet.
+
+### 10.2 Container
+
+- `ModalBottomSheet` with `SheetShape` (top corners **Banner 32 dp**), Material's `surfaceContainerLow`, default scrim and handle, no divider,
+  centred and at most 640 dp wide on a tablet. Full-height state only (`rememberFullSheetState`); the sheet wraps its content.
+- Cards inside are `surfaceContainerHigh` (as Home's cards on `surface`); quiet pills and fields inside cards are `surfaceContainerHighest`.
+- The player sheet keeps its cover colours and Triage keeps its own window, but both follow the same anatomy and corner.
+
+### 10.3 Anatomy, top to bottom
+
+Cards sit **16 dp** from the edges (as on Home). Section labels and text inset **30 dp** (Home's feed row lines up with the chips the same way).
+
+1. **Handle** (Material's).
+2. **Head**, one of two kinds, never mixed:
+   - **Identity head** for a thing with a name and live facts (group, feed, a feed being added): one card, `surfaceContainerHigh`, Tile 28 dp,
+     16 dp padding. A **56 dp cookie** (nine-sided, `primaryContainer`, the thing's icon inside) or the thing's own picture (a feed's round icon);
+     title `headlineSmall` SemiBold, **one line**, ellipsis; under it **one fact line** (`bodyMedium`, `onSurfaceVariant`: a group's feed count, a feed's address; the unread number is
+     not repeated, Home already shows it and it depends on the page's filter). Anything editable says so: a 24 dp `primary` **pencil badge** on the icon opens the icon picker; a 40 dp round
+     `surfaceContainerHighest` **pencil button** at the card's end renames; an address has its own small pencil. Pencils are hidden where
+     the account cannot rename or edit.
+   - **Plain head** for everything else (pickers, numbers, content): a 44 dp cookie with an icon, title `titleLarge` SemiBold, an optional hint
+     (`bodyMedium`, `onSurfaceVariant`, at most two lines), 18 dp below. No card.
+3. **Body**: sections of `labelLarge` SemiBold `primary` label (8 dp above its content, 18 dp between sections), then one of these blocks,
+   and only these:
+   - **Tiles** (60 dp, three in a row, label under; lit = `primaryContainer` with corners morphing 16 → 30 dp; press feel). A tile that only
+     acts (a group applying to all its feeds) is never lit; the label above says what it applies to ("For all 23 feeds").
+   - **Joined list** (`groupShape`: 24 / 6, 3 dp gap; rows at least 58 dp; the chosen row `primaryContainer` with a check) for choices.
+   - **Chips row** (sideways, 8 dp gap, `fadingEdgesHorizontal` 32 dp, a round 36 dp "+" at the end) for choosing among many names.
+   - **Value card** (label and value on one line, slider or stepper below; `Custom` / `Reset` as a joined pair under it).
+   - **Joined buttons** (26 / 10 dp corners, 52 dp) for two or three exclusive modes.
+   - **Content card** for text the sheet shows (summary, translation), and a **filled field** (Small 16 dp, `surfaceContainerHighest`).
+4. **Foot**, only when the sheet has actions: **pinned**, it does not scroll. At most two round 48 dp buttons side by side: tonal for a
+   normal action, `errorContainer` for one that deletes or clears, **filled only** for the one button that commits. A sheet that applies as
+   you change it has no foot (no Cancel, no Save).
+
+### 10.4 Behaviour
+
+- Only the body scrolls; head and foot stay. A scrolling body fades into the head and the foot with `edgeFadeBrush`, never a hard cut.
+- Selection changes tick (`SegmentTick`); a commit gives the context click. Cards and tiles use `rememberPressFeel`. Icons that swap cross-fade.
+- A confirm dialog opened from a sheet closes the sheet after it is confirmed.
+- Pause anything that turns forever behind the sheet (Home's background shapes already do).
+
+### 10.5 Writing
+
+Title is the name of the thing or the job ("Sort", "Font size"), never a sentence. A hint is one line where possible and says something the
+sheet does not already show: Home's "The following options apply to all feeds in this group" becomes the section label "For all 23 feeds".
+
+### 10.6 Dialogs (same family)
+
+Banner 32 dp, `surfaceContainerHigh`, a 52 dp cookie (red for delete/clear), title `headlineSmall` SemiBold, left-aligned; a text Cancel and
+one round filled 48 dp main button (`DialogConfirmButton`, red when `danger`). A feed's own picture is drawn as it is (`plainIcon`).
+Fields are filled and rounded, everywhere (account dialogs included).
+
+### 10.7 Where each sheet stands against this
+
+| Sheet | Head | Body | Foot | Change needed |
+|---|---|---|---|---|
+| Group options | Identity | tiles (acting), chips | Clear · Delete | new identity head with badge and pencil; label "For all N feeds"; foot pinned |
+| Feed options | Identity (icon, name, address pencils) | tiles (lit), chips | Clear · Unsubscribe | as above |
+| Choice (radio dialogs) | Plain | joined list | none | check head and 24 dp → 16 dp sides |
+| Number, Speed | Plain | value card, joined Custom / Reset | none | sides 16 dp |
+| Sort, Sleep timer | Plain | tiles, joined buttons | none | section labels `primary` (Sort's are muted today) |
+| Summary, Translate | Plain | content card, filled field | none | sides 16 dp, content in a card |
+| Reader text settings | Plain | value cards, tiles | none | slider icons, head icon, 52 dp button → 48 dp round |
+| Newspaper, Month recap | Plain | content | optional | check |
+| Triage places | Plain | joined list | none | `InWindowModalSheet` to `SheetShape`, drop its own title and divider |
+| Now playing | Own colours | player | none | corner only |
+| Read later activity | Plain | joined list | none | check |
+
+Menus (`AnimatedDropdownMenu`) are not sheets and are still to design.

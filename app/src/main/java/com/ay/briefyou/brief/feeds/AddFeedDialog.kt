@@ -45,10 +45,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.ay.briefyou.brief.ui.DialogConfirmButton
 import com.ay.briefyou.R
 import com.ay.briefyou.brief.ui.InWindowAlertDialog
 import com.ay.briefyou.ui.component.FeedIcon
@@ -114,6 +114,7 @@ private fun AddFeedDialogContent(
     InWindowAlertDialog(
         // Not closed by a tap outside, so a pasted address isn't lost to a stray tap.
         properties = DialogProperties(dismissOnClickOutside = false),
+        plainIcon = true, // Brief You: the feed's own picture, not on a cookie
         onDismissRequest = { close() },
         icon = {
             if (configure != null) {
@@ -144,7 +145,6 @@ private fun AddFeedDialogContent(
                     text = configure.searchedFeed.title ?: "",
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
                     modifier = Modifier.alphaIndicationClickable { viewModel.showRenameDialog() },
                 )
             } else {
@@ -170,7 +170,6 @@ private fun AddFeedDialogContent(
                                 text = stringResource(R.string.add_feed_hint),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             Spacer(Modifier.height(8.dp))
@@ -202,7 +201,6 @@ private fun AddFeedDialogContent(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             if (feedPicture != null) {
@@ -241,7 +239,7 @@ private fun AddFeedDialogContent(
         confirmButton = {
             when (state) {
                 is SubscribeState.Configure ->
-                    TextButton(
+                    DialogConfirmButton(
                         onClick = {
                             focusManager.clearFocus()
                             // The feed's own picture is kept once subscribed (whichever icon is chosen).
@@ -266,7 +264,7 @@ private fun AddFeedDialogContent(
                     }
 
                 is SubscribeState.Input ->
-                    TextButton(
+                    DialogConfirmButton(
                         enabled = state is SubscribeState.Idle && state.linkState.text.isNotBlank(),
                         onClick = {
                             focusManager.clearFocus()

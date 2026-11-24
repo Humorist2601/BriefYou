@@ -548,6 +548,7 @@ fun TranslateLanguageSheet(controller: TranslateController, onDismiss: () -> Uni
             com.ay.briefyou.brief.ui.SheetTitle(
                 stringResource(R.string.translate_to),
                 stringResource(R.string.translate_to_hint),
+                icon = androidx.compose.material.icons.Icons.Outlined.Translate,
             )
             // Your phone's language on its own, then the others as one joined group, each in its
             // own name (with the name you know it by under it).

@@ -121,6 +121,8 @@ fun InWindowAlertDialog(
     properties: DialogProperties = DialogProperties(),
     /** A dialog that deletes or clears something: red icon, red main button (see [DialogConfirmButton]). */
     danger: Boolean = false,
+    /** The icon is a picture of its own (a feed's icon): drawn as it is, not put on a cookie. */
+    plainIcon: Boolean = false,
 ) {
     // Every dialog gets a window of its own that covers the screen and doesn't move for the
     // keyboard; the dialog moves above the keyboard inside it, so the cursor's handle stays under
@@ -154,6 +156,7 @@ fun InWindowAlertDialog(
             text = text,
             properties = properties,
             danger = danger,
+            plainIcon = plainIcon,
         )
     }
 }
@@ -170,6 +173,7 @@ private fun DialogScaffold(
     text: @Composable (() -> Unit)?,
     properties: DialogProperties,
     danger: Boolean,
+    plainIcon: Boolean,
 ) = DangerDialog(danger) {
     // Predictive back: while you swipe back, the dialog shrinks a little and drifts toward the
     // edge you swipe from, and the scrim lightens; let go and it fades away and closes, change
@@ -233,7 +237,9 @@ private fun DialogScaffold(
                     tonalElevation = 0.dp,
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
-                        icon?.let {
+                        if (icon != null && plainIcon) {
+                            Box(modifier = Modifier.padding(bottom = 16.dp).align(Alignment.Start)) { icon() }
+                        } else icon?.let {
                             // The icon on a cookie at the left, red for a dialog that deletes.
                             val scheme = MaterialTheme.colorScheme
                             CompositionLocalProvider(

@@ -48,7 +48,7 @@ fun GroupItem(
                     groupOnClick()
                 },
                 onLongClick = {
-                    groupOptionViewModel.fetchGroup(groupId = group.id)
+                    groupOptionViewModel.fetchGroup(groupId = group.id, feedCount = feeds.size) // Brief You: its feed count for the sheet
                     onLongClick()
                 }
             )

@@ -57,7 +57,8 @@ fun TextFieldDialog(
         properties = properties,
         visible = visible,
         onDismissRequest = onDismissRequest,
-        icon = { icon?.let { Icon(imageVector = icon, contentDescription = title) } },
+        // Brief You: no icon slot at all without an icon (an empty one would draw an empty cookie)
+        icon = icon?.let { vector -> { Icon(imageVector = vector, contentDescription = title) } },
         title = { Text(text = title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         text = {
             ClipboardTextField(
@@ -82,12 +83,6 @@ fun TextFieldDialog(
             ) {
                 Text(
                     text = confirmText,
-                    color =
-                        if (value.isNotBlank()) {
-                            Color.Unspecified
-                        } else {
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)
-                        },
                 )
             }
         },
@@ -121,7 +116,8 @@ fun TextFieldDialog(
         properties = properties,
         visible = visible,
         onDismissRequest = onDismissRequest,
-        icon = { icon?.let { Icon(imageVector = icon, contentDescription = title) } },
+        // Brief You: no icon slot at all without an icon (an empty one would draw an empty cookie)
+        icon = icon?.let { vector -> { Icon(imageVector = vector, contentDescription = title) } },
         title = { Text(text = title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         text = {
             ClipboardTextField(
@@ -146,12 +142,6 @@ fun TextFieldDialog(
             ) {
                 Text(
                     text = confirmText,
-                    color =
-                        if (textFieldState.text.isNotBlank()) {
-                            Color.Unspecified
-                        } else {
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)
-                        },
                 )
             }
         },
@@ -183,7 +173,8 @@ fun TextFieldDialog(
         modifier = modifier,
         properties = properties,
         onDismissRequest = onDismissRequest,
-        icon = { icon?.let { Icon(imageVector = icon, contentDescription = title) } },
+        // Brief You: no icon slot at all without an icon (an empty one would draw an empty cookie)
+        icon = icon?.let { vector -> { Icon(imageVector = vector, contentDescription = title) } },
         title = { Text(text = title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         text = {
             ClipboardTextField(
@@ -208,12 +199,6 @@ fun TextFieldDialog(
             ) {
                 Text(
                     text = confirmText,
-                    color =
-                        if (textFieldState.text.isNotBlank()) {
-                            Color.Unspecified
-                        } else {
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)
-                        },
                 )
             }
         },

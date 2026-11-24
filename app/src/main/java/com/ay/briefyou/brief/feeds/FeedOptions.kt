@@ -63,8 +63,10 @@ fun FeedOptions(
     isMoveToGroup: Boolean = false,
     clear: Pair<String, () -> Unit>? = null,
     remove: Pair<String, () -> Unit>? = null,
+    settingsLabel: String? = null,
 ) {
     Column {
+        if (settingsLabel != null) SheetSection(settingsLabel)
         SettingTiles(
             fullContent = fullContent,
             browser = browser,

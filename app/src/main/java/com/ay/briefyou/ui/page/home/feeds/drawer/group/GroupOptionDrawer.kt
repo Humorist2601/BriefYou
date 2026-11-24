@@ -81,50 +81,54 @@ fun GroupOptionDrawer(
         ) // Brief You
     } // Brief You
 
-    // Brief You: the app's Material 3 sheet (was a Material 2 one), in the app's sheet design.
-    com.ay.briefyou.brief.ui.OptionSheet(drawerState) { // Brief You
-        com.ay.briefyou.brief.ui.SheetHeader( // Brief You
-            icon = { com.ay.briefyou.brief.feeds.GroupIconTile(group?.id.orEmpty(), Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).clickable { showIconDialog = true }, size = 48.dp) }, // Brief You: tap to change
-            title = { // Brief You: tap the name to rename
-                Text( // Brief You
-                    modifier = Modifier.alphaIndicationClickable { if (viewModel.rssService.get().updateSubscription) viewModel.showRenameDialog() }, // Brief You
-                    text = group?.name ?: stringResource(R.string.unknown), // Brief You
-                    style = MaterialTheme.typography.titleLarge, // Brief You
-                    color = MaterialTheme.colorScheme.onSurface, // Brief You
-                    maxLines = 1, // Brief You
-                    overflow = TextOverflow.Ellipsis, // Brief You
-                ) // Brief You
-            }, // Brief You
-            subtitle = { // Brief You
-                Text( // Brief You
-                    text = stringResource(R.string.group_option_tips), // Brief You
-                    style = MaterialTheme.typography.bodyMedium, // Brief You
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Brief You
-                ) // Brief You
-            }, // Brief You
-        ) // Brief You
-        Column(modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) { // Brief You
-            com.ay.briefyou.brief.feeds.SettingTiles( // Brief You: each asks before applying to all its feeds
-                fullContent = null, browser = null, notification = null, // Brief You
-                onFullContent = { viewModel.showAllParseFullContentDialog() }, // Brief You
-                onBrowser = { viewModel.showAllOpenInBrowserDialog() }, // Brief You
-                onNotification = { viewModel.showAllAllowNotificationDialog() }, // Brief You
+    // Brief You: the app's Material 3 sheet: the group's head, a scrolling body, the buttons pinned.
+    val canRename = viewModel.rssService.get().updateSubscription // Brief You
+    val canMove = viewModel.rssService.get().moveSubscription && groupOptionUiState.groups.size != 1 // Brief You
+    val canDelete = viewModel.rssService.get().deleteSubscription && group?.id != context.currentAccountId.getDefaultGroupId() // Brief You
+    com.ay.briefyou.brief.ui.OptionSheet( // Brief You
+        drawerState,
+        head = { // Brief You: the group, its feed count, and how to change its icon and name
+            com.ay.briefyou.brief.ui.IdentityHead( // Brief You
+                picture = { com.ay.briefyou.brief.feeds.GroupIconTile(group?.id.orEmpty(), size = 56.dp, cookie = true) }, // Brief You
+                title = group?.name ?: stringResource(R.string.unknown), // Brief You
+                fact = { // Brief You
+                    Text( // Brief You
+                        text = androidx.compose.ui.res.pluralStringResource(R.plurals.sheet_group_feeds, groupOptionUiState.feedCount, groupOptionUiState.feedCount), // Brief You
+                        maxLines = 1, // Brief You
+                        overflow = TextOverflow.Ellipsis, // Brief You
+                    ) // Brief You
+                }, // Brief You
+                onEditIcon = { showIconDialog = true }, // Brief You
+                onRename = if (canRename) ({ viewModel.showRenameDialog() }) else null, // Brief You
             ) // Brief You
-            if (viewModel.rssService.get().moveSubscription && groupOptionUiState.groups.size != 1) { // Brief You
-                Spacer(modifier = Modifier.height(20.dp)) // Brief You
-                com.ay.briefyou.brief.ui.SheetSection(stringResource(R.string.move_to_group)) // Brief You
-                com.ay.briefyou.brief.feeds.GroupChips( // Brief You: moves all its feeds there
-                    groups = groupOptionUiState.groups.filter { it.id != group?.id }, // Brief You
-                    selectedGroupId = "", // Brief You
-                    onGroupClick = { id -> groupOptionUiState.groups.firstOrNull { it.id == id }?.let { viewModel.showAllMoveToGroupDialog(it) } }, // Brief You
-                ) // Brief You
-            } // Brief You
-            Spacer(modifier = Modifier.height(20.dp)) // Brief You
+        }, // Brief You
+        foot = { // Brief You: stays at the bottom while the body scrolls
             com.ay.briefyou.brief.ui.SheetActions( // Brief You
                 stringResource(R.string.clear_articles) to { viewModel.showClearDialog() }, // Brief You
-                if (viewModel.rssService.get().deleteSubscription && group?.id != context.currentAccountId.getDefaultGroupId()) stringResource(R.string.delete_group) to { viewModel.showDeleteDialog() } else null, // Brief You
+                if (canDelete) stringResource(R.string.delete_group) to { viewModel.showDeleteDialog() } else null, // Brief You
+            ) // Brief You
+        }, // Brief You
+    ) { // Brief You
+        Spacer(modifier = Modifier.height(18.dp)) // Brief You
+        com.ay.briefyou.brief.ui.SheetSection( // Brief You: what the tiles do
+            androidx.compose.ui.res.pluralStringResource(R.plurals.sheet_for_all_feeds, groupOptionUiState.feedCount, groupOptionUiState.feedCount), // Brief You
+        ) // Brief You
+        com.ay.briefyou.brief.feeds.SettingTiles( // Brief You: each asks before applying to all its feeds
+            fullContent = null, browser = null, notification = null, // Brief You
+            onFullContent = { viewModel.showAllParseFullContentDialog() }, // Brief You
+            onBrowser = { viewModel.showAllOpenInBrowserDialog() }, // Brief You
+            onNotification = { viewModel.showAllAllowNotificationDialog() }, // Brief You
+        ) // Brief You
+        if (canMove) { // Brief You
+            Spacer(modifier = Modifier.height(20.dp)) // Brief You
+            com.ay.briefyou.brief.ui.SheetSection(stringResource(R.string.sheet_move_all_to_group)) // Brief You
+            com.ay.briefyou.brief.feeds.GroupChips( // Brief You: moves all its feeds there; its own group isn't offered
+                groups = groupOptionUiState.groups.filter { it.id != group?.id }, // Brief You
+                selectedGroupId = "", // Brief You
+                onGroupClick = { id -> groupOptionUiState.groups.firstOrNull { it.id == id }?.let { viewModel.showAllMoveToGroupDialog(it) } }, // Brief You
             ) // Brief You
         } // Brief You
+        Spacer(modifier = Modifier.height(8.dp)) // Brief You
     } // Brief You
     content() // Brief You
 

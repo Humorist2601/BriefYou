@@ -156,6 +156,18 @@
     <string name="sheet_full_content">Full content</string>
     <string name="sheet_browser">In browser</string>
     <string name="sheet_notify">Notify</string>
+    <plurals name="sheet_for_all_feeds">
+        <item quantity="one">For its only feed</item>
+        <item quantity="other">For all %d feeds</item>
+    </plurals>
+    <plurals name="sheet_group_feeds">
+        <item quantity="one">%d feed</item>
+        <item quantity="other">%d feeds</item>
+    </plurals>
+    <string name="sheet_move_all_to_group">Move all to group</string>
+    <string name="sheet_open_and_notify">Open and notify</string>
+    <string name="edit_feed">Edit feed</string>
+    <string name="feed_url">Feed address</string>
     <string name="add_feed_hint">Paste the address of a feed or a website</string>
     <string name="feed_icon_image">Choose an image</string>
     <string name="feed_icon_website">Use the website\'s icon</string>

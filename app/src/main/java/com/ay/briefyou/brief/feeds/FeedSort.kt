@@ -20,9 +20,6 @@ import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Title
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -38,6 +35,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -121,26 +119,26 @@ fun FeedSortSheet(
         onDismissRequest = onDismiss,
         sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState(),
     ) {
+        androidx.compose.runtime.CompositionLocalProvider(
+            com.ay.briefyou.brief.ui.LocalSheetLabelInset provides 14.dp
+        ) {
         Column(
             modifier =
-                Modifier.padding(horizontal = 24.dp)
+                Modifier.padding(horizontal = 16.dp)
                     .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                text = stringResource(R.string.sort_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+            com.ay.briefyou.brief.ui.SheetTitle(
+                stringResource(R.string.sort_title),
+                icon = androidx.compose.material.icons.Icons.AutoMirrored.Outlined.Sort,
             )
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(Modifier.height(14.dp))
 
             SortSection(stringResource(R.string.sort_groups), settings.groupMode, onGroupMode)
             Spacer(Modifier.height(18.dp))
             SortSection(stringResource(R.string.sort_feeds), settings.feedMode, onFeedMode)
 
             Spacer(Modifier.height(24.dp))
+        }
         }
     }
 }
@@ -150,12 +148,7 @@ fun FeedSortSheet(
 private fun SortSection(title: String, selected: SortMode, onSelect: (SortMode) -> Unit) {
     val haptic = LocalHapticFeedback.current
     val kind = SortKind.of(selected)
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Spacer(Modifier.height(10.dp))
+    com.ay.briefyou.brief.ui.SheetSection(title)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -197,23 +190,17 @@ private fun SortSection(title: String, selected: SortMode, onSelect: (SortMode) 
                     Triple(SortMode.NameDesc, Icons.Rounded.KeyboardArrowDown, R.string.sort_name_desc),
                 )
             }
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-            options.forEachIndexed { index, (mode, icon, label) ->
-                SegmentedButton(
-                    selected = selected.normalized == mode,
-                    onClick = {
-                        if (selected.normalized != mode) {
-                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                            onSelect(mode)
-                        }
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                    modifier = Modifier.height(40.dp),
-                    icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                ) {
-                    Text(stringResource(label), style = MaterialTheme.typography.labelLarge)
-                }
-            }
+        com.ay.briefyou.brief.ui.JoinedChoices(
+            count = options.size,
+            selected = options.indexOfFirst { it.first == selected.normalized },
+            onPick = { i ->
+                if (options[i].first != selected.normalized) onSelect(options[i].first)
+            },
+            modifier = Modifier.padding(top = 12.dp),
+        ) { i, on ->
+            Icon(options[i].second, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            com.ay.briefyou.brief.ui.JoinedLabel(stringResource(options[i].third), on)
         }
     }
 }

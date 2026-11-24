@@ -70,6 +70,7 @@ constructor(
     override val moveSubscription: Boolean = false
     override val deleteSubscription: Boolean = false
     override val updateSubscription: Boolean = false
+    override val updateFeedUrl: Boolean = false // Brief You
 
     private suspend fun getFeverAPI() =
         FeverSecurityKey(accountService.getCurrentAccount().securityKey).run {

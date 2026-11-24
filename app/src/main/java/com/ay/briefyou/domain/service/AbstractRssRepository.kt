@@ -46,6 +46,8 @@ abstract class AbstractRssRepository(
     open val moveSubscription: Boolean = true
     open val deleteSubscription: Boolean = true
     open val updateSubscription: Boolean = true
+    /** Brief You: whether a feed's address can be changed (Google Reader / FreshRSS and Fever cannot). */
+    open val updateFeedUrl: Boolean = true
 
     open suspend fun validCredentials(account: Account): Boolean = true
 

@@ -404,18 +404,11 @@ fun NewspaperHost(maker: NewspaperMaker) {
 private fun PressSheet(run: PressRun, onCancel: () -> Unit, onRetry: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 16.dp).navigationBarsPadding()) {
-        Text(stringResource(R.string.newspaper_printing), style = MaterialTheme.typography.titleLarge, color = scheme.onSurface)
-        Text(
+        com.ay.briefyou.brief.ui.SheetTitle(
+            stringResource(R.string.newspaper_printing),
             run.title,
-            style = MaterialTheme.typography.bodyMedium,
-            color = scheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 2.dp),
+            icon = androidx.compose.material.icons.Icons.Outlined.Newspaper,
         )
-        Spacer(Modifier.height(12.dp))
-        androidx.compose.material3.HorizontalDivider(color = scheme.outlineVariant)
-        Spacer(Modifier.height(14.dp))
         run.steps.forEachIndexed { i, step ->
             val failed = run.failed == step
             val now = run.current == step && !failed

@@ -190,30 +190,20 @@ fun SummarySheet(
                     // Room for the keyboard while asking a question.
                     .imePadding()
         ) {
-            // Header: like the sort sheet, a large title, a line about where it comes from, and
-            // a divider.
-            Text(
-                text = heading,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-            )
+            // Header: the shared sheet head, with a line about where it comes from.
             val count =
                 when (state) {
                     is SummaryUiState.Streaming -> state.articleCount
                     is SummaryUiState.Thinking -> state.articleCount
                     else -> null
                 }
-            Text(
-                text =
+            com.ay.briefyou.brief.ui.SheetTitle(
+                title = heading,
+                hint =
                     if (count != null) pluralStringResource(R.plurals.ai_gist_based_on, count, count)
                     else stringResource(R.string.ai_summary_on_device),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                icon = androidx.compose.material.icons.Icons.Rounded.AutoAwesome,
             )
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(Modifier.height(16.dp))
 
             val scrollState = rememberScrollState()
             // Keep the newest question and answer in view while it's written.

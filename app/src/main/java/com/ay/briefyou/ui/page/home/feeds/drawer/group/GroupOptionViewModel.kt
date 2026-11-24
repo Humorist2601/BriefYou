@@ -45,11 +45,11 @@ class GroupOptionViewModel @Inject constructor(
         }
     }
 
-    fun fetchGroup(groupId: String) {
+    fun fetchGroup(groupId: String, feedCount: Int = 0) { // Brief You: feedCount for the sheet's head
         viewModelScope.launch(Dispatchers.IO) {
             val group = rssService.get().findGroupById(groupId)
             withContext(Dispatchers.Main) {
-                _groupOptionUiState.update { it.copy(group = group) }
+                _groupOptionUiState.update { it.copy(group = group, feedCount = feedCount) }
             }
         }
     }
@@ -216,6 +216,7 @@ class GroupOptionViewModel @Inject constructor(
 @OptIn(ExperimentalMaterialApi::class)
 data class GroupOptionUiState(
     val group: Group? = null,
+    val feedCount: Int = 0, // Brief You: how many feeds the group has, for its sheet's head
     val targetGroup: Group? = null,
     val groups: List<Group> = emptyList(),
     val allAllowNotificationDialogVisible: Boolean = false,

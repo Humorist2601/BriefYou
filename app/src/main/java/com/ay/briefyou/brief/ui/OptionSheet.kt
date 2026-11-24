@@ -3,6 +3,7 @@ package com.ay.briefyou.brief.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.navigationBars
@@ -66,12 +67,19 @@ class SheetSwitch {
 
 /**
  * The app's bottom sheet (Material 3, like Triage's places, the gist and the summary) for a
- * [SheetSwitch]. Content gets 24 dp sides; dialogs opened from it should be drawn in their own
- * window (see [OptionSheetDialogs]) so they show above the sheet.
+ * [SheetSwitch]: a [head] that stays put, a body that scrolls (fading into the head and the foot),
+ * and a [foot] of buttons that stays at the bottom. Cards sit 16 dp from the edges, like Home's;
+ * dialogs opened from it should be drawn in their own window (see [OptionSheetDialogs]) so they
+ * show above the sheet.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OptionSheet(switch: SheetSwitch, content: @Composable ColumnScope.() -> Unit) {
+fun OptionSheet(
+    switch: SheetSwitch,
+    head: (@Composable () -> Unit)? = null,
+    foot: (@Composable () -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     if (!switch.isVisible) return
     val state = com.ay.briefyou.brief.ui.rememberFullSheetState()
     LaunchedEffect(switch.closing) {
@@ -88,7 +96,27 @@ fun OptionSheet(switch: SheetSwitch, content: @Composable ColumnScope.() -> Unit
         shape = SheetShape,
         contentWindowInsets = { androidx.compose.foundation.layout.WindowInsets.navigationBars },
     ) {
-        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp), content = content)
+        androidx.compose.runtime.CompositionLocalProvider(LocalSheetLabelInset provides 14.dp) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                if (head != null) {
+                    head()
+                    Spacer(Modifier.height(4.dp))
+                }
+                val scroll = androidx.compose.foundation.rememberScrollState()
+                Column(
+                    modifier =
+                        Modifier.weight(1f, fill = false)
+                            .sheetScrollFade(scroll)
+                            .verticalScroll(scroll),
+                    content = content,
+                )
+                if (foot != null) {
+                    Spacer(Modifier.height(16.dp))
+                    foot()
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+        }
     }
 }
 
@@ -127,7 +155,7 @@ fun SheetSection(text: String, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.labelLarge,
         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(start = 4.dp, bottom = 8.dp),
+        modifier = modifier.padding(start = LocalSheetLabelInset.current, bottom = 8.dp),
     )
 }
 

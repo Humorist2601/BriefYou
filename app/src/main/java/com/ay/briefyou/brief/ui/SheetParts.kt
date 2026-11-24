@@ -10,6 +10,17 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.res.stringResource
+import com.ay.briefyou.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -118,6 +129,129 @@ fun CookieIcon(
     }
 }
 
+/** How far a [SheetSection] label is inset: 14 dp in the option sheets, whose cards sit 16 dp from the edge. */
+val LocalSheetLabelInset = compositionLocalOf { 4.dp }
+
+/**
+ * The head of a sheet about one thing with a name (a group, a feed): one card, the Tile corner,
+ * with its picture (a cookie or the feed's round icon, [picture], 56 dp), the name, a [fact] line,
+ * and the ways to change it: a pencil badge on the picture ([onEditIcon]) and a round pencil
+ * ([onRename]) at the end, which are left out where the thing can't be changed.
+ */
+@Composable
+fun IdentityHead(
+    picture: @Composable () -> Unit,
+    title: String,
+    fact: @Composable () -> Unit,
+    onEditIcon: (() -> Unit)?,
+    onRename: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(Corner.Tile))
+                .background(scheme.surfaceContainerHigh)
+                .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(modifier = Modifier.size(56.dp)) {
+            Box(
+                modifier =
+                    Modifier.matchParentSize()
+                        .clip(CircleShape)
+                        .then(
+                            if (onEditIcon != null) {
+                                Modifier.clickable(onClickLabel = stringResource(R.string.feed_icon_change), onClick = onEditIcon)
+                            } else Modifier
+                        ),
+                contentAlignment = Alignment.Center,
+            ) {
+                picture()
+            }
+            if (onEditIcon != null) {
+                Box(
+                    modifier =
+                        Modifier.align(Alignment.BottomEnd)
+                            .offset(2.dp, 2.dp)
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(scheme.primary)
+                            .border(2.dp, scheme.surfaceContainerHigh, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = null,
+                        tint = scheme.onPrimary,
+                        modifier = Modifier.size(13.dp),
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = scheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier =
+                    if (onRename != null) Modifier.clip(RoundedCornerShape(Corner.Inner)).clickable(onClick = onRename)
+                    else Modifier,
+            )
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.material3.LocalContentColor provides scheme.onSurfaceVariant
+            ) {
+                androidx.compose.material3.ProvideTextStyle(MaterialTheme.typography.bodyMedium) { fact() }
+            }
+        }
+        if (onRename != null) {
+            Spacer(Modifier.width(12.dp))
+            Box(
+                modifier =
+                    Modifier.size(40.dp)
+                        .clip(CircleShape)
+                        .background(scheme.surfaceContainerHighest)
+                        .clickable(onClick = onRename),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Edit,
+                    contentDescription = stringResource(R.string.rename),
+                    tint = scheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Fades a sheet's scrolling body into the head above and the buttons below while there is more to
+ * scroll that way, with the same S-curve as Home's list ([edgeFadeBrush]), never a hard cut.
+ */
+@Composable
+fun Modifier.sheetScrollFade(state: ScrollState, height: Dp = 24.dp): Modifier {
+    val color = MaterialTheme.colorScheme.surfaceContainerLow
+    return drawWithContent {
+        drawContent()
+        val h = height.toPx()
+        if (state.canScrollBackward) {
+            drawRect(edgeFadeBrush(color, solidAtBottom = false, height = h), size = Size(size.width, h))
+        }
+        if (state.canScrollForward) {
+            translate(top = size.height - h) {
+                drawRect(edgeFadeBrush(color, solidAtBottom = true, height = h), size = Size(size.width, h))
+            }
+        }
+    }
+}
+
 /** A sheet's head: a cookie icon (when there is one), the title and an optional muted line. No divider. */
 @Composable
 fun SheetTitle(title: String, hint: String? = null, icon: ImageVector? = null) {
@@ -138,6 +272,8 @@ fun SheetTitle(title: String, hint: String? = null, icon: ImageVector? = null) {
                     hint,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
@@ -160,10 +296,12 @@ fun ChoiceRow(
     subtitle: String? = null,
     titleStyle: TextStyle? = null,
     leading: (@Composable () -> Unit)? = null,
+    /** The colour of a row that isn't chosen; a dialog (itself `surfaceContainerHigh`) passes `surfaceContainerHighest`. */
+    restColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
 ) {
     val scheme = MaterialTheme.colorScheme
     val effects = MaterialTheme.motionScheme.fastEffectsSpec<Color>()
-    val container by animateColorAsState(if (selected) scheme.primaryContainer else scheme.surfaceContainerHigh, effects, label = "choice")
+    val container by animateColorAsState(if (selected) scheme.primaryContainer else restColor, effects, label = "choice")
     val content by animateColorAsState(if (selected) scheme.onPrimaryContainer else scheme.onSurface, effects, label = "choiceText")
     val press = rememberPressFeel(rest = 0.dp, held = 0.dp, squeezeTo = 0.98f)
     Surface(

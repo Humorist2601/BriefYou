@@ -165,51 +165,28 @@ constructor(
         }
     }
 
-    fun renameFeed() {
-        _feedOptionUiState.value.feed?.let {
-            applicationScope.launch {
-                rssService.get().renameFeed(it.copy(name = _feedOptionUiState.value.newName))
-                _feedOptionUiState.update { it.copy(renameDialogVisible = false) }
-            }
-        }
+    /** Brief You: the sheet's pencil: one dialog for the feed's name (and address, where it can change). */
+    fun showEditDialog() {
+        _feedOptionUiState.update { it.copy(editDialogVisible = true) }
     }
 
-    fun showRenameDialog() {
-        _feedOptionUiState.update {
-            it.copy(renameDialogVisible = true, newName = _feedOptionUiState.value.feed?.name ?: "")
-        }
+    fun hideEditDialog() {
+        _feedOptionUiState.update { it.copy(editDialogVisible = false) }
     }
 
-    fun hideRenameDialog() {
-        _feedOptionUiState.update { it.copy(renameDialogVisible = false, newName = "") }
-    }
-
-    fun inputNewName(content: String) {
-        _feedOptionUiState.update { it.copy(newName = content) }
-    }
-
-    fun showFeedUrlDialog() {
-        _feedOptionUiState.update {
-            it.copy(
-                changeUrlDialogVisible = true,
-                newUrl = _feedOptionUiState.value.feed?.url ?: "",
-            )
-        }
-    }
-
-    fun hideFeedUrlDialog() {
-        _feedOptionUiState.update { it.copy(changeUrlDialogVisible = false, newUrl = "") }
-    }
-
-    fun inputNewUrl(content: String) {
-        _feedOptionUiState.update { it.copy(newUrl = content) }
-    }
-
-    fun changeFeedUrl() {
-        _feedOptionUiState.value.feed?.let {
-            applicationScope.launch {
-                rssService.get().changeFeedUrl(it.copy(url = _feedOptionUiState.value.newUrl))
-                _feedOptionUiState.update { it.copy(changeUrlDialogVisible = false) }
+    /** Saves a changed name and / or address; [onError] gets the account's message if it refuses. */
+    fun editFeed(name: String, url: String, onError: (String) -> Unit = {}) {
+        val feed = _feedOptionUiState.value.feed ?: return
+        _feedOptionUiState.update { it.copy(editDialogVisible = false) }
+        applicationScope.launch {
+            try {
+                if (url != feed.url) {
+                    rssService.get().changeFeedUrl(feed.copy(name = name, url = url))
+                } else if (name != feed.name) {
+                    rssService.get().renameFeed(feed.copy(name = name))
+                }
+            } catch (e: Exception) {
+                withContext(mainDispatcher) { onError(e.message ?: e.toString()) }
             }
         }
     }
@@ -276,8 +253,5 @@ data class FeedOptionUiState(
     val groups: List<Group> = emptyList(),
     val deleteDialogVisible: Boolean = false,
     val clearDialogVisible: Boolean = false,
-    val newName: String = "",
-    val renameDialogVisible: Boolean = false,
-    val newUrl: String = "",
-    val changeUrlDialogVisible: Boolean = false,
+    val editDialogVisible: Boolean = false, // Brief You: name and address in one dialog
 )

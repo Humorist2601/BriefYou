@@ -49,7 +49,7 @@ import kotlinx.coroutines.launch
 import com.ay.briefyou.R
 import com.ay.briefyou.infrastructure.preference.LocalOpenLink
 import com.ay.briefyou.infrastructure.preference.LocalOpenLinkSpecificBrowser
-import com.ay.briefyou.ui.component.ChangeUrlDialog
+import com.ay.briefyou.ui.component.EditFeedDialog
 import com.ay.briefyou.ui.component.FeedIcon
 import com.ay.briefyou.ui.component.RenameDialog
 import com.ay.briefyou.ui.component.base.BottomDrawer
@@ -69,13 +69,11 @@ fun FeedOptionDrawer(
     content: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val view = LocalView.current
     val openLink = LocalOpenLink.current
     val openLinkSpecificBrowser = LocalOpenLinkSpecificBrowser.current
     val scope = rememberCoroutineScope()
     val feedOptionUiState = feedOptionViewModel.feedOptionUiState.collectAsStateValue()
     val feed = feedOptionUiState.feed
-    val toastString = stringResource(R.string.rename_toast, feedOptionUiState.newName)
 
 
     var showIconDialog by remember { mutableStateOf(false) } // Brief You
@@ -104,69 +102,50 @@ fun FeedOptionDrawer(
         )
     } // Brief You
 
-    // Brief You: the app's Material 3 sheet (was a Material 2 one), in the app's sheet design.
-    com.ay.briefyou.brief.ui.OptionSheet(drawerState) { // Brief You
-        com.ay.briefyou.brief.ui.SheetHeader( // Brief You
-            icon = { // Brief You: tap the icon to change it
-                FeedIcon(modifier = Modifier.clip(CircleShape).clickable { showIconDialog = true }, feedName = feed?.name, iconUrl = feed?.icon, size = 48.dp) // Brief You
-            }, // Brief You
-            title = { // Brief You: tap the name to rename
-                Text( // Brief You
-                    modifier = Modifier.alphaIndicationClickable { if (feedOptionViewModel.rssService.get().updateSubscription) feedOptionViewModel.showRenameDialog() }, // Brief You
-                    text = feed?.name ?: stringResource(R.string.unknown), // Brief You
-                    style = MaterialTheme.typography.titleLarge, // Brief You
-                    color = MaterialTheme.colorScheme.onSurface, // Brief You
-                    maxLines = 1, // Brief You
-                    overflow = TextOverflow.Ellipsis, // Brief You
-                ) // Brief You
-            }, // Brief You
-            subtitle = { // Brief You: the address; tap opens it, hold or the pencil edits it
-                Row(verticalAlignment = Alignment.CenterVertically) { // Brief You
-                Text( // Brief You
-                    modifier = Modifier.weight(1f, fill = false).combinedClickable( // Brief You
-                        onClick = { context.openURL(feed?.url, openLink, openLinkSpecificBrowser) }, // Brief You
-                        onLongClick = { // Brief You
-                            if (feedOptionViewModel.rssService.get().updateSubscription) { // Brief You
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) // Brief You
-                                feedOptionViewModel.showFeedUrlDialog() // Brief You
-                            } // Brief You
-                        }, // Brief You
-                    ), // Brief You
-                    text = feed?.url ?: stringResource(R.string.unknown), // Brief You
-                    style = MaterialTheme.typography.bodyMedium, // Brief You
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Brief You
-                    maxLines = 1, // Brief You
-                    overflow = TextOverflow.Ellipsis, // Brief You
-                ) // Brief You
-                if (feedOptionViewModel.rssService.get().updateSubscription) { // Brief You: change the feed's address
-                    androidx.compose.material3.IconButton( // Brief You
-                        onClick = { feedOptionViewModel.showFeedUrlDialog() }, // Brief You
-                        modifier = Modifier.size(32.dp), // Brief You
-                    ) { // Brief You
-                        androidx.compose.material3.Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.change_url), modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) // Brief You
-                    } // Brief You
-                } // Brief You
-                } // Brief You
-            }, // Brief You
-        ) // Brief You
-        Column(modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) { // Brief You
-            com.ay.briefyou.brief.feeds.FeedOptions( // Brief You
-                fullContent = feed?.isFullContent ?: false, // Brief You
-                browser = feed?.isBrowser ?: false, // Brief You
-                notification = feed?.isNotification ?: false, // Brief You
-                onFullContent = { feedOptionViewModel.changeParseFullContentPreset() }, // Brief You
-                onBrowser = { feedOptionViewModel.changeOpenInBrowserPreset() }, // Brief You
-                onNotification = { feedOptionViewModel.changeAllowNotificationPreset() }, // Brief You
-                groups = feedOptionUiState.groups, // Brief You
-                selectedGroupId = feed?.groupId ?: "", // Brief You
-                onGroupClick = { feedOptionViewModel.selectedGroup(it) }, // Brief You
-                onAddNewGroup = { feedOptionViewModel.showNewGroupDialog() }, // Brief You
-                showGroup = feedOptionViewModel.rssService.get().moveSubscription, // Brief You
-                isMoveToGroup = true, // Brief You
-                clear = stringResource(R.string.clear_articles) to { feedOptionViewModel.showClearDialog() }, // Brief You
-                remove = if (feedOptionViewModel.rssService.get().deleteSubscription) stringResource(R.string.unsubscribe) to { feedOptionViewModel.showDeleteDialog() } else null, // Brief You
+    // Brief You: the app's Material 3 sheet: the feed's head, a scrolling body, the buttons pinned.
+    val canEdit = feedOptionViewModel.rssService.get().updateSubscription // Brief You
+    com.ay.briefyou.brief.ui.OptionSheet( // Brief You
+        drawerState,
+        head = { // Brief You: the feed, its address, and how to change its icon and name
+            com.ay.briefyou.brief.ui.IdentityHead( // Brief You
+                picture = { FeedIcon(feedName = feed?.name, iconUrl = feed?.icon, size = 56.dp) }, // Brief You
+                title = feed?.name ?: stringResource(R.string.unknown), // Brief You
+                fact = { // Brief You: the address; tap opens it
+                    Text( // Brief You
+                        modifier = Modifier.clickable { context.openURL(feed?.url, openLink, openLinkSpecificBrowser) }, // Brief You
+                        text = feed?.url ?: stringResource(R.string.unknown), // Brief You
+                        maxLines = 1, // Brief You
+                        overflow = TextOverflow.Ellipsis, // Brief You
+                    ) // Brief You
+                }, // Brief You
+                onEditIcon = { showIconDialog = true }, // Brief You
+                onRename = if (canEdit) ({ feedOptionViewModel.showEditDialog() }) else null, // Brief You: name, and address where it can change
             ) // Brief You
-        } // Brief You
+        }, // Brief You
+        foot = { // Brief You: stays at the bottom while the body scrolls
+            com.ay.briefyou.brief.ui.SheetActions( // Brief You
+                stringResource(R.string.clear_articles) to { feedOptionViewModel.showClearDialog() }, // Brief You
+                if (feedOptionViewModel.rssService.get().deleteSubscription) stringResource(R.string.unsubscribe) to { feedOptionViewModel.showDeleteDialog() } else null, // Brief You
+            ) // Brief You
+        }, // Brief You
+    ) { // Brief You
+        Spacer(modifier = Modifier.height(18.dp)) // Brief You
+        com.ay.briefyou.brief.feeds.FeedOptions( // Brief You
+            fullContent = feed?.isFullContent ?: false, // Brief You
+            browser = feed?.isBrowser ?: false, // Brief You
+            notification = feed?.isNotification ?: false, // Brief You
+            onFullContent = { feedOptionViewModel.changeParseFullContentPreset() }, // Brief You
+            onBrowser = { feedOptionViewModel.changeOpenInBrowserPreset() }, // Brief You
+            onNotification = { feedOptionViewModel.changeAllowNotificationPreset() }, // Brief You
+            groups = feedOptionUiState.groups, // Brief You
+            selectedGroupId = feed?.groupId ?: "", // Brief You
+            onGroupClick = { feedOptionViewModel.selectedGroup(it) }, // Brief You
+            onAddNewGroup = { feedOptionViewModel.showNewGroupDialog() }, // Brief You
+            showGroup = feedOptionViewModel.rssService.get().moveSubscription, // Brief You
+            isMoveToGroup = true, // Brief You
+            settingsLabel = stringResource(R.string.sheet_open_and_notify), // Brief You
+        ) // Brief You
+        Spacer(modifier = Modifier.height(8.dp)) // Brief You
     } // Brief You
     content() // Brief You
 
@@ -196,33 +175,15 @@ fun FeedOptionDrawer(
         }
     )
 
-    RenameDialog(
-        visible = feedOptionUiState.renameDialogVisible,
-        value = feedOptionUiState.newName,
-        onValueChange = {
-            feedOptionViewModel.inputNewName(it)
-        },
-        onDismissRequest = {
-            feedOptionViewModel.hideRenameDialog()
-        },
-        onConfirm = {
-            feedOptionViewModel.renameFeed()
-            scope.launch { drawerState.hide() }
-            context.showToast(toastString)
-        }
-    )
-
-    ChangeUrlDialog(
-        visible = feedOptionUiState.changeUrlDialogVisible,
-        value = feedOptionUiState.newUrl,
-        onValueChange = {
-            feedOptionViewModel.inputNewUrl(it)
-        },
-        onDismissRequest = {
-            feedOptionViewModel.hideFeedUrlDialog()
-        },
-        onConfirm = {
-            feedOptionViewModel.changeFeedUrl()
+    EditFeedDialog(
+        visible = feedOptionUiState.editDialogVisible,
+        name = feed?.name ?: "",
+        url = feed?.url ?: "",
+        showUrl = feedOptionViewModel.rssService.get().updateFeedUrl,
+        onDismissRequest = { feedOptionViewModel.hideEditDialog() },
+        onConfirm = { name, url ->
+            feedOptionViewModel.editFeed(name, url) { message -> context.showToast(message) }
+            if (name != feed?.name) context.showToast(context.getString(R.string.rename_toast, name))
             scope.launch { drawerState.hide() }
         }
     )
