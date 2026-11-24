@@ -66,6 +66,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
@@ -202,7 +203,7 @@ fun SummarySheet(
                 hint =
                     if (count != null) pluralStringResource(R.plurals.ai_gist_based_on, count, count)
                     else stringResource(R.string.ai_summary_on_device),
-                icon = androidx.compose.material.icons.Icons.Rounded.AutoAwesome,
+                icon = Icons.Rounded.AutoAwesome,
             )
 
             val scrollState = rememberScrollState()
