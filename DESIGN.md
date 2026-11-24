@@ -195,7 +195,7 @@ sheet does not already show: Home's "The following options apply to all feeds in
 
 Banner 32 dp, `surfaceContainerLow`, the same base as a sheet, with everything on it (rows, tiles, chips) `surfaceContainerHigh`, as in a sheet, a 48 dp cookie (red for delete/clear) **on the same line as** the title (`headlineSmall` SemiBold), the same as a sheet's head; a scrolling list in a dialog fades into that same base at its edge; a text Cancel and
 one round filled 48 dp main button (`DialogConfirmButton`, red when `danger`). A feed's own picture is drawn as it is (`plainIcon`).
-Fields are filled and rounded, everywhere (account dialogs included).
+Fields are outlined rounded rectangles (16 dp): the label is a faint hint in the box and moves up onto the outline when you type, everywhere (account dialogs included); the dialog around them is unchanged.
 
 ### 10.7 Where each sheet stands against this
 

@@ -260,7 +260,8 @@ private fun DialogScaffold(
     )
     var frozenBottom by remember { mutableStateOf<Int?>(null) }
     SideEffect {
-        if (exit.closing && frozenBottom == null) frozenBottom = maxOf(imeBottom, navBottom)
+        // Freeze where the dialog stands now, not where the keyboard is as it starts to leave (it would drop).
+        if (exit.closing && frozenBottom == null) frozenBottom = bottomPx
         if (!exit.closing) frozenBottom = null
     }
     val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current

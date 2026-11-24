@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
 import androidx.room.util.copy
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -125,6 +126,7 @@ fun BYTextField2(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BYTextField2(
     state: TextFieldState,
@@ -156,15 +158,16 @@ fun BYTextField2(
     if (isPassword) {
         var showPassword by remember { mutableStateOf(false) }
 
-        SecureTextField(
+        OutlinedSecureTextField(
             state = state,
-            colors = textFieldColors(),
-            // Brief You: filled and rounded, as the rest of the design
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(com.ay.briefyou.brief.ui.Corner.Small),
+            colors = outlinedFieldColors(),
+            // Brief You: outlined, a rounded rectangle; the label is the faint hint in the box and moves up onto the outline when you type
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            // The hint is the label: faint in the empty box, on the outline once you type.
             label =
-                if (label.isEmpty()) null
+                if (label.isEmpty() && placeholder.isEmpty()) null
                 else {
-                    { Text(label) }
+                    { Text(label.ifEmpty { placeholder }) }
                 },
             modifier = modifier.focusRequester(focusRequester),
             trailingIcon = {
@@ -176,7 +179,7 @@ fun BYTextField2(
             textObfuscationMode =
                 if (showPassword) TextObfuscationMode.Visible
                 else TextObfuscationMode.RevealLastTyped,
-            placeholder = { Text(text = placeholder) },
+            placeholder = if (label.isEmpty()) null else if (placeholder.isEmpty()) null else { { Text(text = placeholder) } },
             keyboardOptions = keyboardOptions,
             onKeyboardAction = onKeyboardAction,
             isError = errorMessage.isNotEmpty(),
@@ -186,16 +189,17 @@ fun BYTextField2(
                 } else null,
         )
     } else {
-        TextField(
+        OutlinedTextField(
             state = state,
             modifier = modifier.focusRequester(focusRequester),
-            colors = textFieldColors(),
-            // Brief You: filled and rounded, as the rest of the design
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(com.ay.briefyou.brief.ui.Corner.Small),
+            colors = outlinedFieldColors(),
+            // Brief You: outlined, a rounded rectangle; the label is the faint hint in the box and moves up onto the outline when you type
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            // The hint is the label: faint in the empty box, on the outline once you type.
             label =
-                if (label.isEmpty()) null
+                if (label.isEmpty() && placeholder.isEmpty()) null
                 else {
-                    { Text(label) }
+                    { Text(label.ifEmpty { placeholder }) }
                 },
             lineLimits =
                 if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(),
@@ -207,7 +211,7 @@ fun BYTextField2(
                 }
             },
             isError = errorMessage.isNotEmpty(),
-            placeholder = { Text(text = placeholder) },
+            placeholder = if (label.isEmpty()) null else if (placeholder.isEmpty()) null else { { Text(text = placeholder) } },
             keyboardOptions = keyboardOptions,
             onKeyboardAction = onKeyboardAction,
             readOnly = readOnly,
@@ -233,7 +237,7 @@ fun BYOutlinedTextField2(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
 ) {
-    // Brief You: one field style everywhere (filled and rounded)
+    // Brief You: one field style everywhere (outlined, a rounded rectangle)
     BYTextField2(
         state = state,
         modifier = modifier,
@@ -248,6 +252,15 @@ fun BYOutlinedTextField2(
         onKeyboardAction = onKeyboardAction,
     )
 }
+
+/** The outlined field's own fill: the colour the filled field had (surfaceContainerHighest), a step off the base it sits on. */
+@Composable
+private fun outlinedFieldColors(): TextFieldColors =
+    androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        errorContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+    )
 
 @Composable
 fun textFieldColors(): TextFieldColors =
