@@ -383,7 +383,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         }
                         itemsIndexed(rows, key = { _, it -> "watched-today-${it.articleId}" }) { index, entry ->
                             Box(Modifier.animateItem()) {
-                                WatchedLogCard(entry, groupShape(index, rows.size)) { openWatched(entry) }
+                                WatchedLogCard(entry, groupShape(index, rows.size), onOpen = { openWatched(entry) })
                             }
                         }
                     }
@@ -415,7 +415,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                                 val shown = rows.take(shownInGroup[key] ?: GROUP_PAGE)
                                 itemsIndexed(shown, key = { _, it -> "$key-${it.articleId}" }) { index, entry ->
                                     Box(Modifier.animateItem()) {
-                                        WatchedLogCard(entry, groupShape(index, shown.size)) { openWatched(entry) }
+                                        WatchedLogCard(entry, groupShape(index, shown.size), onOpen = { openWatched(entry) })
                                     }
                                 }
                                 val more = rows.size - shown.size
