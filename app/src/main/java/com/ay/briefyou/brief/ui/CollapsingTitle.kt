@@ -126,10 +126,11 @@ fun CountChip(text: String) {
                 .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = text,
-            maxLines = 1,
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+        // Rolls digit by digit when the count changes, like the number in Home's cookie.
+        RollingNumber(
+            value = text.filter { it.isDigit() }.toIntOrNull() ?: 0,
+            number = text,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"),
             color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
     }
