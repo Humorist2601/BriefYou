@@ -452,7 +452,7 @@ fun FlowPage(
                                     }
                                 androidx.compose.foundation.layout.Row(
                                     modifier = Modifier.padding(start = 8.dp, top = 6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
                                 ) {
                                     Text(
                                         text = countText ?: " ",
