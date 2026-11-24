@@ -30,7 +30,19 @@ fun LazyListScope.ArticleList(
     onMarkBelowAsRead: ((ArticleWithFeed) -> Unit)? = null,
     onShare: ((ArticleWithFeed) -> Unit)? = null,
     listState: androidx.compose.foundation.lazy.LazyListState? = null, // Brief You: for the pinned day's line
+    animateRows: Boolean = false, // Brief You: rows fade and glide while the results change (a search)
 ) {
+    // Brief You: while searching, rows that stay glide to their new place, new ones fade in and
+    // the ones that no longer match fade out, instead of the list jumping.
+    val rowMotion: androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = {
+        if (animateRows)
+            Modifier.animateItem(
+                fadeInSpec = androidx.compose.animation.core.tween(220, delayMillis = 40),
+                placementSpec = androidx.compose.animation.core.spring(dampingRatio = 0.85f, stiffness = 380f),
+                fadeOutSpec = androidx.compose.animation.core.tween(120),
+            )
+        else Modifier
+    }
     // https://issuetracker.google.com/issues/193785330
     // FIXME: Using sticky header with paging-compose need to iterate through the entire list
     //  to figure out where to add sticky headers, which significantly impacts the performance
@@ -47,6 +59,7 @@ fun LazyListScope.ArticleList(
                     val articleWithFeed = remember(item.articleWithFeed) { item.articleWithFeed } // Brief You
                     val article = articleWithFeed.article // Brief You
                     SwipeableArticleItem(
+                        modifier = rowMotion(),
                         articleWithFeed = articleWithFeed, // Brief You
                         isUnread = diffMap[article.id]?.isUnread ?: article.isUnread,
                         onClick = { onClick(it, index) },
@@ -81,6 +94,7 @@ fun LazyListScope.ArticleList(
                         val articleWithFeed = remember(item.articleWithFeed) { item.articleWithFeed } // Brief You: see above
                         val article = articleWithFeed.article // Brief You
                         SwipeableArticleItem(
+                            modifier = rowMotion(),
                             articleWithFeed = articleWithFeed, // Brief You
                             isUnread = diffMap[article.id]?.isUnread ?: article.isUnread,
                             onClick = { onClick(it, index) },

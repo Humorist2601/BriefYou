@@ -104,6 +104,19 @@ Not wanted (the owner found them too much): reading-time, streak, recap and tren
 
 The floating bottom pill's movement (`NavPill.kt`) and the card gradient idea come from Trainable (GPL-3.0); keep their credit comments.
 
+## 9a. Article list (style B: open rows)
+
+Chosen by the owner from mock-ups (A cards, B open rows): **B, no unread dots.** The page is `surface`; rows are flat (no cards).
+- Title: big wide heading with a muted line under it (`bodyMedium`, `onSurfaceVariant`): "27 unread in 2 feeds" (the tab decides unread / starred / all; one feed: just the number). Data: `ArticleListReaderViewModel.listScope`, which reads the same per-feed counts Home uses (no extra query).
+- Row: feed name (feed accent) + time, bold title when unread (medium when read), two-line description, 80 dp picture with 16 dp corners. Read rows dim (the user's read-indicator setting).
+- Day label: `StickyHeader`, tracked capitals (labelMedium ExtraBold, 0.12 em, `primary`), the day's count on the right.
+- Search: pill field (`surfaceContainerHigh`) with a 2 dp accent outline while focused, a round close button (`surfaceContainerHighest`). Results follow the typing after 250 ms; the list keeps its old results until the new ones are loaded (`shownItems` in `FlowPage`), and rows use `animateItem` only while searching.
+- Not built from the mock-up: the result count under the search field, and the card style A.
+
+## AI summary sheet
+
+Fixed 70% height (never jumps). Loading = one card where the first point appears (`LoadingIndicator` inside). States cross-fade (`AnimatedContent` keyed by state kind). New cards rise and fade in (`SlideIn`), cards grow with `animateContentSize`, and the newest 18 characters fade in from faint (`writingText`) instead of a cursor glyph. The view follows the newest line unless the user scrolled up.
+
 ## 9. The rest of the app: what is left to redesign
 
 Home is done. Everything below is still to do, on the branch `screens/home`, one surface at a time. The merge to `main`

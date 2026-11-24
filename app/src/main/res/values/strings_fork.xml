@@ -438,6 +438,22 @@
         <item quantity="one">%s article</item>
         <item quantity="other">%s articles</item>
     </plurals>
+    <!-- The line under the list's title: how many, and in how many feeds. -->
+    <plurals name="list_sub_unread_feeds">
+        <item quantity="one">%1$s unread in %2$d feed</item>
+        <item quantity="other">%1$s unread in %2$d feeds</item>
+    </plurals>
+    <plurals name="list_sub_starred_feeds">
+        <item quantity="one">%1$s starred in %2$d feed</item>
+        <item quantity="other">%1$s starred in %2$d feeds</item>
+    </plurals>
+    <plurals name="list_sub_all_feeds">
+        <item quantity="one">%1$s articles in %2$d feed</item>
+        <item quantity="other">%1$s articles in %2$d feeds</item>
+    </plurals>
+    <string name="list_sub_unread">%1$s unread</string>
+    <string name="list_sub_starred">%1$s starred</string>
+    <string name="list_sub_all">%1$s articles</string>
     <string name="group_icon_folder">Folder icon</string>
     <string name="empty_starred_title">Nothing starred yet</string>
     <string name="empty_starred_text">Star an article, or save one in Triage, to keep it here.</string>

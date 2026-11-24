@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter // Brief You
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -163,6 +164,28 @@ constructor(
             }
         return FlowUiState(nextFilterState = next, pagerData = pagerData)
     }
+
+    /**
+     * Brief You: how many articles the open list stands for (unread, starred or all, by the tab) and
+     * in how many feeds, for the line under its title. It reads the same per-feed counts Home shows
+     * (already worked out, with the articles read in this session taken off), so it costs no query.
+     */
+    val listScope: StateFlow<ListScope?> =
+        combine(
+                groupWithFeedsListUseCase.groupWithFeedListFlow,
+                filterStateUseCase.filterStateFlow
+                    .map { Triple(it.group?.id, it.feed?.id, it.filter) }
+                    .distinctUntilChanged(),
+            ) { groups, (groupId, feedId, _) ->
+                val feeds =
+                    when {
+                        feedId != null -> groups.flatMap { it.feeds }.filter { it.id == feedId }
+                        groupId != null -> groups.firstOrNull { it.group.id == groupId }?.feeds.orEmpty()
+                        else -> groups.flatMap { it.feeds }
+                    }
+                ListScope(count = feeds.sumOf { it.important }, feeds = feeds.count { it.important > 0 }, single = feedId != null)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val syncWorkerStatusFlow =
         workManager
@@ -633,6 +656,9 @@ constructor(
         }
     }
 }
+
+/** The open list's article count and the number of feeds it comes from ([single]: one feed). */
+data class ListScope(val count: Int, val feeds: Int, val single: Boolean)
 
 data class FlowUiState(val pagerData: PagerData, val nextFilterState: FilterState? = null)
 

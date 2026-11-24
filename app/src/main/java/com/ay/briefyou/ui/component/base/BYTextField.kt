@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -163,6 +164,7 @@ fun BYTextField2(
     autoFocus: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
+    fillHeight: Boolean = false,
 ) {
     val focusRequester = remember { FocusRequester() }
 
@@ -193,6 +195,7 @@ fun BYTextField2(
         errorMessage = errorMessage,
         keyboardOptions = keyboardOptions,
         onKeyboardAction = onKeyboardAction,
+        fillHeight = fillHeight,
         trailing = {
             if (isPassword) {
                 PasswordVisibilityButton(showPassword = showPassword, onValueChange = { showPassword = it })
@@ -226,6 +229,7 @@ private fun ChipLabelField(
     keyboardOptions: KeyboardOptions,
     onKeyboardAction: KeyboardActionHandler?,
     trailing: (@Composable () -> Unit)?,
+    fillHeight: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
     var focused by remember { mutableStateOf(false) }
@@ -269,6 +273,8 @@ private fun ChipLabelField(
     Column(modifier.padding(top = 8.dp)) {
         Box(
             Modifier.fillMaxWidth()
+                // A tall editor (fillHeight) takes the space its parent gives it.
+                .then(if (fillHeight) Modifier.weight(1f) else Modifier)
                 .heightIn(min = 60.dp)
                 .onSizeChanged { boxHeight = it.height }
                 .background(scheme.surfaceContainerHighest, shape)
@@ -277,15 +283,24 @@ private fun ChipLabelField(
             // instead of the line running through the chip.
             Box(Modifier.matchParentSize().border(borderWidth, borderColor, shape))
             Row(
-                Modifier.fillMaxWidth().padding(start = 16.dp, end = if (trailing != null) 4.dp else 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                Modifier.fillMaxWidth()
+                    .then(if (fillHeight) Modifier.fillMaxHeight() else Modifier)
+                    .padding(start = 16.dp, end = if (trailing != null) 4.dp else 16.dp),
+                verticalAlignment = if (fillHeight) Alignment.Top else Alignment.CenterVertically,
             ) {
-                Box(Modifier.weight(1f).padding(vertical = 18.dp)) {
+                Box(
+                    Modifier.weight(1f)
+                        .then(if (fillHeight) Modifier.fillMaxHeight() else Modifier)
+                        .padding(vertical = 18.dp)
+                ) {
                     if (placeholder.isNotEmpty() && focused && state.text.isEmpty()) {
                         Text(placeholder, style = textStyle, color = scheme.onSurfaceVariant.copy(alpha = 0.6f))
                     }
                     val fieldModifier =
-                        Modifier.fillMaxWidth().focusRequester(focusRequester).onFocusChanged { focused = it.isFocused }
+                        Modifier.fillMaxWidth()
+                            .then(if (fillHeight) Modifier.fillMaxHeight() else Modifier)
+                            .focusRequester(focusRequester)
+                            .onFocusChanged { focused = it.isFocused }
                     if (isPassword) {
                         BasicSecureTextField(
                             state = state,
@@ -318,7 +333,8 @@ private fun ChipLabelField(
             Box(
                 Modifier.align(Alignment.TopStart)
                     .graphicsLayer {
-                        val restY = (boxHeight - labelHeight) / 2f
+                        // At rest the hint sits in the first row (60 dp), also in a tall editor.
+                        val restY = (boxHeight.coerceAtMost(60.dp.roundToPx()) - labelHeight) / 2f
                         val upY = -labelHeight * 0.75f / 2f
                         translationX = lerp(6.dp.toPx(), 14.dp.toPx(), rise)
                         translationY = lerp(restY, upY, rise)

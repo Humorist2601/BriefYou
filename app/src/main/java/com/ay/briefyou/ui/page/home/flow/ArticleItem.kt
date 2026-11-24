@@ -276,7 +276,13 @@ fun ArticleItem(
                         style =
                             MaterialTheme.typography.titleMedium
                                 .applyTextDirection(title.requiresBidi())
-                                .merge(lineHeight = 22.sp),
+                                // Brief You: unread titles bold, read ones medium (no dot).
+                                .merge(
+                                    lineHeight = 22.sp,
+                                    fontWeight =
+                                        if (isUnread) androidx.compose.ui.text.font.FontWeight.Bold
+                                        else androidx.compose.ui.text.font.FontWeight.Medium,
+                                ),
                         maxLines =
                             if (articleListDesc != FlowArticleListDescPreference.NONE) 2 else 4,
                         overflow = TextOverflow.Ellipsis,
@@ -351,6 +357,7 @@ private const val SwipeActionDelay = 300L
 
 @Composable
 fun SwipeableArticleItem(
+    modifier: Modifier = Modifier, // Brief You: the list's row animation
     articleWithFeed: ArticleWithFeed,
     isUnread: Boolean = articleWithFeed.article.isUnread,
     onClick: (ArticleWithFeed) -> Unit = {},
@@ -381,6 +388,7 @@ fun SwipeableArticleItem(
     var menuOffset by remember { mutableStateOf(IntOffset.Zero) }
 
     SwipeActionBox(
+        modifier = modifier,
         articleWithFeed = articleWithFeed,
         isRead = !isUnread,
         isStarred = articleWithFeed.article.isStarred,

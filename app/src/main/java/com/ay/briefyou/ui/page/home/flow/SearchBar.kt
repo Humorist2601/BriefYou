@@ -19,6 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -26,9 +29,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ay.briefyou.R
-import com.ay.briefyou.domain.model.constant.ElevationTokens
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.FlowPreview::class)
 @Composable
 fun SearchBar(
     value: String,
@@ -40,6 +42,21 @@ fun SearchBar(
     val focusManager = LocalFocusManager.current
 
     var input by remember { mutableStateOf(value) }
+    var focused by remember { mutableStateOf(false) }
+    // Brief You: the results follow the typing a moment after the last key, so the list changes
+    // once per word instead of once per letter (no flicker).
+    val latestOnChange by androidx.compose.runtime.rememberUpdatedState(onValueChange)
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        androidx.compose.runtime.snapshotFlow { input }
+            .drop(1)
+            .debounce(250)
+            .collect { latestOnChange(it) }
+    }
+    // Brief You: the outline takes the accent colour while you type.
+    val outline by androidx.compose.animation.animateColorAsState(
+        if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
+        label = "searchOutline",
+    )
 
     Surface(
         modifier = Modifier
@@ -49,7 +66,8 @@ fun SearchBar(
             .height(56.dp)
             .fillMaxWidth(),
         shape = CircleShape,
-        tonalElevation = ElevationTokens.Level2.dp
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = androidx.compose.foundation.BorderStroke(2.dp, outline),
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -70,7 +88,8 @@ fun SearchBar(
                     modifier = Modifier
                         .height(56.dp)
                         .fillMaxWidth()
-                        .focusRequester(focusRequester),
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { focused = it.isFocused },
                     colors = TextFieldDefaults.colors(
                         unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         focusedContainerColor = Color.Transparent,
@@ -80,10 +99,7 @@ fun SearchBar(
                         unfocusedIndicatorColor = Color.Transparent,
                     ),
                     value = input,
-                    onValueChange = {
-                        input = it
-                        onValueChange(it)
-                    },
+                    onValueChange = { input = it },
                     placeholder = {
                         Text(
                             modifier = Modifier.alpha(0.7f),
@@ -106,7 +122,13 @@ fun SearchBar(
                     )
                 )
             }
-            IconButton(onClick = { onClose() }) {
+            IconButton(
+                onClick = { onClose() },
+                modifier = Modifier.padding(end = 8.dp).size(40.dp),
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                ),
+            ) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = stringResource(R.string.clear),

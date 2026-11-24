@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.runtime.getValue // Brief You
 
 @Composable
@@ -37,9 +38,13 @@ fun StickyHeader(
             modifier = Modifier
                 .padding(start = 24.dp) // Brief You
                 .padding(top = 8.dp, bottom = 4.dp),
-            text = dateString,
+            text = dateString.uppercase(), // Brief You: tracked capitals, like Home's section labels
             color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.labelLarge,
+            style =
+                MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                    letterSpacing = 0.12.em,
+                ),
         )
         if (dayCount != null && dayCount.count > 0) { // Brief You
             androidx.compose.foundation.layout.Spacer(Modifier.weight(1f)) // Brief You

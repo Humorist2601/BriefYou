@@ -1,6 +1,10 @@
 package com.ay.briefyou.brief.ai
 
-import com.ay.briefyou.brief.ui.sheetMaxHeight
+import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.animateContentSize
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.withStyle
 import com.ay.briefyou.brief.ui.sheetScrollFade
 import androidx.compose.material3.toShape
 import androidx.compose.material3.MaterialShapes
@@ -47,7 +51,6 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
@@ -186,7 +189,8 @@ fun SummarySheet(
         Column(
             modifier =
                 Modifier.fillMaxWidth()
-                    .sheetMaxHeight() // at most 70% of the screen
+                    // Always 70% of the screen, so the sheet never jumps while the text is written.
+                    .height((LocalConfiguration.current.screenHeightDp * 0.7f).dp)
                     .padding(horizontal = horizontalPadding)
                     .navigationBarsPadding()
                     // Room for the keyboard while asking a question.
@@ -212,9 +216,18 @@ fun SummarySheet(
             LaunchedEffect(asks.size, asks.lastOrNull()?.answer?.length) {
                 if (asks.isNotEmpty()) scrollState.animateScrollTo(scrollState.maxValue)
             }
+            // While text is written the view follows the newest line, unless you scrolled up.
+            val writing = (state as? SummaryUiState.Streaming)?.done == false
+            var lastMax by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+            LaunchedEffect(writing) {
+                androidx.compose.runtime.snapshotFlow { scrollState.maxValue }.collectLatest { max ->
+                    if (writing && scrollState.value >= lastMax - 48) scrollState.scrollTo(max)
+                    lastMax = max
+                }
+            }
             Column(
                 modifier =
-                    Modifier.weight(1f, fill = false)
+                    Modifier.weight(1f)
                         .fillMaxWidth()
                         // Scrolling the points never moves the sheet, even at the top or bottom of
                         // the list: only the handle and title above the divider drag it.
@@ -225,7 +238,26 @@ fun SummarySheet(
                         .sheetScrollFade(scrollState)
                         .verticalScroll(scrollState)
             ) {
-                when (state) {
+                // The states cross-fade; a state that only changes its text (the streaming one)
+                // updates in place without animating.
+                androidx.compose.animation.AnimatedContent(
+                    targetState = state,
+                    contentKey = { s ->
+                        when (s) {
+                            SummaryUiState.NeedsModel -> 0
+                            is SummaryUiState.Importing -> 1
+                            is SummaryUiState.Thinking -> 2
+                            is SummaryUiState.Streaming -> 3
+                            is SummaryUiState.Error -> 4
+                        }
+                    },
+                    transitionSpec = {
+                        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(240, delayMillis = 60)) togetherWith
+                            androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120))
+                    },
+                    label = "summaryState",
+                ) { shown ->
+                when (shown) {
                     SummaryUiState.NeedsModel -> {
                         Text(
                             stringResource(R.string.ai_summary_needs_model),
@@ -261,7 +293,7 @@ fun SummarySheet(
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Spacer(Modifier.height(16.dp))
-                        val progress = state.progress
+                        val progress = shown.progress
                         if (progress != null) {
                             LinearWavyProgressIndicator(
                                 progress = { progress },
@@ -272,24 +304,31 @@ fun SummarySheet(
                         }
                     }
 
-                    // Loading: the Expressive shape-morphing indicator, centred, with a line under it.
+                    // Loading: a card where the first point will appear, with the Expressive
+                    // shape-morphing indicator in it, so the first words replace it in place.
                     is SummaryUiState.Thinking -> {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = groupShape(0, 1),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
-                            LoadingIndicator(modifier = Modifier.size(56.dp))
-                            Spacer(Modifier.height(16.dp))
-                            Text(
-                                stringResource(R.string.ai_summary_thinking),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                LoadingIndicator(modifier = Modifier.size(40.dp))
+                                Spacer(Modifier.width(14.dp))
+                                Text(
+                                    stringResource(R.string.ai_summary_thinking),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
 
                     is SummaryUiState.Streaming -> {
-                        SummaryCards(text = state.text, streaming = !state.done)
+                        SummaryCards(text = shown.text, streaming = !shown.done)
                         // Ask this article: the questions and answers, under the summary.
                         if (asks.isNotEmpty()) {
                             Spacer(Modifier.height(16.dp))
@@ -319,7 +358,7 @@ fun SummarySheet(
                             }
                             Spacer(Modifier.height(16.dp))
                             Text(
-                                state.message,
+                                shown.message,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
@@ -332,6 +371,7 @@ fun SummarySheet(
                         }
                     }
                 }
+                } // AnimatedContent
                 Spacer(Modifier.height(16.dp))
             }
 
@@ -609,20 +649,21 @@ private fun SummaryCards(text: String, streaming: Boolean) {
         runs.forEach { run ->
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 run.forEachIndexed { position, (index, part) ->
-                    val cursor = if (streaming && index == parts.lastIndex) " ▍" else ""
+                    val writing = streaming && index == parts.lastIndex
                     key(index) {
                         SlideIn {
                             when (part) {
                                 is SummaryPart.Point ->
                                     PointCard(
                                         number = position + 1,
-                                        text = part.text + cursor,
+                                        text = writingText(part.text, writing, MaterialTheme.colorScheme.onSurface),
                                         shape = groupShape(position, run.size),
                                     )
-                                is SummaryPart.Why -> WhyCard(text = part.text + cursor)
+                                is SummaryPart.Why ->
+                                    WhyCard(text = writingText(part.text, writing, MaterialTheme.colorScheme.onTertiaryContainer))
                                 is SummaryPart.Paragraph ->
                                     Text(
-                                        text = part.text + cursor,
+                                        text = writingText(part.text, writing, MaterialTheme.colorScheme.onSurface),
                                         style = style,
                                         modifier = Modifier.padding(horizontal = 4.dp),
                                     )
@@ -635,15 +676,47 @@ private fun SummaryCards(text: String, streaming: Boolean) {
     }
 }
 
-/** Fades and slides each card in once, when it first appears. */
+/** Each card rises a little and fades in once, when it first appears (no clipping, no jump). */
 @Composable
 private fun SlideIn(content: @Composable () -> Unit) {
-    val visible = remember { MutableTransitionState(false).apply { targetState = true } }
-    AnimatedVisibility(
-        visibleState = visible,
-        enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+    val progress = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(Unit) {
+        progress.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.85f, stiffness = 300f))
+    }
+    Box(
+        Modifier.riseIn(progress)
     ) {
         content()
+    }
+}
+
+private fun Modifier.riseIn(progress: androidx.compose.animation.core.Animatable<Float, *>): Modifier =
+    this.then(
+        Modifier.graphicsLayer {
+            alpha = progress.value.coerceIn(0f, 1f)
+            translationY = (1f - progress.value) * 14.dp.toPx()
+        }
+    )
+
+/**
+ * The text as it is written: while [writing], the newest characters fade in from faint, so the
+ * text appears like ink instead of a cursor jumping along (a cursor glyph also made lines wrap early).
+ */
+private fun writingText(
+    text: String,
+    writing: Boolean,
+    base: androidx.compose.ui.graphics.Color,
+): androidx.compose.ui.text.AnnotatedString {
+    if (!writing || text.isEmpty()) return androidx.compose.ui.text.AnnotatedString(text)
+    val tail = minOf(18, text.length)
+    return androidx.compose.ui.text.buildAnnotatedString {
+        append(text.substring(0, text.length - tail))
+        for (i in 0 until tail) {
+            val alpha = 1f - 0.8f * ((i + 1f) / tail)
+            withStyle(androidx.compose.ui.text.SpanStyle(color = base.copy(alpha = alpha))) {
+                append(text[text.length - tail + i])
+            }
+        }
     }
 }
 
@@ -659,11 +732,11 @@ private fun groupShape(position: Int, size: Int): RoundedCornerShape {
 /** A key point, numbered on a small Expressive shape. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun PointCard(number: Int, text: String, shape: RoundedCornerShape) {
+private fun PointCard(number: Int, text: androidx.compose.ui.text.AnnotatedString, shape: RoundedCornerShape) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().animateContentSize(),
     ) {
         Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
             Box(
@@ -693,13 +766,13 @@ private fun PointCard(number: Int, text: String, shape: RoundedCornerShape) {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun WhyCard(text: String) {
+private fun WhyCard(text: androidx.compose.ui.text.AnnotatedString) {
     Surface(
         // Tertiary, so it stands apart from the key points.
         color = MaterialTheme.colorScheme.tertiaryContainer,
         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
         shape = RoundedCornerShape(28.dp),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().animateContentSize(),
     ) {
         Row(modifier = Modifier.padding(16.dp)) {
             // The bulb on a cookie shape, like a badge.
@@ -754,7 +827,7 @@ private fun AskConversation(asks: List<AskTurn>) {
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 shape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp),
-                modifier = Modifier.widthIn(max = 340.dp),
+                modifier = Modifier.widthIn(max = 340.dp).animateContentSize(),
             ) {
                 Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                     when {
@@ -768,7 +841,7 @@ private fun AskConversation(asks: List<AskTurn>) {
                             LoadingIndicator(modifier = Modifier.size(28.dp))
                         else ->
                             Text(
-                                turn.answer + if (turn.done) "" else " \u258D",
+                                writingText(turn.answer, !turn.done, MaterialTheme.colorScheme.onSurface),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                     }

@@ -144,6 +144,7 @@ fun FlowPage(
     val pullToSwitchFeed = settings.pullToSwitchFeed
 
     val flowUiState = viewModel.flowUiState.collectAsStateValue()
+    val listScope = viewModel.listScope.collectAsStateValue() // Brief You: the line under the title
     if (flowUiState == null) return
 
     val pagerData: PagerData = flowUiState.pagerData
@@ -387,6 +388,7 @@ fun FlowPage(
                                 // stays on one line and shrinks further. Several words may wrap
                                 // onto two lines, between words.
                                 val oneWord = !titleText.trim().contains(' ')
+                                androidx.compose.foundation.layout.Column {
                                 BasicText(
                                     modifier =
                                         Modifier.padding(
@@ -410,6 +412,51 @@ fun FlowPage(
                                             maxFontSize = textStyle.fontSize,
                                         ),
                                 )
+                                // Brief You: how many, and in how many feeds (the tab decides what is counted).
+                                val sub =
+                                    listScope?.let { sc ->
+                                        val n = java.text.NumberFormat.getIntegerInstance().format(sc.count)
+                                        when {
+                                            sc.single || sc.feeds < 2 ->
+                                                stringResource(
+                                                    when {
+                                                        filterUiState.filter.isStarred() -> R.string.list_sub_starred
+                                                        filterUiState.filter.isUnread() -> R.string.list_sub_unread
+                                                        else -> R.string.list_sub_all
+                                                    },
+                                                    n,
+                                                )
+                                            else ->
+                                                androidx.compose.ui.res.pluralStringResource(
+                                                    when {
+                                                        filterUiState.filter.isStarred() -> R.plurals.list_sub_starred_feeds
+                                                        filterUiState.filter.isUnread() -> R.plurals.list_sub_unread_feeds
+                                                        else -> R.plurals.list_sub_all_feeds
+                                                    },
+                                                    sc.feeds,
+                                                    n,
+                                                    sc.feeds,
+                                                )
+                                        }
+                                    }
+                                androidx.compose.animation.AnimatedContent(
+                                    targetState = sub ?: "",
+                                    transitionSpec = {
+                                        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200)) togetherWith
+                                            androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120))
+                                    },
+                                    label = "listSub",
+                                ) { line ->
+                                    if (line.isNotEmpty()) {
+                                        Text(
+                                            text = line,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(start = 8.dp, top = 6.dp),
+                                        )
+                                    }
+                                }
+                                }
                             } else {
                                 Text(
                                     text = titleText,
@@ -573,7 +620,16 @@ fun FlowPage(
                 ) { flowUiState ->
                     val pager = flowUiState.pagerData.pager
                     val filterState = flowUiState.pagerData.filterState
-                    val pagingItems = pager.collectAsLazyPagingItems().also { pagingItems = it }
+                    // Brief You: while typing a search the list keeps showing its previous results
+                    // until the new ones have loaded, then swaps (rows glide, no empty flash).
+                    val latestItems = pager.collectAsLazyPagingItems()
+                    var shownItems by remember { mutableStateOf(latestItems) }
+                    LaunchedEffect(latestItems) {
+                        snapshotFlow { latestItems.loadState.refresh is androidx.paging.LoadState.NotLoading }
+                            .first { it }
+                        shownItems = latestItems
+                    }
+                    val pagingItems = shownItems.also { pagingItems = it }
                     // Brief You: the first articles of the list tidied ahead, so the first taps open at once.
                     LaunchedEffect(pagingItems) { // Brief You
                         // The first three articles, skipping the date headings between them. // Brief You
@@ -743,6 +799,7 @@ fun FlowPage(
                                 isShowStickyHeader = articleListDateStickyHeader.value,
                                 isSwipeEnabled = swipeEnabled, // Brief You: made once (see onArticleClick)
                                 listState = listState, // Brief You: the pinned day's line
+                                animateRows = onSearch || filterState.searchContent != null, // Brief You
                                 onClick = onArticleClick, // Brief You: made once
                                 onToggleStarred = onToggleStarred,
                                 onToggleRead = onToggleRead,

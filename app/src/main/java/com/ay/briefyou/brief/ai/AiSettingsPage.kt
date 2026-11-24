@@ -64,6 +64,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -316,7 +317,8 @@ private fun PromptDialog(
     onSave: (String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var text by remember { mutableStateOf(initial) }
+    // The field edits this state directly, so Reset can put the default text back into it.
+    val fieldState = androidx.compose.foundation.text.input.rememberTextFieldState(initial)
     val state = com.ay.briefyou.brief.ui.rememberFullSheetState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     androidx.compose.material3.ModalBottomSheet(
@@ -339,18 +341,22 @@ private fun PromptDialog(
                 icon = Icons.Outlined.Summarize,
             )
             Spacer(Modifier.height(8.dp))
-            androidx.compose.material3.TextField(
-                colors = com.ay.briefyou.ui.component.base.textFieldColors(),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(com.ay.briefyou.brief.ui.Corner.Card),
-                value = text,
-                onValueChange = { text = it },
+            com.ay.briefyou.ui.component.base.BYTextField2(
+                state = fieldState,
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                textStyle = MaterialTheme.typography.bodyMedium,
+                label = title,
+                singleLine = false,
+                autoFocus = false,
+                fillHeight = true,
+                keyboardOptions =
+                    androidx.compose.foundation.text.KeyboardOptions(
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Default
+                    ),
             )
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilledTonalButton(
-                    onClick = { text = default },
+                    onClick = { fieldState.setTextAndPlaceCursorAtEnd(default) },
                     shape = androidx.compose.foundation.shape.CircleShape,
                     modifier = Modifier.weight(1f).height(48.dp),
                 ) {
@@ -360,6 +366,7 @@ private fun PromptDialog(
                 }
                 Button(
                     onClick = {
+                        val text = fieldState.text.toString()
                         onSave(if (text.trim() == default) null else text.trim())
                         scope.launch { state.hide() }.invokeOnCompletion { onDismiss() }
                     },
