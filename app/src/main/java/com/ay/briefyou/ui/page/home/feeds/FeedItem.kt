@@ -81,7 +81,7 @@ private fun FeedItemImpl(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        com.ay.briefyou.brief.filters.WatchedCount(com.ay.briefyou.brief.filters.WatchedWords.feedCounts[feed.id] ?: 0) // Brief You: watched words
+        com.ay.briefyou.brief.filters.WatchedFeedCount(com.ay.briefyou.brief.filters.WatchedWords.feedCounts[feed.id] ?: 0) // Brief You: watched words
         if (feed.important != 0) {
             // Brief You: a chip as wide as the group's arrow chip, so the two line up
             Box(

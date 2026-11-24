@@ -45,6 +45,11 @@ Brief You is a calm, private RSS reader with AI that runs **entirely on your pho
 - Translate: the translate button in the reading page's top bar translates the article with your AI model, into your phone's language. Each paragraph replaces its original as soon as it is written, the ones still waiting are dimmed, and a wavy bar counts the paragraphs. Tap again to flip between the original and the translation; hold it to pick another language. Links and bold or italic words are kept where the model keeps their tags; if it breaks them, that paragraph is plain text. The page is patched in place paragraph by paragraph, so it doesn't reload or flicker. It is slower than an online translator, and it may make mistakes.
 - Summaries open in a sheet at 70% of the screen. Each key point slides in as a card as it's written, and "Why it matters" gets its own accent card.
 - Regenerate, Ask and Read are three connected buttons at the bottom of the sheet.
+- Settings choices (initial page, swipe actions, fonts, sync interval, backups and the rest) are dialogs again, each with its own icon; long lists scroll inside with a fade at the edges. Tapping the dim area now closes every dialog, Add feed too.
+- Sheets are never taller than 70% of the screen: they are as tall as what they hold up to that, and the rest scrolls.
+- In the Filters sheet, tap *Muted*, *Duplicates* or *Watched* to filter today's list to that kind (the list says *Today · Duplicates*); tap it again to see all.
+- The hero card's number rolls to its new value digit by digit, each digit sliding and fading into the next, so a sync's small steps only move the last digit; when a sync finishes the cookie gives one small pulse. Its words, sentence, greeting and the chip's colours fade over instead of jumping.
+- On the Filters page the tiles (now the size of the Reading stats tiles, in the order Duplicates, Muted, Watched) decide what shows below, like those on the Reading stats page: the Duplicates tile shows the switch and the hidden duplicates, Muted the muted words and the muted articles, Watched the watched words and the watched articles (the tabs are gone). On Home, a feed's watched count is a plain number in a tertiary chip as big as its unread count; the eye badge stays by the group's name. The Triage "Skip after" menu has its own lighter card with an outline, so it no longer blends into the card behind it. The pull-up actions in the article list (Mark all as read, Next feed) follow your theme colours.
 - Menus have a new look: pieces instead of one box. An article's long-press menu is **Mark above as read**, a strip of round buttons (read, star, share, newspaper; the ones that are on are lit) and **Mark below as read**. Triage's **Skip after** is a grid of six chips. The image viewer's menu has three round buttons: save, share the link and **share the image** itself. Hold a round button to see what it does, in a small bubble like the app's hints.
 - Gists: tap the **AI button** beside the bottom bar of an *Unread* list and pick **AI Gist**. One tap marks all of them as read.
 - Ask slides up a box for questions. Answers are short; the model may add general knowledge, and says when it does.
@@ -80,7 +85,7 @@ Brief You is a calm, private RSS reader with AI that runs **entirely on your pho
   - the lead picture in black and white with a faint dot screen, like newsprint;
   - the AI's 3 points boxed as *In brief*, and the opening lines in two columns;
   - a zig-zag cut at the top and bottom; always drawn 1600 pixels wide, so it stays sharp in messaging apps (send it in HD on WhatsApp).
-- While it's made, a sheet shows the steps (getting the full article, writing *In brief*, setting the page). The title and link go with the picture.
+- While it's made, a dialog shows the steps (getting the full article, writing *In brief*, setting the page). The title and link go with the picture.
 - Selected text and its handles use your accent colour.
 - Feeds that only send a teaser show no reading-time estimate rather than a wrong one.
 - Articles without a colourful picture keep your theme's colours.

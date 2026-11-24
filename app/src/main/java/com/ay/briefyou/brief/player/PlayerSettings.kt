@@ -57,6 +57,7 @@ fun PlayerSettings() {
     RadioDialog(
         visible = dialog,
         title = stringResource(R.string.player_mark_read),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.PlayerMarkRead,
         options =
             shares.map {
                 RadioDialogOption(text = label(it), selected = it == share) {

@@ -166,6 +166,7 @@ fun ReadingTitlePage(
     RadioDialog(
         visible = titleAlignDialogVisible,
         title = stringResource(R.string.alignment),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.Alignment,
         options = ReadingTitleAlignPreference.values.map {
             RadioDialogOption(
                 text = it.toDesc(context),
@@ -182,6 +183,7 @@ fun ReadingTitlePage(
     RadioDialog(
         visible = subtitleAlignDialogVisible,
         title = stringResource(R.string.alignment),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.Alignment,
         options = ReadingSubheadAlignPreference.values.map {
             RadioDialogOption(
                 text = it.toDesc(context),

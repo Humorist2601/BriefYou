@@ -189,6 +189,7 @@ fun ListsStylePage(onBack: () -> Unit) {
     RadioDialog(
         visible = showArticleListDescDialog,
         title = stringResource(R.string.article_desc),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.ArticleDesc,
         options = FlowArticleListDescPreference.values.map {
             RadioDialogOption(
                 text = it.description(),
@@ -203,6 +204,7 @@ fun ListsStylePage(onBack: () -> Unit) {
     RadioDialog(
         visible = articleListReadIndicatorDialogVisible,
         title = stringResource(id = R.string.grey_out_articles),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.GreyOut,
         options = FlowArticleReadIndicatorPreference.values.map {
             RadioDialogOption(
                 text = it.description,

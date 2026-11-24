@@ -5,7 +5,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,5 +54,72 @@ fun ChoiceSheet(title: String, hint: String?, choices: List<Choice>, onDismiss: 
                 }
             }
         }
+    }
+}
+
+/**
+ * A setting's choices as a dialog: its own icon on the cookie, the title, an optional muted line,
+ * and the choices as one joined group (the chosen one filled and ticked) that scrolls inside the
+ * dialog, fading at its edges, when there are many. A tap applies the choice and closes it.
+ */
+@Composable
+fun ChoiceDialog(
+    visible: Boolean,
+    title: String,
+    hint: String?,
+    icon: androidx.compose.ui.graphics.vector.ImageVector?,
+    choices: List<Choice>,
+    onDismiss: () -> Unit,
+) {
+    LingerDialog(visible) {
+        InWindowAlertDialog(
+            onDismissRequest = onDismiss,
+            icon = {
+                androidx.compose.material3.Icon(
+                    icon ?: Icons.Outlined.Checklist,
+                    contentDescription = null,
+                    modifier = Modifier.size(26.dp),
+                )
+            },
+            title = { androidx.compose.material3.Text(title) },
+            text = {
+                Column {
+                    if (hint != null) {
+                        androidx.compose.material3.Text(
+                            hint,
+                            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                        )
+                    }
+                    val scroll = rememberScrollState()
+                    val maxList = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.5f).dp
+                    Column(
+                        modifier = Modifier.heightIn(max = maxList).sheetScrollFade(scroll).verticalScroll(scroll),
+                        verticalArrangement = Arrangement.spacedBy(Group.Gap),
+                    ) {
+                        choices.forEachIndexed { i, choice ->
+                            ChoiceRow(
+                                title = choice.text,
+                                selected = choice.selected,
+                                titleStyle = choice.style,
+                                shape = groupShape(i, choices.size),
+                                restColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHighest,
+                                onClick = {
+                                    choice.onClick()
+                                    onDismiss()
+                                },
+                            )
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = onDismiss) {
+                    androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.ay.briefyou.R.string.cancel))
+                }
+            },
+            confirmButton = {},
+        )
     }
 }

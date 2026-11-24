@@ -238,6 +238,7 @@ fun ColorAndStylePage(
     RadioDialog(
         visible = fontsDialogVisible,
         title = stringResource(R.string.basic_fonts),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.BasicFonts,
         options = BasicFontsPreference.values.map {
             RadioDialogOption(
                 text = it.toDesc(context),

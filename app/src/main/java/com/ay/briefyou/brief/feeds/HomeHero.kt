@@ -2,6 +2,8 @@
 
 package com.ay.briefyou.brief.feeds
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import android.view.SoundEffectConstants
@@ -41,7 +43,6 @@ import androidx.compose.material.icons.outlined.WbCloudy
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.outlined.WbTwilight
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -257,6 +258,19 @@ fun HomeHero(
     val sentence = statusSentence ?: baseSentence
     val name = if (statusSentence != null) null else baseName
     val number = remember(shownCount) { NumberFormat.getIntegerInstance().format(shownCount) }
+    // The number in the cookie rolls to its new value, digit by digit (see HeroDigits); when a sync
+    // finishes the cookie gives one small spring pulse.
+    val pulse = remember { androidx.compose.animation.core.Animatable(1f) }
+    var wasSyncing by remember { mutableStateOf(syncing) }
+    val syncedClean = problem == com.ay.briefyou.brief.app.SyncStatus.Problem.None && online
+    val syncedCleanNow by androidx.compose.runtime.rememberUpdatedState(syncedClean)
+    LaunchedEffect(syncing) {
+        if (wasSyncing && !syncing && syncedCleanNow) {
+            pulse.animateTo(1.14f, androidx.compose.animation.core.tween(110, easing = androidx.compose.animation.core.FastOutSlowInEasing))
+            pulse.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.32f, stiffness = 380f))
+        }
+        wasSyncing = syncing
+    }
 
     // When the account last synced: a quiet chip, greyed with a "synced" word when it is old.
     val age = updatedAt?.let { ((now - it.time) / 60_000L).coerceAtLeast(0L) }
@@ -317,40 +331,71 @@ fun HomeHero(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(greetingIcon, contentDescription = null, tint = ink, modifier = Modifier.size(18.dp))
-                            Text(
-                                text = greeting.uppercase(),
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.3.sp),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                        // The greeting (and its icon) fades into the next one as the day moves on.
+                        androidx.compose.animation.AnimatedContent(
+                            targetState = greeting to greetingIcon,
+                            transitionSpec = {
+                                androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(260)) togetherWith
+                                    androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(160))
+                            },
+                            label = "heroGreeting",
+                        ) { (greetingText, greetingGlyph) ->
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(greetingGlyph, contentDescription = null, tint = ink, modifier = Modifier.size(18.dp))
+                                Text(
+                                    text = greetingText.uppercase(),
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.3.sp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
-                        if (chip != null) {
+                        // The chip fades in and out, and its width follows its text.
+                        val lastChip = remember { arrayOfNulls<HeroChip>(1) }
+                        if (chip != null) lastChip[0] = chip
+                        val shownChip = chip ?: lastChip[0]
+                        // Normal and error colours fade into each other (a failed sync, then a good one).
+                        val chipBg by androidx.compose.animation.animateColorAsState(
+                            if (shownChip?.error == true) MaterialTheme.colorScheme.errorContainer else ink.copy(alpha = 0.12f),
+                            androidx.compose.animation.core.tween(260),
+                            label = "heroChipBg",
+                        )
+                        val chipFg by androidx.compose.animation.animateColorAsState(
+                            if (shownChip?.error == true) MaterialTheme.colorScheme.onErrorContainer else ink,
+                            androidx.compose.animation.core.tween(260),
+                            label = "heroChipFg",
+                        )
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = chip != null,
+                            enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)),
+                            exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(160)),
+                        ) {
+                            if (shownChip != null) {
                             Row(
-                                Modifier.clip(CircleShape)
-                                    .background(if (chip.error) MaterialTheme.colorScheme.errorContainer else ink.copy(alpha = 0.12f))
+                                Modifier.animateContentSize().clip(CircleShape)
+                                    .background(chipBg)
                                     .drawBehind {
                                         // How far the sync is: the chip fills from the left, like a progress pill.
                                         if (syncing && progressTotal > 0) {
                                             drawRect(ink.copy(alpha = 0.32f), size = androidx.compose.ui.geometry.Size(size.width * fill, size.height))
                                         }
                                     }
-                                    .then(if (chip.action != null) Modifier.clickable { chip.action.invoke() } else Modifier)
+                                    .then(if (shownChip.action != null) Modifier.clickable { shownChip.action.invoke() } else Modifier)
                                     .height(28.dp)
                                     .padding(start = 8.dp, end = 11.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                             ) {
-                                Icon(chip.icon, contentDescription = null, tint = if (chip.error) MaterialTheme.colorScheme.onErrorContainer else LocalContentColor.current, modifier = Modifier.size(14.dp).graphicsLayer { rotationZ = if (syncing) spin else 0f })
+                                Icon(shownChip.icon, contentDescription = null, tint = chipFg, modifier = Modifier.size(14.dp).graphicsLayer { rotationZ = if (syncing) spin else 0f })
                                 val chipStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum") // digits all the same width
                                 Box(contentAlignment = Alignment.Center) {
                                     if (syncing && progressTotal > 0) {
                                         // The chip keeps the width of its longest text ("40 of 40"), so it doesn't resize as the count goes up.
                                         Text(stringResource(R.string.hero_chip_progress, progressTotal, progressTotal), color = Color.Transparent, style = chipStyle, maxLines = 1)
                                     }
-                                    Text(chip.text, color = if (chip.error) MaterialTheme.colorScheme.onErrorContainer else Color.Unspecified, style = chipStyle, maxLines = 1)
+                                    Text(shownChip.text, color = chipFg, style = chipStyle, maxLines = 1)
                                 }
+                            }
                             }
                         }
                     }
@@ -359,47 +404,67 @@ fun HomeHero(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        val cookieSize = if (number.length >= 5 && cookieIcon == null && !loading) 104.dp else 92.dp
-                        Box(Modifier.size(cookieSize), contentAlignment = Alignment.Center) {
+                        val cookieSize by androidx.compose.animation.core.animateDpAsState(
+                            if (number.length >= 5 && cookieIcon == null && !loading) 104.dp else 92.dp,
+                            androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 400f),
+                            label = "heroCookieSize",
+                        )
+                        Box(Modifier.size(cookieSize).graphicsLayer { scaleX = pulse.value; scaleY = pulse.value }, contentAlignment = Alignment.Center) {
                             Box(
                                 Modifier.matchParentSize()
                                     .graphicsLayer { rotationZ = press.turn }
                                     .clip(MaterialShapes.Cookie9Sided.toShape())
                                     .background(ink)
                             )
-                            if (cookieIcon != null) {
-                                Icon(cookieIcon, contentDescription = null, tint = container, modifier = Modifier.size(44.dp))
-                            } else {
-                                val text = if (loading || firstSync) "…" else number
-                                val top = when { loading || firstSync -> 40.sp; text.length <= 1 -> 46.sp; text.length == 2 -> 40.sp; else -> 34.sp }
-                                // Fits inside the cookie's round middle, however many digits.
-                                androidx.compose.foundation.text.BasicText(
-                                    text = text,
-                                    modifier = Modifier.width(cookieSize * 0.62f),
-                                    color = { container },
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    style = MaterialTheme.typography.displaySmall.copy(
-                                        fontWeight = FontWeight.Bold, // the app's normal font, plain bold
-                                        letterSpacing = (-0.5).sp,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                    ),
-                                    autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 12.sp, maxFontSize = top),
-                                )
+                            // An icon (caught up, no stars) and the number fade into each other.
+                            androidx.compose.animation.AnimatedContent(
+                                targetState = cookieIcon,
+                                contentAlignment = Alignment.Center,
+                                transitionSpec = {
+                                    androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) togetherWith
+                                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(140))
+                                },
+                                label = "heroCookieContent",
+                            ) { icon ->
+                                if (icon != null) {
+                                    Icon(icon, contentDescription = null, tint = container, modifier = Modifier.size(44.dp))
+                                } else {
+                                if (loading || firstSync) {
+                                    androidx.compose.foundation.text.BasicText(
+                                        text = "…",
+                                        color = { container },
+                                        maxLines = 1,
+                                        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold, fontSize = 40.sp),
+                                    )
+                                } else {
+                                    HeroDigits(shownCount, number, container, cookieSize * 0.62f)
+                                }
+                                }
                             }
                         }
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = big,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontFamily = GoogleSansWideFontFamily,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 22.sp,
-                                ),
-                            )
-                            if (sentence.isNotEmpty()) HeroSentence(sentence, name, ink)
+                        // "new" turning into "unread" (or the sentence changing) fades over, it doesn't jump.
+                        androidx.compose.animation.AnimatedContent(
+                            targetState = Triple(big, sentence, name),
+                            modifier = Modifier.weight(1f),
+                            transitionSpec = {
+                                androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(260)) togetherWith
+                                    androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(160))
+                            },
+                            label = "heroText",
+                        ) { (bigText, sentenceText, nameText) ->
+                            Column(Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = bigText,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontFamily = GoogleSansWideFontFamily,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 22.sp,
+                                    ),
+                                )
+                                if (sentenceText.isNotEmpty()) HeroSentence(sentenceText, nameText, ink)
+                            }
                         }
                     }
                 }
@@ -407,6 +472,53 @@ fun HomeHero(
         }
     }
 }
+
+/**
+ * The count in the cookie, rolling digit by digit: a digit that changes slides up (the count went
+ * up) or down and fades into the next, so a sync's small ticks only move the last digit. Columns are
+ * counted from the right, so the thousands separators stay put. The size follows the final
+ * [number], so nothing resizes while it rolls.
+ */
+@Composable
+private fun HeroDigits(value: Int, number: String, color: Color, available: androidx.compose.ui.unit.Dp) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val last = remember { androidx.compose.runtime.mutableIntStateOf(value) }
+    val up = value >= last.intValue
+    androidx.compose.runtime.SideEffect { last.intValue = value }
+    val top = when { number.length <= 1 -> 46f; number.length == 2 -> 40f; else -> 34f }
+    val em = number.sumOf { (if (it.isDigit()) 0.6 else 0.32) }.toFloat().coerceAtLeast(0.6f)
+    val size = minOf(top, available.value / em / fontScaleOf(density)).coerceAtLeast(12f)
+    val style =
+        MaterialTheme.typography.displaySmall.copy(
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.5).sp,
+            fontSize = size.sp,
+            lineHeight = size.sp,
+            fontFeatureSettings = "tnum",
+        )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        number.forEachIndexed { i, ch ->
+            androidx.compose.runtime.key(number.length - i) {
+            androidx.compose.animation.AnimatedContent(
+                targetState = ch,
+                transitionSpec = {
+                    val d = with(density) { (size * 0.55f).sp.roundToPx() }
+                    (androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(260, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { if (up) d else -d } +
+                        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200, delayMillis = 60)) togetherWith
+                        androidx.compose.animation.slideOutVertically(androidx.compose.animation.core.tween(260, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { if (up) -d else d } +
+                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(160))) using
+                        androidx.compose.animation.SizeTransform(clip = false) { _, _ -> androidx.compose.animation.core.snap() }
+                },
+                label = "heroDigit",
+            ) { c ->
+                androidx.compose.foundation.text.BasicText(text = c.toString(), color = { color }, maxLines = 1, softWrap = false, style = style)
+            }
+            }
+        }
+    }
+}
+
+private fun fontScaleOf(density: androidx.compose.ui.unit.Density): Float = density.fontScale.coerceAtLeast(1f)
 
 /** The card's sentence: numbers in bold, and a group's name under a wavy line. */
 @Composable

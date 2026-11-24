@@ -286,6 +286,7 @@ fun InteractionPage(
     RadioDialog(
         visible = initialPageDialogVisible,
         title = stringResource(R.string.initial_page),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.InitialPage,
         options = InitialPagePreference.values.map {
             RadioDialogOption(
                 text = it.toDesc(context),
@@ -301,6 +302,7 @@ fun InteractionPage(
     RadioDialog(
         visible = initialFilterDialogVisible,
         title = stringResource(R.string.initial_filter),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.InitialFilter,
         options = InitialFilterPreference.values.map {
             RadioDialogOption(
                 text = it.toDesc(context),
@@ -316,6 +318,7 @@ fun InteractionPage(
     RadioDialog(
         visible = swipeStartDialogVisible,
         title = stringResource(R.string.swipe_to_start),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.SwipeStart,
         options = SwipeStartActionPreference.values.map {
             RadioDialogOption(
                 text = it.desc,
@@ -331,6 +334,7 @@ fun InteractionPage(
     RadioDialog(
         visible = swipeEndDialogVisible,
         title = stringResource(R.string.swipe_to_end),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.SwipeEnd,
         options = SwipeEndActionPreference.values.map {
             RadioDialogOption(
                 text = it.desc,
@@ -347,6 +351,7 @@ fun InteractionPage(
     RadioDialog(
         visible = openLinkDialogVisible,
         title = stringResource(R.string.initial_open_app),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.OpenApp,
         options = OpenLinkPreference.values.map {
             RadioDialogOption(
                 text = it.toDesc(context),
@@ -366,6 +371,7 @@ fun InteractionPage(
     RadioDialog(
         visible = openLinkSpecificBrowserDialogVisible,
         title = stringResource(R.string.open_link_specific_browser),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.Browser,
         options = browserList.map {
             RadioDialogOption(
                 text = it.loadLabel(context.packageManager).toString(),
@@ -383,6 +389,7 @@ fun InteractionPage(
     RadioDialog(
         visible = sharedContentDialogVisible,
         title = stringResource(R.string.shared_content),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.SharedContent,
         options = SharedContentPreference.values.map {
             RadioDialogOption(
                 text = it.toDesc(context),
@@ -398,6 +405,7 @@ fun InteractionPage(
     RadioDialog(
         visible = showSortUnreadArticlesDialog,
         title = stringResource(R.string.sort_unread_articles),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.SortUnread,
         options = SortUnreadArticlesPreference.values.map {
             RadioDialogOption(
                 text = it.description(),
@@ -414,6 +422,7 @@ fun InteractionPage(
     RadioDialog(
         visible = showPullToLoadDialog,
         title = stringResource(R.string.pull_from_bottom),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.PullFromBottom,
         options = PullToLoadNextFeedPreference.values.map {
             RadioDialogOption(
                 text = it.description(),

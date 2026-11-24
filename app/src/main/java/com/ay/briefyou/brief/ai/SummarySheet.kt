@@ -1,5 +1,6 @@
 package com.ay.briefyou.brief.ai
 
+import com.ay.briefyou.brief.ui.sheetMaxHeight
 import com.ay.briefyou.brief.ui.sheetScrollFade
 import androidx.compose.material3.toShape
 import androidx.compose.material3.MaterialShapes
@@ -178,7 +179,6 @@ fun SummarySheet(
             uri?.let(viewModel::importModel)
         }
 
-    val sheetHeight = (LocalConfiguration.current.screenHeightDp * 0.7f).dp
     // The same side padding as the reading page, so the summary lines up with the article text.
     val horizontalPadding = LocalReadingTextHorizontalPadding.current.dp.coerceAtLeast(16.dp)
 
@@ -186,7 +186,7 @@ fun SummarySheet(
         Column(
             modifier =
                 Modifier.fillMaxWidth()
-                    .height(sheetHeight)
+                    .sheetMaxHeight() // at most 70% of the screen
                     .padding(horizontal = horizontalPadding)
                     .navigationBarsPadding()
                     // Room for the keyboard while asking a question.
@@ -214,7 +214,7 @@ fun SummarySheet(
             }
             Column(
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.weight(1f, fill = false)
                         .fillMaxWidth()
                         // Scrolling the points never moves the sheet, even at the top or bottom of
                         // the list: only the handle and title above the divider drag it.

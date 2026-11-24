@@ -166,16 +166,18 @@ private fun hintPositionProvider(placement: HintPlacement, gap: Int): PopupPosit
 
 /**
  * A short label above what it is placed in, in the look of the hint bubbles but with no "Got it":
- * it shows for a moment (from a long press on an icon-only button) and goes by itself.
+ * it shows for a moment (from a long press on an icon-only button) and fades away by itself.
  */
 @Composable
 fun TransientHint(text: String, onDone: () -> Unit) {
+    // Pops in, stays a moment, then fades and shrinks away (the same curve as it came in, backwards).
+    val pop = remember { Animatable(0.85f) }
     LaunchedEffect(text) {
-        delay(1800)
+        pop.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow))
+        delay(1400)
+        pop.animateTo(0.85f, androidx.compose.animation.core.tween(260))
         onDone()
     }
-    val pop = remember { Animatable(0.85f) }
-    LaunchedEffect(Unit) { pop.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow)) }
     val gap = with(androidx.compose.ui.platform.LocalDensity.current) { 10.dp.roundToPx() }
     val provider = remember(gap) { hintPositionProvider(HintPlacement.Above, gap) }
     Popup(popupPositionProvider = provider, properties = PopupProperties(focusable = false)) {

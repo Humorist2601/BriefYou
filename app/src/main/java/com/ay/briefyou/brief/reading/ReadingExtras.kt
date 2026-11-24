@@ -6,6 +6,7 @@
 
 package com.ay.briefyou.brief.reading
 
+import com.ay.briefyou.brief.ui.sheetMaxHeight
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.heightIn
@@ -232,9 +233,8 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
         Column(
             modifier =
                 Modifier.fillMaxWidth()
-                    // Always 70% of the screen (like the AI sheet), so the sheet doesn't change size with its
-                    // content (and doesn't jump while a slider or the font changes the preview above it).
-                    .height((androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.7f).dp)
+                    // At most 70% of the screen; what doesn't fit scrolls.
+                    .sheetMaxHeight()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp)
                     .navigationBarsPadding()

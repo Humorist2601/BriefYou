@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.rounded.Undo
@@ -159,8 +161,9 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
 
     var addDialogVisible by rememberSaveable { mutableStateOf(false) }
     var addWatchedVisible by rememberSaveable { mutableStateOf(false) }
-    // Watched (0) or Muted (1); Muted, on the left, first.
-    var tab by rememberSaveable { mutableStateOf(1) }
+    // The tile that is picked decides what shows below: Duplicates (0), Muted (1, the start) or Watched (2).
+    var tile by rememberSaveable { mutableStateOf(1) }
+    val tab = if (tile == 2) 0 else 1
     val watched = WatchedWords.words
     val watchedLog = WatchedWords.log
     val watchedFound = viewModel.watchedFound.collectAsStateValue()
@@ -174,9 +177,19 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
     val duplicateCount = log.count { it.reason == FilterReason.Duplicate }
     // The filtered articles, newest first, under Today / Yesterday / a date.
     // Duplicates of one story are grouped under it.
+    // The filtered list below is of the picked tile's kind (1 muted, 2 duplicates).
+    val picked = if (tile == 0) 2 else 1
+    val shownLog =
+        remember(log, picked) {
+            when (picked) {
+                1 -> log.filter { it.reason == FilterReason.MutedKeyword }
+                2 -> log.filter { it.reason == FilterReason.Duplicate }
+                else -> log
+            }
+        }
     val days =
-        remember(log) {
-            log.sortedByDescending { it.at }.groupBy { dayOf(it.at) }.mapValues { logRows(it.value) }
+        remember(shownLog) {
+            shownLog.sortedByDescending { it.at }.groupBy { dayOf(it.at) }.mapValues { logRows(it.value) }
         }
 
     // The settings pages' common scaffold, so this page looks like the others.
@@ -197,38 +210,37 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                 item {
                     DisplayText(text = stringResource(R.string.filters_settings), desc = "")
                     Spacer(Modifier.height(8.dp))
-                    // At a glance: what the filters have caught recently.
+                    // Like the tiles of the Reading stats page: one is always picked and decides what shows below.
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         StatTile(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            icon = Icons.Outlined.ContentCopy,
+                            selected = tile == 0,
+                            onClick = { tile = 0 },
+                            value = duplicateCount.toString(),
+                            label = pluralStringResource(R.plurals.filters_stat_duplicates, duplicateCount),
+                        )
+                        StatTile(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             icon = Icons.Outlined.NotificationsOff,
-                            onClick = { tab = 1 },
+                            selected = tile == 1,
+                            onClick = { tile = 1 },
                             value = mutedCount.toString(),
                             label = pluralStringResource(R.plurals.filters_stat_muted, mutedCount),
                         )
                         StatTile(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Outlined.ContentCopy,
-                            onClick = { tab = 1 },
-                            value = duplicateCount.toString(),
-                            label =
-                                pluralStringResource(R.plurals.filters_stat_duplicates, duplicateCount),
-                        )
-                        StatTile(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             icon = Icons.Outlined.Visibility,
-                            onClick = { tab = 0 },
+                            selected = tile == 2,
+                            onClick = { tile = 2 },
                             value = watchedLog.size.toString(),
                             label = pluralStringResource(R.plurals.filters_stat_watched, watchedLog.size),
                         )
                     }
-                    Spacer(Modifier.height(16.dp))
-                    // Muted on the left, watched on the right.
-                    FilterTabs(page = tab) { tab = it }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(24.dp))
                 }
                 if (tab == 0) {
                 item {
@@ -443,7 +455,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                     Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                 }
                 } else {
-                item {
+                if (tile == 1) item {
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.filters_keywords),
@@ -569,7 +581,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                         Spacer(Modifier.height(12.dp))
                     }
                 }
-                item {
+                if (tile == 0) item {
                     Subtitle(
                         modifier = Modifier.padding(horizontal = 24.dp),
                         text = stringResource(R.string.filters_duplicates),
@@ -622,9 +634,9 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
                             }
                         }
                     }
-                    if (log.isEmpty()) {
+                    if (log.isEmpty() || shownLog.isEmpty()) {
                         Text(
-                            text = stringResource(R.string.filters_log_empty),
+                            text = stringResource(if (log.isEmpty()) R.string.filters_log_empty else R.string.filters_nothing_today),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
@@ -839,63 +851,20 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
     }
 }
 
-/**
- * The two tabs, muted on the left and watched on the right, as one joined pill (the chosen half
- * filled, its icon with it), like the app's other joined buttons.
- */
-@Composable
-private fun FilterTabs(page: Int, onSelect: (Int) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-    ) {
-        listOf(
-                Triple(Icons.Outlined.NotificationsOff, R.string.filters_tab_muted, 1),
-                Triple(Icons.Outlined.Visibility, R.string.filters_tab_watched, 0),
-            )
-            .forEachIndexed { position, (icon, label, index) ->
-                val selected = page == index
-                val outer = com.ay.briefyou.brief.ui.Group.Outer
-                val inner = com.ay.briefyou.brief.ui.Group.Inner
-                val color by
-                    androidx.compose.animation.animateColorAsState(
-                        if (selected) MaterialTheme.colorScheme.secondaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        label = "tab",
-                    )
-                Surface(
-                    onClick = { onSelect(index) },
-                    color = color,
-                    contentColor =
-                        if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    shape =
-                        if (position == 0) RoundedCornerShape(outer, inner, inner, outer)
-                        else RoundedCornerShape(inner, outer, outer, inner),
-                    modifier = Modifier.weight(1f).height(48.dp),
-                ) {
-                    Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(label),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-            }
-    }
-}
-
 /** One watched article: its title and feed, on the eye's shape; tap to open it. */
 @Composable
-private fun WatchedLogCard(entry: WatchedEntry, shape: RoundedCornerShape, onOpen: () -> Unit) {
+internal fun WatchedLogCard(
+    entry: WatchedEntry,
+    shape: RoundedCornerShape,
+    onOpen: () -> Unit,
+    /** The page's cards sit 16 dp in; in a sheet (already padded) 0. */
+    sidePadding: androidx.compose.ui.unit.Dp = 16.dp,
+) {
     Surface(
         onClick = onOpen,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.5.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = sidePadding, vertical = 1.5.dp),
     ) {
         Row(
             modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),

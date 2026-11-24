@@ -197,7 +197,10 @@ fun SharedFilterBar(
                 AnimatedVisibility(
                     visible = rememberNowPlayingShown(),
                     enter = slideInVertically(spatial) { it } + fadeIn(effects),
-                    exit = slideOutVertically(spatial) { it } + fadeOut(effects),
+                    // Swiped away: it flies off sideways by itself and only fades here; closed otherwise: it goes down behind the bar.
+                    exit =
+                        if (com.ay.briefyou.brief.player.NowPlayingExit.dir != 0) fadeOut(effects)
+                        else slideOutVertically(spatial) { it } + fadeOut(effects),
                 ) {
                     // A fixed width: the widest the bar and the AI button are together (the Unread
                     // list, where the chosen filter shows its name), whichever filter is chosen.

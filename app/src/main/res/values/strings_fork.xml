@@ -134,6 +134,7 @@
         <item quantity="other">duplicates</item>
     </plurals>
     <string name="filters_today">Today</string>
+    <string name="filters_today_kind">Today · %1$s</string>
     <string name="filters_yesterday">Yesterday</string>
     <string name="filters_reason_muted">Muted “%1$s”</string>
     <string name="filters_reason_duplicate">Duplicate of %1$s</string>

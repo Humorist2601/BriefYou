@@ -132,6 +132,14 @@ import com.ay.briefyou.infrastructure.preference.LocalDarkTheme
 import com.ay.briefyou.ui.component.base.BYAsyncImage
 
 /* The Now playing pill above the bottom bar and its sheet. */
+/**
+ * Which way the pill was swiped away (-1 left, 1 right, 0 closed some other way): the pill flies off
+ * that way by itself, so the bar's own slide-down is dropped for it (SharedFilterBar).
+ */
+internal object NowPlayingExit {
+    var dir by androidx.compose.runtime.mutableIntStateOf(0)
+}
+
 /** What the pill shows (kept while it slides away after its close button). */
 internal data class PillContent(
     val episode: Boolean,
@@ -242,7 +250,7 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
     val dragX = remember { Animatable(0f) }
     var boxWidth by remember { mutableStateOf(0) }
     var armed by remember { mutableStateOf(false) }
-    LaunchedEffect(live != null) { if (live != null) { dragX.snapTo(0f); armed = false } }
+    LaunchedEffect(live != null) { if (live != null) { dragX.snapTo(0f); armed = false; NowPlayingExit.dir = 0 } }
     val dismissAt = boxWidth / 3f
     Box(
         modifier = modifier.onSizeChanged { boxWidth = it.width } // Brief You: the caller gives its width and height (the bar group's, see SharedFilterBar)
@@ -254,6 +262,7 @@ fun NowPlayingPill(modifier: Modifier = Modifier) {
                         dragScope.launch {
                             if (past) {
                                 val dir = if (dragX.value > 0) 1f else -1f
+                                NowPlayingExit.dir = dir.toInt() // it flies off this way; the bar doesn't also slide it down
                                 if (c.episode) BriefPlayer.stop() else tts?.stop()
                                 dragX.animateTo(dir * boxWidth * 1.1f, spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMedium))
                             } else {

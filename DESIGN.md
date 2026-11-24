@@ -136,9 +136,13 @@ values below are the Compose defaults the app already uses. Dialogs are in §10.
 
 ### 10.1 Sheet or dialog
 
-- **Sheet:** choose something, adjust something, or act on a thing you pressed on (a group, a feed, an article's extras). It applies as you
-  change it and closes by swipe, scrim or back.
-- **Dialog:** confirm a step that deletes or clears, or type one short text. It always opens **above** its sheet. A sheet never opens
+- **Sheet:** content tied to the screen you are on, longer lists, sliders and text editing: Account switcher, Sort, Filters, Edit group / feed,
+  AI gist / summary and its prompt, Translate, Reader settings, Stats month, Now playing, number / speed / sleep timer, Triage places. It
+  applies as you change it and closes by swipe, scrim or back. **A sheet is never taller than 70% of the screen**: it is as tall as its
+  content up to that (`Modifier.sheetMaxHeight()`), and what does not fit scrolls inside with the edge fade (`sheetScrollFade`).
+- **Dialog:** every settings choice (a short list you pick from and are done: the setting's own icon on the cookie, joined rows, a scroll with
+  the edge fade inside if long), confirmations, one short text, notices, the Add account forms, Change icon and the Newspaper's
+  progress. Tapping the dim area closes every dialog (Add feed too). A dialog opened from a sheet opens **above** it. A sheet never opens
   a sheet, and a dialog never opens a sheet.
 
 ### 10.2 Container
@@ -199,7 +203,7 @@ Fields are filled and rounded, everywhere (account dialogs included).
 |---|---|---|---|---|
 | Group options | Identity | tiles (acting), chips | Clear · Delete | new identity head with badge and pencil; label "For all N feeds"; foot pinned |
 | Feed options | Identity (icon, name, address pencils) | tiles (lit), chips | Clear · Unsubscribe | as above |
-| Choice (radio dialogs) | Plain | joined list | none | check head and 24 dp → 16 dp sides |
+| Choice (radio dialogs) | now a dialog (`ChoiceDialog`, icons in `SettingIcons`) | joined list | Cancel | done |
 | Number, Speed | Plain | value card, joined Custom / Reset | none | sides 16 dp |
 | Sort, Sleep timer | Plain | tiles, joined buttons | none | section labels `primary` (Sort's are muted today) |
 | Summary, Translate | Plain | content card, filled field | none | sides 16 dp, content in a card |
@@ -211,10 +215,12 @@ Fields are filled and rounded, everywhere (account dialogs included).
 
 ### 10.8 Menus (`AnimatedDropdownMenu(bare = true)`)
 
-A menu has no box of its own: it is separate pieces on `surfaceContainerHigh` with a 1 dp shadow, 6 dp apart (`MenuParts.kt`).
-- `MenuStrip`: a 28 dp card of `MenuRoundButton`s (52 dp circles, icon only, 24 dp icon, a content description for each; a long press shows it as a `TransientHint`, the hint bubble's look without "Got it", for 1.8 s). A button that is on
+A menu has no box of its own: it is separate pieces on `surfaceContainerHigh` with a 1 dp shadow, 3 dp apart (`Group.Gap`, as in a joined group; `MenuParts.kt`).
+- `MenuStrip`: a 28 dp card of `MenuRoundButton`s (52 dp circles, icon only, 24 dp icon, a content description for each; a long press shows it as a `TransientHint`, the hint bubble's look without "Got it", for about 2 s, fading out). A button that is on
   (read, starred) is `primaryContainer`, the others `surfaceContainerHighest`.
 - `MenuRow`: its own 20 dp card, icon and text (Mark above / Mark below as read, above and below the strip).
 - Choices of one setting (Triage "Skip after"): one 28 dp card with a `primary` title and 72 x 56 dp chips in a grid; the chosen chip is round (28 dp)
-  and `primaryContainer`, the others 16 dp.
+  and solid `primary` (card colours: see the last line of this section), the others 16 dp on `surfaceContainerHigh`.
 - Menus: article long-press (above row, strip of Read, Star, Share, Newspaper, below row), Triage "Skip after", image viewer (Save, Share link, Share image).
+- A menu drawn as one card (Triage "Skip after") never matches the screen behind it: `surfaceContainerHighest` with a 1 dp `outlineVariant` border and a deeper shadow (8 dp), its chips on `surfaceContainerHigh`, the chosen one solid `primary`. Menus made of separate pieces already stand apart; any new card-shaped menu follows this surface.
+- Stat tiles (Reading stats, Filters page): full-size `StatTile`s, 12 dp apart, equal height (`IntrinsicSize.Min` + `fillMaxHeight`); one is always picked (`tertiaryContainer`, the others `surfaceContainerHigh`) and decides what shows below. Filters: Duplicates, Muted, Watched. Watched on Home: an eye badge by the group name; in a feed row only the number, in a 40 x 28 dp `tertiaryContainer` chip like the unread count.

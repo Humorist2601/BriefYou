@@ -30,18 +30,22 @@ fun RadioDialog(
     visible: Boolean = false,
     title: String = "",
     description: String? = null,
+    /** The setting's own icon, on the dialog's cookie (see `SettingIcons`). */
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     options: List<RadioDialogOption> = emptyList(),
     onDismissRequest: () -> Unit = {},
 ) {
-    // Brief You: the choices as a sheet in the app's sheet design (a joined group, the chosen one
-    // filled and ticked) instead of a radio list in a dialog. Every caller keeps working as before.
-    if (!visible) return // Brief You
-    com.ay.briefyou.brief.ui.ChoiceSheet( // Brief You
-        title = title, // Brief You
-        hint = description, // Brief You
-        choices = options.map { com.ay.briefyou.brief.ui.Choice(it.text, it.selected, it.style, it.onClick) }, // Brief You
-        onDismiss = onDismissRequest, // Brief You
-    ) // Brief You
+    // Brief You: a setting's choices are a dialog (a short list you pick from and are done): the
+    // setting's icon, its title, and the choices as one joined group, the chosen one ticked. Every
+    // caller keeps working as before.
+    com.ay.briefyou.brief.ui.ChoiceDialog(
+        visible = visible,
+        title = title,
+        hint = description,
+        icon = icon,
+        choices = options.map { com.ay.briefyou.brief.ui.Choice(it.text, it.selected, it.style, it.onClick) },
+        onDismiss = onDismissRequest,
+    )
 }
 
 @Immutable

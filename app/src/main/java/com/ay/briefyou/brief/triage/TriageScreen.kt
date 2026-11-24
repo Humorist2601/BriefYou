@@ -767,9 +767,10 @@ private fun TriageContent(
     // stack of cards swipes up from the bottom of the screen (on a spring that settles without overshoot).
     val doneExit = remember { Animatable(0f) }
     val stackRise = remember { Animatable(0f) }
-    // A spring that settles without overshoot: the lively default slid the stack a little past its
-    // place and back, which looked like a jump at the end.
-    val riseSpec = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 380f)
+    // Changing group or feed is springy both ways: the old screen is pushed out on a quick, barely
+    // bouncing spring, and the new stack rises on a softer one that overshoots a little and settles.
+    val riseSpec = spring<Float>(dampingRatio = 0.62f, stiffness = 300f)
+    val exitSpec = spring<Float>(dampingRatio = 0.9f, stiffness = 450f)
 
     // Auto-advance: the delay is remembered between sessions; changing it is a long-press on the
     // play button.
@@ -884,8 +885,8 @@ private fun TriageContent(
         if (!session.canGoBack || loadingNext) return
         loadingNext = true
         scope.launch {
-            if (done) doneExit.animateTo(1f, tween(180))
-            else stackRise.animateTo(1f, tween(200, easing = FastOutLinearInEasing))
+            if (done) doneExit.animateTo(1f, exitSpec)
+            else stackRise.animateTo(1f, exitSpec)
             session.goBack()
             undoCard(flyBack = false)
             doneExit.snapTo(0f)
@@ -965,8 +966,8 @@ private fun TriageContent(
             // Load the cards while the current screen moves out of the way (already started when the
             // place was pressed in the sheet).
             val loading = takeAhead(target) ?: async { runCatching { loadNext(target, 0) }.getOrDefault(TriageLoad.EMPTY) }
-            if (done) doneExit.animateTo(1f, tween(180))
-            else stackRise.animateTo(1f, tween(200, easing = FastOutLinearInEasing))
+            if (done) doneExit.animateTo(1f, exitSpec)
+            else stackRise.animateTo(1f, exitSpec)
             val load = loading.await()
             val cards = load.cards
             session.noteRows(target.id, load.rows, fromStart = true)
@@ -2504,8 +2505,10 @@ private fun AutoDelayMenu(
         // One card: the title, then the six delays as chips (the chosen one is round and primary).
         Surface(
             shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shadowElevation = 1.dp,
+            // Lighter than the Triage card behind it, with a thin outline and a deeper shadow, so it never blends in.
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shadowElevation = 8.dp,
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
@@ -2533,10 +2536,10 @@ private fun AutoDelayMenu(
                                 },
                                 shape = RoundedCornerShape(if (selected) 28.dp else 16.dp),
                                 color =
-                                    if (selected) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    if (selected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.surfaceContainerHigh,
                                 contentColor =
-                                    if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                    if (selected) MaterialTheme.colorScheme.onPrimary
                                     else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.width(72.dp).height(56.dp),
                             ) {

@@ -288,6 +288,7 @@ fun AutoBackupSettingItems(accountId: Int, viewModel: BackupViewModel = hiltView
     RadioDialog(
         visible = frequencyDialog,
         title = stringResource(R.string.auto_backup_title),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.AutoBackup,
         options =
             AutoBackup.Frequency.values().map {
                 RadioDialogOption(text = stringResource(it.label()), selected = it == frequency) {

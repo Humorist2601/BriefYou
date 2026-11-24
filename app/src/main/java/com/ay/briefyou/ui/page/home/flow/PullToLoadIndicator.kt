@@ -127,7 +127,7 @@ private fun MarkAsReadIndicator(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .background(
-                MaterialTheme.colorScheme.tertiaryFixed,
+                MaterialTheme.colorScheme.tertiaryContainer,
                 shape = MaterialTheme.shapes.extraLarge
             ), contentAlignment = Alignment.Center
     ) {
@@ -140,14 +140,14 @@ private fun MarkAsReadIndicator(modifier: Modifier = Modifier) {
             Icon(
                 imageVector = Icons.Rounded.DoneAll,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onTertiaryFixed,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 stringResource(R.string.mark_all_as_read),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onTertiaryFixed
+                color = MaterialTheme.colorScheme.onTertiaryContainer
             )
         }
     }
@@ -159,7 +159,7 @@ private fun NextFeedIndicator(feedName: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .background(
-                MaterialTheme.colorScheme.secondaryFixed,
+                MaterialTheme.colorScheme.primaryContainer,
                 shape = MaterialTheme.shapes.extraLarge
             ), contentAlignment = Alignment.Center
     ) {
@@ -172,14 +172,14 @@ private fun NextFeedIndicator(feedName: String, modifier: Modifier = Modifier) {
             Icon(
                 imageVector = Icons.Rounded.ArrowDownward,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryFixed,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 feedName,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSecondaryFixed
+                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }

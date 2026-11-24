@@ -391,23 +391,36 @@ fun NewspaperHost(maker: NewspaperMaker) {
     }
     val run = maker.run ?: return
     if (!run.visible) return
-    ModalBottomSheet(
-        shape = com.ay.briefyou.brief.ui.SheetShape,
+    // A dialog, not a sheet: it only shows the steps while it works (cancel, or retry if one failed).
+    com.ay.briefyou.brief.ui.InWindowAlertDialog(
         onDismissRequest = maker::cancel,
-        sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState(),
-    ) {
-        PressSheet(run, onCancel = maker::cancel, onRetry = maker::retry)
-    }
+        icon = { Icon(Icons.Outlined.Newspaper, contentDescription = null, modifier = Modifier.size(26.dp)) },
+        title = { Text(stringResource(R.string.newspaper_printing)) },
+        text = { PressSteps(run) },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = maker::cancel) { Text(stringResource(R.string.cancel)) }
+        },
+        confirmButton = {
+            if (run.failed != null) {
+                com.ay.briefyou.brief.ui.DialogConfirmButton(onClick = maker::retry) {
+                    Text(stringResource(R.string.newspaper_retry))
+                }
+            }
+        },
+    )
 }
 
 @Composable
-private fun PressSheet(run: PressRun, onCancel: () -> Unit, onRetry: () -> Unit) {
+private fun PressSteps(run: PressRun) {
     val scheme = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 16.dp).navigationBarsPadding()) {
-        com.ay.briefyou.brief.ui.SheetTitle(
-            stringResource(R.string.newspaper_printing),
+    Column(Modifier.fillMaxWidth()) {
+        Text(
             run.title,
-            icon = androidx.compose.material.icons.Icons.Outlined.Newspaper,
+            style = MaterialTheme.typography.bodyMedium,
+            color = scheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(bottom = 12.dp),
         )
         run.steps.forEachIndexed { i, step ->
             val failed = run.failed == step
@@ -418,7 +431,7 @@ private fun PressSheet(run: PressRun, onCancel: () -> Unit, onRetry: () -> Unit)
                     Modifier.fillMaxWidth()
                         .padding(vertical = Group.Gap / 2)
                         .clip(groupShape(i, run.steps.size))
-                        .background(if (failed) scheme.errorContainer else scheme.surfaceContainerHigh)
+                        .background(if (failed) scheme.errorContainer else scheme.surfaceContainerHighest)
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -455,17 +468,6 @@ private fun PressSheet(run: PressRun, onCancel: () -> Unit, onRetry: () -> Unit)
                         },
                 )
             }
-        }
-        Spacer(Modifier.height(16.dp))
-        if (run.failed != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.cancel)) }
-                androidx.compose.material3.Button(onClick = onRetry, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.newspaper_retry))
-                }
-            }
-        } else {
-            OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.cancel)) }
         }
     }
 }

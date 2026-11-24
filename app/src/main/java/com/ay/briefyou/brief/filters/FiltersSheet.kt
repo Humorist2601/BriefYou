@@ -31,7 +31,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,6 +50,9 @@ import com.ay.briefyou.brief.ui.StatTile
 import com.ay.briefyou.brief.ui.rememberFullSheetState
 import com.ay.briefyou.brief.ui.sheetScrollFade
 import com.ay.briefyou.ui.ext.collectAsStateValue
+
+/** The three tiles of the sheet; the one you tap filters the list. */
+private enum class FilterTile { Duplicates, Muted, Watched }
 
 /**
  * The top bar's filter button: a brief of the filters, only tiles and articles (what the muted
@@ -68,10 +74,18 @@ fun FiltersSheet(
     val duplicateCount = log.count { it.reason == FilterReason.Duplicate }
     val watchedCount = WatchedWords.log.size
     // Today's filtered articles, newest first; earlier days are on the Filters page.
-    val today = remember(log) {
-        val start = java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
-        log.filter { it.at >= start }.sortedByDescending { it.at }
-    }
+    val startOfDay = remember { java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() }
+    val todayAll = remember(log) { log.filter { it.at >= startOfDay }.sortedByDescending { it.at } }
+    val watchedToday = WatchedWords.log.filter { it.at >= startOfDay }.sortedByDescending { it.at }
+    // A tile you tap filters the list below it to its kind (tap it again to show them all).
+    var picked by remember { mutableStateOf<FilterTile?>(null) }
+    val today =
+        when (picked) {
+            FilterTile.Muted -> todayAll.filter { it.reason == FilterReason.MutedKeyword }
+            FilterTile.Duplicates -> todayAll.filter { it.reason == FilterReason.Duplicate }
+            FilterTile.Watched -> emptyList()
+            null -> todayAll
+        }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -95,25 +109,25 @@ fun FiltersSheet(
                     modifier =
                         Modifier.weight(1f, fill = false).sheetScrollFade(scroll).verticalScroll(scroll)
                 ) {
-                    // The Filters page's own tiles; a tap opens the page.
+                    // The Filters page's own tiles; a tap filters the list below to that kind.
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StatTile(
-                            icon = Icons.Outlined.NotificationsOff,
-                            value = mutedCount.toString(),
-                            label = pluralStringResource(R.plurals.filters_stat_muted, mutedCount),
-                            modifier = Modifier.weight(1f),
-                            compact = true,
-                            enabled = false,
-                            onClick = {},
-                        )
                         StatTile(
                             icon = Icons.Outlined.ContentCopy,
                             value = duplicateCount.toString(),
                             label = pluralStringResource(R.plurals.filters_stat_duplicates, duplicateCount),
                             modifier = Modifier.weight(1f),
                             compact = true,
-                            enabled = false,
-                            onClick = {},
+                            selected = picked?.let { it == FilterTile.Duplicates },
+                            onClick = { picked = if (picked == FilterTile.Duplicates) null else FilterTile.Duplicates },
+                        )
+                        StatTile(
+                            icon = Icons.Outlined.NotificationsOff,
+                            value = mutedCount.toString(),
+                            label = pluralStringResource(R.plurals.filters_stat_muted, mutedCount),
+                            modifier = Modifier.weight(1f),
+                            compact = true,
+                            selected = picked?.let { it == FilterTile.Muted },
+                            onClick = { picked = if (picked == FilterTile.Muted) null else FilterTile.Muted },
                         )
                         StatTile(
                             icon = Icons.Outlined.Visibility,
@@ -121,20 +135,45 @@ fun FiltersSheet(
                             label = pluralStringResource(R.plurals.filters_stat_watched, watchedCount),
                             modifier = Modifier.weight(1f),
                             compact = true,
-                            enabled = false,
-                            onClick = {},
+                            selected = picked?.let { it == FilterTile.Watched },
+                            onClick = { picked = if (picked == FilterTile.Watched) null else FilterTile.Watched },
                         )
                     }
                     Spacer(Modifier.height(18.dp))
-                    SheetSection(stringResource(R.string.filters_today))
-                    if (today.isEmpty()) {
+                    val kindLabel =
+                        when (picked) {
+                            FilterTile.Muted -> pluralStringResource(R.plurals.filters_stat_muted, mutedCount)
+                            FilterTile.Duplicates -> pluralStringResource(R.plurals.filters_stat_duplicates, duplicateCount)
+                            FilterTile.Watched -> pluralStringResource(R.plurals.filters_stat_watched, watchedCount)
+                            null -> null
+                        }
+                    SheetSection(
+                        if (kindLabel == null) stringResource(R.string.filters_today)
+                        else stringResource(R.string.filters_today_kind, kindLabel.replaceFirstChar { it.uppercase() })
+                    )
+                    if (picked == FilterTile.Watched && watchedToday.isNotEmpty()) {
+                        val watchedContext = androidx.compose.ui.platform.LocalContext.current
+                        watchedToday.forEachIndexed { i, entry ->
+                            WatchedLogCard(
+                                entry = entry,
+                                shape = com.ay.briefyou.brief.ui.groupShape(i, watchedToday.size),
+                                sidePadding = 0.dp,
+                                onOpen = {
+                                    watchedContext.startActivity(
+                                        android.content.Intent(watchedContext, com.ay.briefyou.infrastructure.android.MainActivity::class.java)
+                                            .putExtra(com.ay.briefyou.ui.page.common.ExtraName.ARTICLE_ID, entry.articleId)
+                                    )
+                                },
+                            )
+                        }
+                    } else if (today.isEmpty()) {
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
                             shape = RoundedCornerShape(24.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
-                                stringResource(if (log.isEmpty()) R.string.filters_log_empty else R.string.filters_nothing_today),
+                                stringResource(if (log.isEmpty() && picked == null) R.string.filters_log_empty else R.string.filters_nothing_today),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(16.dp),

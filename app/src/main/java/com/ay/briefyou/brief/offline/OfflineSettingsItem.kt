@@ -37,6 +37,7 @@ fun OfflineSettingsItem() {
     RadioDialog(
         visible = dialog,
         title = stringResource(R.string.offline_copies_title),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.OfflineCopies,
         options =
             OfflineCopies.Mode.values().map {
                 RadioDialogOption(text = stringResource(it.label()), selected = it == mode) {

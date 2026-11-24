@@ -234,6 +234,7 @@ fun ReadingStylePage(
     RadioDialog(
         visible = fontsDialogVisible,
         title = stringResource(R.string.reading_fonts),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.ReadingFonts,
         options = ReadingFontsPreference.values.map {
             RadioDialogOption(
                 text = it.toDesc(context),

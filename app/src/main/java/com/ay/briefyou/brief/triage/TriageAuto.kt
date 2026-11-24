@@ -100,6 +100,7 @@ fun TriageSettings() {
     RadioDialog(
         visible = actionDialog,
         title = stringResource(R.string.triage_auto_action),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.TriageAction,
         options =
             TriageAuto.ACTIONS.map {
                 RadioDialogOption(text = TriageAuto.actionLabel(context, it), selected = it == action) {
@@ -113,6 +114,7 @@ fun TriageSettings() {
     RadioDialog(
         visible = delayDialog,
         title = stringResource(R.string.triage_auto_delay_setting),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.TriageDelay,
         options =
             TriageAuto.DELAYS.map {
                 RadioDialogOption(text = stringResource(R.string.triage_auto_seconds, it), selected = it == seconds) {

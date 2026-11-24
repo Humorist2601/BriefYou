@@ -2,6 +2,7 @@
 
 package com.ay.briefyou.brief.ai
 
+import com.ay.briefyou.brief.ui.sheetMaxHeight
 import com.ay.briefyou.brief.ui.DialogConfirmButton
 
 import com.ay.briefyou.infrastructure.preference.isOn
@@ -109,6 +110,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
     com.ay.briefyou.ui.component.base.RadioDialog(
         visible = aiButtonDialogVisible,
         title = stringResource(R.string.ai_button_long_press),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.AiButton,
         options = com.ay.briefyou.brief.ui.AiLongPress.entries.map {
             com.ay.briefyou.ui.component.base.RadioDialogOption(
                 text = it.label(),
@@ -317,7 +319,6 @@ private fun PromptDialog(
     var text by remember { mutableStateOf(initial) }
     val state = com.ay.briefyou.brief.ui.rememberFullSheetState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    val height = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.7f).dp
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = state,
@@ -327,7 +328,7 @@ private fun PromptDialog(
         Column(
             modifier =
                 Modifier.fillMaxWidth()
-                    .height(height)
+                    .sheetMaxHeight() // at most 70% of the screen
                     .padding(horizontal = 16.dp)
                     // Room for the keyboard while typing.
                     .imePadding()

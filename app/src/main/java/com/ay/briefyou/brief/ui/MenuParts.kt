@@ -125,8 +125,8 @@ fun MenuRow(
     }
 }
 
-/** The gap between a menu's pieces. */
+/** The gap between a menu's pieces: the same 3 dp as between the rows of a joined group. */
 @Composable
 fun MenuGap() {
-    Spacer(Modifier.height(6.dp))
+    Spacer(Modifier.height(Group.Gap))
 }

@@ -288,6 +288,7 @@ fun AccountDetailsPage(
     RadioDialog(
         visible = syncIntervalDialogVisible,
         title = stringResource(R.string.sync_interval),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.SyncInterval,
         options =
             SyncIntervalPreference.values.map {
                 RadioDialogOption(
@@ -304,6 +305,7 @@ fun AccountDetailsPage(
     RadioDialog(
         visible = keepArchivedDialogVisible,
         title = stringResource(R.string.keep_archived_articles),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.KeepArchived,
         options =
             KeepArchivedPreference.values.map {
                 RadioDialogOption(

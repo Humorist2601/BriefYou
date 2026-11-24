@@ -234,6 +234,7 @@ fun ReadingTextPage(
     RadioDialog(
         visible = alignDialogVisible,
         title = stringResource(R.string.alignment),
+        icon = com.ay.briefyou.brief.ui.SettingIcons.Alignment,
         options = ReadingTextAlignPreference.values.map {
             RadioDialogOption(
                 text = it.toDesc(context),

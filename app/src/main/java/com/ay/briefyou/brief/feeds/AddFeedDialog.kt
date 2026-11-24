@@ -112,8 +112,6 @@ private fun AddFeedDialogContent(
     var useFeedPicture by androidx.compose.runtime.saveable.rememberSaveable(configure?.feedLink) { androidx.compose.runtime.mutableStateOf(true) }
     val websiteIcon = androidx.compose.runtime.remember(configure?.searchedFeed) { configure?.searchedFeed?.icon?.url }
     InWindowAlertDialog(
-        // Not closed by a tap outside, so a pasted address isn't lost to a stray tap.
-        properties = DialogProperties(dismissOnClickOutside = false),
         plainIcon = configure != null, // Brief You: the feed's own picture is drawn as it is; the plain dialog keeps the cookie
         onDismissRequest = { close() },
         icon = {

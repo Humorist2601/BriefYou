@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.FiberManualRecord
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.FiberManualRecord
 import androidx.compose.material.icons.rounded.Share
@@ -623,7 +624,7 @@ fun ArticleItemMenuContent(
     }
     com.ay.briefyou.brief.ui.MenuStrip {
         com.ay.briefyou.brief.ui.MenuRoundButton(
-            icon = if (isRead) Icons.Rounded.CheckCircleOutline else Icons.Outlined.Circle,
+            icon = if (isRead) Icons.Rounded.CheckCircle else Icons.Rounded.CheckCircleOutline,
             description = stringResource(if (isRead) R.string.mark_as_unread else R.string.mark_as_read),
             selected = isRead,
             onClick = {

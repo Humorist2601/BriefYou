@@ -78,3 +78,27 @@ fun WatchedCount(count: Int, modifier: Modifier = Modifier) {
         )
     }
 }
+
+/**
+ * The same count inside a feed's row: no icon, just the number in a chip as big as the feed's own
+ * unread count beside it, in the tertiary colours (the group's title line has the eye badge).
+ */
+@Composable
+fun WatchedFeedCount(count: Int, modifier: Modifier = Modifier) {
+    if (count <= 0) return
+    androidx.compose.foundation.layout.Box(
+        modifier =
+            modifier.padding(end = 6.dp)
+                .size(width = 40.dp, height = 28.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.tertiaryContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            maxLines = 1,
+        )
+    }
+}

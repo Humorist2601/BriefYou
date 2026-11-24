@@ -370,8 +370,13 @@ internal fun SpeedText(speed: Float, style: androidx.compose.ui.text.TextStyle, 
         targetState = speed,
         transitionSpec = {
             val up = targetState > initialState
-            (fadeIn() + scaleIn(initialScale = 0.7f) + slideInVertically { if (up) it else -it }) togetherWith
-                (fadeOut() + scaleOut(targetScale = 0.7f) + slideOutVertically { if (up) -it / 2 else it / 2 })
+            // A plain roll up or down (no scaling about the centre, which with a text that changes
+            // width looked diagonal); the size changes at once and the text is centred.
+            (fadeIn(androidx.compose.animation.core.tween(180)) +
+                slideInVertically(androidx.compose.animation.core.tween(220)) { if (up) it else -it }) togetherWith
+                (fadeOut(androidx.compose.animation.core.tween(120)) +
+                    slideOutVertically(androidx.compose.animation.core.tween(220)) { if (up) -it else it }) using
+                androidx.compose.animation.SizeTransform(clip = false) { _, _ -> androidx.compose.animation.core.snap() }
         },
         label = "speed",
     ) {
