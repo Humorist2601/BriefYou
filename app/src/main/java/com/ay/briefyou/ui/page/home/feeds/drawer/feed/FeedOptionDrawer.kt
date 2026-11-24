@@ -85,7 +85,7 @@ fun FeedOptionDrawer(
             }
         }
     val feedPicture = remember(feed?.url, showIconDialog) { com.ay.briefyou.brief.feeds.FeedPictures.get(iconContext, feed?.url) } // Brief You: the feed's own picture, once noted
-    if (showIconDialog) com.ay.briefyou.brief.ui.OptionSheetDialogs { // Brief You: above the sheet
+    com.ay.briefyou.brief.ui.LingerDialog(showIconDialog) { com.ay.briefyou.brief.ui.OptionSheetDialogs { // Brief You: above the sheet, fading out when closed
         FeedIconDialog(
             onSymbol = { feedOptionViewModel.setSymbolIcon(it) }, // Brief You: Material icons
             onEmoji = { feedOptionViewModel.setEmojiIcon(it) }, // Brief You: or any emoji
@@ -100,6 +100,7 @@ fun FeedOptionDrawer(
             onFeedPicture = { feedOptionViewModel.setFeedPicture(it) }, // Brief You
             onDismiss = { showIconDialog = false },
         )
+    } // Brief You
     } // Brief You
 
     // Brief You: the app's Material 3 sheet: the feed's head, a scrolling body, the buttons pinned.

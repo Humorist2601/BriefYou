@@ -5,7 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,10 +48,12 @@ fun StatTile(
     label: String,
     modifier: Modifier = Modifier,
     selected: Boolean? = null,
+    /** A smaller tile (a sheet's): the icon and number side by side, tighter corners. */
+    compact: Boolean = false,
     onClick: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    val press = rememberPressFeel(rest = 28.dp, held = 18.dp, bumps = 9)
+    val press = rememberPressFeel(rest = if (compact) 22.dp else 28.dp, held = if (compact) 14.dp else 18.dp, bumps = 9)
     val container by
         animateColorAsState(
             when (selected) {
@@ -83,6 +87,44 @@ fun StatTile(
                     if (selected != null) Modifier.semantics { this.selected = selected } else Modifier
                 ),
     ) {
+        if (compact) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier =
+                            Modifier.size(28.dp)
+                                .graphicsLayer { rotationZ = press.turn }
+                                .clip(MaterialShapes.Cookie9Sided.toShape())
+                                .background(content.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = -press.turn },
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = value,
+                        style =
+                            MaterialTheme.typography.titleLarge.copy(
+                                fontFamily = GoogleSansWideFontFamily,
+                                fontWeight = FontWeight.SemiBold,
+                            ),
+                        maxLines = 1,
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            return@Surface
+        }
         Column(modifier = Modifier.padding(16.dp)) {
             Box(
                 modifier =

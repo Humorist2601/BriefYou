@@ -44,7 +44,7 @@ private fun ApplyToAllDialog(
     onDismiss: () -> Unit,
     onApply: (Boolean) -> Unit,
 ) {
-    if (!visible) return
+    com.ay.briefyou.brief.ui.LingerDialog(visible) {
     var enabled by remember { mutableStateOf(true) }
     BYDialog(
         visible = true,
@@ -78,6 +78,7 @@ private fun ApplyToAllDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
+    }
 }
 
 @Composable

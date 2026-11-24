@@ -14,7 +14,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -36,8 +35,17 @@ fun EditFeedDialog(
     onDismissRequest: () -> Unit,
     onConfirm: (name: String, url: String) -> Unit,
 ) {
-    if (!visible) return
-    val focusManager = LocalFocusManager.current
+    com.ay.briefyou.brief.ui.LingerDialog(visible) { EditFeedDialogBody(name, url, showUrl, onDismissRequest, onConfirm) }
+}
+
+@Composable
+private fun EditFeedDialogBody(
+    name: String,
+    url: String,
+    showUrl: Boolean,
+    onDismissRequest: () -> Unit,
+    onConfirm: (name: String, url: String) -> Unit,
+) {
     val nameState = rememberTextFieldState(name)
     val urlState = rememberTextFieldState(url)
     val newName = nameState.text.toString().trim()
@@ -45,7 +53,6 @@ fun EditFeedDialog(
     val valid = newName.isNotEmpty() && (!showUrl || newUrl.isNotEmpty())
     val save = {
         if (valid) {
-            focusManager.clearFocus()
             onConfirm(newName, if (showUrl) newUrl else url)
         }
     }

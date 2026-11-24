@@ -544,7 +544,9 @@ fun TranslateLanguageSheet(controller: TranslateController, onDismiss: () -> Uni
     val scope = rememberCoroutineScope()
     val others = remember(phone) { TranslationPrefs.LANGUAGES.filter { it != phone } }
     ModalBottomSheet(shape = com.ay.briefyou.brief.ui.SheetShape, onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
+        // 70% of the screen, like the AI summary sheet; the language list scrolls, the button stays at the bottom.
+        val sheetHeight = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.7f).dp
+        Column(modifier = Modifier.height(sheetHeight).padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
             com.ay.briefyou.brief.ui.SheetTitle(
                 stringResource(R.string.translate_to),
                 stringResource(R.string.translate_to_hint),
@@ -565,7 +567,7 @@ fun TranslateLanguageSheet(controller: TranslateController, onDismiss: () -> Uni
             Spacer(Modifier.height(16.dp))
             com.ay.briefyou.brief.ui.SheetSection(stringResource(R.string.translate_other_languages))
             Column(
-                modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(com.ay.briefyou.brief.ui.Group.Gap),
             ) {
                 others.forEachIndexed { i, tag ->

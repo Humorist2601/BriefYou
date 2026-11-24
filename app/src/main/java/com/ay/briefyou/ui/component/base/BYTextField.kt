@@ -233,77 +233,24 @@ fun BYOutlinedTextField2(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
 ) {
-    val focusRequester = remember { FocusRequester() }
-
-    if (autoFocus) {
-        LaunchedEffect(Unit) {
-            delay(100) // ???
-            focusRequester.requestFocus()
-        }
-    }
-
-    if (isPassword) {
-        var showPassword by remember { mutableStateOf(false) }
-
-        OutlinedSecureTextField(
-            state = state,
-            label =
-                if (label.isEmpty()) null
-                else {
-                    { Text(label) }
-                },
-            modifier = modifier.focusRequester(focusRequester),
-            trailingIcon = {
-                PasswordVisibilityButton(
-                    showPassword = showPassword,
-                    onValueChange = { showPassword = it },
-                )
-            },
-            textObfuscationMode =
-                if (showPassword) TextObfuscationMode.Visible
-                else TextObfuscationMode.RevealLastTyped,
-            placeholder = { Text(text = placeholder) },
-            keyboardOptions = keyboardOptions,
-            onKeyboardAction = onKeyboardAction,
-            isError = errorMessage.isNotEmpty(),
-            supportingText =
-                if (errorMessage.isNotEmpty()) {
-                    { Text(errorMessage) }
-                } else null,
-        )
-    } else {
-        OutlinedTextField(
-            state = state,
-            modifier = modifier.focusRequester(focusRequester),
-            label =
-                if (label.isEmpty()) null
-                else {
-                    { Text(label) }
-                },
-            lineLimits =
-                if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(),
-            trailingIcon = {
-                if (state.text.isNotEmpty()) {
-                    ClearButton(state)
-                } else {
-                    PasteButton(state)
-                }
-            },
-            isError = errorMessage.isNotEmpty(),
-            placeholder = { Text(text = placeholder) },
-            keyboardOptions = keyboardOptions,
-            onKeyboardAction = onKeyboardAction,
-            readOnly = readOnly,
-            supportingText =
-                if (errorMessage.isNotEmpty()) {
-                    { Text(errorMessage) }
-                } else null,
-        )
-    }
+    // Brief You: one field style everywhere (filled and rounded)
+    BYTextField2(
+        state = state,
+        modifier = modifier,
+        readOnly = readOnly,
+        label = label,
+        singleLine = singleLine,
+        isPassword = isPassword,
+        placeholder = placeholder,
+        errorMessage = errorMessage,
+        autoFocus = autoFocus,
+        keyboardOptions = keyboardOptions,
+        onKeyboardAction = onKeyboardAction,
+    )
 }
 
 @Composable
-private fun textFieldColors(): TextFieldColors =
+fun textFieldColors(): TextFieldColors =
     TextFieldDefaults.colors(
         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,

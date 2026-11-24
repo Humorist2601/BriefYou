@@ -114,7 +114,7 @@ private fun AddFeedDialogContent(
     InWindowAlertDialog(
         // Not closed by a tap outside, so a pasted address isn't lost to a stray tap.
         properties = DialogProperties(dismissOnClickOutside = false),
-        plainIcon = true, // Brief You: the feed's own picture, not on a cookie
+        plainIcon = configure != null, // Brief You: the feed's own picture is drawn as it is; the plain dialog keeps the cookie
         onDismissRequest = { close() },
         icon = {
             if (configure != null) {

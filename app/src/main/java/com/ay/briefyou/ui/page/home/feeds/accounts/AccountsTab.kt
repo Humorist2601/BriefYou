@@ -1,22 +1,27 @@
 package com.ay.briefyou.ui.page.home.feeds.accounts
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,15 +30,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ay.briefyou.R
 import com.ay.briefyou.domain.model.account.Account
-import com.ay.briefyou.ui.component.base.BYDialog
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * The accounts as a sheet like the app's others: icon head, the accounts as one joined group (the
+ * current one filled and ticked; tapping it opens its settings), and Add account / Manage pinned below.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountsTab(
     modifier: Modifier = Modifier,
@@ -45,62 +51,86 @@ fun AccountsTab(
     onClickManage: () -> Unit = {},
     onDismissRequest: () -> Unit = {},
 ) {
-    BYDialog(
+    if (!visible) return
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val state = com.ay.briefyou.brief.ui.rememberFullSheetState()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    // Slide down first, like a swipe does, then act.
+    fun close(then: () -> Unit) {
+        scope.launch { state.hide() }.invokeOnCompletion { then() }
+    }
+    ModalBottomSheet(
         modifier = modifier,
-        visible = visible,
         onDismissRequest = onDismissRequest,
-        icon = { Icon(imageVector = Icons.Outlined.People, contentDescription = null) },
-        title = { Text(text = stringResource(R.string.accounts)) },
-        text = {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
-                verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+        sheetState = state,
+        shape = com.ay.briefyou.brief.ui.SheetShape,
+        contentWindowInsets = { androidx.compose.foundation.layout.WindowInsets.navigationBars },
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            com.ay.briefyou.brief.ui.SheetTitle(
+                stringResource(R.string.accounts),
+                stringResource(R.string.accounts_hint),
+                icon = Icons.Outlined.People,
+            )
+            Spacer(Modifier.height(8.dp))
+            Column(
+                modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(com.ay.briefyou.brief.ui.Group.Gap),
             ) {
-                accounts.forEach { account ->
+                accounts.forEachIndexed { i, account ->
                     val selected = account.id == currentAccountId
-                    Column(
-                        modifier =
-                            Modifier
-                                .clip(MaterialTheme.shapes.medium)
-                                .clickable {
-                                    if (selected) onClickSettings() else onAccountSwitch(account)
-                                }
-                                .padding(8.dp)
-                    ) {
-                        IconContainer(selected = selected) {
-                            AccountIcon(account = account, selected = selected)
-                        }
-                        AccountLabel(account.name)
-                    }
-                }
-                Column(
-                    modifier =
-                        Modifier
-                            .clip(MaterialTheme.shapes.medium)
-                            .clickable(onClick = onClickManage)
-                            .padding(8.dp)
-                ) {
-                    IconContainer(selected = false) {
-                        Icon(Icons.Rounded.Add, null, modifier = Modifier.size(24.dp))
-                    }
-                    AccountLabel(stringResource(R.string.add))
+                    com.ay.briefyou.brief.ui.ChoiceRow(
+                        title = account.name,
+                        subtitle = account.type.toDesc(context),
+                        selected = selected,
+                        shape = com.ay.briefyou.brief.ui.groupShape(i, accounts.size),
+                        onClick = { if (selected) close(onClickSettings) else onAccountSwitch(account) },
+                        leading = {
+                            IconContainer(selected = selected, size = 40.dp) {
+                                AccountIcon(account = account, selected = selected)
+                            }
+                        },
+                    )
                 }
             }
-        },
-        confirmButton = {},
-    )
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilledTonalButton(
+                    onClick = { close(onClickManage) },
+                    shape = CircleShape,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                ) {
+                    Icon(Icons.Rounded.Add, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.accounts_add))
+                }
+                FilledTonalButton(
+                    onClick = { close(onClickSettings) },
+                    shape = CircleShape,
+                    enabled = currentAccountId != null,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                ) {
+                    Icon(Icons.Outlined.Settings, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.accounts_manage))
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
 }
 
 @Composable
 private fun IconContainer(
     modifier: Modifier = Modifier,
     selected: Boolean,
+    size: androidx.compose.ui.unit.Dp = 52.dp,
     content: @Composable () -> Unit,
 ) {
     Box(
         modifier =
             modifier
-                .size(52.dp)
+                .size(size)
                 .clip(CircleShape)
                 .background(
                     if (selected) {
@@ -140,20 +170,4 @@ private fun AccountIcon(account: Account, selected: Boolean) {
             )
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun AccountLabel(text: String, modifier: Modifier = Modifier) {
-    Text(
-        modifier = modifier
-            .padding(top = 6.dp)
-            .width(52.dp),
-        textAlign = TextAlign.Center,
-        text = text,
-        style = MaterialTheme.typography.bodySmall.merge(fontSize = 11.sp, letterSpacing = 0.sp),
-        color = MaterialTheme.colorScheme.onSurface,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
 }

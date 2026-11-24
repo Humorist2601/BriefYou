@@ -109,8 +109,6 @@ fun TextFieldDialog(
     onConfirm: (String) -> Unit = {},
     imeAction: ImeAction = if (singleLine) ImeAction.Done else ImeAction.Default,
 ) {
-    val focusManager = LocalFocusManager.current
-
     BYDialog(
         modifier = modifier,
         properties = properties,
@@ -136,7 +134,6 @@ fun TextFieldDialog(
             DialogConfirmButton(
                 enabled = textFieldState.text.isNotBlank(),
                 onClick = {
-                    focusManager.clearFocus()
                     onConfirm(textFieldState.text.toString())
                 },
             ) {

@@ -1,5 +1,6 @@
 package com.ay.briefyou.brief.feeds
 
+import androidx.compose.material.icons.outlined.Palette
 import com.ay.briefyou.brief.ui.DialogConfirmButton
 
 import com.ay.briefyou.brief.ui.InWindowAlertDialog
@@ -82,6 +83,7 @@ fun FeedIconDialog(
 ) {
     InWindowAlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Outlined.Palette, contentDescription = null) },
         title = { Text(stringResource(R.string.feed_icon_change)) },
         text = {
             Column {
@@ -94,7 +96,13 @@ fun FeedIconDialog(
                 // Six across, four and a half rows tall: the cut row and the fading edges show
                 // there's more to scroll to.
                 val gridState = rememberLazyGridState()
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                // The symbols sit in one quiet card, as the body blocks of the sheets do.
+                Surface(
+                    shape = RoundedCornerShape(com.ay.briefyou.brief.ui.Corner.Card),
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
                 val tile = (maxWidth - 6.dp * 5) / 6
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(6),
@@ -117,7 +125,7 @@ fun FeedIconDialog(
                             shape = if (selected) CircleShape else RoundedCornerShape(12.dp),
                             color =
                                 if (selected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                else Color.Transparent,
                             contentColor =
                                 if (selected) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -130,66 +138,48 @@ fun FeedIconDialog(
                     }
                 }
                 }
+                }
                 Spacer(Modifier.height(12.dp))
                 // Any emoji, typed or picked from the keyboard's emoji page.
-                var emoji by rememberSaveable { mutableStateOf("") }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // A compact field, as tall as the buttons (a standard one is 56 dp).
-                    val interaction = remember { MutableInteractionSource() }
-                    val textColor = MaterialTheme.colorScheme.onSurface
-                    BasicTextField(
-                        value = emoji,
-                        onValueChange = { emoji = it.take(8) },
-                        modifier = Modifier.weight(1f).height(44.dp),
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        interactionSource = interaction,
-                    ) { inner ->
-                        OutlinedTextFieldDefaults.DecorationBox(
-                            value = emoji,
-                            innerTextField = inner,
-                            enabled = true,
-                            singleLine = true,
-                            visualTransformation = VisualTransformation.None,
-                            interactionSource = interaction,
-                            placeholder = {
-                                Text(
-                                    stringResource(R.string.feed_icon_emoji_hint),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            },
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                            container = {
-                                OutlinedTextFieldDefaults.Container(
-                                    enabled = true,
-                                    isError = false,
-                                    interactionSource = interaction,
-                                    colors = OutlinedTextFieldDefaults.colors(),
-                                    shape = RoundedCornerShape(14.dp),
-                                )
-                            },
-                        )
+                val emojiState = androidx.compose.foundation.text.input.rememberTextFieldState()
+                val emoji = emojiState.text.toString()
+                val useEmoji = {
+                    if (emoji.isNotBlank()) {
+                        onEmoji(emoji.take(8))
+                        onDismiss()
                     }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    com.ay.briefyou.ui.component.base.BYTextField2(
+                        state = emojiState,
+                        modifier = Modifier.weight(1f),
+                        placeholder = stringResource(R.string.feed_icon_emoji_hint),
+                        autoFocus = false,
+                        keyboardOptions =
+                            androidx.compose.foundation.text.KeyboardOptions(
+                                imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                            ),
+                        onKeyboardAction =
+                            androidx.compose.foundation.text.input.KeyboardActionHandler { useEmoji() },
+                    )
                     Spacer(Modifier.width(8.dp))
-                    TextButton(
+                    FilledTonalButton(
                         enabled = emoji.isNotBlank(),
-                        onClick = {
-                            onEmoji(emoji)
-                            onDismiss()
-                        },
+                        onClick = useEmoji,
+                        shape = CircleShape,
+                        modifier = Modifier.height(48.dp),
                     ) {
                         Text(stringResource(R.string.feed_icon_use))
                     }
                 }
                 Spacer(Modifier.height(16.dp))
                 FilledTonalButton(
-                    shapes = ButtonDefaults.shapes(),
+                    shape = CircleShape,
                     onClick = {
                         onImage()
                         onDismiss()
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
                 ) {
                     Icon(Icons.Outlined.Image, null, Modifier.size(ButtonDefaults.IconSize))
                     Spacer(Modifier.width(ButtonDefaults.IconSpacing))
@@ -218,13 +208,13 @@ fun FeedIconDialog(
                         },
                     )
                 } else {
-                OutlinedButton(
-                    shapes = ButtonDefaults.shapes(),
+                FilledTonalButton(
+                    shape = CircleShape,
                     onClick = {
                         onWebsiteIcon()
                         onDismiss()
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
                 ) {
                     Icon(resetIcon, null, Modifier.size(ButtonDefaults.IconSize))
                     Spacer(Modifier.width(ButtonDefaults.IconSpacing))
@@ -234,7 +224,7 @@ fun FeedIconDialog(
             }
         },
         confirmButton = {
-            DialogConfirmButton(onClick = onDismiss) { Text(stringResource(R.string.ai_settings_cancel)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.ai_settings_cancel)) }
         },
     )
 }

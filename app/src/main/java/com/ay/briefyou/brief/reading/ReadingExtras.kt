@@ -6,6 +6,7 @@
 
 package com.ay.briefyou.brief.reading
 
+import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.toShape
@@ -235,11 +236,11 @@ fun TextSettingsSheet(onDismiss: () -> Unit, onAllSettings: () -> Unit) {
                     // doesn't jump while a slider or the font changes the preview above it).
                     .fillMaxHeight()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 16.dp)
                     .navigationBarsPadding()
                     .padding(bottom = 16.dp),
         ) {
-            com.ay.briefyou.brief.ui.SheetTitle(stringResource(R.string.text_settings))
+            com.ay.briefyou.brief.ui.SheetTitle(stringResource(R.string.text_settings), icon = Icons.Outlined.TextFields)
 
             // A live preview that follows the article's own style sheet (WebViewStyle): the font,
             // size, boldness, letter spacing, line spacing (the article spaces lines at 1.5 times

@@ -955,17 +955,19 @@ private fun WatchedLogCard(entry: WatchedEntry, shape: RoundedCornerShape, onOpe
 
 /** One filtered article: its title, the feed and why it was filtered, and Undo. */
 @Composable
-private fun FilterLogCard(
+internal fun FilterLogCard(
     entry: FilterLogEntry,
     shape: RoundedCornerShape,
     onOpen: () -> Unit,
     onUndo: () -> Unit,
+    /** The page's cards sit 16 dp in; in a sheet (already padded) 0. */
+    sidePadding: androidx.compose.ui.unit.Dp = 16.dp,
 ) {
     Surface(
         onClick = onOpen,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.5.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = sidePadding, vertical = 1.5.dp),
     ) {
         Row(
             modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
@@ -1039,23 +1041,19 @@ private fun FilterLogCard(
                         modifier = Modifier.padding(start = 8.dp).weight(1f, fill = false),
                     )
                 }
-                // For a duplicate: the original story it repeats.
-                if (entry.reason == FilterReason.Duplicate && entry.detailFeed != null) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.filters_original_story, entry.detail),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
-            IconButton(onClick = onUndo) {
+            // Undo on a soft round background, like the duplicate copies'.
+            IconButton(
+                onClick = onUndo,
+                colors =
+                    IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    ),
+            ) {
                 Icon(
                     Icons.AutoMirrored.Rounded.Undo,
                     contentDescription = stringResource(R.string.filters_log_undo),
-                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
         }
@@ -1063,7 +1061,7 @@ private fun FilterLogCard(
 }
 
 /** A row of the filtered list: one muted article, or the hidden copies of one story. */
-private sealed interface LogRow {
+internal sealed interface LogRow {
     val key: String
 
     data class Single(val entry: FilterLogEntry) : LogRow {
@@ -1083,7 +1081,7 @@ private sealed interface LogRow {
 }
 
 /** A day's filtered articles as rows: duplicates of the same story together, in list order. */
-private fun logRows(entries: List<FilterLogEntry>): List<LogRow> {
+internal fun logRows(entries: List<FilterLogEntry>): List<LogRow> {
     val groups = LinkedHashMap<Any, MutableList<FilterLogEntry>>()
     for (entry in entries) {
         val key: Any =
@@ -1111,16 +1109,18 @@ private fun logRows(entries: List<FilterLogEntry>): List<LogRow> {
  * copies that were marked as read under it: each with its feed, and Undo.
  */
 @Composable
-private fun DuplicateGroupCard(
+internal fun DuplicateGroupCard(
     group: LogRow.Duplicates,
     shape: RoundedCornerShape,
     onOpen: (String) -> Unit,
     onUndo: (FilterLogEntry) -> Unit,
+    /** The page's cards sit 16 dp in; in a sheet (already padded) 0. */
+    sidePadding: androidx.compose.ui.unit.Dp = 16.dp,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 1.5.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = sidePadding, vertical = 1.5.dp),
     ) {
         Column {
             Row(

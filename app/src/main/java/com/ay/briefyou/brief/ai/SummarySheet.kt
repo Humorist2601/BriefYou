@@ -366,7 +366,13 @@ fun SummarySheet(
                     }
                     val focus = remember { FocusRequester() }
                     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-                    OutlinedTextField(
+                    androidx.compose.material3.TextField(
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                        ),
                         value = question,
                         onValueChange = { question = it },
                         modifier = Modifier.fillMaxWidth().focusRequester(focus),

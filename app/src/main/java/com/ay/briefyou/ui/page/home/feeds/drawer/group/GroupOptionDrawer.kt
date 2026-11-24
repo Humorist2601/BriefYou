@@ -68,7 +68,7 @@ fun GroupOptionDrawer(
                 runCatching { com.ay.briefyou.brief.feeds.GroupIcons.setImage(context, id, uri) }.onFailure { context.showToast(it.message) } // Brief You
             } // Brief You
         } // Brief You
-    if (showIconDialog) com.ay.briefyou.brief.ui.OptionSheetDialogs { // Brief You: above the sheet
+    com.ay.briefyou.brief.ui.LingerDialog(showIconDialog) { com.ay.briefyou.brief.ui.OptionSheetDialogs { // Brief You: above the sheet, fading out when closed
         com.ay.briefyou.brief.feeds.FeedIconDialog( // Brief You
             onSymbol = { n -> group?.id?.let { com.ay.briefyou.brief.feeds.GroupIcons.setSymbol(context, it, n) } }, // Brief You: Material icons
             onEmoji = { e -> group?.id?.let { com.ay.briefyou.brief.feeds.GroupIcons.setEmoji(context, it, e) } }, // Brief You: or any emoji
@@ -79,6 +79,7 @@ fun GroupOptionDrawer(
             resetLabel = stringResource(R.string.group_icon_folder), // Brief You
             resetIcon = Icons.Outlined.Folder, // Brief You
         ) // Brief You
+    } // Brief You
     } // Brief You
 
     // Brief You: the app's Material 3 sheet: the group's head, a scrolling body, the buttons pinned.

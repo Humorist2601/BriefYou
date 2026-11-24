@@ -172,7 +172,7 @@ fun SheetTile(icon: ImageVector, label: String, on: Boolean?, onClick: () -> Uni
     val corner by androidx.compose.animation.core.animateDpAsState(if (lit) 30.dp else 16.dp, spatial, label = "tileCorner")
     val container by
         androidx.compose.animation.animateColorAsState(
-            if (lit) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+            if (lit) MaterialTheme.colorScheme.primaryContainer else (LocalQuietColor.current ?: MaterialTheme.colorScheme.surfaceContainerHigh),
             effects,
             label = "tileColor",
         )

@@ -1,5 +1,7 @@
 package com.ay.briefyou.brief.ui
 
+import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -29,8 +31,8 @@ fun ChoiceSheet(title: String, hint: String?, choices: List<Choice>, onDismiss: 
     val state = com.ay.briefyou.brief.ui.rememberFullSheetState()
     val scope = rememberCoroutineScope()
     ModalBottomSheet(shape = com.ay.briefyou.brief.ui.SheetShape, onDismissRequest = onDismiss, sheetState = state) {
-        Column(modifier = Modifier.padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp)) {
-            SheetTitle(title, hint)
+        Column(modifier = Modifier.padding(horizontal = 16.dp).navigationBarsPadding().padding(bottom = 16.dp)) {
+            SheetTitle(title, hint, icon = Icons.Outlined.Checklist)
             Column(
                 modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(Group.Gap),

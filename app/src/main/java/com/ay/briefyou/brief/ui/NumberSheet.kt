@@ -1,5 +1,7 @@
 package com.ay.briefyou.brief.ui
 
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -86,9 +88,9 @@ fun NumberSheet(
     ) {
         Column(
             modifier =
-                Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().imePadding()
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).navigationBarsPadding().imePadding()
         ) {
-            SheetTitle(title)
+            SheetTitle(title, icon = Icons.Outlined.Tune)
             val steps = ((range.endInclusive - range.start) / step).roundToInt()
             val typed = text.toFloatOrNull()
             fun startTyping() {

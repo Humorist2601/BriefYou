@@ -116,6 +116,11 @@
     <string name="filters_none">No muted keywords yet</string>
     <string name="filters_remove">Remove %1$s</string>
     <string name="filters_apply_now">Apply now</string>
+    <string name="ai_prompt_sheet_hint">What the AI is told to do</string>
+    <string name="accounts_hint">Switch, or manage them</string>
+    <string name="accounts_add">Add account</string>
+    <string name="accounts_manage">Manage</string>
+    <string name="filters_all">All filters</string>
     <string name="filters_log">Recently filtered</string>
     <string name="filters_log_empty">Nothing has been filtered yet. Articles hidden by your filters will appear here with the reason.</string>
     <string name="filters_log_clear">Clear</string>

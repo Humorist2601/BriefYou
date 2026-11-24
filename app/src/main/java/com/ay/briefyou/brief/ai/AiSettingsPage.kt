@@ -38,6 +38,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.Summarize
+import androidx.compose.foundation.layout.imePadding
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Downloading
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -299,6 +304,8 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
     }
 }
 
+/** A prompt's editor as a tall sheet (about 75% of the screen): the text area, Reset and Save pinned below. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun PromptDialog(
     title: String,
@@ -308,33 +315,64 @@ private fun PromptDialog(
     onDismiss: () -> Unit,
 ) {
     var text by remember { mutableStateOf(initial) }
-    InWindowAlertDialog(
+    val state = com.ay.briefyou.brief.ui.rememberFullSheetState()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val height = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.75f).dp
+    androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            OutlinedTextField(
+        sheetState = state,
+        shape = com.ay.briefyou.brief.ui.SheetShape,
+        contentWindowInsets = { WindowInsets.navigationBars },
+    ) {
+        Column(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .height(height)
+                    .padding(horizontal = 16.dp)
+                    // Room for the keyboard while typing.
+                    .imePadding()
+        ) {
+            com.ay.briefyou.brief.ui.SheetTitle(
+                title,
+                stringResource(R.string.ai_prompt_sheet_hint),
+                icon = Icons.Outlined.Summarize,
+            )
+            Spacer(Modifier.height(8.dp))
+            androidx.compose.material3.TextField(
+                colors = com.ay.briefyou.ui.component.base.textFieldColors(),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(com.ay.briefyou.brief.ui.Corner.Card),
                 value = text,
                 onValueChange = { text = it },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp, max = 360.dp),
+                modifier = Modifier.fillMaxWidth().weight(1f),
                 textStyle = MaterialTheme.typography.bodyMedium,
             )
-        },
-        confirmButton = {
-            DialogConfirmButton(
-                onClick = {
-                    onSave(if (text.trim() == default) null else text.trim())
-                    onDismiss()
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilledTonalButton(
+                    onClick = { text = default },
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                ) {
+                    Icon(Icons.Outlined.RestartAlt, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.ai_settings_reset))
                 }
-            ) {
-                Text(stringResource(R.string.ai_settings_save))
+                Button(
+                    onClick = {
+                        onSave(if (text.trim() == default) null else text.trim())
+                        scope.launch { state.hide() }.invokeOnCompletion { onDismiss() }
+                    },
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                ) {
+                    Icon(Icons.Outlined.Check, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.ai_settings_save))
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = { text = default }) {
-                Text(stringResource(R.string.ai_settings_reset))
-            }
-        },
-    )
+            Spacer(Modifier.height(16.dp))
+        }
+    }
 }
 
 /**

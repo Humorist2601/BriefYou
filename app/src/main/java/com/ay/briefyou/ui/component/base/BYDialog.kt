@@ -18,7 +18,7 @@ fun BYDialog(
     dismissButton: @Composable (() -> Unit)? = null,
     danger: Boolean = false, // Brief You: a dialog that deletes or clears something
 ) {
-    if (visible) {
+    com.ay.briefyou.brief.ui.LingerDialog(visible) {
         // Brief You: drawn in the app's window, so text cursor handles sit under the cursor.
         InWindowAlertDialog(
             properties = properties,

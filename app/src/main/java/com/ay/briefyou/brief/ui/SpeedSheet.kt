@@ -1,5 +1,7 @@
 package com.ay.briefyou.brief.ui
 
+import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -55,8 +57,8 @@ fun SpeedSheet(
         onDone(new)
     }
     ModalBottomSheet(shape = com.ay.briefyou.brief.ui.SheetShape, onDismissRequest = onDismiss, sheetState = com.ay.briefyou.brief.ui.rememberFullSheetState()) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding().padding(bottom = 16.dp)) {
-            SheetTitle(title)
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).navigationBarsPadding().padding(bottom = 16.dp)) {
+            SheetTitle(title, icon = Icons.Outlined.Speed)
             ValueStepper(
                 value = value,
                 label = ::speedLabel,

@@ -121,6 +121,7 @@ fun FeedsPage(
 ) {
     var accountTabVisible by remember { mutableStateOf(false) }
     var sortSheetVisible by remember { mutableStateOf(false) } // Brief You
+    var filtersSheetVisible by remember { mutableStateOf(false) } // Brief You
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -255,7 +256,7 @@ fun FeedsPage(
                     TopBarButtonGroup( // Brief You
                         buildList {
                             add(TopBarAction(Icons.AutoMirrored.Outlined.Sort, stringResource(R.string.sort_title)) { sortSheetVisible = true })
-                            add(TopBarAction(Icons.Outlined.FilterAlt, stringResource(R.string.filters_settings)) { navigateToFilters() })
+                            add(TopBarAction(Icons.Outlined.FilterAlt, stringResource(R.string.filters_settings)) { filtersSheetVisible = true })
                             if (subscribeViewModel.rssService.get().addSubscription) {
                                 add(TopBarAction(Icons.Rounded.Add, stringResource(R.string.subscribe)) { subscribeViewModel.showDrawer() })
                             }
@@ -303,7 +304,7 @@ fun FeedsPage(
                             onRetry = doSync,
                             accountSignsIn = feedsUiState.account?.type != com.ay.briefyou.domain.model.account.AccountType.Local,
                             onSignIn = { feedsUiState.account?.id?.let(navigateToAccountDetail) },
-                            animateBackground = !sortSheetVisible && !accountTabVisible && !groupDrawerState.isVisible && !feedDrawerState.isVisible,
+                            animateBackground = !sortSheetVisible && !filtersSheetVisible && !accountTabVisible && !groupDrawerState.isVisible && !feedDrawerState.isVisible,
                             onClick = {
                                 feedsViewModel.changeFilter(filterState.copy(group = null, feed = null))
                                 navigationToFlow()
@@ -461,6 +462,11 @@ fun FeedsPage(
     SubscribeDialog(subscribeViewModel = subscribeViewModel)
 
     BriefFeedSortSheet(sortSheetVisible) { sortSheetVisible = false } // Brief You
+    com.ay.briefyou.brief.filters.FiltersSheet(
+        visible = filtersSheetVisible,
+        onDismiss = { filtersSheetVisible = false },
+        onOpenAll = { navigateToFilters() },
+    ) // Brief You
 
     GroupOptionDrawer(drawerState = groupDrawerState)
     FeedOptionDrawer(drawerState = feedDrawerState)

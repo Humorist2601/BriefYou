@@ -28,7 +28,9 @@ fun CertificateSelector(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    OutlinedTextField(
+    androidx.compose.material3.TextField(
+        colors = com.ay.briefyou.ui.component.base.textFieldColors(),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(com.ay.briefyou.brief.ui.Corner.Small),
         value = value,
         onValueChange = {},
         readOnly = true,

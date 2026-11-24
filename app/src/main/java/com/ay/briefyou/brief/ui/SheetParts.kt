@@ -130,6 +130,9 @@ fun CookieIcon(
 }
 
 /** How far a [SheetSection] label is inset: 14 dp in the option sheets, whose cards sit 16 dp from the edge. */
+/** The colour of a tile that is off: a dialog (itself `surfaceContainerHigh`) provides `surfaceContainerHighest`. */
+val LocalQuietColor = compositionLocalOf<Color?> { null }
+
 val LocalSheetLabelInset = compositionLocalOf { 4.dp }
 
 /**

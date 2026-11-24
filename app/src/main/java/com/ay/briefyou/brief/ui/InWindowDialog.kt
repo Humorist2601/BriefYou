@@ -49,6 +49,17 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.ime
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 
@@ -102,6 +113,34 @@ fun ScreenOverlay(content: @Composable () -> Unit) {
     DisposableEffect(host, entry) {
         host.entries.add(entry)
         onDispose { host.entries.remove(entry) }
+    }
+}
+
+/** How a dialog is being closed: [closing] fades it out where it stands, then calls [onExited]. */
+class DialogExit(val closing: Boolean, val onExited: () -> Unit)
+
+private val NoDialogExit = DialogExit(false) {}
+private val LocalDialogExit = compositionLocalOf { NoDialogExit }
+
+/**
+ * Keeps a dialog composed while it fades out (and its keyboard leaves), so closing is not a
+ * cut: [content] is shown while [visible], and for a moment after. Its state starts fresh each
+ * time the dialog opens. Inside another [LingerDialog] it does nothing (the outer one rules).
+ */
+@Composable
+fun LingerDialog(visible: Boolean, content: @Composable () -> Unit) {
+    if (LocalDialogExit.current !== NoDialogExit) {
+        if (visible) content()
+        return
+    }
+    var present by remember { mutableStateOf(visible) }
+    var round by remember { mutableIntStateOf(0) }
+    LaunchedEffect(visible) { if (visible) present = true }
+    if (visible || present) {
+        key(round) {
+            val exit = remember(visible) { DialogExit(!visible) { present = false; round++ } }
+            CompositionLocalProvider(LocalDialogExit provides exit) { content() }
+        }
     }
 }
 
@@ -195,6 +234,24 @@ private fun DialogScaffold(
         }
     }
     val p = back.value
+    // Closing (see LingerDialog): fade out where it stands; the keyboard leaving doesn't move it.
+    val exit = LocalDialogExit.current
+    val density = LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    val navBottom = WindowInsets.navigationBars.getBottom(density)
+    var frozenBottom by remember { mutableStateOf<Int?>(null) }
+    SideEffect {
+        if (exit.closing && frozenBottom == null) frozenBottom = maxOf(imeBottom, navBottom)
+        if (!exit.closing) frozenBottom = null
+    }
+    LaunchedEffect(exit.closing) {
+        if (exit.closing) {
+            leave.animateTo(0f, tween(160))
+            exit.onExited()
+        } else if (leave.value < 1f) {
+            leave.animateTo(1f, tween(120))
+        }
+    }
     Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = leave.value }) {
         // The scrim, over the whole screen (bars included); tapping it closes the dialog.
         Box(
@@ -209,7 +266,17 @@ private fun DialogScaffold(
         )
         // Centred in the space the bars and the keyboard leave.
         Box(
-            modifier = Modifier.fillMaxSize().safeDrawingPadding().imePadding(),
+            modifier =
+                Modifier.fillMaxSize().then(
+                    frozenBottom?.let { frozen ->
+                        Modifier.windowInsetsPadding(
+                                WindowInsets.safeDrawing.only(
+                                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                                )
+                            )
+                            .padding(bottom = with(density) { frozen.toDp() })
+                    } ?: Modifier.safeDrawingPadding().imePadding()
+                ),
             contentAlignment = Alignment.Center,
         ) {
             val appear = remember { MutableTransitionState(false).apply { targetState = true } }
@@ -224,7 +291,7 @@ private fun DialogScaffold(
                             .then(modifier)
                             .sizeIn(minWidth = 280.dp, maxWidth = 560.dp)
                             .graphicsLayer {
-                                val scale = 1f - 0.1f * p
+                                val scale = (1f - 0.1f * p) * (0.94f + 0.06f * leave.value)
                                 scaleX = scale
                                 scaleY = scale
                                 translationX = (if (fromLeft) 1f else -1f) * 8.dp.toPx() * p
@@ -236,6 +303,7 @@ private fun DialogScaffold(
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     tonalElevation = 0.dp,
                 ) {
+                    CompositionLocalProvider(LocalQuietColor provides MaterialTheme.colorScheme.surfaceContainerHighest) {
                     Column(modifier = Modifier.padding(24.dp)) {
                         if (icon != null && plainIcon) {
                             Box(modifier = Modifier.padding(bottom = 16.dp).align(Alignment.Start)) { icon() }
@@ -304,6 +372,7 @@ private fun DialogScaffold(
                                 }
                             }
                         }
+                    }
                     }
                 }
             }

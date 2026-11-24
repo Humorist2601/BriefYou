@@ -18,7 +18,7 @@ fun RenameDialog(
     onDismissRequest: () -> Unit = {},
     onConfirm: (String) -> Unit = {},
 ) {
-    if (visible) {
+    com.ay.briefyou.brief.ui.LingerDialog(visible) {
         val textFieldState = rememberTextFieldState(value)
         LaunchedEffect(textFieldState) {
             snapshotFlow { textFieldState.text }.collect { onValueChange(it.toString()) }
