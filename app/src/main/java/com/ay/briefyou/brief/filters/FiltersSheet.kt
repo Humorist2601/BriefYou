@@ -20,7 +20,7 @@ import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.NotificationsOff
-import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -181,7 +181,7 @@ fun FiltersSheet(
                         shape = CircleShape,
                         modifier = Modifier.weight(1f).height(48.dp),
                     ) {
-                        Icon(Icons.Outlined.OpenInNew, null, Modifier.size(20.dp))
+                        Icon(Icons.AutoMirrored.Outlined.OpenInNew, null, Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.filters_all))
                     }
