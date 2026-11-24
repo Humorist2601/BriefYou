@@ -199,7 +199,8 @@ fun SharedFilterBar(
                     enter = slideInVertically(spatial) { it } + fadeIn(effects),
                     // Swiped away: it flies off sideways by itself and only fades here; closed otherwise: it goes down behind the bar.
                     exit =
-                        if (com.ay.briefyou.brief.player.NowPlayingExit.dir != 0) fadeOut(effects)
+                        // It must stay long enough for the fly-off: the pill is removed when this ends, which cut the fly-off short.
+                        if (com.ay.briefyou.brief.player.NowPlayingExit.dir != 0) fadeOut(androidx.compose.animation.core.tween(450))
                         else slideOutVertically(spatial) { it } + fadeOut(effects),
                 ) {
                     // A fixed width: the widest the bar and the AI button are together (the Unread

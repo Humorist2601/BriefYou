@@ -489,7 +489,7 @@ fun HomeHero(
                                         fontSize = 22.sp,
                                     ),
                                 )
-                                if (sentenceText.isNotEmpty()) HeroSentence(sentenceText, nameText, ink)
+                                if (sentenceText.isNotEmpty()) HeroSentence(sentenceText, nameText, ink, animateBackground)
                             }
                         }
                     }
@@ -548,7 +548,13 @@ private fun fontScaleOf(density: androidx.compose.ui.unit.Density): Float = dens
 
 /** The card's sentence: numbers in bold, and a group's name under a wavy line. */
 @Composable
-private fun HeroSentence(text: String, name: String?, ink: Color) {
+private fun HeroSentence(text: String, name: String?, ink: Color, animate: Boolean = true) {
+    // The wavy line drifts sideways, one wave per 1.6 s; only its drawing changes, nothing recomposes.
+    val wave = androidx.compose.animation.core.rememberInfiniteTransition(label = "wave").animateFloat(
+        0f, 1f,
+        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(1600, easing = androidx.compose.animation.core.LinearEasing)),
+        label = "wavePhase",
+    )
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
     val start = if (name.isNullOrEmpty()) -1 else text.indexOf(name)
     val annotated: AnnotatedString =
@@ -588,17 +594,21 @@ private fun HeroSentence(text: String, name: String?, ink: Color) {
                     val y = l.getLineBottom(line) + 1.dp.toPx()
                     val half = 3.dp.toPx()
                     val amp = 1.6.dp.toPx()
+                    val shift = if (animate) wave.value * half * 2 else 0f
                     val path = Path().apply {
-                        moveTo(from, y)
-                        var x = from
+                        val x0 = from - half * 2 + shift
+                        moveTo(x0, y)
+                        var x = x0
                         var up = true
-                        while (x < to) {
+                        while (x < to + half) {
                             quadraticTo(x + half / 2, y + if (up) -amp * 2 else amp * 2, x + half, y)
                             x += half
                             up = !up
                         }
                     }
-                    drawPath(path, ink.copy(alpha = 0.7f), style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round))
+                    androidx.compose.ui.graphics.drawscope.clipRect(from, y - amp * 3, to, y + amp * 3) {
+                        drawPath(path, ink.copy(alpha = 0.7f), style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round))
+                    }
                 }
             },
     )

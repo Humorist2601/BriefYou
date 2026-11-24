@@ -32,6 +32,8 @@ import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.material.icons.rounded.StarOutline
 import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.FiberManualRecord
 import androidx.compose.material.icons.rounded.Share
@@ -572,10 +574,10 @@ private fun swipeActionIcon(
     val swipeToEndAction = LocalArticleListSwipeEndAction.current
 
     val starImageVector =
-        remember(isStarred) { if (isStarred) Icons.Outlined.StarOutline else Icons.Rounded.Star }
+        remember(isStarred) { if (isStarred) Icons.Rounded.StarOutline else Icons.Rounded.Star } // Brief You: the Rounded pair the reading bar uses
 
     val readImageVector =
-        remember(isRead) { if (isRead) Icons.Outlined.Circle else Icons.Rounded.CheckCircleOutline }
+        remember(isRead) { if (isRead) Icons.Rounded.RadioButtonUnchecked else Icons.Rounded.CheckCircleOutline } // Brief You: Rounded, like the menu
 
     return remember(direction) {
         when (direction) {

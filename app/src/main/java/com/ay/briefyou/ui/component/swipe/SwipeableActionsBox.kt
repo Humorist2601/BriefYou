@@ -90,7 +90,19 @@ fun SwipeableActionsBox(
     androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 500f),
     label = "swipeLift",
   )
-  val cardColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh
+  val cardColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHighest // Brief You: a step lighter than the rows, so the lifted card reads
+  // Brief You: the action surface sits behind the card; the card lifts above it (see below).
+  (state.swipedAction ?: state.visibleAction)?.let { action ->
+    ActionIconBox(
+      modifier = Modifier.matchParentSize(),
+      action = action,
+      lift = lift,
+      backgroundColor = animatedBackgroundColor,
+      crossed = state.swipedAction != null || state.hasCrossedSwipeThreshold(),
+      content = { action.value.icon() }
+    )
+  }
+
   Box(
     modifier = Modifier
       .onSizeChanged { state.layoutWidth = it.width }
@@ -98,6 +110,16 @@ fun SwipeableActionsBox(
       .drawBehind {
         if (lift > 0f) {
           val inset = 8.dp.toPx()
+          // A soft shadow under the lifted card: a few faint, growing rounded rectangles.
+          for (i in 4 downTo 1) {
+            val grow = i * 2.5.dp.toPx()
+            drawRoundRect(
+              color = Color.Black.copy(alpha = 0.07f * lift),
+              topLeft = androidx.compose.ui.geometry.Offset(inset - grow, 2.dp.toPx() - grow),
+              size = androidx.compose.ui.geometry.Size(size.width - inset * 2 + grow * 2, size.height + grow * 2),
+              cornerRadius = androidx.compose.ui.geometry.CornerRadius(24.dp.toPx() + grow),
+            )
+          }
           drawRoundRect(
             color = cardColor.copy(alpha = lift),
             topLeft = androidx.compose.ui.geometry.Offset(inset, 0f),
@@ -119,17 +141,6 @@ fun SwipeableActionsBox(
     content = content
   )
 
-  (state.swipedAction ?: state.visibleAction)?.let { action ->
-    ActionIconBox(
-      modifier = Modifier.matchParentSize(),
-      action = action,
-      offset = state.offset.value,
-      backgroundColor = animatedBackgroundColor,
-      crossed = state.swipedAction != null || state.hasCrossedSwipeThreshold(),
-      content = { action.value.icon() }
-    )
-  }
-
   val hapticFeedback = LocalHapticFeedback.current
   if (state.hasCrossedSwipeThreshold() && state.swipedAction == null) {
     // Keyed on the side, not the action object: the actions are rebuilt whenever the caller // Brief You
@@ -144,7 +155,7 @@ fun SwipeableActionsBox(
 @Composable
 private fun ActionIconBox(
     action: SwipeActionMeta,
-    offset: Float,
+    lift: Float,
     backgroundColor: Color,
     crossed: Boolean,
     modifier: Modifier = Modifier,
@@ -160,44 +171,29 @@ private fun ActionIconBox(
   )
   val cookieColor by animateColorAsState(if (crossed) scheme.primary else scheme.surfaceContainerHighest, label = "swipeCookieColor")
   val cookieShape = androidx.compose.material3.MaterialShapes.Cookie12Sided.toShape()
+  // Brief You: not moved with the card: the tray is the whole row (inset 8 dp), seen only where the card
+  // has lifted away from it, and the cookie waits at the screen edge.
   Box(
-    modifier = modifier
-      .layout { measurable, constraints ->
-        val placeable = measurable.measure(constraints)
-        layout(width = placeable.width, height = placeable.height) {
-          // Sits right next to the content being swiped (left or right of it).
-          val iconOffset = if (action.isOnRightSide) constraints.maxWidth + offset else offset - placeable.width
-          placeable.place(x = iconOffset.roundToInt(), y = 0)
-        }
-      }
-      .drawWithContent {
-        // Brief You: the tray is the part of the screen the card has uncovered, inset 8 dp from the
-        // screen edge; its inner side meets the card's own inset. The cookie is clipped to it.
-        val inset = 8.dp.toPx()
-        val tray =
-          if (action.isOnRightSide) androidx.compose.ui.geometry.Rect(-inset, 0f, -offset - inset, size.height)
-          else androidx.compose.ui.geometry.Rect(size.width - offset + inset, 0f, size.width + inset, size.height)
-        if (tray.width > 0f) {
-          val radius = androidx.compose.ui.geometry.CornerRadius(24.dp.toPx())
-          drawRoundRect(color = backgroundColor, topLeft = tray.topLeft, size = tray.size, cornerRadius = radius)
-          val clip = androidx.compose.ui.graphics.Path().apply {
-            addRoundRect(androidx.compose.ui.geometry.RoundRect(tray, radius))
-          }
-          clipPath(clip) { this@drawWithContent.drawContent() }
-        }
-      },
+    modifier = modifier.drawBehind {
+      val inset = 8.dp.toPx()
+      drawRoundRect(
+        color = backgroundColor.copy(alpha = backgroundColor.alpha * lift),
+        topLeft = androidx.compose.ui.geometry.Offset(inset, 0f),
+        size = androidx.compose.ui.geometry.Size(size.width - inset * 2, size.height),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(24.dp.toPx()),
+      )
+    },
   ) {
     Box(
       modifier = Modifier
         .layout { measurable, constraints ->
           val placeable = measurable.measure(androidx.compose.ui.unit.Constraints())
           val edge = 30.dp.roundToPx()
-          // The cookie stays where the screen edge is, so it is uncovered as the card moves.
-          val x = if (action.isOnRightSide) (-offset).roundToInt() - edge - placeable.width else constraints.maxWidth - offset.roundToInt() + edge
+          val x = if (action.isOnRightSide) constraints.maxWidth - edge - placeable.width else edge
           layout(placeable.width, placeable.height) { placeable.place(x = x, y = (constraints.maxHeight - placeable.height) / 2) }
         }
         .size(44.dp)
-        .graphicsLayer { scaleX = cookieScale; scaleY = cookieScale }
+        .graphicsLayer { scaleX = cookieScale; scaleY = cookieScale; alpha = lift }
         .clip(cookieShape)
         .background(cookieColor),
       contentAlignment = Alignment.Center,

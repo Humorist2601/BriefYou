@@ -114,7 +114,7 @@ Chosen by the owner from mock-ups (A cards, B open rows): **B, no unread dots.**
 - **App-wide rule: side margins are 16 dp** (every screen designed from now on, and older ones as they are reached; the settings pages, dialogs, sheets, Triage and reading screen still use 24 or other values until then).
 - Side margins are 16 dp (rows, day labels, title, search and read-all bars), like Home.
 - Header fade: 28 dp, drawn in the list below the pinned day label and only once the list has moved (never over the search or read-all bars).
-- Swipe: the row lifts into a rounded card (`surfaceContainerHigh`, 24 dp, inset 8 dp); the action waits as a small cookie on a `surfaceContainerHigh` tray; past the threshold the cookie pops with a spring overshoot (`primary`, icon `onPrimary`) and the tray fills with `primaryContainer`. No labels.
+- Swipe: two layers. Behind, the action surface is the whole row (24 dp, inset 8 dp, `surfaceContainerHigh`) with a small cookie waiting at the screen edge; above it the row lifts into a rounded card (`surfaceContainerHighest`, a soft shadow) that slides over it. They are never joined edge to edge; past the threshold the cookie pops with a spring overshoot (`primary`, icon `onPrimary`) and the tray fills with `primaryContainer`. No labels.
 - Read-all bar: label plus joined buttons (7 days / 3 days / 1 day / Everything), 26 dp outer and 9 dp inner corners, last one `primary`. Results follow the typing after 250 ms; the list keeps its old results until the new ones are loaded (`shownItems` in `FlowPage`), and rows use `animateItem` only while searching.
 - Not built from the mock-up: the result count under the search field, and the card style A.
 

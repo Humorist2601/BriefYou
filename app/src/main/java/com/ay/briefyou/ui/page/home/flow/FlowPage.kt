@@ -811,7 +811,16 @@ fun FlowPage(
                                 drawContent()
                                 if (topFadeAlpha > 0f) {
                                     val fade = 28.dp.toPx()
-                                    val start = if (articleListDateStickyHeader.value) 28.dp.toPx() else 0f
+                                    // Starts under the pinned day label (wherever it is right now, also while the next
+                                    // day pushes it up); with nothing pinned it starts right at the bar, so there is
+                                    // never a crisp strip of article between the bar and the fade.
+                                    val start =
+                                        if (articleListDateStickyHeader.value)
+                                            listState.layoutInfo.visibleItemsInfo
+                                                .filter { it.contentType == com.ay.briefyou.ui.page.home.flow.CONTENT_TYPE_DATE_HEADER && it.offset <= 0 }
+                                                .maxOfOrNull { (it.offset + it.size).toFloat() }
+                                                ?.coerceAtLeast(0f) ?: 0f
+                                        else 0f
                                     translate(top = start) {
                                         drawRect(
                                             brush = com.ay.briefyou.brief.ui.edgeFadeBrush(topFadeColor.copy(alpha = topFadeColor.alpha * topFadeAlpha), solidAtBottom = false, height = fade),
