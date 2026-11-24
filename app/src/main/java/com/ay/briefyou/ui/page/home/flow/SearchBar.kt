@@ -1,140 +1,70 @@
 package com.ay.briefyou.ui.page.home.flow
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.KeyboardActionHandler
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.drop
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ay.briefyou.R
+import com.ay.briefyou.ui.component.base.BYTextField2
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
 
-@OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.FlowPreview::class)
+/**
+ * The list's search: the same field as every other text box in the app (a tonal rounded box whose
+ * hint rises onto the top edge as a label chip), with a close button at its end. The results follow
+ * the typing a moment after the last key, so the list changes once per word, not once per letter.
+ */
+@OptIn(FlowPreview::class)
 @Composable
 fun SearchBar(
     value: String,
     placeholder: String = "",
-    focusRequester: FocusRequester = remember { FocusRequester() },
     onValueChange: (String) -> Unit = {},
     onClose: () -> Unit = {},
 ) {
     val focusManager = LocalFocusManager.current
-
-    var input by remember { mutableStateOf(value) }
-    var focused by remember { mutableStateOf(false) }
-    // Brief You: the results follow the typing a moment after the last key, so the list changes
-    // once per word instead of once per letter (no flicker).
-    val latestOnChange by androidx.compose.runtime.rememberUpdatedState(onValueChange)
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        androidx.compose.runtime.snapshotFlow { input }
-            .drop(1)
-            .debounce(250)
-            .collect { latestOnChange(it) }
+    val state = rememberTextFieldState(value)
+    val latestOnChange by rememberUpdatedState(onValueChange)
+    LaunchedEffect(Unit) {
+        snapshotFlow { state.text.toString() }.drop(1).debounce(250).collect { latestOnChange(it) }
     }
-    // Brief You: the outline takes the accent colour while you type.
-    val outline by androidx.compose.animation.animateColorAsState(
-        if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
-        label = "searchOutline",
-    )
 
-    Surface(
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 24.dp)
-            .padding(vertical = 12.dp)
-            .height(56.dp)
-            .fillMaxWidth(),
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = androidx.compose.foundation.BorderStroke(2.dp, outline),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    modifier = Modifier.padding(start = 16.dp),
-                    imageVector = Icons.Rounded.Search,
-                    contentDescription = stringResource(R.string.search),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                TextField(
-                    modifier = Modifier
-                        .height(56.dp)
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester)
-                        .onFocusChanged { focused = it.isFocused },
-                    colors = TextFieldDefaults.colors(
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                    ),
-                    value = input,
-                    onValueChange = { input = it },
-                    placeholder = {
-                        Text(
-                            modifier = Modifier.alpha(0.7f),
-                            text = placeholder,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    textStyle = MaterialTheme.typography.bodyLarge,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            focusManager.clearFocus()
-                        }
-                    )
-                )
-            }
-            IconButton(
-                onClick = { onClose() },
-                modifier = Modifier.padding(end = 8.dp).size(40.dp),
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                ),
-            ) {
+    BYTextField2(
+        state = state,
+        modifier =
+            Modifier.background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 24.dp)
+                .padding(top = 6.dp, bottom = 10.dp),
+        label = placeholder,
+        singleLine = true,
+        autoFocus = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        onKeyboardAction = KeyboardActionHandler { focusManager.clearFocus() },
+        customTrailing = {
+            IconButton(onClick = onClose) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = stringResource(R.string.clear),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-    }
+        },
+    )
 }

@@ -736,9 +736,11 @@ private fun PointCard(number: Int, text: androidx.compose.ui.text.AnnotatedStrin
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        modifier = Modifier.fillMaxWidth().animateContentSize(),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+        // The growth is animated inside the card, so its rounded shape grows with it (animating
+        // the card itself clipped it to a square box while a paragraph was written).
+        Row(modifier = Modifier.animateContentSize().padding(horizontal = 16.dp, vertical = 14.dp)) {
             Box(
                 modifier =
                     Modifier.size(30.dp)
@@ -772,9 +774,9 @@ private fun WhyCard(text: androidx.compose.ui.text.AnnotatedString) {
         color = MaterialTheme.colorScheme.tertiaryContainer,
         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
         shape = RoundedCornerShape(28.dp),
-        modifier = Modifier.fillMaxWidth().animateContentSize(),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(modifier = Modifier.padding(16.dp)) {
+        Row(modifier = Modifier.animateContentSize().padding(16.dp)) {
             // The bulb on a cookie shape, like a badge.
             Box(
                 modifier =
@@ -827,9 +829,9 @@ private fun AskConversation(asks: List<AskTurn>) {
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 shape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp),
-                modifier = Modifier.widthIn(max = 340.dp).animateContentSize(),
+                modifier = Modifier.widthIn(max = 340.dp),
             ) {
-                Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Box(modifier = Modifier.animateContentSize().padding(horizontal = 14.dp, vertical = 10.dp)) {
                     when {
                         turn.error != null ->
                             Text(

@@ -165,6 +165,8 @@ fun BYTextField2(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
     fillHeight: Boolean = false,
+    /** Replaces the default end button (paste, clear, show password), e.g. the search's close. */
+    customTrailing: (@Composable () -> Unit)? = null,
 ) {
     val focusRequester = remember { FocusRequester() }
 
@@ -196,7 +198,7 @@ fun BYTextField2(
         keyboardOptions = keyboardOptions,
         onKeyboardAction = onKeyboardAction,
         fillHeight = fillHeight,
-        trailing = {
+        trailing = customTrailing ?: {
             if (isPassword) {
                 PasswordVisibilityButton(showPassword = showPassword, onValueChange = { showPassword = it })
             } else if (state.text.isNotEmpty()) {

@@ -1,6 +1,15 @@
 package com.ay.briefyou.brief.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -35,6 +44,9 @@ class CollapsingTitle {
     /** 1 while the big title is fully below the top bar, 0 once it has gone under it. */
     var shown by mutableFloatStateOf(1f)
 
+    /** The count shown as a chip beside the small title (Home's unread, starred or all count); null for none. */
+    var count by mutableStateOf<String?>(null)
+
     /** The big title that last reported (Feeds has one on each of its pages). */
     internal var reporter: Any? = null
 
@@ -47,9 +59,11 @@ val LocalCollapsingTitle = staticCompositionLocalOf<CollapsingTitle?> { null }
 
 /** Put on the big title: tells the top bar how far it has scrolled under it. */
 @Composable
-fun Modifier.reportsCollapsingTitle(text: String): Modifier {
+fun Modifier.reportsCollapsingTitle(text: String, count: String? = null): Modifier {
     val title = LocalCollapsingTitle.current ?: return this
     val me = androidx.compose.runtime.remember { Any() }
+    val currentCount by androidx.compose.runtime.rememberUpdatedState(count)
+    androidx.compose.runtime.LaunchedEffect(count) { if (title.reporter === me) title.count = count }
     DisposableEffect(title, text) {
         title.text = text
         // Scrolled far away (the list let go of it): the small title stays in the bar. Only for
@@ -60,6 +74,7 @@ fun Modifier.reportsCollapsingTitle(text: String): Modifier {
         // A page beside the one on screen (a pager) has nothing visible: it doesn't count.
         if (coordinates.boundsInWindow().width <= 0f) return@onGloballyPositioned
         title.reporter = me
+        title.count = currentCount
         val height = coordinates.size.height.toFloat().coerceAtLeast(1f)
         val bottom = coordinates.positionInWindow().y + height
         title.shown = ((bottom - title.barBottom) / height).coerceIn(0f, 1f)
@@ -76,17 +91,45 @@ fun Modifier.measuresTitleBar(title: CollapsingTitle): Modifier = onGloballyPosi
 fun CollapsedTitle() {
     val title = LocalCollapsingTitle.current ?: return
     val text = title.text ?: return
-    Text(
-        text = text,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        // Like the article list's collapsed title.
-        style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp, fontWeight = FontWeight.Medium),
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier =
             Modifier.graphicsLayer {
                 val hidden = title.shown
                 alpha = 1f - hidden
                 translationY = hidden * 10.dp.toPx()
             },
-    )
+    ) {
+        Text(
+            text = text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            // Like the article list's collapsed title.
+            style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp, fontWeight = FontWeight.Medium),
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        title.count?.let {
+            Spacer(Modifier.width(8.dp))
+            CountChip(it)
+        }
+    }
+}
+
+/** The small count beside a collapsed title: an accent pill with the number in bold. */
+@Composable
+fun CountChip(text: String) {
+    Box(
+        modifier =
+            Modifier.height(28.dp)
+                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            maxLines = 1,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+    }
 }

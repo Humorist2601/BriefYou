@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -77,6 +78,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.paging.compose.LazyPagingItems
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.paging.compose.collectAsLazyPagingItems
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
@@ -174,7 +177,6 @@ fun FlowPage(
         }
 
     val scope = rememberCoroutineScope()
-    val focusRequester = remember { FocusRequester() }
     var markAsRead by remember { mutableStateOf(false) }
     var onSearch by rememberSaveable { mutableStateOf(false) }
     val brief = rememberBriefFlowState(filterUiState) // Brief You
@@ -369,7 +371,17 @@ fun FlowPage(
                 ) {
                     LargeTopAppBar(
                         modifier =
-                            Modifier.clickable(
+                            Modifier.drawBehind {
+                                // Brief You: the page fades in under the bar, like Home (the same
+                                // S-curve, 28 dp). Moved down first: a brush starts at the drawing's origin.
+                                val fade = 28.dp.toPx()
+                                translate(top = size.height) {
+                                    drawRect(
+                                        brush = com.ay.briefyou.brief.ui.edgeFadeBrush(scrolledTopBarContainerColor, solidAtBottom = false, height = fade),
+                                        size = androidx.compose.ui.geometry.Size(size.width, fade),
+                                    )
+                                }
+                            }.clickable(
                                 onClick = {
                                     scope.launch {
                                         if (listState.firstVisibleItemIndex != 0) {
@@ -412,10 +424,11 @@ fun FlowPage(
                                             maxFontSize = textStyle.fontSize,
                                         ),
                                 )
-                                // Brief You: how many, and in how many feeds (the tab decides what is counted).
-                                val sub =
+                                // Brief You: the big count with a muted sentence beside it (the tab decides
+                                // what is counted). Its room is always there, so the title never shifts.
+                                val countText = listScope?.let { java.text.NumberFormat.getIntegerInstance().format(it.count) }
+                                val sentence =
                                     listScope?.let { sc ->
-                                        val n = java.text.NumberFormat.getIntegerInstance().format(sc.count)
                                         when {
                                             sc.single || sc.feeds < 2 ->
                                                 stringResource(
@@ -423,8 +436,7 @@ fun FlowPage(
                                                         filterUiState.filter.isStarred() -> R.string.list_sub_starred
                                                         filterUiState.filter.isUnread() -> R.string.list_sub_unread
                                                         else -> R.string.list_sub_all
-                                                    },
-                                                    n,
+                                                    }
                                                 )
                                             else ->
                                                 androidx.compose.ui.res.pluralStringResource(
@@ -434,35 +446,40 @@ fun FlowPage(
                                                         else -> R.plurals.list_sub_all_feeds
                                                     },
                                                     sc.feeds,
-                                                    n,
                                                     sc.feeds,
                                                 )
                                         }
                                     }
-                                androidx.compose.animation.AnimatedContent(
-                                    targetState = sub ?: "",
-                                    transitionSpec = {
-                                        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200)) togetherWith
-                                            androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120))
-                                    },
-                                    label = "listSub",
-                                ) { line ->
-                                    if (line.isNotEmpty()) {
-                                        Text(
-                                            text = line,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(start = 8.dp, top = 6.dp),
-                                        )
-                                    }
+                                androidx.compose.foundation.layout.Row(
+                                    modifier = Modifier.padding(start = 8.dp, top = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Text(
+                                        text = countText ?: " ",
+                                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                        modifier = Modifier.alignByBaseline(),
+                                    )
+                                    Text(
+                                        text = sentence ?: " ",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.alignByBaseline(),
+                                    )
                                 }
                                 }
                             } else {
-                                Text(
-                                    text = titleText,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                                androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    Text(
+                                        text = titleText,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false),
+                                    )
+                                    listScope?.let { // Brief You: the count rides in the slim bar too
+                                        Spacer(Modifier.width(8.dp))
+                                        com.ay.briefyou.brief.ui.CountChip(java.text.NumberFormat.getIntegerInstance().format(it.count))
+                                    }
+                                }
                             }
                         },
                         expandedHeight = 172.dp,
@@ -524,8 +541,6 @@ fun FlowPage(
                                                         scope.launch {
                                                             onSearch = true
                                                             markAsRead = false
-                                                            delay(100)
-                                                            focusRequester.requestFocus()
                                                         }
                                                     }
                                             }
@@ -568,7 +583,6 @@ fun FlowPage(
                                         filterUiState.filter.toName(),
                                     )
                             },
-                        focusRequester = focusRequester,
                         onValueChange = { viewModel.inputSearchContent(it) },
                         onClose = {
                             onSearch = false
@@ -798,7 +812,6 @@ fun FlowPage(
                                 isShowFeedIcon = articleListFeedIcon.value,
                                 isShowStickyHeader = articleListDateStickyHeader.value,
                                 isSwipeEnabled = swipeEnabled, // Brief You: made once (see onArticleClick)
-                                listState = listState, // Brief You: the pinned day's line
                                 animateRows = onSearch || filterState.searchContent != null, // Brief You
                                 onClick = onArticleClick, // Brief You: made once
                                 onToggleStarred = onToggleStarred,

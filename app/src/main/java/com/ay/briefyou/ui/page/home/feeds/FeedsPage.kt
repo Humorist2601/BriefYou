@@ -275,9 +275,13 @@ fun FeedsPage(
             // Brief You: swipeable Starred / Unread / All pages; each runs the original list below
             // with its own filter state, groups, count line and list state.
             BriefFeedsPages(feedsPager, feedsViewModel, filterState, state = syncingState, isRefreshing = isSyncing, onRefresh = doSync) { filterState, groupWithFeedList, importantSum, listState ->
+                // Brief You: this page's count, shown as a chip beside the small title once it has moved into the bar.
+                val pageCount =
+                    if (importantSum.isEmpty()) null
+                    else java.text.NumberFormat.getIntegerInstance().format(groupWithFeedList.sumOf { g -> g.feeds.sumOf { it.important } })
                 LazyColumn(modifier = Modifier.fillMaxSize().drawVerticalScrollIndicator(listState), state = listState) {
                     item {
-                        DisplayText(text = feedsUiState.account?.name ?: "", desc = "") {
+                        DisplayText(text = feedsUiState.account?.name ?: "", desc = "", count = pageCount) {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             accountTabVisible = true
                         }

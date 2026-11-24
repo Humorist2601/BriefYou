@@ -389,30 +389,25 @@ fun NewspaperHost(maker: NewspaperMaker) {
             FrontPagePicture(page)
         }
     }
-    // The last run stays around while the dialog fades out (the run itself is dropped on cancel).
-    val live = maker.run?.takeIf { it.visible }
-    val last = remember { arrayOfNulls<PressRun>(1) }
-    if (live != null) last[0] = live
-    val run = last[0] ?: return
+    val run = maker.run ?: return
+    if (!run.visible) return
     // A dialog, not a sheet: it only shows the steps while it works (cancel, or retry if one failed).
-    com.ay.briefyou.brief.ui.LingerDialog(live != null) {
-        com.ay.briefyou.brief.ui.InWindowAlertDialog(
-            onDismissRequest = maker::cancel,
-            icon = { Icon(Icons.Outlined.Newspaper, contentDescription = null, modifier = Modifier.size(26.dp)) },
-            title = { Text(stringResource(R.string.newspaper_printing)) },
-            text = { PressSteps(run) },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = maker::cancel) { Text(stringResource(R.string.cancel)) }
-            },
-            confirmButton = {
-                if (run.failed != null) {
-                    com.ay.briefyou.brief.ui.DialogConfirmButton(onClick = maker::retry) {
-                        Text(stringResource(R.string.newspaper_retry))
-                    }
+    com.ay.briefyou.brief.ui.InWindowAlertDialog(
+        onDismissRequest = maker::cancel,
+        icon = { Icon(Icons.Outlined.Newspaper, contentDescription = null, modifier = Modifier.size(26.dp)) },
+        title = { Text(stringResource(R.string.newspaper_printing)) },
+        text = { PressSteps(run) },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = maker::cancel) { Text(stringResource(R.string.cancel)) }
+        },
+        confirmButton = {
+            if (run.failed != null) {
+                com.ay.briefyou.brief.ui.DialogConfirmButton(onClick = maker::retry) {
+                    Text(stringResource(R.string.newspaper_retry))
                 }
-            },
-        )
-    }
+            }
+        },
+    )
 }
 
 @Composable

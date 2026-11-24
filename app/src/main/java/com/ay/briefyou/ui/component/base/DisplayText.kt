@@ -21,6 +21,7 @@ fun DisplayText(
     modifier: Modifier = Modifier,
     text: String,
     desc: String,
+    count: String? = null, // Brief You: shown as a chip in the top bar once the title has moved up there
     onTextClick: (() -> Unit)? = null,
 ) {
     Column(
@@ -39,7 +40,7 @@ fun DisplayText(
             )
         val color = MaterialTheme.colorScheme.onSurface
         BasicText(
-            modifier = Modifier.reportsCollapsingTitle(text), // Brief You: moves into the top bar as you scroll
+            modifier = Modifier.reportsCollapsingTitle(text, count), // Brief You: moves into the top bar as you scroll
             text = text,
             style = style,
             color = { color },

@@ -29,7 +29,6 @@ fun LazyListScope.ArticleList(
     onMarkAboveAsRead: ((ArticleWithFeed) -> Unit)? = null,
     onMarkBelowAsRead: ((ArticleWithFeed) -> Unit)? = null,
     onShare: ((ArticleWithFeed) -> Unit)? = null,
-    listState: androidx.compose.foundation.lazy.LazyListState? = null, // Brief You: for the pinned day's line
     animateRows: Boolean = false, // Brief You: rows fade and glide while the results change (a search)
 ) {
     // Brief You: while searching, rows that stay glide to their new place, new ones fade in and
@@ -80,7 +79,7 @@ fun LazyListScope.ArticleList(
                     if (item.showSpacer) {
                         Spacer(modifier = Modifier.height(32.dp))
                     }
-                    StickyHeader(item.date, isShowFeedIcon, com.ay.briefyou.brief.list.dayCount(pagingItems, index)) // Brief You: with the day's count
+                    StickyHeader(item.date, isShowFeedIcon)
                 }
 
                 else -> {}
@@ -117,8 +116,7 @@ fun LazyListScope.ArticleList(
                         item { Spacer(modifier = Modifier.height(32.dp)) }
                     }
                     stickyHeader(key = key(item), contentType = contentType(item)) {
-                        val under = com.ay.briefyou.brief.list.rememberScrolledUnder(listState, key(item)) // Brief You: articles passing under it
-                        StickyHeader(item.date, isShowFeedIcon, com.ay.briefyou.brief.list.dayCount(pagingItems, index), line = under) // Brief You: with the day's count, and a line while articles pass under it
+                        StickyHeader(item.date, isShowFeedIcon)
                     }
                 }
 

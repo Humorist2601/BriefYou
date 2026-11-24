@@ -2,118 +2,110 @@ package com.ay.briefyou.ui.page.home.flow
 
 import android.view.HapticFeedbackConstants
 import android.view.SoundEffectConstants
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ay.briefyou.R
 import com.ay.briefyou.domain.model.general.MarkAsReadConditions
-import com.ay.briefyou.ui.component.base.AnimatedPopup
-import com.ay.briefyou.ui.component.base.BYExtensibleVisibility
-import com.ay.briefyou.ui.theme.palette.alwaysLight
 
+/**
+ * Mark as read, in the app's own style: a muted line, then one joined group of buttons (round on
+ * the outside, small corners between, like the setting choices): 7 days, 3 days, 1 day and, filled
+ * in the accent colour, Everything.
+ */
 @Composable
 fun MarkAsReadBar(
     onItemClick: (MarkAsReadConditions) -> Unit = {},
 ) {
-    Row(
-        modifier = Modifier
-            .padding(horizontal = 24.dp)
-            .padding(vertical = 12.dp)
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        MarkAsReadBarItem(
-            modifier = Modifier.width(56.dp),
-            text = stringResource(R.string.seven_days),
-        ) {
-            onItemClick(MarkAsReadConditions.SevenDays)
-        }
-        MarkAsReadBarItem(
-            modifier = Modifier.width(56.dp),
-            text = stringResource(R.string.three_days),
-        ) {
-            onItemClick(MarkAsReadConditions.ThreeDays)
-        }
-        MarkAsReadBarItem(
-            modifier = Modifier.width(56.dp),
-            text = stringResource(R.string.one_day),
-        ) {
-            onItemClick(MarkAsReadConditions.OneDay)
-        }
-        MarkAsReadBarItem(
-            modifier = Modifier.weight(1f),
-            text = stringResource(R.string.mark_all_as_read),
-            isPrimary = true,
-        ) {
-            onItemClick(MarkAsReadConditions.All)
+    val options =
+        listOf(
+            stringResource(R.string.mark_read_7_days) to MarkAsReadConditions.SevenDays,
+            stringResource(R.string.mark_read_3_days) to MarkAsReadConditions.ThreeDays,
+            stringResource(R.string.mark_read_1_day) to MarkAsReadConditions.OneDay,
+            stringResource(R.string.mark_read_everything) to MarkAsReadConditions.All,
+        )
+    Column(modifier = Modifier.padding(horizontal = 24.dp).padding(top = 6.dp, bottom = 12.dp)) {
+        Text(
+            text = stringResource(R.string.mark_read_older_than),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            options.forEachIndexed { index, (text, condition) ->
+                val last = index == options.lastIndex
+                val outer = 26.dp
+                val inner = 9.dp
+                MarkAsReadSegment(
+                    modifier = Modifier.weight(if (last) 2.2f else 1.2f),
+                    text = text,
+                    shape =
+                        RoundedCornerShape(
+                            topStart = if (index == 0) outer else inner,
+                            bottomStart = if (index == 0) outer else inner,
+                            topEnd = if (last) outer else inner,
+                            bottomEnd = if (last) outer else inner,
+                        ),
+                    container =
+                        if (last) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    content =
+                        if (last) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface,
+                ) {
+                    onItemClick(condition)
+                }
+            }
         }
     }
 }
 
 @Composable
-fun MarkAsReadBarItem(
-    modifier: Modifier = Modifier,
+private fun MarkAsReadSegment(
+    modifier: Modifier,
     text: String,
-    isPrimary: Boolean = false,
-    onClick: () -> Unit = {},
+    shape: RoundedCornerShape,
+    container: Color,
+    content: Color,
+    onClick: () -> Unit,
 ) {
     val view = LocalView.current
-
     Surface(
-        modifier = modifier
-            .height(56.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .clickable {
+        modifier =
+            modifier.height(52.dp).clip(shape).clickable {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 view.playSoundEffect(SoundEffectConstants.CLICK)
                 onClick()
             },
-        tonalElevation = 2.dp,
-        shape = RoundedCornerShape(16.dp),
-        color = if (isPrimary) {
-            MaterialTheme.colorScheme.primaryContainer alwaysLight true
-        } else {
-            MaterialTheme.colorScheme.surface
-        }
+        shape = shape,
+        color = container,
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .padding(horizontal = 5.dp),
-            contentAlignment = Alignment.Center,
-        ) {
+        Box(contentAlignment = Alignment.Center) {
             Text(
                 text = text,
-                style = MaterialTheme.typography.titleSmall.copy(
-                    textAlign = TextAlign.Center,
-                ),
-                color = if (isPrimary) {
-                    MaterialTheme.colorScheme.onSurface alwaysLight true
-                } else {
-                    MaterialTheme.colorScheme.secondary
-                },
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = content,
+                maxLines = 1,
             )
         }
-    }
-    if (!isPrimary) {
-        Spacer(modifier = Modifier.width(8.dp))
     }
 }
