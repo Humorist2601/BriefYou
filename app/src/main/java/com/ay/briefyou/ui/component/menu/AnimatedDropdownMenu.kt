@@ -2,6 +2,11 @@ package com.ay.briefyou.ui.component.menu
 
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.DropdownMenu
@@ -70,6 +75,8 @@ fun AnimatedDropdownMenu(
     alignToAnchorEnd: Boolean = false,
     /** Brief You: the content draws its own pieces, with no menu surface behind them. */
     bare: Boolean = false,
+    /** Brief You: dim the screen behind the menu (a tap on the dim closes it); the image viewer turns it off. */
+    dim: Boolean = bare,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val expandedState = remember { MutableTransitionState(false) }
@@ -89,6 +96,34 @@ fun AnimatedDropdownMenu(
                 }
             }
 
+        if (dim) {
+            // The dim: a window of its own over the whole screen, under the menu's, that fades with the menu.
+            val dimAlpha by androidx.compose.animation.core.animateFloatAsState(
+                if (expandedState.targetState) 0.32f else 0f,
+                androidx.compose.animation.core.tween(160),
+                label = "menuDim",
+            )
+            Popup(
+                popupPositionProvider = remember {
+                    object : androidx.compose.ui.window.PopupPositionProvider {
+                        override fun calculatePosition(
+                            anchorBounds: androidx.compose.ui.unit.IntRect,
+                            windowSize: androidx.compose.ui.unit.IntSize,
+                            layoutDirection: androidx.compose.ui.unit.LayoutDirection,
+                            popupContentSize: androidx.compose.ui.unit.IntSize,
+                        ) = IntOffset.Zero
+                    }
+                },
+                onDismissRequest = onDismissRequest,
+                properties = PopupProperties(focusable = false, clippingEnabled = false),
+            ) {
+                androidx.compose.foundation.layout.Box(
+                    Modifier.fillMaxSize()
+                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = dimAlpha))
+                        .pointerInput(Unit) { detectTapGestures { onDismissRequest() } }
+                )
+            }
+        }
         Popup(
             onDismissRequest = onDismissRequest,
             popupPositionProvider = popupPositionProvider,

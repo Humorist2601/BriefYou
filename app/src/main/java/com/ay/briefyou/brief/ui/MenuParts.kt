@@ -34,16 +34,32 @@ import com.ay.briefyou.brief.tour.TransientHint
 
 /**
  * The pieces of the app's menus (DESIGN.md §10): a menu has no box of its own; it is a few cards,
- * a strip of round buttons and rows with a text, each drawn on `surfaceContainerHighest` with an 8 dp shadow (the same as the Triage skip-after card); the round buttons rest on `surfaceContainerHigh`.
+ * a strip of round buttons and rows with a text, each drawn on `surfaceContainerHigh` (the screen behind is dimmed); the round buttons rest on `surfaceContainerLow`. In the image viewer they are dark grey and nothing is dimmed.
  */
+
+/**
+ * The image viewer's menus are always dark grey, whatever the theme: the picture sits on black and
+ * is not dimmed behind a menu.
+ */
+val LocalMenuOnImage = androidx.compose.runtime.compositionLocalOf { false }
+
+private val ImageMenuCard = androidx.compose.ui.graphics.Color(0xFF2B2930)
+private val ImageMenuButton = androidx.compose.ui.graphics.Color(0xFF1D1B20)
+private val ImageMenuOn = androidx.compose.ui.graphics.Color(0xFF4F378B)
+private val ImageMenuOnText = androidx.compose.ui.graphics.Color(0xFFEADDFF)
+private val ImageMenuText = androidx.compose.ui.graphics.Color(0xFFE6E0E9)
+
+@Composable
+private fun menuCardColor() =
+    if (LocalMenuOnImage.current) ImageMenuCard else MaterialTheme.colorScheme.surfaceContainerHigh
 
 /** A card holding a row of [MenuRoundButton]s, centred. */
 @Composable
 fun MenuStrip(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
     Surface(
         shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        shadowElevation = 8.dp,
+        color = menuCardColor(),
+        shadowElevation = 1.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
@@ -76,14 +92,17 @@ fun MenuRoundButton(
     val haptic = LocalHapticFeedback.current
     var hint by remember { mutableStateOf(false) }
     val me = remember { Any() }
+    val onImage = LocalMenuOnImage.current
     Box(modifier = modifier.size(52.dp)) {
         Surface(
             shape = CircleShape,
             color =
-                if (selected) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                if (onImage) (if (selected) ImageMenuOn else ImageMenuButton)
+                else if (selected) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surfaceContainerLow,
             contentColor =
-                if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                if (onImage) (if (selected) ImageMenuOnText else ImageMenuText)
+                else if (selected) MaterialTheme.colorScheme.onPrimaryContainer
                 else MaterialTheme.colorScheme.onSurface,
             modifier =
                 Modifier.size(52.dp)
@@ -120,8 +139,9 @@ fun MenuRow(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        shadowElevation = 8.dp,
+        color = menuCardColor(),
+        shadowElevation = 1.dp,
+        contentColor = if (LocalMenuOnImage.current) ImageMenuText else MaterialTheme.colorScheme.onSurface,
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(

@@ -309,7 +309,9 @@ fun ReaderImageViewer(
                         onDismissRequest = { expanded = false },
                         alignToAnchorEnd = true,
                         bare = true,
+                        dim = false, // the picture stays as it is
                     ) {
+                      androidx.compose.runtime.CompositionLocalProvider(com.ay.briefyou.brief.ui.LocalMenuOnImage provides true) {
                         // Brief You: three round buttons: save, share the link, share the picture.
                         com.ay.briefyou.brief.ui.MenuStrip {
                             com.ay.briefyou.brief.ui.MenuRoundButton(
@@ -364,6 +366,7 @@ fun ReaderImageViewer(
                                 },
                             )
                         }
+                      }
                     }
                     IconButton(
                         onClick = { expanded = true },

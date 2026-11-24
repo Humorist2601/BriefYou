@@ -2505,9 +2505,9 @@ private fun AutoDelayMenu(
         // One card: the title, then the six delays as chips (the chosen one is round and primary).
         Surface(
             shape = RoundedCornerShape(28.dp),
-            // Lighter than the Triage card behind it, with a deeper shadow (no outline: Material has none), so it never blends in.
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            shadowElevation = 8.dp,
+            // The same as every menu: the screen behind is dimmed, so it stands out without an outline or a deep shadow.
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shadowElevation = 1.dp,
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
@@ -2536,7 +2536,7 @@ private fun AutoDelayMenu(
                                 shape = RoundedCornerShape(if (selected) 28.dp else 16.dp),
                                 color =
                                     if (selected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    else MaterialTheme.colorScheme.surfaceContainerHighest,
                                 contentColor =
                                     if (selected) MaterialTheme.colorScheme.onPrimary
                                     else MaterialTheme.colorScheme.onSurface,

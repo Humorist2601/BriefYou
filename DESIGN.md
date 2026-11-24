@@ -215,12 +215,12 @@ Fields are filled and rounded, everywhere (account dialogs included).
 
 ### 10.8 Menus (`AnimatedDropdownMenu(bare = true)`)
 
-A menu has no box of its own: it is separate pieces on `surfaceContainerHighest` with an 8 dp shadow (every menu the same; only the AI button's menu is its own), 3 dp apart (`Group.Gap`, as in a joined group; `MenuParts.kt`).
+A menu has no box of its own: it is separate pieces on `surfaceContainerHigh` with the normal 1 dp shadow (every menu the same; only the AI button's menu is its own), 3 dp apart, and **the screen behind is dimmed** (32% black, fading with the menu; a tap on it closes the menu). The image viewer's menu is the exception: dark grey whatever the theme (`LocalMenuOnImage`), and the picture is not dimmed (`Group.Gap`, as in a joined group; `MenuParts.kt`).
 - `MenuStrip`: a 28 dp card of `MenuRoundButton`s (52 dp circles, icon only, 24 dp icon, a content description for each; a long press shows it as a `TransientHint`, the hint bubble's look without "Got it", for about 2 s, fading out). A button that is on
-  (read, starred) is `primaryContainer`, the others `surfaceContainerHigh`.
+  (read, starred) is `primaryContainer`, the others `surfaceContainerLow`.
 - `MenuRow`: its own 20 dp card, icon and text (Mark above / Mark below as read, above and below the strip).
 - Choices of one setting (Triage "Skip after"): one 28 dp card with a `primary` title and 72 x 56 dp chips in a grid; the chosen chip is round (28 dp)
   and solid `primary` (card colours: see the last line of this section), the others 16 dp on `surfaceContainerHigh`.
 - Menus: article long-press (above row, strip of Read, Star, Share, Newspaper, below row), Triage "Skip after", image viewer (Save, Share link, Share image).
-- A menu drawn as one card (Triage "Skip after") is the same surface as the pieces above: `surfaceContainerHighest` with the 8 dp shadow and no outline (Material cards and menus have none), its chips on `surfaceContainerHigh`, the chosen one solid `primary`. Menus made of separate pieces already stand apart; any new card-shaped menu follows this surface.
+- A menu drawn as one card (Triage "Skip after") is the same surface as the pieces above: `surfaceContainerHigh`, 1 dp shadow, no outline (Material cards and menus have none), its chips on `surfaceContainerHighest`, the chosen one solid `primary`. Menus made of separate pieces already stand apart; any new card-shaped menu follows this surface.
 - Stat tiles (Reading stats, Filters page): full-size `StatTile`s, 12 dp apart, equal height (`IntrinsicSize.Min` + `fillMaxHeight`); one is always picked (`tertiaryContainer`, the others `surfaceContainerHigh`) and decides what shows below. Filters: Duplicates, Muted, Watched. Watched on Home: an eye badge by the group name; in a feed row only the number, in a 40 x 28 dp `tertiaryContainer` chip like the unread count.
