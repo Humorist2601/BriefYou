@@ -1,5 +1,6 @@
 package com.ay.briefyou.brief.ui
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -121,7 +122,11 @@ fun CollapsedTitle() {
 fun CountChip(text: String) {
     Box(
         modifier =
-            Modifier.height(28.dp).widthIn(min = 40.dp)
+            Modifier.height(28.dp)
+                // Grows and shrinks with a spring when the digit count changes (99 to 100); the title beside
+                // it gives way a little at a time. Digits are equal-width (tnum), so only the count of them matters.
+                .animateContentSize(androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 500f))
+                .widthIn(min = 40.dp)
                 .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
                 .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
