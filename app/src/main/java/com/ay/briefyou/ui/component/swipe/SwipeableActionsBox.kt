@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -182,7 +183,7 @@ private fun ActionIconBox(
           val clip = androidx.compose.ui.graphics.Path().apply {
             addRoundRect(androidx.compose.ui.geometry.RoundRect(tray, radius))
           }
-          androidx.compose.ui.graphics.drawscope.clipPath(clip) { this@drawWithContent.drawContent() }
+          clipPath(clip) { this@drawWithContent.drawContent() }
         }
       },
   ) {
