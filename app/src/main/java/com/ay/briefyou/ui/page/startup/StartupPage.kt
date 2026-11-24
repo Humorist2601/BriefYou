@@ -116,7 +116,6 @@ fun StartupPage(
         text = {
             SelectionContainer {
                 HtmlText(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
                     text = stringResource(R.string.brief_tos_content) /* Brief You */,
                     style =
                         MaterialTheme.typography.bodySmall.copy(

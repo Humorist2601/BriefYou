@@ -4,6 +4,7 @@ package com.ay.briefyou.ui.page.settings.accounts.addition
 
 import com.ay.briefyou.brief.ui.DialogConfirmButton
 
+import com.ay.briefyou.brief.ui.sheetScrollFade
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -93,7 +94,7 @@ fun AddFeverAccountDialog(
             )
         },
         text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            Column {
                 Spacer(modifier = Modifier.height(10.dp))
                 BYOutlineTextField(
                     modifier = Modifier.fillMaxWidth(),

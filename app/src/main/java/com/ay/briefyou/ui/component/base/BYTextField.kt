@@ -272,8 +272,10 @@ private fun ChipLabelField(
                 .heightIn(min = 60.dp)
                 .onSizeChanged { boxHeight = it.height }
                 .background(scheme.surfaceContainerHighest, shape)
-                .border(borderWidth, borderColor, shape)
         ) {
+            // The outline is drawn first (under the text and the label chip), so the chip covers it
+            // instead of the line running through the chip.
+            Box(Modifier.matchParentSize().border(borderWidth, borderColor, shape))
             Row(
                 Modifier.fillMaxWidth().padding(start = 16.dp, end = if (trailing != null) 4.dp else 16.dp),
                 verticalAlignment = Alignment.CenterVertically,

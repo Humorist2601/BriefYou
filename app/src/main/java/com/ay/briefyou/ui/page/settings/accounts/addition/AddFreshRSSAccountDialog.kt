@@ -7,6 +7,7 @@ import com.ay.briefyou.brief.ui.DialogConfirmButton
 import android.app.Activity
 import android.security.KeyChain
 import androidx.compose.foundation.clickable
+import com.ay.briefyou.brief.ui.sheetScrollFade
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -102,9 +103,7 @@ fun AddFreshRSSAccountDialog(
             )
         },
         text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState())
-            ) {
+            Column {
                 Spacer(modifier = Modifier.height(10.dp))
                 BYOutlineTextField(
                     modifier = Modifier.fillMaxWidth(),

@@ -268,7 +268,7 @@ fun AccountDetailsPage(
         },
     )
 
-    if (nameDialogVisible) {
+    com.ay.briefyou.brief.ui.LingerDialog(nameDialogVisible) {
         val textFieldState = rememberTextFieldState(nameValue ?: "")
         TextFieldDialog(
             title = stringResource(R.string.name),

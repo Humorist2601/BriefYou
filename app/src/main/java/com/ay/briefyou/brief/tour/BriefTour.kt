@@ -392,7 +392,6 @@ private fun BriefTour(firstRun: Boolean, onDone: (setUpAi: Boolean) -> Unit) {
         text = {
             SelectionContainer {
                 HtmlText(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
                     text = stringResource(R.string.brief_tos_content),
                     style = MaterialTheme.typography.bodySmall.copy(color = scheme.onSurfaceVariant),
                 )

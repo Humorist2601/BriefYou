@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.ay.briefyou.brief.ui.DialogConfirmButton
+import com.ay.briefyou.brief.ui.sheetScrollFade
 import com.ay.briefyou.R
 import com.ay.briefyou.brief.ui.InWindowAlertDialog
 import com.ay.briefyou.ui.component.FeedIcon
@@ -81,8 +82,12 @@ fun AddFeedDialog(viewModel: SubscribeViewModel) {
             }
         }
 
-    if (state !is SubscribeState.Visible) return
-    DisposableEffect(Unit) { onDispose { viewModel.cancelSearch() } }
+    // Kept while it leaves (with its keyboard), so closing is not a cut: see LingerDialog.
+    val visible = state is SubscribeState.Visible
+    val last = androidx.compose.runtime.remember { arrayOfNulls<SubscribeState>(1) }
+    if (visible) last[0] = state
+    val shown = last[0] ?: return
+    DisposableEffect(visible) { onDispose { if (visible) viewModel.cancelSearch() } }
 
     fun close() {
         focusManager.clearFocus()
@@ -92,7 +97,9 @@ fun AddFeedDialog(viewModel: SubscribeViewModel) {
     // In a window of its own (no dialog host), like the dialogs over the option sheets. Drawn in
     // the app's window, every frame of the keyboard sliding re-laid out the whole feeds page
     // under it, which made the dialog lag.
-    com.ay.briefyou.brief.ui.OptionSheetDialogs { AddFeedDialogContent(viewModel, state, uiState, { launcher.launch(it) }) { close() } }
+    com.ay.briefyou.brief.ui.LingerDialog(visible) {
+        com.ay.briefyou.brief.ui.OptionSheetDialogs { AddFeedDialogContent(viewModel, shown, uiState, { launcher.launch(it) }) { close() } }
+    }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -192,7 +199,8 @@ private fun AddFeedDialogContent(
                     }
 
                     is SubscribeState.Configure -> {
-                        Column(modifier = Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
+                        val listScroll = rememberScrollState()
+                        Column(modifier = Modifier.heightIn(max = 440.dp).sheetScrollFade(listScroll).verticalScroll(listScroll)) {
                             Text(
                                 text = s.feedLink,
                                 style = MaterialTheme.typography.bodyMedium,

@@ -81,7 +81,6 @@ fun UpdateDialog(
         text = {
             SelectionContainer {
                 Text(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
                     text = newVersionLog,
                 )
             }

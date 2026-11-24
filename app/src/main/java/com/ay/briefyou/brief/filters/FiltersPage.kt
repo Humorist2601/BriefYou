@@ -822,7 +822,7 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
         },
     )
 
-    if (addWatchedVisible) {
+    com.ay.briefyou.brief.ui.LingerDialog(addWatchedVisible) {
         val draft = rememberTextFieldState()
         TextFieldDialog(
             textFieldState = draft,
@@ -838,8 +838,8 @@ fun FiltersPage(onBack: () -> Unit, viewModel: FiltersViewModel = hiltViewModel(
             },
         )
     }
-    // Only composed while open, so it starts empty every time.
-    if (addDialogVisible) {
+    // Only composed while open (and while it leaves), so it starts empty every time.
+    com.ay.briefyou.brief.ui.LingerDialog(addDialogVisible) {
         val draft = rememberTextFieldState()
         TextFieldDialog(
             textFieldState = draft,

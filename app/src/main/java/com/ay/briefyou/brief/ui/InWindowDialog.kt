@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.ui.draw.clip
@@ -163,6 +165,12 @@ fun InWindowAlertDialog(
     danger: Boolean = false,
     /** The icon is a picture of its own (a feed's icon): drawn as it is, not put on a cookie. */
     plainIcon: Boolean = false,
+    /**
+     * The text part scrolls when it doesn't fit (a tall dialog, or the keyboard up), with the same
+     * edge fade as a sheet, for every dialog. So a dialog's content must not scroll by itself without
+     * a height limit: a second scroll inside would crash. Off only for a content that must not scroll.
+     */
+    scrollContent: Boolean = true,
 ) {
     // Every dialog gets a window of its own that covers the screen and doesn't move for the
     // keyboard; the dialog moves above the keyboard inside it, so the cursor's handle stays under
@@ -197,6 +205,7 @@ fun InWindowAlertDialog(
             properties = properties,
             danger = danger,
             plainIcon = plainIcon,
+            scrollContent = scrollContent,
         )
     }
 }
@@ -219,6 +228,7 @@ private fun DialogScaffold(
     properties: DialogProperties,
     danger: Boolean,
     plainIcon: Boolean,
+    scrollContent: Boolean,
 ) = DangerDialog(danger) {
     // Predictive back: while you swipe back, the dialog shrinks a little and drifts toward the
     // edge you swipe from, and the scrim lightens; let go and it fades away and closes, change
@@ -401,6 +411,14 @@ private fun DialogScaffold(
                                             Modifier.weight(1f, fill = false)
                                                 .padding(bottom = 24.dp)
                                                 .align(Alignment.Start)
+                                                .then(
+                                                    if (scrollContent) {
+                                                        // Fades at the edge where there is more to scroll to, as in a sheet.
+                                                        val textScroll = rememberScrollState()
+                                                        Modifier.sheetScrollFade(textScroll).verticalScroll(textScroll)
+                                                    }
+                                                    else Modifier
+                                                )
                                     ) {
                                         it()
                                     }

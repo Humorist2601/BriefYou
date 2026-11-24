@@ -122,7 +122,7 @@ fun AiSettingsPage(onBack: () -> Unit, viewModel: AiSettingsViewModel = hiltView
         },
         onDismissRequest = { aiButtonDialogVisible = false },
     )
-    if (downloadAsk) {
+    com.ay.briefyou.brief.ui.LingerDialog(downloadAsk) {
         DownloadDialog(
             onDownload = {
                 downloadAsk = false

@@ -52,7 +52,7 @@ private fun ApplyToAllDialog(
         icon = { Icon(imageVector = icon, contentDescription = null) },
         title = { Text(title) },
         text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            Column {
                 Text(stringResource(R.string.group_configuration_description, title, groupName))
                 Spacer(modifier = Modifier.height(16.dp))
                 ChoiceRow(
