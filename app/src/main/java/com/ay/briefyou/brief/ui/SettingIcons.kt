@@ -10,13 +10,13 @@ import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material.icons.outlined.FastForward
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.FontDownload
-import androidx.compose.material.icons.outlined.FormatAlignLeft
+import androidx.compose.material.icons.automirrored.outlined.FormatAlignLeft
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Notes
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Sort
+import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.SwipeLeft
 import androidx.compose.material.icons.outlined.SwipeRight
 import androidx.compose.material.icons.outlined.SwipeUp
@@ -33,14 +33,14 @@ object SettingIcons {
     val OpenApp = Icons.Outlined.RocketLaunch
     val Browser = Icons.Outlined.Public
     val SharedContent = Icons.Outlined.Share
-    val SortUnread = Icons.Outlined.Sort
+    val SortUnread = Icons.AutoMirrored.Outlined.Sort
     val PullFromBottom = Icons.Outlined.SwipeUp
     val SyncInterval = Icons.Outlined.Sync
     val KeepArchived = Icons.Outlined.Archive
     val ReadingFonts = Icons.Outlined.TextFields
     val BasicFonts = Icons.Outlined.FontDownload
-    val Alignment = Icons.Outlined.FormatAlignLeft
-    val ArticleDesc = Icons.Outlined.Notes
+    val Alignment = Icons.AutoMirrored.Outlined.FormatAlignLeft
+    val ArticleDesc = Icons.AutoMirrored.Outlined.Notes
     val GreyOut = Icons.Outlined.Contrast
     val AiButton = Icons.Outlined.AutoAwesome
     val AutoBackup = Icons.Outlined.Backup
